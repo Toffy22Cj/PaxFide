@@ -1,0 +1,28 @@
+:root {
+  --font-family-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  
+  /* Medidos del logo */
+  --brand-green-900: #1B5141;
+  --brand-green-800: #20604C;
+  --brand-green-500: #4E9155;
+  --brand-blue-500: #3688B0;
+  --brand-yellow-400: #F3B544;
+  --brand-neutral-700: #405656;
+  --white: #FFFFFF;
+
+  /* Derivados */
+  --brand-blue-700: #327DA2;
+  --brand-blue-800: #255E79;
+  --brand-yellow-900: #785008;
+  --brand-yellow-50: #FDF4E2;
+  --brand-green-50: #EEF6EF;
+  --brand-blue-50: #EBF5F9;
+
+  /* Semánticos */
+  --danger-700: #B42318;
+  --danger-50: #FEF3F2;
+}
+
+body {
+  font-family: var(--font-family-sans);
+}
