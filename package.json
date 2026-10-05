@@ -1,5 +1,5 @@
 {
-  "name": "tmp-app",
+  "name": "paxfide-web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --reporter=list && playwright test -c playwright.empty.config.ts --reporter=list && playwright test -c playwright.prod.config.ts --reporter=list",
     "typecheck": "tsc --noEmit",
     "check:server": "node scripts/check-server-imports.js"
   },

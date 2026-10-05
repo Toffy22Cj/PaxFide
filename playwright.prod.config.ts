@@ -15,21 +15,16 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /routing\.spec\.ts|production\.spec\.ts/,
+      testMatch: /production\.spec\.ts/,
     },
   ],
   webServer: [
     {
-      command: 'NEXT_PUBLIC_E2E_BUILD=true NEXT_PUBLIC_API_BASE_URL=http://localhost:3002 pnpm build && pnpm start',
+      command: 'NEXT_PUBLIC_API_BASE_URL=http://localhost:3002 pnpm build && pnpm start',
       url: 'http://localhost:3000',
       reuseExistingServer: false,
       env: {
-        NEXT_PUBLIC_E2E_SURFACES: JSON.stringify([
-          '/login',
-          '/panel',
-          '/panel/campaigns',
-          '/assets/:assetRef'
-        ])
+        NEXT_PUBLIC_E2E_SURFACES: JSON.stringify(['/login', '/panel'])
       }
     },
     {
