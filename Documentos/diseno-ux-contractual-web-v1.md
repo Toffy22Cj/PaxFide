@@ -79,11 +79,11 @@ Amplía `sistema-visual-paxfide-web.md` **sin modificar** ningún token existent
 |---|---|
 | Espaciado (base 4 px) | `space-1` 4 · `space-2` 8 · `space-3` 12 · `space-4` 16 · `space-6` 24 · `space-8` 32 · `space-12` 48 |
 | Radio | `radius-control` 6 px (campos, botones) · `radius-surface` 8 px (paneles, modal) |
-| Sombra | Solo el modal: `shadow-modal`. Las superficies planas usan borde, no sombra |
-| Tipografía (sobre `system-ui`, HEREDADO) | `text-sm` 14 px (metadatos) · `text-md` 16 px (cuerpo) · `text-lg` 20 px (títulos de sección) · `text-xl` 24 px (título de página); pesos 400 y 600 |
+| Sombra | Solo el modal: `shadow-modal` (`0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)`). Las superficies planas usan borde, no sombra |
+| Tipografía (sobre `system-ui`, HEREDADO) | `text-sm` 14 px (metadatos) · `text-md` 16 px (cuerpo) · `text-lg` 20 px (títulos de sección) · `text-xl` 24 px (título de página); pesos `--weight-regular` 400 y `--weight-semibold` 600 |
 | Foco | Contorno de 2 px en `brand-green-900` con separación de 2 px (8,72:1 sobre `neutral-50`). Nunca amarillo (HEREDADO) |
-| Objetivo táctil | Controles de 40 px de alto como mínimo (supera WCAG 2.5.8) |
-| Ancho de contenido | Login 400 px; detalle 720 px; márgenes laterales de 16 px en móvil |
+| Objetivo táctil | Controles de `--control-height` 40 px de alto como mínimo (supera WCAG 2.5.8) |
+| Ancho de contenido | Login `--width-login` 400 px; detalle `--width-detail` 720 px; márgenes laterales de `--gutter-mobile` 16 px en móvil |
 
 **Regla de texto pequeño (HEREDADO, `sistema-visual` §5.2):** en `text-sm`, los enlaces van en `brand-blue-800`.
 
@@ -324,8 +324,9 @@ Regla común: **nunca se muestra el `detail` de un `ProblemDetail`** (consecuenc
 | 7 | Login: estados y textos; R-UX-1 (motivo de cierre de sesión en memoria) | **APROBADO** |
 | 8 | AssetPage: etiquetas, traducción de `lifecycleStatus` sin color, referencias opacas tal cual, `quantity` sin transformación, `split` diseñado con zona de campos PENDIENTE y bloqueado para despliegue | **APROBADO** |
 | 9 | Textos de estados globales (§6) | **APROBADO** |
+| 10 | Tokens adicionales (§3.3) y sombra | **APROBADO** |
 
-**Aprobación:** Carlos, 2026-10-05, en bloque, sobre la revisión 2.
+**Aprobación:** Carlos, 2026-10-05, en bloque, sobre la revisión 3.
 
 **Decisiones explícitas registradas con la aprobación:**
 - Se mantiene `/panel` como destino post-login por defecto. Es HEREDADO de ADR-042 D4 y este documento no puede rebajarlo a PENDIENTE.
