@@ -42,12 +42,12 @@ export default function AssetPage({ params, fetchClient = fetchAsset }: { params
     const isReadOnly = data.lifecycleStatus === 'DELIVERED';
     return (
       <div data-testid={`state-content${isReadOnly ? '-readonly' : ''}`}>
-        <h1>Activo Físico: {data.assetRef}</h1>
+        <h1>Activo {data.assetRef}</h1>
         {isReadOnly && <StatusNotice variant="info" text="Este activo ya fue entregado. Solo lectura." />}
         <ul>
           <li data-testid="field-lifecycleStatus">Estado: {translateStatus(data.lifecycleStatus)}</li>
-          <li data-testid="field-currentCustodianRef">Custodio actual: {data.currentCustodianRef || 'Sin registrar'}</li>
-          <li data-testid="field-currentLocation">Ubicación actual: {data.currentLocation || 'Sin registrar'}</li>
+          <li data-testid="field-currentCustodianRef">Custodio actual: {data.currentCustodianRef === null ? 'Sin registrar' : data.currentCustodianRef}</li>
+          <li data-testid="field-currentLocation">Ubicación actual: {data.currentLocation === null ? 'Sin registrar' : data.currentLocation}</li>
           <li data-testid="field-quantity">Cantidad: {data.quantity}</li>
           <li data-testid="field-unitOfMeasure">Unidad de medida: {data.unitOfMeasure}</li>
           <li data-testid="field-campaignRef">Convocatoria: {data.campaignRef}</li>

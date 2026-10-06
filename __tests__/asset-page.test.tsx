@@ -78,7 +78,7 @@ describe('Asset Page (T-6)', () => {
     });
 
     // 7 campos esperados
-    expect(screen.getByText('Activo Físico: ASSET-123')).toBeInTheDocument();
+    expect(screen.getByText('Activo ASSET-123')).toBeInTheDocument();
     expect(screen.getByTestId('field-lifecycleStatus')).toHaveTextContent('Estado: Registrado');
     expect(screen.getByTestId('field-currentCustodianRef')).toHaveTextContent('Custodio actual: EMP-123');
     expect(screen.getByTestId('field-currentLocation')).toHaveTextContent('Ubicación actual: BODEGA_CENTRAL');
@@ -88,6 +88,35 @@ describe('Asset Page (T-6)', () => {
 
     // Aserción negativa: donorRef ('DONOR-SECRET') NO debe ser renderizado
     expect(screen.queryByText('DONOR-SECRET')).toBeNull();
+
+    // Aserción negativa: no stack trace, no color style, no "Dividir activo" button
+    expect(screen.queryByText(/stack trace/i)).toBeNull();
+    expect(screen.getByTestId('field-lifecycleStatus').style.color).toBe('');
+    expect(screen.queryByRole('button', { name: /Dividir activo/i })).toBeNull();
+  });
+
+  it('Muestra "Sin registrar" para currentLocation y currentCustodianRef null', async () => {
+    const fakeClient = async () => {
+      const resp = await createFakeClient('SUCCESS', 'ASSET-123');
+      if (resp.state === 'SUCCESS') {
+        resp.data.currentCustodianRef = null as any;
+        resp.data.currentLocation = null as any;
+      }
+      return resp;
+    };
+    
+    render(
+      <Suspense fallback={<div data-testid="suspense-loading"></div>}>
+        <AssetPage params={createResolvedPromise({ assetRef: 'ASSET-123' })} fetchClient={fakeClient} />
+      </Suspense>
+    );
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('state-content')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('field-currentCustodianRef')).toHaveTextContent('Custodio actual: Sin registrar');
+    expect(screen.getByTestId('field-currentLocation')).toHaveTextContent('Ubicación actual: Sin registrar');
   });
 
   it('Muestra estado de solo lectura cuando es DELIVERED', async () => {
