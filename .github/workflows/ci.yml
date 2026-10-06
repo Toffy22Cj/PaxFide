@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ "develop" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Check for .skip or .only in tests
+        run: |
+          if grep -E '\.(skip|only)\(' -r __tests__/ e2e/; then
+            echo "Error: Found .skip() or .only() in tests. Please remove them."
+            exit 1
+          fi
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        run: npm install -g pnpm@11.26.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Vitest
+        run: pnpm vitest run
+
+      - name: Check Server Imports
+        run: pnpm check:server
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Playwright E2E Tests
+        run: pnpm test:e2e
