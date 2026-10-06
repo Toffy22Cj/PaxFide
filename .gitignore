@@ -141,3 +141,12 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Agent files and temporary test outputs
+debug-*.png
+playwright-report/
+test-results/
+make_branches*.sh
+test_e2e_isolation.js
+AGENTS.md
+CLAUDE.md
