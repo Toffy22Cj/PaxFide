@@ -45,6 +45,10 @@ const tokens: Record<string, string> = {
   'brand-blue-50': '#EBF5F9',
   'danger-700': '#B42318',
   'danger-50': '#FEF3F2',
+  'neutral-50': '#F8FAFA',
+  'neutral-100': '#F0F4F4',
+  'neutral-200': '#E2E9E9',
+  'neutral-400': '#739797',
 };
 
 const pairs = [
@@ -63,6 +67,14 @@ const pairs = [
   { fg: 'brand-blue-800', bg: 'brand-blue-50', min: 4.5, val: 6.41 },
   { fg: 'danger-700', bg: 'danger-50', min: 4.5, val: 6.05 },
   { fg: 'danger-700', bg: 'white', min: 4.5, val: 6.57 },
+  { fg: 'brand-green-900', bg: 'neutral-50', min: 4.5, val: 8.72 },
+  { fg: 'brand-neutral-700', bg: 'neutral-50', min: 4.5, val: 7.47 },
+  { fg: 'brand-neutral-700', bg: 'neutral-100', min: 4.5, val: 7.06 },
+  { fg: 'brand-green-900', bg: 'neutral-100', min: 4.5, val: 8.24 },
+  { fg: 'brand-blue-800', bg: 'neutral-50', min: 4.5, val: 6.78 },
+  { fg: 'neutral-400', bg: 'white', min: 3.0, val: 3.18 },
+  { fg: 'neutral-400', bg: 'neutral-50', min: 3.0, val: 3.04 },
+  { fg: 'danger-700', bg: 'neutral-50', min: 4.5, val: 6.28 },
 ];
 
 describe('Design Tokens & Contrast', () => {
@@ -76,7 +88,21 @@ describe('Design Tokens & Contrast', () => {
     it(`ensures ${fg} over ${bg} reaches ${min}:1 (expected ~${val})`, () => {
       const cr = contrast(tokens[fg], tokens[bg]);
       expect(cr).toBeGreaterThanOrEqual(min);
-      expect(cr).toBeCloseTo(val, 1);
+      expect(cr).toBeCloseTo(val, 2);
+    });
+  });
+
+  describe('Restricciones negativas (W-7)', () => {
+    it('brand-blue-700 sobre neutral-50 no cumple 4.5:1', () => {
+      const cr = contrast(tokens['brand-blue-700'], tokens['neutral-50']);
+      expect(cr).toBeLessThan(4.5);
+      expect(cr).toBeCloseTo(4.37, 2);
+    });
+
+    it('neutral-400 sobre neutral-100 no cumple 3:1', () => {
+      const cr = contrast(tokens['neutral-400'], tokens['neutral-100']);
+      expect(cr).toBeLessThan(3.0);
+      expect(cr).toBeCloseTo(2.87, 2);
     });
   });
 });
@@ -117,6 +143,38 @@ describe('CSS Files Strict Mode', () => {
           allowedHexes.includes(hex),
           `File ${file} contains unauthorized hex color ${hex}. Please use CSS variables from tokens.`
         ).toBe(true);
+      });
+    });
+  });
+
+  it('fails if any CSS file combines brand-blue-700 text with neutral-50 background in the same rule', () => {
+    const cssDir = path.resolve(__dirname, '../src');
+    
+    const getCssFiles = (dir: string): string[] => {
+      if (!fs.existsSync(dir)) return [];
+      const files = fs.readdirSync(dir);
+      return files.flatMap(file => {
+        const fullPath = path.join(dir, file);
+        if (fs.statSync(fullPath).isDirectory()) {
+          return getCssFiles(fullPath);
+        }
+        return fullPath.endsWith('.css') ? [fullPath] : [];
+      });
+    };
+
+    const cssFiles = getCssFiles(cssDir);
+
+    cssFiles.forEach(file => {
+      const content = fs.readFileSync(file, 'utf-8');
+      const rules = content.split('}');
+      rules.forEach(rule => {
+        if (!rule.trim()) return;
+        const hasBlueText = /color\s*:\s*(var\(--brand-blue-700\)|#327DA2|#327da2)/.test(rule);
+        const hasNeutralBg = /background(-color)?\s*:\s*(var\(--neutral-50\)|#F8FAFA|#f8fafa)/.test(rule);
+        expect(
+          hasBlueText && hasNeutralBg,
+          `File ${file} invalidly combines brand-blue-700 text with neutral-50 background in the same rule.`
+        ).toBe(false);
       });
     });
   });

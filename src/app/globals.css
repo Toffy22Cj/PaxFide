@@ -21,6 +21,46 @@
   /* Semánticos */
   --danger-700: #B42318;
   --danger-50: #FEF3F2;
+
+  /* Neutros y overlay (W-7) */
+  --neutral-50: #F8FAFA;
+  --neutral-100: #F0F4F4;
+  --neutral-200: #E2E9E9;
+  --neutral-400: #739797;
+  --overlay: color-mix(in srgb, var(--brand-green-900) 50%, transparent);
+
+  /* Espaciado */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* Radio */
+  --radius-control: 6px;
+  --radius-surface: 8px;
+
+  /* Sombra */
+  --shadow-modal: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+  /* Tipografía */
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --weight-regular: 400;
+  --weight-semibold: 600;
+  --control-height: 40px;
+  --width-login: 400px;
+  --width-detail: 720px;
+  --gutter-mobile: 16px;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--brand-green-900);
+  outline-offset: 2px;
 }
 
 body {

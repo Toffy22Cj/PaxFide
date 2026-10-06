@@ -8,8 +8,8 @@
 
 | # | Precondición | Quién | Estado (2026-10-05) |
 |---|---|---|---|
-| P-5.1 | Pila W-0 a W-6 **mergeada en `develop`**, tras los dos ajustes pendientes (Next 16.3.8 en W-0; test de producción para `__TEST_ROUTER__`) | Agente + Carlos (merge) | ⏳ Los dos ajustes están verificados en GitHub. **No mergeable todavía:** falta el CI de W-0 (hallazgo V-1) |
-| P-5.2 | El repo contiene en `Documentos/` las copias vigentes de: `diseno-ux-contractual-web-v1.md`, `delta-front-fase2-rev3.md`, `sistema-visual-paxfide-web.md`, `ADR-042-frontend-web-paxfide-web.md`, `front-fase2.md` y `hallazgos-front-fase2.md` | Carlos (copia desde el proyecto) | ⏳ Faltan `diseno-ux-contractual-web-v1.md`, `delta-front-fase2-rev3.md` y `hallazgos-front-fase2.md` en `Documentos/`; sobra la copia obsoleta `ADR-FRONT-WEB-paxfide-web.md` (V-3) |
+| P-5.1 | Pila W-0 a W-6 **mergeada en `develop`**, tras los dos ajustes pendientes (Next 16.3.8 en W-0; test de producción para `__TEST_ROUTER__`) | Agente + Carlos (merge) | ⏳ V-1..V-4 corregidos (2.ª verificación). **No mergeable todavía:** V-5 (puntero de rama) y V-6 (sin evidencia de CI) |
+| P-5.2 | El repo contiene en `Documentos/` las copias vigentes de: `diseno-ux-contractual-web-v1.md`, `delta-front-fase2-rev3.md`, `sistema-visual-paxfide-web.md`, `ADR-042-frontend-web-paxfide-web.md`, `front-fase2.md` y `hallazgos-front-fase2.md` | Carlos (copia desde el proyecto) | ✅ Copias añadidas en W-0 e idénticas a las del proyecto a 2026-10-05 (2.ª verificación); `ADR-FRONT-WEB` eliminado. Se cumple al mergear W-0 |
 | P-5.3 | Iteración 5 aprobada | Carlos | ✅ 2026-10-05 |
 | P-5.4 | **Solo para W-10:** frames de Penpot de `diseno-ux-contractual-web-v1.md` §8 terminados y aprobados | Equipo + Carlos | ⏳ |
 
@@ -30,6 +30,22 @@ Hallazgos nuevos:
 - **V-2:** el commit de W-4 (`d04916b`, guards) borra `eslint`, `eslint-config-next` y `eslint.config.mjs`, cambio ajeno a su tarea. El estado final cumple mejor la lista de D8 que W-0, pero deja el script `"lint": "eslint"` apuntando a un binario no instalado. La limpieza pertenece a W-0.
 - **V-3:** `Documentos/` contiene dos versiones del ADR del frontend: `ADR-042-frontend-web-paxfide-web.md` (APROBADO, rev. 4) y `ADR-FRONT-WEB-paxfide-web.md` (PROPUESTO, rev. 2, obsoleto). Un agente puede leer la versión equivocada.
 - **V-4 (informativo):** las devDependencies incluyen `@vitejs/plugin-react`, `jsdom`, `@testing-library/jest-dom` y `@types/node`, además de la lista literal de W-0. Son soporte directo de Vitest + Testing Library; deben aparecer listadas en el PR de W-0 (DoD de W-0).
+
+### Segunda verificación (2026-10-05, tras la corrección del agente)
+
+| Comprobación | Resultado |
+|---|---|
+| V-1: `.github/workflows/ci.yml` en W-0 | ✅ Existe: Node 22, pnpm 11.26.0, `--frozen-lockfile`, typecheck, vitest, check:server, Chromium, test:e2e, rechazo de `.skip(`/`.only(`, actions fijadas por SHA |
+| V-2: ESLint fuera desde W-0; W-4 sin cambios de ESLint; sin script `lint` | ✅ En las 7 ramas |
+| V-3 y P-5.2 | ✅ (ver tabla de precondiciones) |
+| V-4: justificación de las 4 devDependencies | ✅ Aportada; se acepta como soporte directo de Vitest + Testing Library (D8) |
+| Código del tope (W-6) frente al tope anterior | ✅ Solo difieren CI, documentos y el script `lint`; `pnpm-lock.yaml` idéntico; `next@16.3.8` en las 7 ramas |
+
+Hallazgos nuevos:
+
+- **V-5 (bloquea el merge):** `feat/web-route-classifier-enablement` apunta a `c3a22b0` (*feat: web session machine*), el mismo commit que `feat/web-session`. El commit de W-2 es `36b85cd`. El PR de W-2 incluiría el código de W-3 sin revisión propia. Corrección: mover la rama a `36b85cd` (sin rebase; el orden de la pila no cambia).
+- **V-6 (bloquea el merge):** no hay evidencia de ejecución del CI. El agente remitió a la pestaña *Actions* sin enlace; desde esta sesión la página de Actions no muestra ejecuciones. El workflow solo se dispara en PR hacia `develop`, así que no puede haber corrido si no existen esos PRs. La evidencia es el run en verde de cada PR, vista por Carlos.
+- **Observación (no bloquea):** el workflow no declara `permissions:`; se recomienda `permissions: contents: read`.
 
 ## Documentos adicionales que rigen esta iteración
 
