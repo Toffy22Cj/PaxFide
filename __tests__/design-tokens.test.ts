@@ -88,7 +88,7 @@ describe('Design Tokens & Contrast', () => {
     it(`ensures ${fg} over ${bg} reaches ${min}:1 (expected ~${val})`, () => {
       const cr = contrast(tokens[fg], tokens[bg]);
       expect(cr).toBeGreaterThanOrEqual(min);
-      expect(cr).toBeCloseTo(val, 1);
+      expect(cr).toBeCloseTo(val, 2);
     });
   });
 

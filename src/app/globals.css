@@ -50,6 +50,12 @@
   --text-md: 16px;
   --text-lg: 20px;
   --text-xl: 24px;
+  --weight-regular: 400;
+  --weight-semibold: 600;
+  --control-height: 40px;
+  --width-login: 400px;
+  --width-detail: 720px;
+  --gutter-mobile: 16px;
 }
 
 *:focus-visible {
