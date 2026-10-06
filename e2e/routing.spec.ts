@@ -11,7 +11,7 @@ test.describe('Route Enablement', () => {
   for (const route of ROUTES) {
     test(`Route ${route} should 404 when not enabled`, async ({ page }, testInfo) => {
       await page.goto(route);
-      await expect(page.locator('h2')).toContainText('404');
+      await expect(page.locator('p')).toContainText('No encontramos esta página.');
     });
   }
 
@@ -19,13 +19,13 @@ test.describe('Route Enablement', () => {
 
     test('404 para /login, /panel y /panel/platform/x con la lista vacía sin sesión', async ({ page }) => {
       await page.goto('/login');
-      await expect(page.locator('h2')).toContainText('404');
+      await expect(page.locator('p')).toContainText('No encontramos esta página.');
 
       await page.goto('/panel');
-      await expect(page.locator('h2')).toContainText('404');
+      await expect(page.locator('p')).toContainText('No encontramos esta página.');
 
       await page.goto('/panel/platform/x');
-      await expect(page.locator('h2')).toContainText('404');
+      await expect(page.locator('p')).toContainText('No encontramos esta página.');
     });
 
     test('404 para /login, /panel y /panel/platform/x con la lista vacía con sesión', async ({ page }) => {
@@ -35,13 +35,13 @@ test.describe('Route Enablement', () => {
       await page.evaluate(() => (window as any).__TEST_SESSION__?.login('fake-jwt-token'));
 
       await page.goto('/login');
-      await expect(page.locator('h2')).toContainText('404');
+      await expect(page.locator('p')).toContainText('No encontramos esta página.');
 
       await page.goto('/panel');
-      await expect(page.locator('h2')).toContainText('404');
+      await expect(page.locator('p')).toContainText('No encontramos esta página.');
 
       await page.goto('/panel/platform/x');
-      await expect(page.locator('h2')).toContainText('404');
+      await expect(page.locator('p')).toContainText('No encontramos esta página.');
     });
   });
 });

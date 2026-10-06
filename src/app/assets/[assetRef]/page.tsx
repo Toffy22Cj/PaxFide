@@ -1,40 +1,57 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { fetchAsset, PhysicalAssetOperationalReadModel } from '../../../lib/api/assetClient';
+import { fetchAsset, PhysicalAssetOperationalReadModel, LifecycleStatus } from '../../../lib/api/assetClient';
+import { LoadingState, ErrorState, ForbiddenState, NotFoundState, StatusNotice } from '../../../components/States';
+
+function translateStatus(status: LifecycleStatus): string {
+  switch (status) {
+    case 'REGISTERED': return 'Registrado';
+    case 'DISPATCHED': return 'Despachado';
+    case 'RECEIVED': return 'Recibido';
+    case 'DELIVERED': return 'Entregado';
+    default:
+      const _: never = status;
+      return status;
+  }
+}
 
 export default function AssetPage({ params, fetchClient = fetchAsset }: { params: Promise<{ assetRef: string }>, fetchClient?: typeof fetchAsset }) {
   const resolvedParams = use(params);
   const [state, setState] = useState<'LOADING' | 'SUCCESS' | 'FORBIDDEN' | 'NOT_FOUND' | 'ERROR'>('LOADING');
   const [data, setData] = useState<PhysicalAssetOperationalReadModel | null>(null);
 
-  useEffect(() => {
+  const loadData = () => {
+    setState('LOADING');
     fetchClient(resolvedParams.assetRef).then(res => {
       setState(res.state);
       if (res.state === 'SUCCESS') setData(res.data);
     }).catch(() => setState('ERROR'));
+  };
+
+  useEffect(() => {
+    loadData();
   }, [resolvedParams.assetRef]);
 
-  if (state === 'LOADING') return <div data-testid="state-loading">Cargando...</div>;
-  if (state === 'FORBIDDEN') return <div data-testid="state-forbidden">Acceso denegado (403)</div>;
-  if (state === 'NOT_FOUND') return <div data-testid="state-notfound">Activo no encontrado (404)</div>;
-  if (state === 'ERROR') return <div data-testid="state-error">Error de conexión</div>;
+  if (state === 'LOADING') return <div data-testid="state-loading"><LoadingState /></div>;
+  if (state === 'FORBIDDEN') return <div data-testid="state-forbidden"><ForbiddenState /></div>;
+  if (state === 'NOT_FOUND') return <div data-testid="state-notfound"><NotFoundState message="No encontramos este activo. Verifica el código QR." /></div>;
+  if (state === 'ERROR') return <div data-testid="state-error"><ErrorState onRetry={loadData} /></div>;
 
   if (state === 'SUCCESS' && data) {
     const isReadOnly = data.lifecycleStatus === 'DELIVERED';
     return (
       <div data-testid={`state-content${isReadOnly ? '-readonly' : ''}`}>
-        <h1>Activo Físico: {data.assetRef}</h1>
+        <h1>Activo {data.assetRef}</h1>
+        {isReadOnly && <StatusNotice variant="info" text="Este activo ya fue entregado. Solo lectura." />}
         <ul>
-          <li data-testid="field-lifecycleStatus">{data.lifecycleStatus}</li>
-          <li data-testid="field-currentCustodianRef">{data.currentCustodianRef || 'N/A'}</li>
-          <li data-testid="field-currentLocation">{data.currentLocation || 'N/A'}</li>
-          <li data-testid="field-quantity">{data.quantity}</li>
-          <li data-testid="field-unitOfMeasure">{data.unitOfMeasure}</li>
-          <li data-testid="field-campaignRef">{data.campaignRef}</li>
+          <li data-testid="field-lifecycleStatus">Estado: {translateStatus(data.lifecycleStatus)}</li>
+          <li data-testid="field-currentCustodianRef">Custodio actual: {data.currentCustodianRef === null ? 'Sin registrar' : data.currentCustodianRef}</li>
+          <li data-testid="field-currentLocation">Ubicación actual: {data.currentLocation === null ? 'Sin registrar' : data.currentLocation}</li>
+          <li data-testid="field-quantity">Cantidad: {data.quantity}</li>
+          <li data-testid="field-unitOfMeasure">Unidad de medida: {data.unitOfMeasure}</li>
+          <li data-testid="field-campaignRef">Convocatoria: {data.campaignRef}</li>
         </ul>
-        
-        {/* Intencionalmente no se incluye donorRef según la regla T-6 */}
       </div>
     );
   }
