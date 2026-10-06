@@ -4,20 +4,13 @@
 **Complementa** a `plan-ejecucion-agentes-front-fase2.md` (W-0 a W-6). Se usa igual: se pega el Prompt Maestro (`Promt-maestro-front-fase2.md` §1) y, **debajo**, un solo bloque de este documento, en una sesión de agente nueva.
 **Renumeración:** las antiguas W-7 (Login) y W-8 (`/c`) pasan a **W-11** y **W-12**; siguen bloqueadas.
 
-## Enmienda E-5.1 (2026-10-05)
-
-- W-7, W-8 y W-9 se desarrollaron sobre la pila sin mergear.
-- **Decisión:** Queda aceptada la pila lineal W-6 → W-7 → W-8 → W-9, y se mergeará en ese estricto orden.
-- **Condición intacta:** P-5.1 sigue vigente; nada de W-7 a W-9 entra a `develop` antes que W-0 a W-6.
-- El intento de merge a `develop` (V-7) queda cerrado sin efecto.
-
 ## Precondiciones (todas obligatorias)
 
 | # | Precondición | Quién | Estado (2026-10-05) |
 |---|---|---|---|
-| P-5.1 | Pila W-0 a W-6 **mergeada en `develop`**, tras los dos ajustes pendientes (Next 16.3.8 en W-0; test de producción para `__TEST_ROUTER__`) | Agente + Carlos (merge) | ⏳ V-1..V-4 corregidos (2.ª verificación). **No mergeable todavía:** V-5 (puntero de rama) y V-6 (sin evidencia de CI) |
+| P-5.1 | Pila W-0 a W-6 **mergeada en `develop`**, tras los dos ajustes pendientes (Next 16.3.8 en W-0; test de producción para `__TEST_ROUTER__`) | Agente + Carlos (merge) | ✅ Cumplida el 2026-10-05: `develop` = `1db5cc6` contiene W-0..W-9 en orden (ver "Registro del merge") |
 | P-5.2 | El repo contiene en `Documentos/` las copias vigentes de: `diseno-ux-contractual-web-v1.md`, `delta-front-fase2-rev3.md`, `sistema-visual-paxfide-web.md`, `ADR-042-frontend-web-paxfide-web.md`, `front-fase2.md` y `hallazgos-front-fase2.md` | Carlos (copia desde el proyecto) | ✅ Copias añadidas en W-0 e idénticas a las del proyecto a 2026-10-05 (2.ª verificación); `ADR-FRONT-WEB` eliminado. Se cumple al mergear W-0 |
-| P-5.3 | Iteración 5 aprobada | Carlos | ✅ 2026-10-05 |
+| P-5.3 | Iteración 5 aprobada | Carlos | ✅ 2026-10-05 (con la enmienda E-5.1) |
 | P-5.4 | **Solo para W-10:** frames de Penpot de `diseno-ux-contractual-web-v1.md` §8 terminados y aprobados | Equipo + Carlos | ⏳ |
 
 ## Registro de verificación de la pila W-0..W-6 (2026-10-05)
@@ -53,6 +46,43 @@ Hallazgos nuevos:
 - **V-5 (bloquea el merge):** `feat/web-route-classifier-enablement` apunta a `c3a22b0` (*feat: web session machine*), el mismo commit que `feat/web-session`. El commit de W-2 es `36b85cd`. El PR de W-2 incluiría el código de W-3 sin revisión propia. Corrección: mover la rama a `36b85cd` (sin rebase; el orden de la pila no cambia).
 - **V-6 (bloquea el merge):** no hay evidencia de ejecución del CI. El agente remitió a la pestaña *Actions* sin enlace; desde esta sesión la página de Actions no muestra ejecuciones. El workflow solo se dispara en PR hacia `develop`, así que no puede haber corrido si no existen esos PRs. La evidencia es el run en verde de cada PR, vista por Carlos.
 - **Observación (no bloquea):** el workflow no declara `permissions:`; se recomienda `permissions: contents: read`.
+
+### Verificación de W-7, W-8 y W-9 (2026-10-05, borrador sin PR)
+
+Contexto: Carlos lanzó W-7..W-9 antes de cumplir P-5.1 porque el agente no pudo abrir PRs (crédito). `plan-ejecucion-agentes-front-fase2-iter5.2.md` resultó **idéntico** a este documento: la excepción a P-5.1 **no está escrita** todavía. Las ramas quedaron apiladas W-6 → W-7 → W-8 → W-9 (el plan preveía W-8 independiente y W-9 solo sobre W-7).
+
+**Incidente de proceso (V-7):** el log del agente muestra `git merge --no-ff` de las 10 ramas (incluidas W-7..W-9 sin revisar) sobre `develop`, `git push origin develop` y luego `git reset --hard origin/develop`. `origin/develop` sigue en `519ac1a`, así que el push no llegó. El resumen del agente no lo menciona. Pendiente: confirmar si Carlos lo ordenó y qué error devolvió el push.
+
+| Tarea | Correcto | Falta o incorrecto |
+|---|---|---|
+| W-7 | Tokens de color, espaciado, radios y tipografía con los nombres de §3.3; foco `:focus-visible`; 8 pares del Anexo A; 2 aserciones negativas a 2 decimales; test de regla CSS; test de hexadecimales en verde | (a) los 8 pares nuevos usan `toBeCloseTo(val, 1)`: el entregable pide 2 decimales; (b) **hueco del diseño, no del agente:** §3.3 no da valor de `shadow-modal` ni nombres para pesos, alto de control y anchos; el agente inventó el valor de la sombra en vez de detenerse; (c) `pr-w0.md` (descripción de PR de W-0) y `iter5.2.md` (duplicado) añadidos al repo en el commit de W-7 |
+| W-8 | `LogoutReason` cerrado; MANUAL / EXPIRED / OTHER_TAB asignados donde corresponde; el 401 de tracking sale antes de asignar; el login limpia el motivo; el mensaje entre pestañas sigue siendo `LOGOUT_SIGNAL`; sin persistencia | (a) no hay test de "el login con éxito limpia el motivo"; (b) la aserción de `indexedDB` es condicional y en jsdom no se ejecuta nunca; (c) los dos espías de Storage son el mismo y solo cubren `setItem` |
+| W-9 | Textos de §6 exactos; 404 global "No encontramos esta página."; 404 del recurso; aviso de `DELIVERED`; traducción con `switch` + `never`; sin color por estado; tests de 404 cambiados de `h2 '404'` al texto aprobado (no se debilitan) | (a) faltan las aserciones negativas del DoD: `detail` de ProblemDetail no visible, sin color en `lifecycleStatus`, botón de split ausente; (b) faltan tests de "Sin registrar", "Cargando…", "Reintentar" y de `AmbiguousState`/`StatusNotice`; (c) texto inventado "Activo Físico:" en el `h1` (§5.3: `PageHeader` "Activo" + assetRef); (d) `x \|\| 'Sin registrar'` también reemplaza la cadena vacía; §5.3 dice solo `null` |
+
+**Corrección del agente (commits `64e0686`, `21e0276`, `130932e`, verificados en GitHub):** W-7 (a) y (c) resueltos; los 6 tokens de §3.3 añadidos **sin que conste todavía la aprobación de Carlos** de esa propuesta. W-8 (a), (b) y (c) resueltos. W-9 (b), (c) y (d) resueltos. **W-9 (a) sigue abierto:** la aserción "stack trace" se ejecuta en el estado de éxito, donde nunca se inyectó un error, así que no puede fallar (regla 2.5); falta un test que pase un `ProblemDetail` con `detail` por `fetchAsset` real (fetch simulado) y compruebe que no aparece. La ausencia de "Dividir activo" solo se comprueba en `REGISTERED`.
+
+**Cierre técnico de W-9 (commit `f300370`, verificado en GitHub):** W-9 (a) resuelto. Tres tests usan `fetchAsset` real con `fetch` simulado (500, 403 y 404 con `ProblemDetail`) y comprueban el texto aprobado y la ausencia del `detail` y del `title`. La ausencia de "Dividir activo" se comprueba en carga, 403, 404, error, éxito y `DELIVERED`. Evidencia: 83 tests de Vitest y 12 de Playwright en verde, output literal. **W-7, W-8 y W-9 quedan técnicamente listas para revisión humana.** No son mergeables mientras siga abierta P-5.1 (pila W-0..W-6 sin mergear). Los tokens de §3.3 y la pila lineal quedan aprobados por la enmienda E-5.1.
+
+## Enmienda E-5.1 (Carlos, 2026-10-05) — aprobada
+
+Registrada a partir de la respuesta explícita de Carlos del 2026-10-05.
+
+1. **Excepción a P-5.1:** W-7, W-8 y W-9 se implementaron sobre la pila W-0..W-6 **sin mergear**, por decisión de Carlos, porque el agente no pudo abrir PRs (crédito). P-5.1 se mantiene como condición de **merge**: ninguna de W-7..W-9 entra en `develop` antes que W-0..W-6.
+2. **Orden de las ramas:** se acepta la pila lineal W-6 → W-7 → W-8 → W-9 (el plan original preveía W-8 independiente y W-9 solo sobre W-7). El merge se hace en ese orden.
+3. **V-7 cerrado:** el intento de merge local de las 10 ramas sobre `develop` y el `git push origin develop` los ordenó Carlos. El push no llegó a GitHub (`origin/develop` sigue en `519ac1a`); el error que devolvió no quedó registrado. Para lo sucesivo, el merge a `develop` se hace por PR (regla 3.2).
+4. **Tokens de §3.3:** aprobados (decisión 10 de `diseno-ux-contractual-web-v1.md` §9, revisión 3).
+
+**Lo que la enmienda no cambia:** la regla 3.2 (PR con aprobación humana y CI) sigue vigente para el merge de las 10 ramas. Si el CI no puede ejecutarse, se necesita una enmienda adicional que diga qué evidencia lo reemplaza.
+
+## Registro del merge (2026-10-05, verificado en GitHub)
+
+- `origin/develop` = `1db5cc6`. Contiene W-0 a W-9 en el orden de E-5.1, cada uno con merge commit, más `chore/docs-cleanup` (`91b35cf`).
+- **Solo W-0 entró por PR** (`c713a3c`, *Merge pull request #1*). W-1 a W-9 y `chore/docs-cleanup` los mergeó Carlos directamente sobre `develop` y los empujó sin PR. Esto se aparta de la regla 3.2 y de E-5.1 ("el merge se hace por PR"). Queda registrado como **hecho**, no como excepción aprobada de antemano.
+- **Evidencia que respalda el código mergeado:** el árbol de código de `develop` es **idéntico** al de `feat/web-ux-states-copy` (`f300370`); solo difieren 6 archivos de documentación. Por tanto, el output literal de esa rama (typecheck, 83 tests de Vitest, 12 de Playwright) corresponde exactamente al código de `develop`. No hay ejecución de CI sobre `develop` (pendiente confirmar si el CI corrió en el PR #1).
+- **Que el push directo funcionara indica que `develop` no tiene protección activa** (o se usó la exención de administrador). Pendiente de Carlos.
+- **`chore/docs-cleanup` (sin revisión previa):**
+  - mueve `api-contract-matrix.md`, `contract-wiring-review.md`, `reglas-equipo-y-agentes.md` y `hallazgos-front-fase2.md` de la raíz a `Documentos/` (verificado: las 4 copias son idénticas);
+  - **las copias de `diseno-ux-contractual-web-v1.md` y de este plan no son las del proyecto:** son paráfrasis (regla 2.4). La del diseño dice que las decisiones 1–10 se aprobaron "en bloque, sobre la revisión 3", lo cual es falso (1–9 sobre la revisión 2; la 10 por separado). Corrección: sustituirlas por las versiones literales del proyecto.
 
 ## Documentos adicionales que rigen esta iteración
 

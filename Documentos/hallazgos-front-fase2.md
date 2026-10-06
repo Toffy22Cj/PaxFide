@@ -49,7 +49,7 @@ Esto no es un error del frontend. El frontend **no debe** resolverlo inventando 
 | R11 | Idempotencia por `commandId` en comandos web | Comandos | **Crítica** | PhysicalAsset / Convocatoria |
 | R4 | Idempotencia de comandos administrativos | Comandos | **Crítica** | Convocatoria / Identity |
 | C2/H1 | `trackingCode` en la URL en web | Seguridad | **Crítica** | Frontend + verificación backend |
-| N1 | Contrato "quién soy / capacidades" | Identidad | **Alta** | Identity |
+| N1 | Contrato "quién soy / capacidades" | Identidad | **Alta** — ficha CONGELADA, pendiente de incorporación normativa (2026-10-05) | Identity |
 | R1 | Descubrimiento de organizaciones | Lecturas | **Alta** | Identity |
 | R6 | Lectura de miembros de la organización | Lecturas | **Alta** | Identity (+ `app`) |
 | R8 | Lectura para `from-donation` | Lecturas | **Alta** | Core / Convocatoria (+ `app`) |
@@ -383,6 +383,13 @@ El QR **es** el mecanismo de descubrimiento, ya aprobado en el contrato. Una bú
 
 **Severidad:** Alta · **Heredado de `front-fase1.md` §16, agravado en web** · **Dueño:** Identity
 
+**Estado (2026-10-05): ficha CONGELADA, pendiente de incorporación normativa.**
+- Contrato: `claude/ficha-N1-quien-soy.md` — `GET /api/v1/me`, respuesta con exactamente `accountId`, `organizationId`, `roles` y `platformAuthority` (nulos omitidos salvo `roles`), `Cache-Control: no-store`, 401 sin JWT válido o con cuenta `INACTIVE`. Respuestas Q-N1-1 a Q-N1-4 de Carlos, 2026-10-05.
+- Uso en el frontend: `claude/delta-front-fase2-N1.md`, **APROBADO** el 2026-10-05 (D-N1-1 a D-N1-4).
+- **No es normativo** hasta que se apruebe la Enmienda 1 de ADR-041 (prefijo, `ProblemDetail` y 401/403 son [DHR] en borrador).
+- **No está implementado:** depende de `feat/identity-adr-038` en `develop` del backend y del endpoint en `api`. Hasta entonces `/panel` y `/panel/campaigns` siguen aprobado-bloqueadas y responden 404 (D5 / G-W1).
+- El criterio de cierre de abajo sigue abierto: contrato en la matriz y tests en backend.
+
 **Qué es.**
 Tras el login, el cliente no sabe a qué organización pertenece el usuario ni qué roles tiene.
 
@@ -554,7 +561,7 @@ Qué pantalla o acción queda desbloqueada al resolver cada hallazgo. Una superf
 | `/assets/:assetRef` (lectura) | `PhysicalAssetOperationalReadPort` (verificar); R10 para `REPRESENTATIVE` |
 | `split` | P7; cuerpo; R10; **R11** |
 | Registrar activo | P7; cuerpo de `register`; R10; **R11** |
-| `/panel/campaigns` (listado) | **N1** |
+| `/panel/campaigns` (listado) | **N1** (ficha congelada; falta Enmienda 1 de ADR-041 + implementación backend) |
 | Crear convocatoria | N1; **R4**; **R11**; firma (ADR-037) |
 | Asignar empleado | **R6**; R4; firma; D2 (ADR-037) |
 | `/panel/platform/**` | **R1** (fuera de v1) |
@@ -564,7 +571,7 @@ Qué pantalla o acción queda desbloqueada al resolver cada hallazgo. Una superf
 
 Sugerencia de lectura, **no un orden decidido**: la prioridad la fija el equipo.
 
-- **N1** desbloquea todo `/panel/campaigns` y saca a `PanelHome` de su estado provisional. Es el de más superficie por unidad de trabajo.
+- **N1** desbloquea todo `/panel/campaigns` y saca a `PanelHome` de su estado provisional. Es el de más superficie por unidad de trabajo. *(2026-10-05: ficha congelada y delta de frontend aprobado; queda la parte normativa y la implementación.)*
 - **R11** es condición para desplegar los tres comandos web. Si `PhysicalAsset` ya tiene `commandId` desde Fase 1, puede ser sobre todo una verificación.
 - **P7** (`golden-path.md` §5.2) es condición de seguridad para cualquier comando de `PhysicalAsset`, en web y en móvil.
 - **Verificar `PhysicalAssetOperationalReadPort`** es barato y decide si `AssetPage` en modo lectura es la primera pantalla autenticada implementable.

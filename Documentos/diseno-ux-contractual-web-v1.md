@@ -1,7 +1,15 @@
 # Diseño UX contractual — `paxfide-web` v1
 
-**Estado:** **APROBADO (2026-10-05)**, revisión 2. Aprobación humana explícita de Carlos, en bloque, de las 9 decisiones de §9. Ver el registro en §9.
+**Estado:** **APROBADO (2026-10-05)**, revisión 4 (revisión 2 + enmienda de §3.3 + `PanelHome`, todo del mismo día, ver §9). Aprobación humana explícita de Carlos, en bloque, de las 9 decisiones de §9. Ver el registro en §9.
 **Qué significa APROBADO aquí:** las decisiones marcadas PROPUESTO en este texto quedan aprobadas. **No** habilita ninguna superficie: Login, `AssetPage`, `split` y `/c` siguen BLOQUEADOS por D5 hasta resolver sus dependencias. Tampoco aprueba la Enmienda 1 de ADR-041, ni convierte en normativas las fichas de contratos.
+
+**Cambios de la revisión 4:**
+- Entra en el alcance el contenido de `PanelHome` (§5.6) y el estado "sin entradas" (§6), según `claude/delta-ux-panelhome.md` (APROBADO 2026-10-05), que aplica `claude/delta-front-fase2-N1.md` (APROBADO 2026-10-05).
+- `EmptyState` pasa a usarse (§4). Nuevo frame de Penpot (§8).
+- **No habilita nada:** `/panel` y `/panel/campaigns` siguen aprobado-bloqueadas (404 por D5). N1 sigue sin ser normativa (Enmienda 1 de ADR-041).
+
+**Cambios de la revisión 3:**
+- §3.3 completa los nombres y valores que faltaban: `shadow-modal`, pesos, alto de control y anchos. Aprobado por Carlos el 2026-10-05 (§9, decisión 10).
 
 **Cambios de la revisión 2:**
 - `split` pasa de "frame futuro" a "diseñado, BLOQUEADO para despliegue" (§5.3).
@@ -9,7 +17,7 @@
 - R-UX-2 deja de ser requisito y pasa a nota de dependencia. El destino `/panel` se mantiene porque es HEREDADO de ADR-042 D4 (§5.2).
 
 **No es un ADR ni un mockup.** Fija estructura, estados, componentes, contenido permitido y comportamiento. **Penpot es la fuente visual** y traduce este documento; no puede añadir campos, acciones ni pantallas que aquí no estén.
-**Alcance:** Shell, Login, `AssetPage`, estados globales, componentes base y `/c` solo como estructura. **El contenido de `/panel` queda fuera** hasta que exista N1.
+**Alcance:** Shell, Login, `AssetPage`, `PanelHome` (desde la revisión 4), estados globales, componentes base y `/c` solo como estructura. **El listado de convocatorias (`OrgCampaignsPage` con datos) y el formulario de "Registrar activo" quedan fuera** hasta que existan sus contratos.
 
 **Fuentes:** `ADR-042-frontend-web-paxfide-web.md` (APROBADO), `claude/front-fase2.md`, `hallazgos-front-fase2.md`, `sistema-visual-paxfide-web.md` (APROBADO), `api-contract-matrix.md`, fichas de contratos API Fase 6 (material de trabajo, **no normativo** hasta que se apruebe la Enmienda 1 de ADR-041), y las decisiones de Carlos del 2026-10-05.
 
@@ -79,11 +87,11 @@ Amplía `sistema-visual-paxfide-web.md` **sin modificar** ningún token existent
 |---|---|
 | Espaciado (base 4 px) | `space-1` 4 · `space-2` 8 · `space-3` 12 · `space-4` 16 · `space-6` 24 · `space-8` 32 · `space-12` 48 |
 | Radio | `radius-control` 6 px (campos, botones) · `radius-surface` 8 px (paneles, modal) |
-| Sombra | Solo el modal: `shadow-modal` (`0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)`). Las superficies planas usan borde, no sombra |
-| Tipografía (sobre `system-ui`, HEREDADO) | `text-sm` 14 px (metadatos) · `text-md` 16 px (cuerpo) · `text-lg` 20 px (títulos de sección) · `text-xl` 24 px (título de página); pesos `--weight-regular` 400 y `--weight-semibold` 600 |
+| Sombra | Solo el modal: `shadow-modal` = `0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)`. Las superficies planas usan borde, no sombra |
+| Tipografía (sobre `system-ui`, HEREDADO) | `text-sm` 14 px (metadatos) · `text-md` 16 px (cuerpo) · `text-lg` 20 px (títulos de sección) · `text-xl` 24 px (título de página); pesos `weight-regular` 400 y `weight-semibold` 600 |
 | Foco | Contorno de 2 px en `brand-green-900` con separación de 2 px (8,72:1 sobre `neutral-50`). Nunca amarillo (HEREDADO) |
-| Objetivo táctil | Controles de `--control-height` 40 px de alto como mínimo (supera WCAG 2.5.8) |
-| Ancho de contenido | Login `--width-login` 400 px; detalle `--width-detail` 720 px; márgenes laterales de `--gutter-mobile` 16 px en móvil |
+| Objetivo táctil | `control-height` 40 px: alto mínimo de los controles (supera WCAG 2.5.8) |
+| Ancho de contenido | `width-login` 400 px · `width-detail` 720 px · `gutter-mobile` 16 px (márgenes laterales en móvil) |
 
 **Regla de texto pequeño (HEREDADO, `sistema-visual` §5.2):** en `text-sm`, los enlaces van en `brand-blue-800`.
 
@@ -112,7 +120,8 @@ Conjunto cerrado de **5** iconos: información, advertencia (ambiguo), error, co
 | `ForbiddenState` | — | Ver §6 |
 | `NotFoundState` | — | Ver §6 |
 | `AmbiguousState` | — | `StatusNotice` ambiguo + acciones "Reintentar" y "Cerrar" (D6, P-W1b) |
-| `Table`, `LoadMore`, `EmptyState` | — | **Definidos pero sin uso en v1.** Su único consumidor es `/panel/campaigns` (BLOQUEADO por N1). Se detallan cuando exista ese diseño |
+| `EmptyState` | — | Fondo `white`, texto `brand-neutral-700`, sin acciones. Se usa en `PanelHome` sin entradas y en `/panel/campaigns` sin organización (§5.6). Desde la revisión 4 |
+| `Table`, `LoadMore` | — | **Definidos pero sin uso en v1.** Su consumidor es el listado de `/panel/campaigns`, que no está diseñado (falta su contrato de lectura) |
 
 No se añade `Card` ni otros componentes sin una pantalla que los necesite.
 
@@ -265,6 +274,34 @@ Mientras alguno siga abierto, por **D5** la acción **no se renderiza** en ning�
 
 "No encontramos esta página." Una sola variante para cualquier ruta no aprobada o deshabilitada, con o sin sesión. **No menciona** permisos, "próximamente" ni que la ruta exista. Sin enlaces a rutas autenticadas.
 
+### 5.6 `PanelHome` (`/panel`) — APROBADO-BLOQUEADO (revisión 4)
+
+**Fuente:** `claude/delta-ux-panelhome.md` (APROBADO 2026-10-05), sobre `claude/delta-front-fase2-N1.md` (APROBADO) y `claude/ficha-N1-quien-soy.md` (CONGELADA).
+**Bloqueo:** Enmienda 1 de ADR-041 (N1 normativa) y `GET /api/v1/me` implementado. Hasta entonces, 404 (D5).
+**Regla:** `PanelHome` representa; no autoriza. Las entradas visibles las decide solo D-N1-1/D-N1-2 del delta de N1.
+
+```text
+┌──────────────────────────────────────┐
+│ Panel                                │  PageHeader (h1)
+│ [ Convocatorias de mi organización ] │  <a>, Button secundario, ancho completo
+│ [ Registrar activo ]                 │  <button>, Button secundario — BLOQUEADO (D5)
+└──────────────────────────────────────┘
+```
+
+- Mobile-first (360 px); en 1280 px, ancho `width-detail`. Una columna, orden fijo. Entradas en `<ul>`.
+- Textos de las entradas HEREDADOS de `front-fase2` §7. Sin texto descriptivo ni iconos.
+- "Registrar activo" (P7, cuerpo de `register`, R10, R11): **no se renderiza** en ningún build desplegado; existe solo como variante de diseño. Su formulario no se diseña.
+
+| Estado | Presentación |
+|---|---|
+| Carga (`/me` en curso) | `LoadingState` |
+| Con entradas | `PageHeader` + entradas |
+| Sin entradas | `PageHeader` + `EmptyState`: "No hay opciones disponibles para tu cuenta en este panel." |
+| Error (red, 5xx o `/me` que viola la ficha) | `ErrorState` con "Reintentar" |
+| 401 | T-1 → `/login` con el aviso de sesión expirada (§5.2) |
+
+**`/panel/campaigns` sin `organizationId`:** no se llama al backend; `PageHeader` "Convocatorias de mi organización" + `EmptyState` con el mismo texto. Nunca `ForbiddenState` (no hay 403 del backend).
+
 ---
 
 ## 6. Estados globales — textos (PROPUESTO)
@@ -281,6 +318,7 @@ Regla común: **nunca se muestra el `detail` de un `ProblemDetail`** (consecuenc
 | Rechazado (comandos, 4xx) | `danger-50` / `danger-700` | Por código. Los textos de los 409 de Convocatoria quedan **PENDIENTES** hasta que el mapeo sea normativo (HEREDADO, `front-fase2` §9) |
 | Éxito (comandos) | `brand-green-50` / `brand-green-900` | Por comando; PENDIENTE donde falte el contrato de respuesta (p. ej. `split`, F3) |
 | Sesión expirada | `brand-blue-50` / `brand-blue-800` | §5.2 |
+| Sin entradas (`EmptyState`) | `white` / `brand-neutral-700` | "No hay opciones disponibles para tu cuenta en este panel." No sugiere causas, no menciona permisos ni "próximamente" (revisión 4) |
 
 ---
 
@@ -305,7 +343,10 @@ Regla común: **nunca se muestra el `detail` de un `ProblemDetail`** (consecuenc
 | AssetPage — `split` (BLOQUEADO para despliegue) | Botón visible (variante habilitada), modal con zona de campos PENDIENTE y Confirmar deshabilitado, estados de comando §6 | 360 |
 | `/c` — estructura | Bloques rotulados; no encontrada | 360 y 1280 |
 | 404 | Una | 360 y 1280 |
+| PanelHome (BLOQUEADO para despliegue) | Carga, con dos entradas, con una entrada, sin entradas, error; y `/panel/campaigns` sin organización (solo 360) | 360 y 1280 |
 | Estados globales | Los de §6 | — |
+
+**Regla de PanelHome:** sus variantes representan estados que se derivan de D-N1-1/D-N1-2; no deciden qué combinaciones de entradas son posibles ni crean reglas de producto (precisión de Carlos, 2026-10-05).
 
 **Regla:** cada frame lleva en su título la sección de este documento que representa. Un elemento de Penpot sin sección correspondiente es un error del mockup, no una decisión nueva.
 
@@ -324,9 +365,10 @@ Regla común: **nunca se muestra el `detail` de un `ProblemDetail`** (consecuenc
 | 7 | Login: estados y textos; R-UX-1 (motivo de cierre de sesión en memoria) | **APROBADO** |
 | 8 | AssetPage: etiquetas, traducción de `lifecycleStatus` sin color, referencias opacas tal cual, `quantity` sin transformación, `split` diseñado con zona de campos PENDIENTE y bloqueado para despliegue | **APROBADO** |
 | 9 | Textos de estados globales (§6) | **APROBADO** |
-| 10 | Tokens adicionales (§3.3) y sombra | **APROBADO** |
+| 10 | Enmienda de §3.3: valor de `shadow-modal` y tokens `weight-regular`, `weight-semibold`, `control-height`, `width-login`, `width-detail`, `gutter-mobile`. Corrige un hueco del documento: §3.3 no daba esos nombres ni el valor de la sombra, y W-7 los necesitaba | **APROBADO** (Carlos, 2026-10-05, tras implementarse en W-7) |
+| 11 | Revisión 4: `PanelHome` (§5.6), `EmptyState` en uso (§4), texto "sin entradas" (§6), frame de Penpot (§8). U-P1 "Panel"; U-P2 `Button` secundario; U-P3 texto | **APROBADO** (Carlos, 2026-10-05, `claude/delta-ux-panelhome.md`) |
 
-**Aprobación:** Carlos, 2026-10-05, en bloque, sobre la revisión 3.
+**Aprobación:** Carlos, 2026-10-05, en bloque, sobre la revisión 2 (decisiones 1–9); decisiones 10 y 11 aprobadas por separado el mismo día.
 
 **Decisiones explícitas registradas con la aprobación:**
 - Se mantiene `/panel` como destino post-login por defecto. Es HEREDADO de ADR-042 D4 y este documento no puede rebajarlo a PENDIENTE.
@@ -334,7 +376,7 @@ Regla común: **nunca se muestra el `detail` de un `ProblemDetail`** (consecuenc
 - R-UX-2 permanece como nota de dependencia (N1), no como requisito.
 - Se distingue "la ruta existe como destino normativo" de "su contenido está diseñado o habilitado". Mientras `/panel` no esté habilitado (D5), su resultado es el 404 de G-W4.
 
-**Pendientes que este documento no resuelve:** N1 (contenido de `/panel`); Enmienda 1 de ADR-041; formato de presentación de `quantity`; cuerpo y respuesta de `split`; campos de `ConvocatoriaReadModel`; textos de los 409; logo vectorial.
+**Pendientes que este documento no resuelve:** N1 normativa (Enmienda 1 de ADR-041) y su implementación; listado de convocatorias; formulario de "Registrar activo"; Enmienda 1 de ADR-041; formato de presentación de `quantity`; cuerpo y respuesta de `split`; campos de `ConvocatoriaReadModel`; textos de los 409; logo vectorial.
 
 ---
 
