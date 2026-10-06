@@ -125,20 +125,20 @@ describe('Route Guard (T-4)', () => {
     it('RESTORING: 404', () => {
       const { queryByTestId, getByText } = renderGuard('/not-exists', 'RESTORING');
       expect(queryByTestId('content')).toBeNull();
-      expect(getByText('404 - Not Found')).toBeInTheDocument();
+      expect(getByText('No encontramos esta página.')).toBeInTheDocument();
     });
 
     it('LOGGED_OUT: 404', () => {
       const { queryByTestId, getByText } = renderGuard('/not-exists', 'LOGGED_OUT');
       expect(queryByTestId('content')).toBeNull();
-      expect(getByText('404 - Not Found')).toBeInTheDocument();
+      expect(getByText('No encontramos esta página.')).toBeInTheDocument();
       expect(mockReplace).not.toHaveBeenCalled(); // Nunca redirige a /login (G-W4)
     });
 
     it('AUTHENTICATED: 404', () => {
       const { queryByTestId, getByText } = renderGuard('/not-exists', 'AUTHENTICATED');
       expect(queryByTestId('content')).toBeNull();
-      expect(getByText('404 - Not Found')).toBeInTheDocument();
+      expect(getByText('No encontramos esta página.')).toBeInTheDocument();
     });
   });
 

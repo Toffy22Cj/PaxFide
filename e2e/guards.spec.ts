@@ -61,6 +61,6 @@ test.describe('Session Guards (T-4)', () => {
     await page.goto('/panel/disabled-route');
 
     // 3. Verificar que vemos la página 404
-    await expect(page.locator('h2')).toContainText('404');
+    await expect(page.locator('p')).toContainText('No encontramos esta página.');
   });
 });

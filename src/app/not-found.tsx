@@ -1,10 +1,5 @@
-import Link from 'next/link';
+import { NotFoundState } from '../components/States';
 
 export default function NotFound() {
-  return (
-    <div style={{ textAlign: 'center', padding: '50px' }}>
-      <h2>404 - Not Found</h2>
-      <p>La ruta solicitada no existe o no está habilitada.</p>
-    </div>
-  );
+  return <NotFoundState message="No encontramos esta página." />;
 }
