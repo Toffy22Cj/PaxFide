@@ -3,14 +3,16 @@ import * as session from '../src/lib/auth/session';
 
 describe('Session Machine (T-3)', () => {
   let postMessageSpy: ReturnType<typeof vi.spyOn>;
-  let localStorageSpy: ReturnType<typeof vi.spyOn>;
-  let sessionStorageSpy: ReturnType<typeof vi.spyOn>;
+  let storageGetItemSpy: ReturnType<typeof vi.spyOn>;
+  let storageSetItemSpy: ReturnType<typeof vi.spyOn>;
+  let storageRemoveItemSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     session._resetForTest();
     postMessageSpy = vi.spyOn(BroadcastChannel.prototype, 'postMessage');
-    localStorageSpy = vi.spyOn(Storage.prototype, 'setItem');
-    sessionStorageSpy = vi.spyOn(Storage.prototype, 'setItem');
+    storageGetItemSpy = vi.spyOn(Storage.prototype, 'getItem');
+    storageSetItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+    storageRemoveItemSpy = vi.spyOn(Storage.prototype, 'removeItem');
     // document.cookie and indexedDB are checked in specific tests
   });
 
@@ -26,10 +28,18 @@ describe('Session Machine (T-3)', () => {
     session.login('my-jwt');
     expect(session.getState()).toBe('AUTHENTICATED');
     expect(session.getJwt()).toBe('my-jwt');
+    expect(session.getLastLogoutReason()).toBeNull();
     
     // Verificamos que no se persiste (no está en localStorage/sessionStorage)
     // El DoD dice "no hacer: ningún almacenamiento del navegador"
     expect(typeof window !== 'undefined' ? window.localStorage.length : 0).toBe(0);
+  });
+
+  it('login limpia el motivo anterior de logout', () => {
+    session.logout();
+    expect(session.getLastLogoutReason()).toBe('MANUAL');
+    session.login('new-jwt');
+    expect(session.getLastLogoutReason()).toBeNull();
   });
 
   it('logout borra el JWT, el destino, y emite la señal de logout por BroadcastChannel con motivo MANUAL', () => {
@@ -47,8 +57,7 @@ describe('Session Machine (T-3)', () => {
     expect(postMessageSpy).toHaveBeenCalledTimes(1);
     
     // Aserción negativa: ninguna API de almacenamiento
-    expect(localStorageSpy).not.toHaveBeenCalled();
-    expect(sessionStorageSpy).not.toHaveBeenCalled();
+    expect(storageSetItemSpy).not.toHaveBeenCalled();
   });
 
   it('el destino post-login retenido es de consumo único', () => {
@@ -105,16 +114,19 @@ describe('Session Machine (T-3)', () => {
   it('no invoca APIs de almacenamiento al iniciar sesión, cerrar sesión o recibir señal', () => {
     // Espías sobre document.cookie e indexedDB
     const cookieSpy = vi.spyOn(document, 'cookie', 'set');
-    // Mock for indexedDB (doesn't exist in jsdom by default but let's check window.indexedDB)
-    const indexedDBSpy = window.indexedDB ? vi.spyOn(window.indexedDB, 'open') : null;
+    
+    // Define window.indexedDB unconditionally for jsdom
+    window.indexedDB = { open: vi.fn() } as any;
+    const indexedDBSpy = vi.spyOn(window.indexedDB, 'open');
 
     session.login('token');
     session.logout();
     session._simulateChannelMessageForTest();
 
     expect(cookieSpy).not.toHaveBeenCalled();
-    if (indexedDBSpy) expect(indexedDBSpy).not.toHaveBeenCalled();
-    expect(localStorageSpy).not.toHaveBeenCalled();
-    expect(sessionStorageSpy).not.toHaveBeenCalled();
+    expect(indexedDBSpy).not.toHaveBeenCalled();
+    expect(storageGetItemSpy).not.toHaveBeenCalled();
+    expect(storageSetItemSpy).not.toHaveBeenCalled();
+    expect(storageRemoveItemSpy).not.toHaveBeenCalled();
   });
 });
