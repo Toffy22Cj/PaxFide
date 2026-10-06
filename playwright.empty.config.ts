@@ -13,9 +13,9 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'chromium',
+      name: 'empty-list',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /routing\.spec\.ts|production\.spec\.ts/,
+      testMatch: /routing\.spec\.ts/,
     },
   ],
   webServer: [
@@ -24,12 +24,7 @@ export default defineConfig({
       url: 'http://localhost:3000',
       reuseExistingServer: false,
       env: {
-        NEXT_PUBLIC_E2E_SURFACES: JSON.stringify([
-          '/login',
-          '/panel',
-          '/panel/campaigns',
-          '/assets/:assetRef'
-        ])
+        NEXT_PUBLIC_E2E_SURFACES: ''
       }
     },
     {
