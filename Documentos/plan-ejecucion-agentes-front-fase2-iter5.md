@@ -4,6 +4,13 @@
 **Complementa** a `plan-ejecucion-agentes-front-fase2.md` (W-0 a W-6). Se usa igual: se pega el Prompt Maestro (`Promt-maestro-front-fase2.md` §1) y, **debajo**, un solo bloque de este documento, en una sesión de agente nueva.
 **Renumeración:** las antiguas W-7 (Login) y W-8 (`/c`) pasan a **W-11** y **W-12**; siguen bloqueadas.
 
+## Enmienda E-5.1 (2026-10-05)
+
+- W-7, W-8 y W-9 se desarrollaron sobre la pila sin mergear.
+- **Decisión:** Queda aceptada la pila lineal W-6 → W-7 → W-8 → W-9, y se mergeará en ese estricto orden.
+- **Condición intacta:** P-5.1 sigue vigente; nada de W-7 a W-9 entra a `develop` antes que W-0 a W-6.
+- El intento de merge a `develop` (V-7) queda cerrado sin efecto.
+
 ## Precondiciones (todas obligatorias)
 
 | # | Precondición | Quién | Estado (2026-10-05) |
