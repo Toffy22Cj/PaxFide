@@ -10,7 +10,7 @@ import path from 'path';
  *
  * Lo que el test hace FUERA de la interfaz, con su motivo (se marca `via: "HTTP"` en `pasos.json`):
  * - pago: el test es el proveedor de pago (webhook simulado firmado, como `recorrido.py` del backend; DW-30);
- * - lo que aún no tiene pantalla en la web se hace por HTTP como operador y se anota.
+ * - el identificador de la organización para la plataforma lo toma de `/me` del administrador (D-04: sin listado).
  */
 const API = process.env.ENSAYO_API ?? 'http://localhost:8080/api/v1';
 const PASSWORD = process.env.TRACEABILITY_DEMO_SEED_PASSWORD ?? '';
@@ -151,16 +151,21 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     await expect(s.admin.getByRole('link', { name: 'Convocatorias de mi organización' })).toBeVisible();
   }, () => s.admin);
 
-  // 1. Verificar la organización: pantalla de plataforma pendiente (P2-C) → por HTTP como operador
-  await paso('verificar-organizacion', 'HTTP', async () => {
+  // 1. Verificar la organización por la interfaz de plataforma. Sin listado de pendientes (D-04), el identificador lo
+  // da la organización: el test lo toma de su `/me` (como haría el representante al comunicarlo)
+  await paso('verificar-organizacion', 'UI', async () => {
     const t = await jwt(request, 'administrador');
-    const me = await (await request.get(`${API}/me`, { headers: { Authorization: `Bearer ${t}` } })).json();
-    s.org = me.organizationId;
-    const p = await jwt(request, 'plataforma');
-    const r = await request.post(`${API}/platform/organizations/${s.org}/verify`, { headers: { Authorization: `Bearer ${p}` } });
-    expect([200, 409]).toContain(r.status());
-    return `HTTP ${r.status()}; sin pantalla de plataforma todavía (P2-C)`;
-  });
+    s.org = (await (await request.get(`${API}/me`, { headers: { Authorization: `Bearer ${t}` } })).json()).organizationId;
+    const p = await login(browser, 'plataforma');
+    s.platform = p;
+    await p.getByRole('link', { name: 'Verificación de organizaciones' }).click();
+    await p.getByLabel('Identificador de la organización').fill(s.org);
+    await p.getByRole('button', { name: 'Verificar organización' }).click();
+    await p.getByRole('dialog').getByRole('button', { name: 'Verificar organización' }).click();
+    await expect(p.getByText(/: Verificada\./).or(p.getByRole('dialog').getByRole('alert'))).toBeVisible();
+    const already = await p.getByRole('dialog').isVisible();
+    return already ? 'ya estaba verificada (409 mostrado)' : 'Verificada; id dado por la organización (D-04)';
+  }, () => s.platform);
 
   // Repetible: un EMPLOYEE solo es responsable de una convocatoria activa, así que se cierran por la interfaz las
   // convocatorias abiertas de ensayos anteriores (prueba también "Cerrar convocatoria" contra el backend real)
@@ -256,28 +261,30 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     return `recaudado mostrado: ${cleared} (enviado: 60.000 + 40.000 COP; D-01)`;
   }, () => s.pub);
 
-  // 4. Camino A: fondos y asignación (pantallas en P2-C) por HTTP; registro del activo por la interfaz
-  await paso('fondo-y-asignacion', 'HTTP', async () => {
-    const t = await jwt(request, 'administrador');
-    const funds = await (await request.get(`${API}/organizations/${s.org}/funds`, { headers: { Authorization: `Bearer ${t}` } })).json();
-    const fund = funds.items.find((f: any) => f.clearedAmount !== '0' && f.availableAmount !== '0');
-    expect(fund).toBeTruthy();
-    s.fundId = fund.fundId;
-    const r = await request.post(`${API}/funds/${s.fundId}/allocations`, {
-      data: { amount: '1000000' }, headers: { Authorization: `Bearer ${t}`, 'Command-Id': crypto.randomUUID() },
-    });
-    expect(r.status()).toBe(201);
-    s.allocationId = (await r.json()).allocationId;
-    return 'sin pantalla de fondos todavía (P2-C)';
-  });
+  // 4. Camino A por la interfaz: el administrador solicita y confirma una asignación; el empleado la elige al registrar
+  await paso('fondo-y-asignacion', 'UI', async () => {
+    const a = s.admin as Page;
+    await a.getByRole('link', { name: 'Panel' }).click();
+    await a.getByRole('link', { name: 'Fondos de mi organización' }).click();
+    const fund = a.getByTestId('fund').filter({ hasNotText: 'Disponible0 COP' }).first();
+    await expect(fund).toBeVisible();
+    await fund.getByRole('button', { name: 'Solicitar asignación' }).click();
+    await a.getByRole('dialog').getByLabel(/^Importe/).fill('10000');
+    await a.getByRole('dialog').getByRole('button', { name: 'Solicitar asignación' }).click();
+    await expect(a.getByText('Asignación solicitada.')).toBeVisible();
+    await fund.getByRole('button', { name: 'Confirmar asignación' }).click();
+    await a.getByRole('dialog').getByRole('button', { name: 'Confirmar asignación' }).click();
+    await expect(a.getByText('Asignación confirmada.')).toBeVisible();
+    await expect(fund.getByTestId('allocation')).toContainText('Confirmada');
+  }, () => s.admin);
 
   await paso('registrar-activo-camino-A', 'UI', async () => {
     const e = await login(browser, 'empleado');
     s.employee = e;
     await e.getByRole('button', { name: 'Registrar activo' }).click();
     await e.getByLabel('Compra con fondos de una donación').check();
-    await e.getByLabel('Fondo (referencia)').fill(s.fundId);
-    await e.getByLabel('Asignación de fondos (referencia)').fill(s.allocationId);
+    await e.getByLabel('Fondo', { exact: true }).selectOption({ index: 1 });
+    await e.getByLabel('Asignación de fondos', { exact: true }).selectOption({ index: 1 });
     await e.getByLabel('Tipo de bien').fill('BLANKET');
     await e.getByLabel('Cantidad').fill('10');
     await e.getByLabel('Unidad de medida').fill('UNITS');
@@ -310,6 +317,14 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     await act(e, 'Recibir', [['Instalación (ubicación)', 'centro-1'], ['Quién recibe (referencia)', 'recibe-1']]);
     await act(e, 'Entregar', DELIVER);
     await expect(e.getByTestId('state-content-readonly')).toBeVisible();
+  }, () => s.employee);
+
+  await paso('activos-organizacion', 'UI', async () => {
+    const e = s.employee as Page;
+    await e.getByRole('link', { name: 'Panel' }).click();
+    await e.getByRole('link', { name: 'Activos de mi organización' }).click();
+    await expect(e.getByTestId('org-asset')).toHaveCount(2);
+    await expect(e.getByTestId('org-asset').filter({ hasText: 'Entregado' })).toHaveCount(2);
   }, () => s.employee);
 
   // 6/7. Seguimiento por formulario (el código nunca en la URL)

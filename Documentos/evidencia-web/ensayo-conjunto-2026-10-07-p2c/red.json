@@ -1,0 +1,410 @@
+[
+  {
+    "pagina": "administrador",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "GET",
+    "ruta": "/me",
+    "codigo": 200
+  },
+  {
+    "pagina": "plataforma",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200
+  },
+  {
+    "pagina": "plataforma",
+    "metodo": "GET",
+    "ruta": "/me",
+    "codigo": 200
+  },
+  {
+    "pagina": "plataforma",
+    "metodo": "GET",
+    "ruta": "/me",
+    "codigo": 200
+  },
+  {
+    "pagina": "plataforma",
+    "metodo": "POST",
+    "ruta": "/platform/organizations/01M4CB8Q0NTPFHXS8D8TGPYHHQ/verify",
+    "codigo": 200
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "GET",
+    "ruta": "/me",
+    "codigo": 200
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "GET",
+    "ruta": "/organizations/01M4CB8Q0NTPFHXS8D8TGPYHHQ/members",
+    "codigo": 200
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "GET",
+    "ruta": "/organizations/01M4CB8Q0NTPFHXS8D8TGPYHHQ/campaigns",
+    "codigo": 200
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "POST",
+    "ruta": "/organizations/01M4CB8Q0NTPFHXS8D8TGPYHHQ/campaigns",
+    "codigo": 201
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "GET",
+    "ruta": "/organizations/01M4CB8Q0NTPFHXS8D8TGPYHHQ/campaigns",
+    "codigo": 200
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "POST",
+    "ruta": "/campaigns/30bed1a2-8329-413e-a336-b42fbd379753/employees",
+    "codigo": 201
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "GET",
+    "ruta": "/organizations/01M4CB8Q0NTPFHXS8D8TGPYHHQ/campaigns",
+    "codigo": 200
+  },
+  {
+    "pagina": "anonimo",
+    "metodo": "GET",
+    "ruta": "/public/campaigns/F81AWDMS3AWKF5XDSF7F0PYXAP/narrative",
+    "codigo": 202
+  },
+  {
+    "pagina": "anonimo",
+    "metodo": "POST",
+    "ruta": "/public/campaigns/F81AWDMS3AWKF5XDSF7F0PYXAP/donation-intents",
+    "codigo": 201
+  },
+  {
+    "pagina": "anonimo",
+    "metodo": "GET",
+    "ruta": "/public/donation-intents/1a632e48-e2e4-4b1f-b05b-0721e8402b43",
+    "codigo": 200
+  },
+  {
+    "pagina": "donante",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200
+  },
+  {
+    "pagina": "donante",
+    "metodo": "GET",
+    "ruta": "/me",
+    "codigo": 200
+  },
+  {
+    "pagina": "donante",
+    "metodo": "GET",
+    "ruta": "/public/campaigns",
+    "codigo": 200
+  },
+  {
+    "pagina": "donante",
+    "metodo": "GET",
+    "ruta": "/public/campaigns/F81AWDMS3AWKF5XDSF7F0PYXAP/narrative",
+    "codigo": 202
+  },
+  {
+    "pagina": "donante",
+    "metodo": "POST",
+    "ruta": "/public/campaigns/F81AWDMS3AWKF5XDSF7F0PYXAP/donation-intents",
+    "codigo": 201
+  },
+  {
+    "pagina": "donante",
+    "metodo": "GET",
+    "ruta": "/public/donation-intents/cfcb47eb-6b21-40f4-a880-81f57e081393",
+    "codigo": 200
+  },
+  {
+    "pagina": "donante",
+    "metodo": "GET",
+    "ruta": "/me",
+    "codigo": 200
+  },
+  {
+    "pagina": "donante",
+    "metodo": "GET",
+    "ruta": "/account/donations",
+    "codigo": 200
+  },
+  {
+    "pagina": "publica",
+    "metodo": "GET",
+    "ruta": "/public/campaigns/F81AWDMS3AWKF5XDSF7F0PYXAP/narrative",
+    "codigo": 202
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "GET",
+    "ruta": "/me",
+    "codigo": 200
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "GET",
+    "ruta": "/me",
+    "codigo": 200
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "GET",
+    "ruta": "/organizations/01M4CB8Q0NTPFHXS8D8TGPYHHQ/funds",
+    "codigo": 200
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "POST",
+    "ruta": "/funds/0e843583-9bd5-4e9c-a0b1-e03bb4e579a0/allocations",
+    "codigo": 201
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "GET",
+    "ruta": "/organizations/01M4CB8Q0NTPFHXS8D8TGPYHHQ/funds",
+    "codigo": 200
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "POST",
+    "ruta": "/funds/0e843583-9bd5-4e9c-a0b1-e03bb4e579a0/allocations/9f8168dc-7bfc-5d98-af8a-3e71d441a49e/confirm",
+    "codigo": 200
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "GET",
+    "ruta": "/organizations/01M4CB8Q0NTPFHXS8D8TGPYHHQ/funds",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "POST",
+    "ruta": "/auth/login",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/me",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/organizations/01M4CB8Q0NTPFHXS8D8TGPYHHQ/funds",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "POST",
+    "ruta": "/physical-assets/register",
+    "codigo": 201
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/me",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/physical-assets/258e42b8-1fad-51e9-898e-94cb6c6bbcd8",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "POST",
+    "ruta": "/physical-assets/258e42b8-1fad-51e9-898e-94cb6c6bbcd8/dispatch",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/physical-assets/258e42b8-1fad-51e9-898e-94cb6c6bbcd8",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "POST",
+    "ruta": "/physical-assets/258e42b8-1fad-51e9-898e-94cb6c6bbcd8/receive",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/physical-assets/258e42b8-1fad-51e9-898e-94cb6c6bbcd8",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "POST",
+    "ruta": "/physical-assets/258e42b8-1fad-51e9-898e-94cb6c6bbcd8/split",
+    "codigo": 202
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/physical-assets/258e42b8-1fad-51e9-898e-94cb6c6bbcd8",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/physical-assets/258e42b8-1fad-51e9-898e-94cb6c6bbcd8/splits/9ded0c9e-301c-54f1-8859-8b915cb4119c",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/physical-assets/258e42b8-1fad-51e9-898e-94cb6c6bbcd8/splits/9ded0c9e-301c-54f1-8859-8b915cb4119c",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "POST",
+    "ruta": "/physical-assets/258e42b8-1fad-51e9-898e-94cb6c6bbcd8/deliver",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/physical-assets/258e42b8-1fad-51e9-898e-94cb6c6bbcd8",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/me",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/physical-assets/9ded0c9e-301c-54f1-8859-8b915cb4119c",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "POST",
+    "ruta": "/physical-assets/9ded0c9e-301c-54f1-8859-8b915cb4119c/dispatch",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/physical-assets/9ded0c9e-301c-54f1-8859-8b915cb4119c",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "POST",
+    "ruta": "/physical-assets/9ded0c9e-301c-54f1-8859-8b915cb4119c/receive",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/physical-assets/9ded0c9e-301c-54f1-8859-8b915cb4119c",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "POST",
+    "ruta": "/physical-assets/9ded0c9e-301c-54f1-8859-8b915cb4119c/deliver",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/physical-assets/9ded0c9e-301c-54f1-8859-8b915cb4119c",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/me",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/me",
+    "codigo": 200
+  },
+  {
+    "pagina": "empleado",
+    "metodo": "GET",
+    "ruta": "/organizations/01M4CB8Q0NTPFHXS8D8TGPYHHQ/physical-assets",
+    "codigo": 200
+  },
+  {
+    "pagina": "seguimiento",
+    "metodo": "GET",
+    "ruta": "/donations/tracking",
+    "codigo": 200
+  },
+  {
+    "pagina": "seguimiento",
+    "metodo": "GET",
+    "ruta": "/donations/tracking/narrative",
+    "codigo": 202
+  },
+  {
+    "pagina": "seguimiento",
+    "metodo": "GET",
+    "ruta": "/donations/tracking/narrative",
+    "codigo": 200
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "GET",
+    "ruta": "/me",
+    "codigo": 200
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "GET",
+    "ruta": "/me",
+    "codigo": 200
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "GET",
+    "ruta": "/organizations/01M4CB8Q0NTPFHXS8D8TGPYHHQ/campaigns",
+    "codigo": 200
+  },
+  {
+    "pagina": "administrador",
+    "metodo": "GET",
+    "ruta": "/organizations/01M4CB8Q0NTPFHXS8D8TGPYHHQ/campaigns/30bed1a2-8329-413e-a336-b42fbd379753/prediction",
+    "codigo": 200
+  },
+  {
+    "pagina": "publica",
+    "metodo": "GET",
+    "ruta": "/public/campaigns/F81AWDMS3AWKF5XDSF7F0PYXAP/narrative",
+    "codigo": 202
+  },
+  {
+    "pagina": "publica",
+    "metodo": "GET",
+    "ruta": "/public/campaigns/F81AWDMS3AWKF5XDSF7F0PYXAP/narrative",
+    "codigo": 200
+  }
+]

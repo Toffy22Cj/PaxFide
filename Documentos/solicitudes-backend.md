@@ -59,3 +59,10 @@ camino A, despachar, recibir, dividir (saga), entregar, seguimiento por formular
 cifra por `NOT_STARTED`) y narrativa de convocatoria. Por HTTP (sin pantalla en la web todavía): verificar la
 organización y fondos/asignación (P2-C). Diferencias: D-05 a D-08.
 
+### Ensayo conjunto tras P2-C (2026-10-07, backend `4d1d65a`)
+
+**21/21 pasos OK, 68 llamadas sin error**, todo por la interfaz salvo el pago (el test es el proveedor simulado).
+Ya por la interfaz: verificar la organización (`/panel/platform`; el id se escribe, D-04), solicitar y confirmar la
+asignación (`/panel/funds`), elegir fondo y asignación al registrar, y "Activos de la organización". Evidencia:
+`PaxFide/Documentos/evidencia-web/ensayo-conjunto-2026-10-07-p2c/`. Sin diferencias nuevas.
+
