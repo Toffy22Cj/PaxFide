@@ -44,6 +44,8 @@ Formato pedido: id · fecha UTC · pantalla · pregunta · opciones · elegida �
 | DW-14 | 2026-10-07T18:05Z | `/c`, Donar | Los importes llegan en unidades mínimas ISO 4217 (Q-CV01-3). ¿Cómo se muestran y se piden? | (a) mostrar el entero crudo; (b) convertir con el exponente de la moneda, sin coma flotante | **(b)**: `src/lib/money.ts`, aritmética de cadenas; el exponente sale de `Intl` (CLDR); el donante escribe unidades de la moneda (`50000` o `50000,50`) y se envía el entero en unidades mínimas; más decimales de los que admite la moneda → error de validación; nunca se redondea | El crudo (`5000000` para 50 000 COP) induce a error; la conversión es solo de presentación | Sí | `PENDIENTE DE RATIFICACIÓN` (confirmar que el exponente de CLDR coincide con el que usa el backend para COP) |
 | DW-15 | 2026-10-07T18:05Z | Donar | ¿Qué es "mostrar la redirección de pago simulada" y cómo se consulta el estado? | (a) navegar a `paymentRedirectUrl` (`/demo/checkout/sim_…`, ruta relativa sin página); (b) paso en la misma página | **(b)**: se informa de la redirección a la pasarela simulada sin navegar (navegar perdería el `statusToken`, que solo vive en memoria). La confirmación la envía el proveedor por el webhook firmado: **la web nunca dispara el webhook** (exigiría el secreto en el navegador). El estado se consulta con el botón "Consultar estado del pago": sin sondeo automático | Seguridad del secreto del webhook y del `statusToken`. El efectivo no se ofrece (CV-11 lo rechaza) | Sí | `PENDIENTE DE RATIFICACIÓN` |
 | DW-16 | 2026-10-07T18:05Z | Donar → Seguimiento | ¿Cómo pasa el `trackingCode` de la donación al seguimiento sin URL? | (a) que el usuario lo copie; (b) variable de módulo en memoria, consumo único | **(b)** además de "Copiar código": "Ver seguimiento" deja el código en memoria y `/tracking` lo consume una vez | Cumple "ningún secreto en la URL" y no persiste nada; recargar lo pierde | Sí | `PENDIENTE DE RATIFICACIÓN` |
+| DW-18 | 2026-10-07T18:20Z | Seguimiento | ¿Qué se muestra de TR-01 y cómo se separa la narrativa? | — | Bloque "Hechos verificables" (estado, importes del `financialSnapshot` en unidades mínimas y bienes con su recorrido TR-03 bajo demanda) y bloque aparte "Relato de tu donación" con la advertencia "si algo no coincide, mandan los hechos" y la fuente (IA o plantilla). `PENDING` → "Actualizar" manual. No se muestran `campaignRef` ni `assetRef`. Un importe fuera del rango seguro de JavaScript se muestra "—", nunca aproximado | `front-fase2` §9 (TrackingPage) y la regla de no presentar una estimación o un texto generado como hecho | Sí | `PENDIENTE DE RATIFICACIÓN` |
+| DW-19 | 2026-10-07T18:20Z | Mis donaciones | ¿Se muestra el `trackingCode` que devuelve `/account/donations`? | (a) siempre; (b) oculto hasta que el usuario lo pide | **(b)**, con "Ver seguimiento" que lo pasa en memoria (DW-16). No se muestra `intentId` | Es una credencial; no hace falta en pantalla para seguir la donación | Sí | `PENDIENTE DE RATIFICACIÓN` |
 
 ---
 
@@ -58,6 +60,8 @@ Cada entrada cita la evidencia o la enmienda que la justifica. Una habilitación
 | `/panel/campaigns` | 1 | Ídem | S-01 y S-02 (listado). Sin `/me` no hay `organizationId` |
 | `/c/:publicCode` | 2 | CV-07 en `develop` (B6-a, `estado-fase6.md` §0.13); "no encontrada" = 404 (S-09) | — |
 | `action:donate` | 2 | CV-11 y la consulta con `Intent-Token` en `develop` (B6-b, §0.14); ampliación de alcance (Enmienda 1 de ADR-046, borrador); idempotencia de CV-11 probada en `DonationPaymentHttpIntegrationTest.aDuplicateCv11_returnsTheSameIntentWithANewToken_andTheOldOneStopsWorking` | Pago real: solo proveedor simulado en `dev` |
+| `/tracking` | 3 | TR-01 a TR-03 en `develop` con `Authorization: Bearer <trackingCode>` (`TrackingCodeAuthFilter`; B6-d, §0.15, que arregló el 404 del seguimiento real); decisión C2/H1 de Carlos | S-05 (QR de seguimiento) |
+| `/account/donations` | 3 | `GET /account/donations` en `develop` (B6-b, §0.14); ampliación de alcance (Enmienda 1, borrador) | — |
 | `/assets/:assetRef` (lectura) | 1 | `GET /physical-assets/{assetRef}` en `develop` (B6-c, `estado-fase6.md` §0.12) | R10: un `REPRESENTATIVE` recibe 403 (estado de pantalla) |
 
 ---
@@ -97,5 +101,7 @@ Penpot es la fuente visual de verdad y el agente no tiene acceso. Todas las pant
 | PanelHome | SIN VALIDAR CONTRA PENPOT |
 | `/panel/campaigns` | SIN VALIDAR CONTRA PENPOT |
 | `/c/:publicCode` (con datos reales de CV-07; §5.4 solo tenía bloques grises) | SIN VALIDAR CONTRA PENPOT |
+| Seguimiento por formulario (`/tracking`) | SIN VALIDAR CONTRA PENPOT |
+| Mis donaciones | SIN VALIDAR CONTRA PENPOT |
 | Donar, pasarela simulada, estado de la intención y entrega del `trackingCode` | SIN VALIDAR CONTRA PENPOT (sin diseño previo en `diseno-ux`) |
 | Estados globales y componentes base | SIN VALIDAR CONTRA PENPOT |

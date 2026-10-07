@@ -12,3 +12,23 @@ export const donationTypeLabel = (v: string) => DONATION_TYPES[v] ?? v;
 export const paymentMethodLabel = (v: string) => PAYMENT_METHODS[v] ?? v;
 export const campaignStatusLabel = (v: string) => CAMPAIGN_STATUS[v] ?? v;
 export const lifecycleLabel = (v: string) => LIFECYCLE[v] ?? v;
+
+const CUSTODIAN: Record<string, string> = {
+  LOGISTICS_PARTNER: 'Operador logístico', REGIONAL_WAREHOUSE: 'Bodega regional',
+  LAST_MILE_CARRIER: 'Transporte de última milla', LOCAL_ALLY: 'Aliado local', UNCATEGORIZED: 'Sin categoría',
+};
+const DONATION_STATUS: Record<string, string> = { ACTIVA: 'Activa', EN_PROCESO: 'En proceso' };
+const EVENT: Record<string, string> = {
+  ASSET_REGISTERED: 'Registrado', ASSET_DISPATCHED: 'Despachado', ASSET_RECEIVED: 'Recibido',
+  ASSET_DELIVERED: 'Entregado', ASSET_SPLIT: 'Dividido', ASSET_SPLIT_COMPENSATED: 'División revertida',
+  ASSET_CUSTODY_TRANSFERRED: 'Cambio de custodio', ASSET_DEPLETED: 'Agotado',
+};
+const INTENT_STATUS: Record<string, string> = {
+  PENDING: 'Pendiente', CONFIRMED: 'Confirmada', FAILED: 'Fallida', EXPIRED_UNKNOWN: 'Sin confirmar a tiempo',
+  FUNDING_REJECTED: 'No aceptada por la convocatoria',
+};
+
+export const custodianLabel = (v?: string) => (v ? CUSTODIAN[v] ?? v : '—');
+export const donationStatusLabel = (v: string) => DONATION_STATUS[v] ?? v;
+export const eventLabel = (v: string) => EVENT[v] ?? v;
+export const intentStatusLabel = (v: string) => INTENT_STATUS[v] ?? v;

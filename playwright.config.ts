@@ -32,7 +32,9 @@ export default defineConfig({
           '/panel/campaigns',
           '/assets/:assetRef',
           '/c/:publicCode',
-          'action:donate'
+          'action:donate',
+          '/tracking',
+          '/account/donations'
         ])
       }
     },
