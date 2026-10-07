@@ -162,7 +162,8 @@ export function CampaignsScreen({ meClient = fetchMe, listClient = fetchOrganiza
     return { status: 'ready', data: r.kind === 'ok' ? r.items : null };
   }, [enabled, organizationId]);
 
-  const listState = list.state.status === 'ready' ? list.state.data : undefined;
+  // `null` = la lectura de cuando aún no había organización: mientras llega la buena, "Cargando…"
+  const listState = list.state.status === 'ready' && list.state.data ? list.state.data : undefined;
   const memberList = members.state.status === 'ready' ? members.state.data : null;
 
   return (

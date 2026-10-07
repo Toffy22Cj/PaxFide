@@ -112,7 +112,7 @@ describe('/panel/campaigns', () => {
     const { CampaignsScreen } = await load();
     const r1 = render(<CampaignsScreen meClient={async () => ADMIN} listClient={() => new Promise(() => {})} membersClient={MEMBERS_OK} />);
     await screen.findByRole('button', { name: 'Crear convocatoria' });
-    expect(screen.getByText('Cargando…')).toBeInTheDocument();
+    expect(await screen.findByText('Cargando…')).toBeInTheDocument();
     r1.unmount();
     const r2 = render(<CampaignsScreen meClient={async () => ADMIN} listClient={NO_LIST} membersClient={MEMBERS_OK} />);
     expect(await screen.findByText('Tu organización todavía no tiene convocatorias.')).toBeInTheDocument();
