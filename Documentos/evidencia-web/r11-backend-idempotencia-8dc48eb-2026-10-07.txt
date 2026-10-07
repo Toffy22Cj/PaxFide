@@ -1,0 +1,22 @@
+# Evidencia R11 — tests de idempotencia por Command-Id del backend
+# Repositorio: Toffy22Cj/Donaciones, develop 8dc48eb (solo lectura, sin cambios en el árbol)
+# Comando: mvn -B -pl app -am test -Dtest='CampaignHttpIntegrationTest,PhysicalAssetHttpIntegrationTest,AssetHttpCommandsIntegrationTest,SplitSagaIntegrationTest' -Dsurefire.failIfNoSpecifiedTests=false
+# Ejecutado: 2026-10-07 (UTC), Docker real (Testcontainers)
+
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 25.57 s -- in com.traceability.core.application.saga.SplitSagaIntegrationTest
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.933 s -- in com.traceability.core.application.command.AssetHttpCommandsIntegrationTest
+[INFO] Tests run: 28, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 17.82 s -- in com.traceability.app.web.campaign.CampaignHttpIntegrationTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 6.395 s -- in com.traceability.app.web.asset.PhysicalAssetHttpIntegrationTest
+[INFO] Tests run: 22, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Reactor Summary for traceability-parent 1.0.0-SNAPSHOT:
+[INFO] traceability-parent ................................ SUCCESS [  0.002 s]
+[INFO] contracts .......................................... SUCCESS [  7.564 s]
+[INFO] core ............................................... SUCCESS [ 48.129 s]
+[INFO] crypto ............................................. SUCCESS [ 20.828 s]
+[INFO] ai ................................................. SUCCESS [  4.790 s]
+[INFO] api ................................................ SUCCESS [  1.956 s]
+[INFO] identity ........................................... SUCCESS [  1.995 s]
+[INFO] convocatoria ....................................... SUCCESS [  0.905 s]
+[INFO] app ................................................ SUCCESS [ 57.240 s]
+[INFO] BUILD SUCCESS

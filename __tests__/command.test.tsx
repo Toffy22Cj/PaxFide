@@ -9,12 +9,14 @@ describe('Command Machine (T-5)', () => {
   beforeEach(() => {
     fetchMock = vi.fn();
     global.fetch = fetchMock;
+    vi.stubEnv('NEXT_PUBLIC_API_BASE_URL', 'http://api.paxfide.test/api/v1');
     vi.spyOn(session, 'handle401');
     vi.useFakeTimers();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
     vi.useRealTimers();
   });
 
@@ -29,7 +31,7 @@ describe('Command Machine (T-5)', () => {
     });
 
     expect(result.current.state).toBe('AMBIGUOUS');
-    const firstCallId = fetchMock.mock.calls[0][1].headers['X-Command-Id'];
+    const firstCallId = fetchMock.mock.calls[0][1].headers['Command-Id'];
     expect(firstCallId).toBeDefined();
 
     // Reintento
@@ -39,7 +41,7 @@ describe('Command Machine (T-5)', () => {
     });
 
     expect(result.current.state).toBe('SUCCESS');
-    const secondCallId = fetchMock.mock.calls[1][1].headers['X-Command-Id'];
+    const secondCallId = fetchMock.mock.calls[1][1].headers['Command-Id'];
     
     // Mismo commandId
     expect(secondCallId).toBe(firstCallId);
@@ -56,7 +58,7 @@ describe('Command Machine (T-5)', () => {
     });
 
     expect(result.current.state).toBe('REJECTED');
-    const firstCallId = fetchMock.mock.calls[0][1].headers['X-Command-Id'];
+    const firstCallId = fetchMock.mock.calls[0][1].headers['Command-Id'];
 
     // Para 4xx, retry no hace nada (la UI llama a newIntent o execute de nuevo)
     await act(async () => {
@@ -72,7 +74,7 @@ describe('Command Machine (T-5)', () => {
     });
 
     expect(result.current.state).toBe('SUCCESS');
-    const secondCallId = fetchMock.mock.calls[1][1].headers['X-Command-Id'];
+    const secondCallId = fetchMock.mock.calls[1][1].headers['Command-Id'];
     
     // commandId distinto
     expect(secondCallId).not.toBe(firstCallId);
@@ -142,6 +144,18 @@ describe('Command Machine (T-5)', () => {
     expect(session.handle401).toHaveBeenCalledWith(false);
     expect(result.current.state).toBe('IDLE');
     expect(result.current.commandId).toBeNull();
+  });
+
+  it('envía la cabecera Command-Id (UUID) al backend, nunca X-Command-Id', async () => {
+    fetchMock.mockResolvedValueOnce({ status: 201 });
+    const { result } = renderHook(() => useCommand('/api/test'));
+    await act(async () => {
+      await result.current.execute({ data: 1 });
+    });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://api.paxfide.test/api/v1/api/test');
+    expect(init.headers['Command-Id']).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+    expect(init.headers['X-Command-Id']).toBeUndefined();
   });
 
   it('Cerrar limpia el commandId', async () => {

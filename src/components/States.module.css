@@ -1,0 +1,12 @@
+.notice { display: flex; gap: var(--space-3); align-items: flex-start; border-radius: var(--radius-surface); padding: var(--space-4); margin: 0 0 var(--space-4); }
+.notice p { margin: 0; }
+.body { display: flex; flex-direction: column; gap: var(--space-1); }
+.title { font-weight: var(--weight-semibold); }
+.success { background: var(--brand-green-50); color: var(--brand-green-900); }
+.info { background: var(--brand-blue-50); color: var(--brand-blue-800); }
+.rejected { background: var(--danger-50); color: var(--danger-700); }
+.ambiguous { background: var(--brand-yellow-50); color: var(--brand-green-900); }
+.ambiguous .title { color: var(--brand-yellow-900); }
+.neutral { background: var(--white); color: var(--brand-neutral-700); border: 1px solid var(--neutral-200); }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-3); }
+.button { min-height: var(--control-height); padding: 0 var(--space-4); border-radius: var(--radius-control); font: inherit; font-weight: var(--weight-semibold); cursor: pointer; background: var(--white); color: var(--brand-green-900); border: 1px solid var(--neutral-400); }

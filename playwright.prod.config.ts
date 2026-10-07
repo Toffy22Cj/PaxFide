@@ -10,6 +10,8 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
+    // Solo en local: un Chromium preinstalado (PW_CHROMIUM_PATH). En CI se usa el que instala Playwright.
+    launchOptions: process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {},
   },
   projects: [
     {
@@ -20,7 +22,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'NEXT_PUBLIC_API_BASE_URL=http://localhost:3002 pnpm build && pnpm start',
+      command: 'NEXT_PUBLIC_API_BASE_URL=http://localhost:3002/api/v1 pnpm build && pnpm start',
       url: 'http://localhost:3000',
       reuseExistingServer: false,
       env: {

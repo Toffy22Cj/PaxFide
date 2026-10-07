@@ -1,0 +1,6 @@
+[
+  "/login",
+  "/panel",
+  "/panel/campaigns",
+  "/assets/:assetRef"
+]
