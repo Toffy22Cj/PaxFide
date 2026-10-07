@@ -236,3 +236,60 @@ describe('fetchIntentStatus', () => {
     expect(await fetchIntentStatus('i', 'tok')).toEqual({ kind: 'not-found' });
   });
 });
+
+describe('A3 — aviso antes de salir con una donación sin confirmar', () => {
+  const fetchMock = vi.fn();
+  beforeEach(() => { global.fetch = fetchMock as any; fetchMock.mockReset(); });
+  afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+
+  const unloadCancelled = () => {
+    const ev = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  };
+
+  async function startDonation(statusClient: any) {
+    const { DonateSection, sessionMod } = await screens();
+    sessionMod._resetForTest();
+    fetchMock.mockResolvedValueOnce(res(201, { intentId: 'i-1', statusToken: 't' }));
+    const view = render(
+      <>
+        <a href="/panel">Salir</a>
+        <DonateSection publicCode="PC" campaign={CAMPAIGN} statusClient={statusClient} />
+      </>,
+    );
+    expect(unloadCancelled()).toBe(false);
+    fireEvent.change(screen.getByLabelText('Monto (COP)'), { target: { value: '50000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Donar' }));
+    await screen.findByText('Intención de donación registrada');
+    return view;
+  }
+
+  it('con la intención abierta: recargar o cerrar pide confirmación', async () => {
+    await startDonation(vi.fn());
+    expect(unloadCancelled()).toBe(true);
+  });
+
+  it('un enlace de la propia web pide confirmación; si se cancela, no se navega', async () => {
+    await startDonation(vi.fn());
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    screen.getByText('Salir').dispatchEvent(click);
+    expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/perderás el acceso al estado de tu donación/));
+    expect(click.defaultPrevented).toBe(true);
+  });
+
+  it('con el trackingCode ya mostrado, deja de avisar', async () => {
+    await startDonation(vi.fn().mockResolvedValue({ kind: 'ok', status: 'CONFIRMED', trackingCode: 'TRK.x' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Consultar estado del pago' }));
+    await screen.findByTestId('tracking-code');
+    expect(unloadCancelled()).toBe(false);
+  });
+
+  it('el trackingCode se destaca en cuanto llega: recibe el foco', async () => {
+    await startDonation(vi.fn().mockResolvedValue({ kind: 'ok', status: 'CONFIRMED', trackingCode: 'TRK.x' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Consultar estado del pago' }));
+    const code = await screen.findByTestId('tracking-code');
+    await waitFor(() => expect(document.activeElement).toBe(code.closest('[data-testid="tracking-reveal"]')));
+  });
+});

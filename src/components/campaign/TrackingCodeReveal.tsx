@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { StatusNotice } from '../States';
 import { Button } from '../ui/Button';
@@ -15,6 +15,13 @@ import { isSurfaceEnabled } from '../../lib/routing/surfaces';
  */
 export function TrackingCodeReveal({ trackingCode }: { trackingCode: string }) {
   const [copied, setCopied] = useState<'ok' | 'fail' | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // A3: el código se destaca en cuanto llega (foco y desplazamiento hasta él)
+  useEffect(() => {
+    ref.current?.focus();
+    ref.current?.scrollIntoView?.({ block: 'center' });
+  }, []);
 
   const copy = async () => {
     try {
@@ -26,6 +33,7 @@ export function TrackingCodeReveal({ trackingCode }: { trackingCode: string }) {
   };
 
   return (
+    <div ref={ref} tabIndex={-1} data-testid="tracking-reveal" aria-label="Código de seguimiento de tu donación">
     <StatusNotice variant="success" title="Donación confirmada">
       <p><strong>Este es tu código de seguimiento. Es la llave para ver el recorrido de tu donación.</strong></p>
       <p data-testid="tracking-code" className={ui.secret}>{trackingCode}</p>
@@ -42,5 +50,6 @@ export function TrackingCodeReveal({ trackingCode }: { trackingCode: string }) {
       {copied === 'ok' && <p role="status">Código copiado.</p>}
       {copied === 'fail' && <p role="status">No pudimos copiarlo; cópialo a mano.</p>}
     </StatusNotice>
+    </div>
   );
 }

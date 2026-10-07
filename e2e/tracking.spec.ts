@@ -32,6 +32,9 @@ test.describe('Donante con cuenta → Mis donaciones → seguimiento por formula
     expect((await post.allHeaders())['authorization']).toMatch(/^Bearer tok-/);
 
     await request.post(`${API}/__test/payments`, { data: { intentId } });
+    // Con la donación resuelta (trackingCode mostrado) ya no hay aviso al salir (A3)
+    await page.getByRole('button', { name: 'Consultar estado del pago' }).click();
+    await expect(page.getByTestId('tracking-code')).toBeVisible();
 
     await page.getByRole('link', { name: 'Panel' }).click();
     await page.getByRole('link', { name: 'Mis donaciones' }).click();
