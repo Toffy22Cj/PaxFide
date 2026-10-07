@@ -20,7 +20,14 @@ pasada, ya van por la interfaz:
 | Elegir fondo y asignación al registrar (camino A) | Desplegables de "Registrar activo" (empleado) |
 | Activos de la organización tras la entrega | `/panel/assets`: padre e hijo, "Entregado" |
 
-Sin cambios respecto a la primera pasada: estimación sin cifra (`NOT_STARTED`, porque CV-01 exige un inicio
-futuro), narrativa de convocatoria `UNAVAILABLE` sin clave de LLM y relato individual de plantilla (D-08).
+**Estimación con cifra (`capturas/22-estimacion-con-cifra.png`):** durante el recorrido no hay cifra (`NOT_STARTED`,
+porque CV-01 exige un inicio futuro). Pasado el inicio (23:35Z), la misma pantalla muestra:
+- la cifra del backend real: probabilidad 100 %, final estimado 238 %;
+- el aviso del backend "fuera del rango de entrenamiento" (0 % del tiempo transcurrido);
+- lo recaudado (20 % de la meta) marcado como **hecho**, separado de la estimación.
+
+La captura se tomó con un guion aparte, con la sesión del administrador.
+
+Sin cambios respecto a la primera pasada: narrativa de convocatoria `UNAVAILABLE` sin clave de LLM y relato individual de plantilla (D-08).
 
 Capturas: `capturas/NN-paso.png` (1280 px), con el `trackingCode` tapado.

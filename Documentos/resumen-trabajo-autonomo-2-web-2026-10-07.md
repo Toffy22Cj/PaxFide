@@ -34,7 +34,7 @@ Todo está detrás de la lista de habilitación (habilitado en el build de demo,
 **Lo que no funcionó o funciona a medias contra el backend real:**
 - **D-06.** Cerrar una convocatoria no libera a su empleado, que ya no puede ser responsable de ninguna otra. El ensayo solo se repite sobre una base vacía.
 - **D-08.** El relato individual de plantilla sale en inglés y muestra el `fundId` al donante.
-- **Estimación.** Una convocatoria recién creada no tiene cifra (`NOT_STARTED`), porque CV-01 exige un inicio futuro. Hay que esperar a que empiece (ver §2 de la evidencia de la segunda pasada).
+- **Estimación.** Una convocatoria recién creada no tiene cifra (`NOT_STARTED`), porque CV-01 exige un inicio futuro. Pasado el inicio, la pantalla muestra la cifra real con los avisos del backend (captura `22-estimacion-con-cifra.png` de la segunda pasada).
 - **Narrativa de la convocatoria.** Sin clave de LLM sale `UNAVAILABLE`, que es lo que dice el runbook.
 
 **Corregido en la web por el ensayo:**
