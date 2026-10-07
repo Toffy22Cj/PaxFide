@@ -1,3 +1,5 @@
+'use client';
+
 export type LifecycleStatus = 'REGISTERED' | 'DISPATCHED' | 'RECEIVED' | 'DELIVERED';
 
 export interface PhysicalAssetOperationalReadModel {

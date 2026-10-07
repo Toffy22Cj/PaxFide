@@ -44,6 +44,63 @@ function problem(res, status, title) {
   send(res, status, { type: 'about:blank', title, status, detail: DETAILS[status] || 'The request could not be processed.' });
 }
 
+const UUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+/** Como CommandIdArgumentResolver (B6-0): UUID canónico obligatorio, en minúsculas; si no, 400. */
+function commandIdOf(req) {
+  const v = req.headers['command-id'];
+  return typeof v === 'string' && UUID.test(v) ? v.toLowerCase() : null;
+}
+
+/** Reclamos de Command-Id: el mismo id en otro tipo de comando → 409 (IdempotentCommandExecutor / B6-c). */
+const claims = new Map();
+function claim(res, commandId, type, onFirst) {
+  const prev = claims.get(commandId);
+  if (prev && prev.type !== type) {
+    problem(res, 409, type.startsWith('ASSET') ? 'CommandIdReused' : 'CommandIdReusedForDifferentCommand');
+    return null;
+  }
+  if (prev) return { duplicate: true, value: prev.value };
+  const value = onFirst();
+  if (value === null) return null;
+  claims.set(commandId, { type, value });
+  return { duplicate: false, value };
+}
+
+// --- Datos de la demo simulada (no son parte del contrato) ---
+const campaigns = new Map();
+function addCampaign(publicCode, c) { campaigns.set(publicCode, { publicCode, ...c }); }
+addCampaign('01JDEMOPUBLICC0DEMONETARY1', {
+  campaignRef: 'camp-demo-1', organizationRef: 'org-1', organizationName: 'Fundación Demo', title: 'Mercados para adultos mayores',
+  description: 'Recaudamos fondos para entregar mercados a adultos mayores del barrio.', status: 'OPEN',
+  startDate: '2026-10-01T00:00:00Z', endDate: '2026-12-31T23:59:59Z', acceptedDonationTypes: ['MONETARY'],
+  acceptedPaymentMethods: ['GATEWAY', 'BANK_TRANSFER'], currency: 'COP', targetAmount: '500000000', clearedAmount: '125000000',
+});
+addCampaign('01JDEMOPUBLICC0DECLOSED001', {
+  campaignRef: 'camp-demo-2', organizationRef: 'org-1', organizationName: 'Fundación Demo', title: 'Kits escolares 2025',
+  status: 'CLOSED', startDate: '2025-01-01T00:00:00Z', endDate: '2025-03-01T00:00:00Z', acceptedDonationTypes: ['MONETARY'],
+  acceptedPaymentMethods: ['GATEWAY'], currency: 'COP', targetAmount: '100000000', clearedAmount: '100000000',
+});
+addCampaign('01JDEMOPUBLICC0DEINKIND01', {
+  campaignRef: 'camp-demo-3', organizationRef: 'org-1', title: 'Ropa de abrigo', status: 'OPEN',
+  startDate: '2026-10-01T00:00:00Z', endDate: '2026-12-31T23:59:59Z', acceptedDonationTypes: ['IN_KIND'], acceptedPaymentMethods: [],
+});
+
+const intents = new Map();
+
+/** CV-07: exactamente los campos de PublicCampaignResponse, nulos omitidos. */
+function publicView(c) {
+  const out = {};
+  for (const k of ['organizationName', 'title', 'description', 'status', 'startDate', 'endDate', 'acceptedDonationTypes',
+    'acceptedPaymentMethods', 'currency', 'targetAmount', 'clearedAmount']) {
+    if (c[k] !== undefined && c[k] !== null) out[k] = c[k];
+  }
+  return out;
+}
+
+/** Fallos forzados por los tests: el siguiente POST cuya ruta empiece por `prefix` falla con `mode`. */
+const failures = [];
+
 function readBody(req) {
   return new Promise((resolve) => {
     let raw = '';
@@ -73,8 +130,61 @@ const server = http.createServer(async (req, res) => {
 
   if (path === '/') { res.writeHead(200); res.end('OK'); return; }
 
+  // --- Control de los tests (no existe en el backend real) ---
+  if (path === '/__test/fail-next' && req.method === 'POST') {
+    const body = await readBody(req);
+    failures.push({ prefix: body.prefix, mode: body.mode, applyThenFail: !!body.applyThenFail });
+    send(res, 200, { ok: true });
+    return;
+  }
+  // Hace de proveedor de pago: confirma (o falla) la intención y aplica los fondos, como el webhook firmado real
+  if (path === '/__test/payments' && req.method === 'POST') {
+    const body = await readBody(req);
+    const intent = intents.get(body.intentId);
+    if (!intent) { send(res, 404, { ok: false }); return; }
+    if (body.outcome === 'failed') {
+      if (intent.status === 'PENDING') intent.status = 'FAILED';
+    } else if (intent.status === 'PENDING') {
+      intent.status = 'CONFIRMED';
+      if (!body.withoutApplying) {
+        intent.trackingCode = 'TRK.' + crypto.randomBytes(24).toString('base64url');
+        const c = campaigns.get(intent.publicCode);
+        c.clearedAmount = String(BigInt(c.clearedAmount || '0') + BigInt(intent.amount));
+      }
+    }
+    send(res, 200, { ok: true });
+    return;
+  }
+  // Datos de prueba: crea una convocatoria pública abierta y devuelve su publicCode
+  if (path === '/__test/campaigns' && req.method === 'POST') {
+    const body = (await readBody(req)) || {};
+    const code = '01JT' + crypto.randomBytes(16).toString('hex').toUpperCase().slice(0, 22);
+    addCampaign(code, {
+      campaignRef: 'camp-' + crypto.randomUUID(), organizationRef: 'org-1', organizationName: 'Fundación Demo',
+      title: body.title || 'Convocatoria de prueba', status: 'OPEN', startDate: '2026-10-01T00:00:00Z',
+      endDate: '2026-12-31T23:59:59Z', acceptedDonationTypes: ['MONETARY'], acceptedPaymentMethods: ['GATEWAY', 'BANK_TRANSFER'],
+      currency: 'COP', targetAmount: '100000000', clearedAmount: '0',
+    });
+    send(res, 200, { publicCode: code });
+    return;
+  }
+
   if (!path.startsWith(BASE)) { send(res, 404); return; }
   const p = path.slice(BASE.length);
+
+  if (req.method === 'POST') {
+    const i = failures.findIndex((f) => p.startsWith(f.prefix));
+    if (i >= 0) {
+      const f = failures.splice(i, 1)[0];
+      if (!f.applyThenFail) {
+        if (f.mode === 'drop') { req.socket.destroy(); return; }
+        problem(res, 503, 'ServiceUnavailable');
+        return;
+      }
+      // Aplica el comando y luego "pierde" la respuesta: el caso ambiguo real
+      res.__failAfter = f.mode;
+    }
+  }
 
   // ID-01 — POST /auth/login
   if (p === '/auth/login' && req.method === 'POST') {
@@ -89,6 +199,66 @@ const server = http.createServer(async (req, res) => {
   }
 
   const actor = accountOf(req);
+
+  // CV-07 — GET /public/campaigns/{publicCode}
+  const publicMatch = p.match(/^\/public\/campaigns\/([^/]+)$/);
+  if (publicMatch && req.method === 'GET') {
+    const c = campaigns.get(decodeURIComponent(publicMatch[1]));
+    if (!c) { problem(res, 404, 'NotFound'); return; }
+    send(res, 200, publicView(c));
+    return;
+  }
+
+  // CV-11 — POST /public/campaigns/{publicCode}/donation-intents (JWT opcional, Command-Id obligatorio)
+  const intentMatch = p.match(/^\/public\/campaigns\/([^/]+)\/donation-intents$/);
+  if (intentMatch && req.method === 'POST') {
+    if (req.headers['authorization'] && !actor) { problem(res, 401, 'Unauthorized'); return; }
+    const commandId = commandIdOf(req);
+    if (!commandId) { problem(res, 400, 'BadRequest'); return; }
+    const body = await readBody(req);
+    if (!body) { problem(res, 400, 'BadRequest'); return; }
+    const c = campaigns.get(decodeURIComponent(intentMatch[1]));
+    if (!c) { problem(res, 404, 'NotFound'); return; }
+    if (typeof body.amount !== 'string' || !/^[0-9]{1,18}$/.test(body.amount)) { problem(res, 400, 'BadRequest'); return; }
+    if (typeof body.currency !== 'string' || !body.currency.trim() || body.currency.length > 3) { problem(res, 400, 'BadRequest'); return; }
+    if (!['GATEWAY', 'BANK_TRANSFER', 'CASH'].includes(body.paymentMethod)) { problem(res, 400, 'BadRequest'); return; }
+    if (c.status === 'CLOSED') { problem(res, 409, 'CampaignClosed'); return; }
+    if (!c.acceptedDonationTypes.includes('MONETARY')) { problem(res, 409, 'DonationTypeNotAccepted'); return; }
+    if (body.paymentMethod === 'CASH') { problem(res, 409, 'CashDonationIntentNotSupported'); return; }
+    if (!c.acceptedPaymentMethods.includes(body.paymentMethod)) { problem(res, 409, 'PaymentMethodNotAccepted'); return; }
+    if (body.currency !== c.currency) { problem(res, 409, 'DonationCurrencyMismatch'); return; }
+    const r = claim(res, commandId, 'CREATE_DONATION_INTENT', () => {
+      const intentId = crypto.randomUUID();
+      intents.set(intentId, {
+        intentId, publicCode: c.publicCode, campaignTitle: c.title, amount: body.amount, currency: body.currency,
+        paymentMethod: body.paymentMethod, status: 'PENDING', donorAccount: actor ? actor.accountId : null,
+        redirect: body.paymentMethod === 'GATEWAY' ? '/demo/checkout/sim_' + crypto.randomUUID() : null,
+      });
+      return intentId;
+    });
+    if (!r) return;
+    const intent = intents.get(r.value);
+    // DD-18 sustituida: cada respuesta (también la de un duplicado) emite un statusToken nuevo y anula el anterior
+    intent.token = crypto.randomBytes(32).toString('base64url');
+    const out = { intentId: intent.intentId, statusToken: intent.token };
+    if (intent.redirect) out.paymentRedirectUrl = intent.redirect;
+    if (res.__failAfter) { res.__failAfter === 'drop' ? req.socket.destroy() : problem(res, 503, 'ServiceUnavailable'); return; }
+    send(res, 201, out);
+    return;
+  }
+
+  // Consulta de la intención — GET /public/donation-intents/{intentId}, cabecera Intent-Token
+  const statusMatch = p.match(/^\/public\/donation-intents\/([^/]+)$/);
+  if (statusMatch && req.method === 'GET') {
+    const intent = intents.get(decodeURIComponent(statusMatch[1]));
+    const token = req.headers['intent-token'];
+    // El token en la URL no sirve: el mismo 404 que una intención inexistente
+    if (!intent || !token || token !== intent.token || url.search.includes(intent.token)) { problem(res, 404, 'NotFound'); return; }
+    const out = { status: intent.status };
+    if (intent.status === 'CONFIRMED' && intent.trackingCode) out.trackingCode = intent.trackingCode;
+    send(res, 200, out);
+    return;
+  }
 
   // Ficha N1 — GET /me (CONGELADA; el backend real aún no la expone: S-01)
   if (p === '/me' && req.method === 'GET') {

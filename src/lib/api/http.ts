@@ -1,3 +1,5 @@
+'use client';
+
 import { getJwt, handle401 } from '../auth/session';
 import { getApiBase } from './config';
 
