@@ -5,9 +5,11 @@ export type LifecycleStatus = 'REGISTERED' | 'DISPATCHED' | 'RECEIVED' | 'DELIVE
 export interface PhysicalAssetOperationalReadModel {
   assetRef: string;
   lifecycleStatus: LifecycleStatus;
+  /** Nulos omitidos en la respuesta (Q-B60-2): ausente o `null` se presentan como "Sin registrar". */
   currentCustodianRef: string | null;
   currentLocation: string | null;
-  quantity: number;
+  /** Texto decimal (T-34, `toPlainString`); se muestra tal cual, sin transformar. */
+  quantity: string | number;
   unitOfMeasure: string;
   campaignRef: string;
 }
@@ -52,8 +54,11 @@ export async function fetchAsset(assetRef: string): Promise<AssetResponse> {
   }
 
   try {
-    const res = await fetch(`${baseUrl}/physical-assets/${assetRef}`, {
-      headers
+    const res = await fetch(`${baseUrl}/physical-assets/${encodeURIComponent(assetRef)}`, {
+      headers,
+      cache: 'no-store',
+      credentials: 'omit',
+      referrerPolicy: 'no-referrer',
     });
 
     if (res.status === 401) {
@@ -68,8 +73,8 @@ export async function fetchAsset(assetRef: string): Promise<AssetResponse> {
     const data: PhysicalAssetOperationalReadModel = {
       assetRef: json.assetRef,
       lifecycleStatus: json.lifecycleStatus,
-      currentCustodianRef: json.currentCustodianRef,
-      currentLocation: json.currentLocation,
+      currentCustodianRef: json.currentCustodianRef ?? null,
+      currentLocation: json.currentLocation ?? null,
       quantity: json.quantity,
       unitOfMeasure: json.unitOfMeasure,
       campaignRef: json.campaignRef

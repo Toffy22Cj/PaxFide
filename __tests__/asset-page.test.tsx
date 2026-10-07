@@ -81,13 +81,22 @@ describe('Asset Page (T-6)', () => {
     });
 
     // 7 campos esperados
-    expect(screen.getByText('Activo ASSET-123')).toBeInTheDocument();
-    expect(screen.getByTestId('field-lifecycleStatus')).toHaveTextContent('Estado: Registrado');
-    expect(screen.getByTestId('field-currentCustodianRef')).toHaveTextContent('Custodio actual: EMP-123');
-    expect(screen.getByTestId('field-currentLocation')).toHaveTextContent('Ubicación actual: BODEGA_CENTRAL');
-    expect(screen.getByTestId('field-quantity')).toHaveTextContent('Cantidad: 100');
-    expect(screen.getByTestId('field-unitOfMeasure')).toHaveTextContent('Unidad de medida: KGS');
-    expect(screen.getByTestId('field-campaignRef')).toHaveTextContent('Convocatoria: CAMP-456');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Activo');
+    expect(screen.getByText('ASSET-123')).toBeInTheDocument();
+    expect(screen.getByTestId('field-lifecycleStatus')).toHaveTextContent('Registrado');
+    // Cada valor va junto a su etiqueta (dt → dd)
+    const labelOf = (id: string) => screen.getByTestId(id).previousElementSibling?.textContent;
+    expect(labelOf('field-lifecycleStatus')).toBe('Estado');
+    expect(labelOf('field-currentCustodianRef')).toBe('Custodio actual');
+    expect(labelOf('field-currentLocation')).toBe('Ubicación actual');
+    expect(labelOf('field-quantity')).toBe('Cantidad');
+    expect(labelOf('field-unitOfMeasure')).toBe('Unidad de medida');
+    expect(labelOf('field-campaignRef')).toBe('Convocatoria');
+    expect(screen.getByTestId('field-currentCustodianRef')).toHaveTextContent('EMP-123');
+    expect(screen.getByTestId('field-currentLocation')).toHaveTextContent('BODEGA_CENTRAL');
+    expect(screen.getByTestId('field-quantity')).toHaveTextContent('100');
+    expect(screen.getByTestId('field-unitOfMeasure')).toHaveTextContent('KGS');
+    expect(screen.getByTestId('field-campaignRef')).toHaveTextContent('CAMP-456');
 
     // Aserción negativa: donorRef ('DONOR-SECRET') NO debe ser renderizado
     expect(screen.queryByText('DONOR-SECRET')).toBeNull();
@@ -117,8 +126,8 @@ describe('Asset Page (T-6)', () => {
       expect(screen.getByTestId('state-content')).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId('field-currentCustodianRef')).toHaveTextContent('Custodio actual: Sin registrar');
-    expect(screen.getByTestId('field-currentLocation')).toHaveTextContent('Ubicación actual: Sin registrar');
+    expect(screen.getByTestId('field-currentCustodianRef')).toHaveTextContent('Sin registrar');
+    expect(screen.getByTestId('field-currentLocation')).toHaveTextContent('Sin registrar');
   });
 
   it('Muestra estado de solo lectura cuando es DELIVERED', async () => {
@@ -134,7 +143,7 @@ describe('Asset Page (T-6)', () => {
       expect(screen.getByTestId('state-content-readonly')).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId('field-lifecycleStatus')).toHaveTextContent('Estado: Entregado');
+    expect(screen.getByTestId('field-lifecycleStatus')).toHaveTextContent('Entregado');
     expect(screen.getByText('Este activo ya fue entregado. Solo lectura.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Dividir activo/i })).toBeNull();
   });

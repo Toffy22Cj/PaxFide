@@ -38,7 +38,15 @@ const BY_TITLE: Record<string, string> = {
   SimulatedPaymentsNotAllowed: 'El pago simulado no está disponible en este entorno.',
   PaymentProviderUnavailable: 'La pasarela de pago no está disponible. Inténtalo más tarde.',
   InvalidDonationAmount: 'El monto no es válido.',
-  // Activos
+  // Activos (DomainInvariantViolationException: el title es el nombre de la regla)
+  InvalidAssetTransition: 'El activo no está en un estado que permita esta operación.',
+  AssetTerminalState: 'El activo ya terminó su recorrido: no admite más operaciones.',
+  InsufficientQuantity: 'La cantidad a separar debe ser menor que la cantidad actual del activo.',
+  InvalidSplitTarget: 'No se puede dividir este activo con esa cantidad.',
+  InsufficientAvailableFunds: 'El fondo no tiene saldo disponible suficiente para esta compra.',
+  ExceedsClearedFunds: 'La compra supera los fondos recibidos.',
+  InvalidFundTransition: 'El fondo no está en un estado que permita esta operación.',
+  DuplicateAllocation: 'Esa asignación de fondos ya se usó.',
   CampaignNotAvailable: 'La convocatoria no admite este registro.',
   ConcurrentModification: 'Otra operación modificó el recurso al mismo tiempo. Recarga y revisa antes de repetir.',
   InvalidVerificationTransition: 'La organización no está en un estado que permita esta operación.',
