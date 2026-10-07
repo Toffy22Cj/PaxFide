@@ -140,4 +140,5 @@ The job was not started because your account is locked due to a billing issue.
 
 - El repositorio es público y el workflow (`.github/workflows/ci.yml`) es correcto: el job no tiene runner (`runner_name` vacío, `steps: []`) porque GitHub no lo arranca.
 - Lo resuelve el titular de la cuenta en la configuración de facturación de GitHub. **No se ha tocado nada** (orden de Carlos, 2026-10-07T19:43Z).
+- **DW-17 CERRADA — Carlos, 2026-10-07T20:14Z:** excepción permanente a la regla 3.2; el CI es local (`scripts/ci-local.sh`), registrado en `reglas-equipo-y-agentes.md` §3.2. Todo PR adjunta la salida de `scripts/ci-local.sh` sobre su último commit.
 - Aviso de la misma anotación, sin acción ahora: `ubuntu-latest` migra a Ubuntu 26 desde el 19 de octubre de 2026.
