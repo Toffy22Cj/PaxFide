@@ -25,19 +25,21 @@ export function TextField({ label, error, hint, ...rest }: InputProps) {
   );
 }
 
-export function PasswordField({ label, error, ...rest }: InputProps) {
+export function PasswordField({ label, error, hint, ...rest }: InputProps) {
   const id = useId();
   const [visible, setVisible] = useState(false);
+  const describedBy = [hint ? `${id}-hint` : '', error ? `${id}-error` : ''].filter(Boolean).join(' ') || undefined;
   return (
     <div className={s.field}>
       <label htmlFor={id} className={s.label}>{label}</label>
+      {hint && <span id={`${id}-hint`} className={s.hint}>{hint}</span>}
       <div className={s.inputRow}>
         <input
           id={id}
           type={visible ? 'text' : 'password'}
           className={s.input}
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${id}-error` : undefined}
+          aria-describedby={describedBy}
           {...rest}
         />
         <button type="button" className={[s.button, s.secondary].join(' ')} onClick={() => setVisible((v) => !v)}

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useCommand, CommandRequest } from '../../lib/commands/useCommand';
 import { Modal } from '../ui/Modal';
-import { TextField, SelectField } from '../ui/Field';
+import { TextField, SelectField, TextArea } from '../ui/Field';
 import { Button } from '../ui/Button';
 import { Actions } from '../ui/Layout';
 import { CommandFeedback } from '../CommandFeedback';
@@ -19,6 +19,8 @@ export interface FieldSpec {
   options?: { value: string; label: string }[];
   /** Opcional: vacío ⇒ no se envía. */
   optional?: boolean;
+  /** Texto largo (área de texto). */
+  multiline?: boolean;
 }
 
 /**
@@ -73,6 +75,9 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
           ? <SelectField key={f.name} label={f.label} hint={f.hint} value={values[f.name]} options={f.options}
               placeholder={f.optional ? '— Ninguno —' : 'Elige una opción'}
               onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))} error={errors[f.name]} disabled={sending} />
+          : f.multiline
+            ? <TextArea key={f.name} label={f.label} hint={f.hint} value={values[f.name]}
+                onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))} error={errors[f.name]} disabled={sending} />
           : <TextField key={f.name} label={f.label} hint={f.hint} value={values[f.name]} autoComplete="off"
               onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))} error={errors[f.name]} disabled={sending} />
         ))}

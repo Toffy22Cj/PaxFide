@@ -13,6 +13,9 @@ import s from './login.module.css';
  * Registro de cuenta (P2; `POST /auth/register`, DD-56). No inicia sesión ni guarda nada: tras crear la cuenta se
  * entra por `/login`. El backend no fija política de contraseña (H-P2-1); la web solo exige que coincidan.
  */
+/** Política del backend (H-P2-1, `PasswordTooShort`): al menos 12 caracteres. El backend valida igual. */
+const MIN_PASSWORD = 12;
+
 export function RegisterScreen({ client = registerAccount }: { client?: (e: string, p: string) => Promise<RegisterOutcome> }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +28,8 @@ export function RegisterScreen({ client = registerAccount }: { client?: (e: stri
     e.preventDefault();
     const next = {
       email: email.trim() ? undefined : 'Este campo es obligatorio.',
-      password: password ? undefined : 'Este campo es obligatorio.',
+      password: !password ? 'Este campo es obligatorio.'
+        : password.length < MIN_PASSWORD ? `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.` : undefined,
       repeat: repeat === password ? undefined : 'Las contraseñas no coinciden.',
     };
     setErrors(next);
@@ -37,6 +41,7 @@ export function RegisterScreen({ client = registerAccount }: { client?: (e: stri
     setResult(r);
     if (r.kind === 'ok') { setPassword(''); setRepeat(''); }
     if (r.kind === 'invalid-email') setErrors({ email: 'El correo no es válido.' });
+    if (r.kind === 'password-too-short') setErrors({ password: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.` });
   };
 
   if (result?.kind === 'ok') {
@@ -63,7 +68,7 @@ export function RegisterScreen({ client = registerAccount }: { client?: (e: stri
       <form onSubmit={submit} noValidate>
         <TextField label="Correo electrónico" type="email" autoComplete="email" value={email}
           onChange={(e) => setEmail(e.target.value)} error={errors.email} disabled={sending} />
-        <PasswordField label="Contraseña" autoComplete="new-password" value={password}
+        <PasswordField label="Contraseña" autoComplete="new-password" value={password} hint={`Al menos ${MIN_PASSWORD} caracteres.`}
           onChange={(e) => setPassword(e.target.value)} error={errors.password} disabled={sending} />
         <PasswordField label="Repite la contraseña" autoComplete="new-password" value={repeat}
           onChange={(e) => setRepeat(e.target.value)} error={errors.repeat} disabled={sending} />

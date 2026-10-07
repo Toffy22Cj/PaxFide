@@ -17,6 +17,7 @@ const accounts = {
   'empleado@demo.test': { password: 'demo-empleado', accountId: 'acc-employee', organizationId: 'org-1', roles: ['EMPLOYEE'] },
   'empleado2@demo.test': { password: 'demo-empleado2', accountId: 'acc-employee-2', organizationId: 'org-1', roles: ['EMPLOYEE'] },
   'empleado3@demo.test': { password: 'demo-empleado3', accountId: 'acc-employee-3', organizationId: 'org-1', roles: ['EMPLOYEE'] },
+  'plataforma@demo.test': { password: 'demo-plataforma', accountId: 'acc-platform', roles: [], platformAuthority: 'PLATFORM_ADMIN' },
   'representante@demo.test': { password: 'demo-representante', accountId: 'acc-rep', organizationId: 'org-1', roles: ['REPRESENTATIVE'] },
   'admin-sin-verificar@demo.test': { password: 'demo-admin2', accountId: 'acc-admin-2', organizationId: 'org-2', roles: ['ADMINISTRATOR'] },
   'donante@demo.test': { password: 'demo-donante', accountId: 'acc-donor', roles: [] },
@@ -93,6 +94,10 @@ addCampaign('01JDEMOPUBLICC0DEINKIND01', {
 
 const intents = new Map();
 const verifiedOrganizations = new Set(['org-1']);
+/** Estado de verificación de las organizaciones del doble (plataforma, DD-48). */
+const organizationStatus = new Map([['org-1', 'VERIFIED'], ['org-2', 'PENDING_VERIFICATION'], ['org-3', 'PENDING_VERIFICATION']]);
+/** Asignaciones por fondo (camino A): fundId → [{allocationId, amount, status}]. */
+const fundAllocations = new Map();
 const assignments = new Map([['camp-demo-1:acc-admin', { assignmentId: 'asg-demo-1', actingRole: 'ADMINISTRATOR' }]]);
 const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 function newPublicCode() {
@@ -241,6 +246,8 @@ const server = http.createServer(async (req, res) => {
     if (!body || !body.email || !String(body.email).trim()) { problem(res, 400, 'InvalidRequestField'); return; }
     if (!body.password) { problem(res, 400, 'InvalidRequestField'); return; }
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)) { problem(res, 400, 'InvalidEmailFormat'); return; }
+    // H-P2-1 del backend: al menos 12 caracteres
+    if (String(body.password).length < 12) { problem(res, 400, 'PasswordTooShort'); return; }
     if (accounts[body.email]) { problem(res, 409, 'DuplicateEmail'); return; }
     const accountId = crypto.randomUUID();
     accounts[body.email] = { password: body.password, accountId, roles: [] };
@@ -442,6 +449,92 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // GET /organizations/{id}/funds (DD-31): ADMINISTRATOR o EMPLOYEE. Un fondo por donación con fondos aplicados
+  const fundsMatch = p.match(/^\/organizations\/([^/]+)\/funds$/);
+  if (fundsMatch && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(fundsMatch[1]);
+    if (actor.organizationId !== orgId || !actor.roles.some((r) => r === 'ADMINISTRATOR' || r === 'EMPLOYEE')) { problem(res, 403, 'Forbidden'); return; }
+    const items = [...intents.values()].filter((i) => i.fundId && campaigns.get(i.publicCode)?.organizationRef === orgId).map((i) => {
+      const allocations = fundAllocations.get(i.fundId) || [];
+      const used = allocations.reduce((n, a) => n + BigInt(a.amount), BigInt(0));
+      return { fundId: i.fundId, campaignRef: campaigns.get(i.publicCode).campaignRef, currency: i.currency || 'COP',
+        clearedAmount: String(i.amount), availableAmount: String(BigInt(i.amount) - used), allocations };
+    });
+    send(res, 200, { items });
+    return;
+  }
+
+  // GET /organizations/{id}/physical-assets (DD-54): ADMINISTRATOR o EMPLOYEE; sin donorRef
+  const orgAssetsMatch = p.match(/^\/organizations\/([^/]+)\/physical-assets$/);
+  if (orgAssetsMatch && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(orgAssetsMatch[1]);
+    if (actor.organizationId !== orgId || !actor.roles.some((r) => r === 'ADMINISTRATOR' || r === 'EMPLOYEE')) { problem(res, 403, 'Forbidden'); return; }
+    const items = [...assets.values()].filter((a) => a.organizationRef === orgId).slice(0, 200).map((a) => ({
+      assetRef: a.assetRef, lifecycleStatus: a.lifecycleStatus, currentCustodianRef: a.currentCustodianRef,
+      currentLocation: a.currentLocation, quantity: a.quantity, unitOfMeasure: a.unitOfMeasure, campaignRef: a.campaignRef,
+    }));
+    send(res, 200, { items });
+    return;
+  }
+
+  // POST /funds/{fundId}/allocations y .../{allocationId}/confirm (ADMINISTRATOR, Command-Id; DD-29, DD-30, DD-32)
+  const allocMatch = p.match(/^\/funds\/([^/]+)\/allocations(?:\/([^/]+)\/confirm)?$/);
+  if (allocMatch && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const commandId = commandIdOf(req);
+    if (!commandId) { problem(res, 400, 'BadRequest'); return; }
+    const fundId = decodeURIComponent(allocMatch[1]);
+    const intent = [...intents.values()].find((i) => i.fundId === fundId);
+    // Fondo inexistente o ajeno: el mismo 403 (DD-30)
+    if (!intent || campaigns.get(intent.publicCode)?.organizationRef !== actor.organizationId || !actor.roles.includes('ADMINISTRATOR')) {
+      problem(res, 403, 'Forbidden'); return;
+    }
+    const list = fundAllocations.get(fundId) || [];
+    if (allocMatch[2]) {
+      const allocationId = decodeURIComponent(allocMatch[2]);
+      const a = list.find((x) => x.allocationId === allocationId);
+      if (!a) { problem(res, 403, 'Forbidden'); return; }
+      const r = claim(res, commandId, 'CONFIRM_ALLOCATION:' + allocationId, () => { a.status = 'CONFIRMED'; return { allocationId, status: 'CONFIRMED' }; });
+      if (r) send(res, 200, r.value);
+      return;
+    }
+    const b = await readBody(req);
+    if (!b || typeof b.amount !== 'string' || !/^[0-9]{1,19}$/.test(b.amount) || BigInt(b.amount) <= BigInt(0)) { problem(res, 400, 'BadRequest'); return; }
+    const used = list.reduce((n, a) => n + BigInt(a.amount), BigInt(0));
+    if (!claims.get(commandId) && BigInt(b.amount) > BigInt(intent.amount) - used) { problem(res, 409, 'InsufficientAvailableFunds'); return; }
+    const r = claim(res, commandId, 'REQUEST_ALLOCATION:' + fundId, () => {
+      const a = { allocationId: 'alloc-' + crypto.randomUUID(), amount: b.amount, status: 'REQUESTED' };
+      list.push(a);
+      fundAllocations.set(fundId, list);
+      return { allocationId: a.allocationId, status: 'REQUESTED' };
+    });
+    if (r) send(res, 201, r.value);
+    return;
+  }
+
+  // Plataforma (DD-48): verify / reject / request-information; 404 inexistente; 409 si ya está resuelta
+  const platformMatch = p.match(/^\/platform\/organizations\/([^/]+)\/(verify|reject|request-information)$/);
+  if (platformMatch && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    if (!actor.platformAuthority) { problem(res, 403, 'Forbidden'); return; }
+    const orgId = decodeURIComponent(platformMatch[1]);
+    const decision = platformMatch[2];
+    const b = await readBody(req);
+    if (decision === 'request-information' && (!b || typeof b.message !== 'string' || !b.message.trim() || b.message.length > 2000)) {
+      problem(res, 400, 'InvalidInformationRequestMessage'); return;
+    }
+    const current = organizationStatus.get(orgId);
+    if (!current) { problem(res, 404, 'NotFound'); return; }
+    if (current === 'VERIFIED' || current === 'REJECTED') { problem(res, 409, 'OrganizationVerificationAlreadyDecided'); return; }
+    const next = { verify: 'VERIFIED', reject: 'REJECTED', 'request-information': 'NEEDS_MORE_INFORMATION' }[decision];
+    organizationStatus.set(orgId, next);
+    if (next === 'VERIFIED') verifiedOrganizations.add(orgId);
+    send(res, 200, { organizationId: orgId, verificationStatus: next });
+    return;
+  }
+
   // CV-03, retirar responsable (DD-50) y cerrar: mismas reglas de acceso que CV-02
   const adminMatch = p.match(/^\/campaigns\/([^/]+)\/(administrators|close|responsibles\/([^/]+)\/remove)$/);
   if (adminMatch && req.method === 'POST') {
@@ -609,6 +702,7 @@ const server = http.createServer(async (req, res) => {
     if (actor.noMe) { problem(res, 404, 'NotFound'); return; }
     const me = { accountId: actor.accountId, roles: actor.roles };
     if (actor.organizationId) me.organizationId = actor.organizationId;
+    if (actor.platformAuthority) me.platformAuthority = actor.platformAuthority;
     send(res, 200, me, { 'Cache-Control': 'no-store' });
     return;
   }

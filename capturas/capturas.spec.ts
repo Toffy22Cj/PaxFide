@@ -1,5 +1,6 @@
 import { test, expect, Page, Route } from '@playwright/test';
 import path from 'path';
+import crypto from 'crypto';
 
 /**
  * Capturas de cada pantalla del golden path en sus estados, para validar contra Penpot. Contra el backend simulado;
@@ -190,6 +191,69 @@ test('estimación', async ({ page }) => {
   await shot(page, 'estimacion', 'error');
 });
 
+test('fondos de la organización', async ({ page, request }) => {
+  const r = await request.post(`${API}/api/v1/public/campaigns/01JDEMOPUBLICC0DEMONETARY1/donation-intents`, {
+    data: { amount: '5000000', currency: 'COP', paymentMethod: 'GATEWAY' }, headers: { 'Command-Id': crypto.randomUUID() },
+  });
+  await request.post(`${API}/__test/payments`, { data: { intentId: (await r.json()).intentId } });
+  await login(page, 'admin@demo.test', 'demo-admin');
+  await page.route('**/api/v1/organizations/*/funds', hang());
+  await go(page, '/panel/funds');
+  await shot(page, 'fondos', 'cargando');
+  await page.unroute('**/api/v1/organizations/*/funds');
+  await page.route('**/api/v1/organizations/*/funds', json(200, { items: [] }));
+  await go(page, '/panel'); await go(page, '/panel/funds');
+  await expect(page.getByText('Tu organización todavía no tiene fondos.')).toBeVisible();
+  await shot(page, 'fondos', 'vacio');
+  await page.unroute('**/api/v1/organizations/*/funds');
+  await page.route('**/api/v1/organizations/*/funds', problem(403, 'Forbidden'));
+  await go(page, '/panel'); await go(page, '/panel/funds');
+  await expect(page.getByText('No tienes acceso a este recurso.')).toBeVisible();
+  await shot(page, 'fondos', '403');
+  await page.unroute('**/api/v1/organizations/*/funds');
+  await go(page, '/panel'); await go(page, '/panel/funds');
+  const fund = page.getByTestId('fund').first();
+  await expect(fund).toBeVisible();
+  await shot(page, 'fondos', 'listado');
+  await fund.getByRole('button', { name: 'Solicitar asignación' }).click();
+  await page.getByRole('dialog').getByLabel(/^Importe/).fill('999999999');
+  await page.getByRole('dialog').getByRole('button', { name: 'Solicitar asignación' }).click();
+  await expect(page.getByRole('dialog').getByRole('alert')).toBeVisible();
+  await shot(page, 'fondos', 'solicitar-409');
+});
+
+test('activos de la organización', async ({ page }) => {
+  await login(page, 'empleado@demo.test', 'demo-empleado');
+  await go(page, '/panel/assets');
+  await expect(page.getByTestId('org-asset').first()).toBeVisible();
+  await shot(page, 'activos-organizacion', 'listado');
+  await page.route('**/api/v1/organizations/*/physical-assets', json(200, { items: [] }));
+  await go(page, '/panel'); await go(page, '/panel/assets');
+  await expect(page.getByText('Tu organización todavía no tiene activos registrados.')).toBeVisible();
+  await shot(page, 'activos-organizacion', 'vacio');
+});
+
+test('verificación de organizaciones', async ({ page }) => {
+  await login(page, 'plataforma@demo.test', 'demo-plataforma');
+  await shot(page, 'panel', 'plataforma');
+  await go(page, '/panel/platform');
+  await expect(page.getByLabel('Identificador de la organización')).toBeVisible();
+  await shot(page, 'plataforma', 'formulario');
+  await page.getByLabel('Identificador de la organización').fill('org-3');
+  await page.getByRole('button', { name: 'Pedir más información' }).click();
+  await page.getByRole('dialog').getByLabel('Mensaje para la organización').fill('Falta el certificado de existencia.');
+  await shot(page, 'plataforma', 'pedir-informacion');
+  await page.route('**/api/v1/platform/organizations/*/request-information', json(200, { organizationId: 'org-3', verificationStatus: 'NEEDS_MORE_INFORMATION' }));
+  await page.getByRole('dialog').getByRole('button', { name: 'Pedir más información' }).click();
+  await expect(page.getByText('Decisión registrada')).toBeVisible();
+  await shot(page, 'plataforma', 'resultado');
+  await page.route('**/api/v1/platform/organizations/*/verify', problem(409, 'OrganizationVerificationAlreadyDecided'));
+  await page.getByRole('button', { name: 'Verificar organización' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Verificar organización' }).click();
+  await expect(page.getByRole('dialog').getByRole('alert')).toBeVisible();
+  await shot(page, 'plataforma', '409');
+});
+
 test('convocatoria pública', async ({ page, request }) => {
   const code = await newCampaign(request);
   await page.goto(`/c/${code}`);
@@ -364,6 +428,16 @@ test('activo', async ({ page }) => {
   await expect(page.getByTestId('field-lifecycleStatus')).toBeVisible();
   await shot(page, 'activo', 'contenido-registrado');
 
+  // 409 de transición (como el backend real: recibir exige DISPATCHED)
+  await page.getByRole('button', { name: 'Recibir', exact: true }).click();
+  const d = page.getByRole('dialog');
+  await d.getByLabel('Instalación (ubicación)').fill('Centro comunitario');
+  await d.getByLabel('Quién recibe (referencia)').fill('REC-1');
+  await d.getByRole('button', { name: 'Confirmar' }).click();
+  await expect(d.getByRole('alert')).toBeVisible();
+  await shot(page, 'activo', 'recibir-409-transicion');
+  await d.getByRole('button', { name: 'Cancelar' }).click();
+
   const dispatch = page.getByRole('button', { name: 'Despachar', exact: true });
   await dispatch.click();
   await shot(page, 'activo', 'modal-despachar');
@@ -376,16 +450,6 @@ test('activo', async ({ page }) => {
   await page.getByRole('dialog').getByText('Reintentar').click();
   await expect(page.getByText('Activo despachado.')).toBeVisible();
   await shot(page, 'activo', 'despachado-exito');
-
-  await page.getByRole('button', { name: 'Entregar', exact: true }).click();
-  const d = page.getByRole('dialog');
-  for (const [l, v] of [['Custodio final (referencia)', 'C'], ['Beneficiario (referencia)', 'B'], ['Lugar de entrega (referencia)', 'L'], ['Evidencia (referencia)', 'E']]) {
-    await d.getByLabel(l).fill(v);
-  }
-  await d.getByRole('button', { name: 'Confirmar' }).click();
-  await expect(d.getByRole('alert')).toBeVisible();
-  await shot(page, 'activo', 'entregar-409-transicion');
-  await d.getByRole('button', { name: 'Cancelar' }).click();
 
   await page.getByRole('button', { name: 'Recibir', exact: true }).click();
   await page.getByRole('dialog').getByLabel('Instalación (ubicación)').fill('Centro comunitario');

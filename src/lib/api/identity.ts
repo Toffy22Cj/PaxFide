@@ -77,13 +77,17 @@ export type RegisterOutcome =
   | { kind: 'invalid-email' }
   | { kind: 'bad-request' }
   | { kind: 'server-error' }
-  | { kind: 'network' };
+  | { kind: 'network' }
+  | { kind: 'password-too-short' };
 
 export async function registerAccount(email: string, password: string): Promise<RegisterOutcome> {
   const r = await apiRequest<unknown>({ path: '/auth/register', method: 'POST', body: { email, password }, auth: 'none' });
   if (r.kind === 'network') return { kind: 'network' };
   if (r.kind === 'ok') return { kind: 'ok' };
   if (r.status === 409) return { kind: 'duplicate-email' };
-  if (r.status === 400) return r.problem.title === 'InvalidEmailFormat' ? { kind: 'invalid-email' } : { kind: 'bad-request' };
+  if (r.status === 400 && r.problem.title === 'InvalidEmailFormat') return { kind: 'invalid-email' };
+  // H-P2-1 del backend (`4d1d65a`): menos de 12 caracteres → 400 `PasswordTooShort`
+  if (r.status === 400 && r.problem.title === 'PasswordTooShort') return { kind: 'password-too-short' };
+  if (r.status === 400) return { kind: 'bad-request' };
   return { kind: 'server-error' };
 }

@@ -8,8 +8,11 @@ Regenerar: `PW_CHROMIUM_PATH=… pnpm exec playwright test -c playwright.captura
 
 | Pantalla | Estados capturados |
 |---|---|
-| `activo` | `403`, `404`, `cargando`, `contenido-registrado`, `despachado-exito`, `despachar-ambiguo`, `division-completada`, `division-en-curso`, `entregado-solo-lectura`, `entregar-409-transicion`, `error`, `modal-despachar`, `modal-dividir` |
+| `activo` | `403`, `404`, `cargando`, `contenido-registrado`, `despachado-exito`, `despachar-ambiguo`, `division-completada`, `division-en-curso`, `entregado-solo-lectura`, `recibir-409-transicion`, (`entregar-409-transicion` es de antes del ensayo conjunto: entregar desde `DISPATCHED` es válido), `error`, `modal-despachar`, `modal-dividir` |
 | `convocatoria-publica` | `cerrada`, `contenido`, `no-encontrada`, `solo-especie` |
+| `fondos` | `403`, `cargando`, `listado`, `solicitar-409`, `vacio` |
+| `activos-organizacion` | `listado`, `vacio` |
+| `plataforma` | `409`, `formulario`, `pedir-informacion`, `resultado` (y `panel__plataforma`) |
 | `convocatorias` | `409-organizacion-sin-verificar`, `ambiguo`, `asignar-403`, `asignar-409`, `cargando`, `creada-con-qr`, `cerrar-confirmacion`, `formulario`, `listado`, `listado-403`, `listado-vacio`, `retirar-responsable`, `validacion` (`listado-no-disponible` es de antes de P2-B: el listado ya existe) |
 | `donar` | `409-convocatoria-cerrada`, `ambiguo`, `confirmada-tracking-code`, `consulta-404`, `formulario`, `intencion-registrada-pasarela-simulada`, `intencion-registrada-transferencia`, `pago-fallido`, `pago-pendiente`, `validacion` |
 | `login` | `401-credenciales`, `error-red`, `formulario`, `sesion-expirada`, `validacion` |

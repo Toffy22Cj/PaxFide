@@ -262,6 +262,9 @@ describe('A3 — aviso antes de salir con una donación sin confirmar', () => {
     fireEvent.change(screen.getByLabelText('Monto (COP)'), { target: { value: '50000' } });
     fireEvent.click(screen.getByRole('button', { name: 'Donar' }));
     await screen.findByText('Intención de donación registrada');
+    // El aviso se instala en un efecto, después del render que muestra la intención: se espera a que esté activo
+    // (sin esta espera, la comprobación inmediata fallaba de forma intermitente con la máquina cargada)
+    await waitFor(() => expect(unloadCancelled()).toBe(true));
     return view;
   }
 

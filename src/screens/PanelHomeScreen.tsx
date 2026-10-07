@@ -31,6 +31,15 @@ export function panelEntries(principal: Principal | null): PanelEntry[] {
   if ((roles.includes('ADMINISTRATOR') || roles.includes('REPRESENTATIVE')) && isSurfaceEnabled('/panel/prediction')) {
     entries.push({ id: 'prediction', label: 'Estimación de convocatorias', href: '/panel/prediction' });
   }
+  if ((roles.includes('ADMINISTRATOR') || roles.includes('EMPLOYEE')) && isSurfaceEnabled('/panel/funds')) {
+    entries.push({ id: 'funds', label: 'Fondos de mi organización', href: '/panel/funds' });
+  }
+  if ((roles.includes('ADMINISTRATOR') || roles.includes('EMPLOYEE')) && isSurfaceEnabled('/panel/assets')) {
+    entries.push({ id: 'assets', label: 'Activos de mi organización', href: '/panel/assets' });
+  }
+  if (principal?.platformAuthority && isSurfaceEnabled('/panel/platform')) {
+    entries.push({ id: 'platform', label: 'Verificación de organizaciones', href: '/panel/platform' });
+  }
   if (isSurfaceEnabled('/account/donations')) {
     entries.push({ id: 'donations', label: 'Mis donaciones', href: '/account/donations' });
   }
@@ -88,6 +97,7 @@ export function PanelHomeScreen({ meClient = fetchMe }: { meClient?: typeof fetc
       {register && registering && (
         <div style={{ marginTop: 24 }}>
           <RegisterAssetForm onCancel={() => setRegistering(false)}
+            organizationId={state.status === 'ready' ? state.data.organizationId : undefined}
             onRegistered={(assetRef) => router.push(`/assets/${encodeURIComponent(assetRef)}`)} />
         </div>
       )}

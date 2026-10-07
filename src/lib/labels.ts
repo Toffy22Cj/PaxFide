@@ -37,3 +37,11 @@ const ROLE: Record<string, string> = { ADMINISTRATOR: 'Administrador', REPRESENT
 const VISIBILITY: Record<string, string> = { PUBLIC: 'Pública', PRIVATE_LINK: 'Solo con enlace' };
 export const roleLabel = (v: string) => ROLE[v] ?? v;
 export const visibilityLabel = (v?: string) => (v ? VISIBILITY[v] ?? v : '—');
+
+const ALLOCATION_STATUS: Record<string, string> = { REQUESTED: 'Solicitada', CONFIRMED: 'Confirmada' };
+const VERIFICATION_STATUS: Record<string, string> = {
+  VERIFIED: 'Verificada', REJECTED: 'Rechazada', NEEDS_MORE_INFORMATION: 'Se pidió más información',
+  PENDING_VERIFICATION: 'Pendiente de verificación',
+};
+export const allocationStatusLabel = (v: string) => ALLOCATION_STATUS[v] ?? v;
+export const verificationStatusLabel = (v: string) => VERIFICATION_STATUS[v] ?? v;
