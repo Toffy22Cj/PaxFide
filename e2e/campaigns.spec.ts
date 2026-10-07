@@ -42,14 +42,18 @@ test.describe('Panel de convocatorias (CV-01, CV-02)', () => {
     await expect(page.getByText('Convocatoria creada')).toBeVisible();
     await expect(page.getByRole('img', { name: /Código QR de la página pública de «Agua potable e2e»/ }).first()).toBeVisible();
 
-    // Responsable: empleado de la organización
-    await page.getByLabel('Cuenta del responsable').fill('acc-employee');
-    await page.getByRole('button', { name: 'Asignar' }).click();
-    await expect(page.getByText('Responsable asignado.')).toBeVisible();
-    await page.getByRole('button', { name: 'Asignar otro' }).click();
-    await page.getByLabel('Cuenta del responsable').fill('acc-employee');
-    await page.getByRole('button', { name: 'Asignar' }).click();
-    await expect(page.locator('main').getByRole('alert')).toHaveText('Esa cuenta ya está asignada a esta convocatoria.');
+    // Responsable: empleado de la organización, elegido entre los miembros desde la fila del listado
+    const row = page.getByTestId('org-campaign').filter({ hasText: 'Agua potable e2e' });
+    await row.getByRole('button', { name: 'Asignar empleado' }).click();
+    await page.getByLabel('Empleado', { exact: true }).selectOption('acc-employee');
+    await page.getByRole('dialog').getByRole('button', { name: 'Asignar empleado' }).click();
+    await expect(page.getByText('Empleado asignado.')).toBeVisible();
+    await expect(row).toContainText('acc-employee (Empleado)');
+    await row.getByRole('button', { name: 'Asignar empleado' }).click();
+    await page.getByLabel('Empleado', { exact: true }).selectOption('acc-employee');
+    await page.getByRole('dialog').getByRole('button', { name: 'Asignar empleado' }).click();
+    await expect(page.getByRole('dialog').getByRole('alert')).toHaveText('Esa cuenta ya está asignada a esta convocatoria.');
+    await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
 
     // Enlace público (navegación de cliente; la página pública no necesita sesión)
     await page.getByTestId('created-public-link').click();
@@ -58,6 +62,63 @@ test.describe('Panel de convocatorias (CV-01, CV-02)', () => {
     await expect(page.getByText('Fundación Demo')).toBeVisible();
     await expect(page.getByRole('listitem').filter({ hasText: 'Pasarela de pago' })).toBeVisible();
     await expect(page.getByTestId('cleared-amount')).toHaveText('0 COP');
+  });
+
+  test('listado real: designar administrador, retirar responsable con reemplazo, cerrar y estimación', async ({ page }) => {
+    await login(page, 'admin@demo.test', 'demo-admin');
+    await page.getByRole('link', { name: 'Convocatorias de mi organización' }).click();
+    await fillCampaign(page, 'Ciclo completo e2e');
+    await expect(page.getByText('Convocatoria creada')).toBeVisible();
+    const row = page.getByTestId('org-campaign').filter({ hasText: 'Ciclo completo e2e' });
+    const dialog = page.getByRole('dialog');
+
+    // CV-03
+    await row.getByRole('button', { name: 'Designar administrador' }).click();
+    await page.getByLabel('Administrador', { exact: true }).selectOption('acc-admin');
+    await dialog.getByRole('button', { name: 'Designar administrador' }).click();
+    await expect(page.getByText('Administrador designado.')).toBeVisible();
+    await expect(row).toContainText('acc-admin (Administrador)');
+
+    // Retirar al último responsable sin reemplazo → 409; con reemplazo → éxito
+    await row.getByRole('button', { name: 'Retirar responsable' }).click();
+    await page.getByLabel('Responsable', { exact: true }).selectOption('acc-admin');
+    await dialog.getByRole('button', { name: 'Retirar responsable' }).click();
+    await expect(dialog.getByRole('alert')).toHaveText('Es el último responsable: indica quién lo sustituye.');
+    await page.getByLabel('Reemplazo (opcional)').selectOption('acc-employee-2');
+    await page.getByLabel('Papel del reemplazo').selectOption('EMPLOYEE');
+    await dialog.getByRole('button', { name: 'Retirar responsable' }).click();
+    await expect(page.getByText('Responsable retirado.')).toBeVisible();
+    await expect(row).toContainText('acc-employee-2 (Empleado)');
+    await expect(row).not.toContainText('acc-admin (Administrador)');
+
+    // Estimación (P3) desde la fila
+    await row.getByRole('link', { name: 'Ver estimación' }).click();
+    await expect(page).toHaveURL(/\/panel\/prediction$/);
+    await page.getByLabel('Convocatoria').selectOption({ label: 'Ciclo completo e2e' });
+    await page.getByRole('button', { name: 'Ver estimación' }).click();
+    const estimate = page.getByTestId('prediction-estimate');
+    await expect(estimate.getByText('ESTIMACIÓN — modelo entrenado con datos sintéticos')).toBeVisible();
+    await expect(estimate.getByTestId('basic-probability')).toContainText('62 %');
+    await expect(estimate.getByTestId('advanced-chart')).toBeVisible();
+
+    // Cerrar: confirmación; después, sin acciones
+    await page.getByRole('link', { name: 'Panel' }).click();
+    await page.getByRole('link', { name: 'Convocatorias de mi organización' }).click();
+    await row.getByRole('button', { name: 'Cerrar convocatoria' }).click();
+    await expect(dialog.getByText(/Cerrar es definitivo/)).toBeVisible();
+    await dialog.getByRole('button', { name: 'Cerrar convocatoria' }).click();
+    await expect(page.getByText('Convocatoria cerrada.')).toBeVisible();
+    await expect(row.getByTestId('campaign-status')).toContainText('Cerrada');
+    await expect(row.getByRole('button')).toHaveCount(0);
+  });
+
+  test('representante: estimación con la referencia escrita (el listado no le está permitido)', async ({ page }) => {
+    await login(page, 'representante@demo.test', 'demo-representante');
+    // Navegación de cliente: recargar perdería la sesión (JWT solo en memoria, D2)
+    await page.getByRole('link', { name: 'Estimación de convocatorias' }).click();
+    await page.getByLabel('Referencia de la convocatoria').fill('camp-demo-1');
+    await page.getByRole('button', { name: 'Ver estimación' }).click();
+    await expect(page.getByTestId('prediction-estimate').getByTestId('basic-final')).toContainText('104 %');
   });
 
   test('organización sin verificar → 409 con su texto', async ({ page }) => {

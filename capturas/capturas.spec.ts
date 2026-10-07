@@ -105,7 +105,20 @@ test('convocatorias', async ({ page }) => {
   await page.unroute('**/api/v1/me');
   await go(page, '/panel'); await go(page, '/panel/campaigns');
   await expect(page.getByRole('button', { name: 'Crear convocatoria' })).toBeVisible();
-  await shot(page, 'convocatorias', 'listado-no-disponible');
+  await expect(page.getByTestId('org-campaign').first()).toBeVisible();
+  await shot(page, 'convocatorias', 'listado');
+  await page.route('**/api/v1/organizations/*/campaigns', problem(403, 'Forbidden'));
+  await go(page, '/panel'); await go(page, '/panel/campaigns');
+  await expect(page.getByText('No tienes acceso a este recurso.')).toBeVisible();
+  await shot(page, 'convocatorias', 'listado-403');
+  await page.unroute('**/api/v1/organizations/*/campaigns');
+  await page.route('**/api/v1/organizations/*/campaigns', json(200, { items: [] }));
+  await go(page, '/panel'); await go(page, '/panel/campaigns');
+  await expect(page.getByText('Tu organización todavía no tiene convocatorias.')).toBeVisible();
+  await shot(page, 'convocatorias', 'listado-vacio');
+  await page.unroute('**/api/v1/organizations/*/campaigns');
+  await go(page, '/panel'); await go(page, '/panel/campaigns');
+  await expect(page.getByTestId('org-campaign').first()).toBeVisible();
   await page.getByRole('button', { name: 'Crear convocatoria' }).click();
   await shot(page, 'convocatorias', 'formulario');
   await page.getByRole('button', { name: 'Crear convocatoria' }).last().click();
@@ -131,15 +144,50 @@ test('convocatorias', async ({ page }) => {
   await page.getByText('Reintentar').click();
   await expect(page.getByText('Convocatoria creada')).toBeVisible();
   await shot(page, 'convocatorias', 'creada-con-qr');
-  await page.getByLabel('Cuenta del responsable').fill('acc-no-existe');
-  await page.getByRole('button', { name: 'Asignar' }).click();
+  const row = page.getByTestId('org-campaign').first();
+  await row.getByRole('button', { name: 'Retirar responsable' }).click();
+  await shot(page, 'convocatorias', 'retirar-responsable');
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+  await row.getByRole('button', { name: 'Cerrar convocatoria' }).click();
+  await shot(page, 'convocatorias', 'cerrar-confirmacion');
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+  await row.getByRole('button', { name: 'Asignar empleado' }).click();
+  await page.getByLabel('Empleado', { exact: true }).selectOption({ index: 1 });
+  await page.route('**/api/v1/campaigns/*/employees', problem(409, 'InvalidResponsibleRecipient'));
+  await page.getByRole('dialog').getByRole('button', { name: 'Asignar empleado' }).click();
   await expect(page.getByText('Esa cuenta no puede ser responsable de esta convocatoria.')).toBeVisible();
   await shot(page, 'convocatorias', 'asignar-409');
-  await page.getByLabel('Cuenta del responsable').fill('acc-employee');
+  await page.unroute('**/api/v1/campaigns/*/employees');
   await page.route('**/api/v1/campaigns/*/employees', problem(403, 'Forbidden'));
-  await page.getByRole('button', { name: 'Asignar' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Asignar empleado' }).click();
   await expect(page.getByText('No tienes acceso a esta operación.')).toBeVisible();
   await shot(page, 'convocatorias', 'asignar-403');
+});
+
+test('estimación', async ({ page }) => {
+  await login(page, 'admin@demo.test', 'demo-admin');
+  await go(page, '/panel/prediction');
+  await page.getByLabel('Convocatoria').selectOption('camp-demo-1');
+  await shot(page, 'estimacion', 'formulario');
+  await page.getByRole('button', { name: 'Ver estimación' }).click();
+  await expect(page.getByTestId('prediction-estimate')).toBeVisible();
+  await page.getByText('Ver los datos en tabla').click();
+  await shot(page, 'estimacion', 'con-cifra');
+  await page.route('**/prediction', json(200, { kind: 'ESTIMATE', available: false, unavailableReason: 'STRICT_POLICY_EXCLUDED',
+    unavailableText: 'Las convocatorias con meta estricta no se estiman.', asOf: '2026-10-07T00:00:00Z' }));
+  await page.getByRole('button', { name: 'Ver estimación' }).click();
+  await expect(page.getByText('Sin cifra para esta convocatoria')).toBeVisible();
+  await shot(page, 'estimacion', 'strict-sin-cifra');
+  await page.unroute('**/prediction');
+  await page.route('**/prediction', problem(403, 'Forbidden'));
+  await page.getByRole('button', { name: 'Ver estimación' }).click();
+  await expect(page.getByText('No tienes acceso a este recurso.')).toBeVisible();
+  await shot(page, 'estimacion', '403');
+  await page.unroute('**/prediction');
+  await page.route('**/prediction', problem(503, 'ServiceUnavailable'));
+  await page.getByRole('button', { name: 'Ver estimación' }).click();
+  await expect(page.getByText('No pudimos cargar la estimación. Inténtalo de nuevo.')).toBeVisible();
+  await shot(page, 'estimacion', 'error');
 });
 
 test('convocatoria pública', async ({ page, request }) => {

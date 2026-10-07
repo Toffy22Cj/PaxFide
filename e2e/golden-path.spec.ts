@@ -72,9 +72,11 @@ test('golden path por la interfaz: convocatoria → donaciones (sin y con cuenta
   const { publicCode } = await (await createdCampaign).json();
   await expect(admin.getByText('Convocatoria creada')).toBeVisible();
   await expect(admin.getByRole('img', { name: /Código QR/ }).first()).toBeVisible();
-  await admin.getByLabel('Cuenta del responsable').fill('acc-employee');
-  await admin.getByRole('button', { name: 'Asignar' }).click();
-  await expect(admin.getByText('Responsable asignado.')).toBeVisible();
+  const row = admin.getByTestId('org-campaign').filter({ hasText: 'Mercados golden path' });
+  await row.getByRole('button', { name: 'Asignar empleado' }).click();
+  await admin.getByLabel('Empleado', { exact: true }).selectOption('acc-employee');
+  await admin.getByRole('dialog').getByRole('button', { name: 'Asignar empleado' }).click();
+  await expect(admin.getByText('Empleado asignado.')).toBeVisible();
 
   // Paso 3A — donante SIN cuenta, por el enlace/QR (criterio 3)
   const anon = await (await browser.newContext()).newPage();

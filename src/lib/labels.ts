@@ -32,3 +32,8 @@ export const custodianLabel = (v?: string) => (v ? CUSTODIAN[v] ?? v : '—');
 export const donationStatusLabel = (v: string) => DONATION_STATUS[v] ?? v;
 export const eventLabel = (v: string) => EVENT[v] ?? v;
 export const intentStatusLabel = (v: string) => INTENT_STATUS[v] ?? v;
+
+const ROLE: Record<string, string> = { ADMINISTRATOR: 'Administrador', REPRESENTATIVE: 'Representante', EMPLOYEE: 'Empleado' };
+const VISIBILITY: Record<string, string> = { PUBLIC: 'Pública', PRIVATE_LINK: 'Solo con enlace' };
+export const roleLabel = (v: string) => ROLE[v] ?? v;
+export const visibilityLabel = (v?: string) => (v ? VISIBILITY[v] ?? v : '—');

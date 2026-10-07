@@ -10,7 +10,7 @@ Regenerar: `PW_CHROMIUM_PATH=… pnpm exec playwright test -c playwright.captura
 |---|---|
 | `activo` | `403`, `404`, `cargando`, `contenido-registrado`, `despachado-exito`, `despachar-ambiguo`, `division-completada`, `division-en-curso`, `entregado-solo-lectura`, `entregar-409-transicion`, `error`, `modal-despachar`, `modal-dividir` |
 | `convocatoria-publica` | `cerrada`, `contenido`, `no-encontrada`, `solo-especie` |
-| `convocatorias` | `409-organizacion-sin-verificar`, `ambiguo`, `asignar-403`, `asignar-409`, `cargando`, `creada-con-qr`, `formulario`, `listado-no-disponible`, `validacion` |
+| `convocatorias` | `409-organizacion-sin-verificar`, `ambiguo`, `asignar-403`, `asignar-409`, `cargando`, `creada-con-qr`, `cerrar-confirmacion`, `formulario`, `listado`, `listado-403`, `listado-vacio`, `retirar-responsable`, `validacion` (`listado-no-disponible` es de antes de P2-B: el listado ya existe) |
 | `donar` | `409-convocatoria-cerrada`, `ambiguo`, `confirmada-tracking-code`, `consulta-404`, `formulario`, `intencion-registrada-pasarela-simulada`, `intencion-registrada-transferencia`, `pago-fallido`, `pago-pendiente`, `validacion` |
 | `login` | `401-credenciales`, `error-red`, `formulario`, `sesion-expirada`, `validacion` |
 | `mis-donaciones` | `403`, `cargando`, `error`, `lista`, `lista-codigo-visible`, `vacio` |
@@ -25,4 +25,4 @@ Regenerar: `PW_CHROMIUM_PATH=… pnpm exec playwright test -c playwright.captura
 - **403 en `login`, `donar` (sin sesión) y `seguimiento`:** sus contratos no tienen 403 (el seguimiento usa 401 = "código no válido").
 - **409 en `panel`, `mis-donaciones` y `seguimiento`:** son lecturas; no tienen 409.
 - **AMBIGUO** solo existe en comandos: crear convocatoria, donar, registrar activo y las acciones del activo.
-- **Estimación (`/panel/prediction`):** no forma parte del golden path y no está habilitada en ningún build (S-06).
+- **Estimación (`/panel/prediction`):** capturas `estimacion__{formulario,con-cifra,strict-sin-cifra,403,error}`; es una lectura (sin 409 ni AMBIGUO).

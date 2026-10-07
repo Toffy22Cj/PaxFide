@@ -15,6 +15,8 @@ const BASE = '/api/v1';
 const accounts = {
   'admin@demo.test': { password: 'demo-admin', accountId: 'acc-admin', organizationId: 'org-1', roles: ['ADMINISTRATOR'] },
   'empleado@demo.test': { password: 'demo-empleado', accountId: 'acc-employee', organizationId: 'org-1', roles: ['EMPLOYEE'] },
+  'empleado2@demo.test': { password: 'demo-empleado2', accountId: 'acc-employee-2', organizationId: 'org-1', roles: ['EMPLOYEE'] },
+  'representante@demo.test': { password: 'demo-representante', accountId: 'acc-rep', organizationId: 'org-1', roles: ['REPRESENTATIVE'] },
   'admin-sin-verificar@demo.test': { password: 'demo-admin2', accountId: 'acc-admin-2', organizationId: 'org-2', roles: ['ADMINISTRATOR'] },
   'donante@demo.test': { password: 'demo-donante', accountId: 'acc-donor', roles: [] },
   // Para probar el backend real de hoy, que todavía no expone /me (S-01): para esta cuenta /me responde 404
@@ -76,7 +78,7 @@ addCampaign('01JDEMOPUBLICC0DEMONETARY1', {
   campaignRef: 'camp-demo-1', organizationRef: 'org-1', organizationName: 'Fundación Demo', title: 'Mercados para adultos mayores',
   description: 'Recaudamos fondos para entregar mercados a adultos mayores del barrio.', status: 'OPEN',
   startDate: '2026-10-01T00:00:00Z', endDate: '2026-12-31T23:59:59Z', acceptedDonationTypes: ['MONETARY'],
-  acceptedPaymentMethods: ['GATEWAY', 'BANK_TRANSFER'], currency: 'COP', targetAmount: '500000000', clearedAmount: '125000000',
+  acceptedPaymentMethods: ['GATEWAY', 'BANK_TRANSFER'], currency: 'COP', targetAmount: '500000000', clearedAmount: '125000000', targetPolicy: 'FLEXIBLE',
 });
 addCampaign('01JDEMOPUBLICC0DECLOSED001', {
   campaignRef: 'camp-demo-2', organizationRef: 'org-1', organizationName: 'Fundación Demo', title: 'Kits escolares 2025',
@@ -90,7 +92,7 @@ addCampaign('01JDEMOPUBLICC0DEINKIND01', {
 
 const intents = new Map();
 const verifiedOrganizations = new Set(['org-1']);
-const assignments = new Map();
+const assignments = new Map([['camp-demo-1:acc-employee', { assignmentId: 'asg-demo-1', actingRole: 'EMPLOYEE' }]]);
 const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 function newPublicCode() {
   return [...crypto.randomBytes(26)].map((b) => CROCKFORD[b % 32]).join('');
@@ -389,6 +391,118 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // GET /organizations/{id}/campaigns (OrganizationCampaignsController, DD-49): solo ADMINISTRATOR de la organización
+  const orgListMatch = p.match(/^\/organizations\/([^/]+)\/campaigns$/);
+  if (orgListMatch && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(orgListMatch[1]);
+    if (actor.organizationId !== orgId || !actor.roles.includes('ADMINISTRATOR')) { problem(res, 403, 'Forbidden'); return; }
+    const items = [...campaigns.values()].filter((c) => c.organizationRef === orgId).slice(0, 100).map((c) => {
+      const responsibles = [...assignments.entries()].filter(([k]) => k.startsWith(c.campaignRef + ':'))
+        .map(([k, v]) => ({ accountId: k.slice(c.campaignRef.length + 1), actingRole: v.actingRole }));
+      return {
+        campaignRef: c.campaignRef, publicCode: c.publicCode, title: c.title, status: c.status, visibility: c.visibility || 'PUBLIC',
+        currency: c.currency, targetAmount: c.targetAmount, targetPolicy: c.targetPolicy, clearedAmount: c.clearedAmount,
+        responsibles, assignedEmployeeCount: responsibles.filter((r) => r.actingRole === 'EMPLOYEE').length,
+      };
+    });
+    send(res, 200, { items });
+    return;
+  }
+
+  // GET /organizations/{id}/members (DD-55): ADMINISTRATOR o REPRESENTATIVE; sin email
+  const membersMatch = p.match(/^\/organizations\/([^/]+)\/members$/);
+  if (membersMatch && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(membersMatch[1]);
+    if (actor.organizationId !== orgId || !actor.roles.some((r) => r === 'ADMINISTRATOR' || r === 'REPRESENTATIVE')) { problem(res, 403, 'Forbidden'); return; }
+    const items = Object.values(accounts).filter((a) => a.organizationId === orgId && !a.noMe && a.password !== null)
+      .map((a) => ({ accountId: a.accountId, roles: a.roles, status: 'ACTIVE' }));
+    send(res, 200, { items });
+    return;
+  }
+
+  // GET /organizations/{id}/campaigns/{ref}/prediction (CampaignPredictionController): ADMINISTRATOR o REPRESENTATIVE.
+  // Cifras de PRUEBA deterministas del doble (no son del modelo).
+  const predMatch = p.match(/^\/organizations\/([^/]+)\/campaigns\/([^/]+)\/prediction$/);
+  if (predMatch && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(predMatch[1]);
+    const c = [...campaigns.values()].find((x) => x.campaignRef === decodeURIComponent(predMatch[2]));
+    if (!c || c.organizationRef !== orgId || actor.organizationId !== orgId
+      || !actor.roles.some((r) => r === 'ADMINISTRATOR' || r === 'REPRESENTATIVE')) { problem(res, 403, 'Forbidden'); return; }
+    const base = { kind: 'ESTIMATE', modelVersion: 'fake-1', warning: 'Estimación de un modelo entrenado con datos sintéticos.', asOf: new Date().toISOString() };
+    const unavailable = (reason, text) => send(res, 200, { ...base, available: false, unavailableReason: reason, unavailableText: text }, { 'Cache-Control': 'no-store' });
+    if (c.targetPolicy === 'STRICT') { unavailable('STRICT_POLICY_EXCLUDED', 'Las convocatorias con meta estricta no se estiman.'); return; }
+    if (!c.targetAmount) { unavailable('NO_MONETARY_TARGET', 'La convocatoria no tiene meta monetaria.'); return; }
+    if (c.status === 'CLOSED') { unavailable('CAMPAIGN_ENDED', 'La convocatoria ya terminó.'); return; }
+    send(res, 200, { ...base, available: true, probabilityReachTarget: 0.62, estimatedFinalPctOfTarget: 1.04, pctTimeElapsed: 0.3,
+      warnings: ['Estimación de un modelo entrenado con datos sintéticos.'] }, { 'Cache-Control': 'no-store' });
+    return;
+  }
+
+  // CV-03, retirar responsable (DD-50) y cerrar: mismas reglas de acceso que CV-02
+  const adminMatch = p.match(/^\/campaigns\/([^/]+)\/(administrators|close|responsibles\/([^/]+)\/remove)$/);
+  if (adminMatch && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const commandId = commandIdOf(req);
+    if (!commandId) { problem(res, 400, 'BadRequest'); return; }
+    const b = await readBody(req);
+    const campaignRef = decodeURIComponent(adminMatch[1]);
+    const c = [...campaigns.values()].find((x) => x.campaignRef === campaignRef);
+    if (!c || c.organizationRef !== actor.organizationId || !actor.roles.includes('ADMINISTRATOR')) { problem(res, 403, 'Forbidden'); return; }
+    const prev = claims.get(commandId);
+    if (adminMatch[2] === 'close') {
+      if (!prev && c.status === 'CLOSED') { problem(res, 409, 'CampaignAlreadyClosed'); return; }
+      const r = claim(res, commandId, 'CLOSE_CONVOCATORIA', () => { c.status = 'CLOSED'; return { campaignRef, status: 'CLOSED' }; });
+      if (r) send(res, 200, r.value);
+      return;
+    }
+    if (c.status === 'CLOSED' && !prev) { problem(res, 409, 'ResponsibleAssignmentOnClosedCampaign'); return; }
+    const recipientOk = (ref, role) => {
+      const a = Object.values(accounts).find((x) => x.accountId === ref);
+      return a && a.organizationId === c.organizationRef && a.roles.includes(role);
+    };
+    if (adminMatch[2] === 'administrators') {
+      if (!b || !b.administratorRef) { problem(res, 400, 'BadRequest'); return; }
+      if (!prev) {
+        if (!recipientOk(b.administratorRef, 'ADMINISTRATOR')) { problem(res, 409, 'InvalidResponsibleRecipient'); return; }
+        if (assignments.has(campaignRef + ':' + b.administratorRef)) { problem(res, 409, 'EmployeeAlreadyAssigned'); return; }
+      }
+      const r = claim(res, commandId, 'DESIGNATE_ADMINISTRATOR', () => {
+        const assignmentId = crypto.randomUUID();
+        assignments.set(campaignRef + ':' + b.administratorRef, { assignmentId, actingRole: 'ADMINISTRATOR' });
+        return { assignmentId };
+      });
+      if (r) send(res, 201, r.value);
+      return;
+    }
+    const responsibleRef = decodeURIComponent(adminMatch[3]);
+    const replacementRef = b && b.replacementRef;
+    const role = b && b.replacementActingRole;
+    if (replacementRef && !role) { problem(res, 400, 'ReplacementActingRoleRequired'); return; }
+    if (role && !['EMPLOYEE', 'ADMINISTRATOR'].includes(role)) { problem(res, 400, 'BadRequest'); return; }
+    if (!prev) {
+      const current = assignments.get(campaignRef + ':' + responsibleRef);
+      if (!current) { problem(res, 409, 'ResponsibleAssignmentNotFound'); return; }
+      const count = [...assignments.keys()].filter((k) => k.startsWith(campaignRef + ':')).length;
+      if (count === 1 && !replacementRef) { problem(res, 409, 'LastResponsibleRemovalWithoutReplacement'); return; }
+      if (replacementRef && !recipientOk(replacementRef, role)) { problem(res, 409, 'InvalidResponsibleRecipient'); return; }
+    }
+    const r = claim(res, commandId, 'REMOVE_RESPONSIBLE', () => {
+      const removed = assignments.get(campaignRef + ':' + responsibleRef);
+      assignments.delete(campaignRef + ':' + responsibleRef);
+      const out = { removedAssignmentId: removed.assignmentId };
+      if (replacementRef) {
+        out.replacementAssignmentId = crypto.randomUUID();
+        assignments.set(campaignRef + ':' + replacementRef, { assignmentId: out.replacementAssignmentId, actingRole: role });
+      }
+      return out;
+    });
+    if (r) send(res, 200, r.value);
+    return;
+  }
+
   // CV-02 — POST /campaigns/{campaignRef}/employees
   const assignMatch = p.match(/^\/campaigns\/([^/]+)\/employees$/);
   if (assignMatch && req.method === 'POST') {
@@ -411,7 +525,7 @@ const server = http.createServer(async (req, res) => {
     }
     const r = claim(res, commandId, 'ASSIGN_EMPLOYEE', () => {
       const assignmentId = crypto.randomUUID();
-      assignments.set(campaignRef + ':' + b.employeeRef, assignmentId);
+      assignments.set(campaignRef + ':' + b.employeeRef, { assignmentId, actingRole: 'EMPLOYEE' });
       return { assignmentId };
     });
     if (!r) return;

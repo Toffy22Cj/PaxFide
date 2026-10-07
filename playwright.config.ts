@@ -44,7 +44,11 @@ export default defineConfig({
           'action:deliver',
           '/register',
           '/campaigns',
-          'section:campaign-narrative'
+          'section:campaign-narrative',
+          'action:designate-administrator',
+          'action:remove-responsible',
+          'action:close-campaign',
+          '/panel/prediction'
         ])
       }
     },

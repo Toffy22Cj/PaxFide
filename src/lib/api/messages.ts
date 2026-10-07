@@ -28,6 +28,13 @@ const BY_TITLE: Record<string, string> = {
   InvalidTargetAmount: 'La meta no es válida.',
   InvalidOnTargetReached: 'Esa acción al alcanzar la meta no es compatible con la política elegida.',
   MonetaryTermsWithoutMonetaryDonationType: 'La meta y la moneda solo aplican si se aceptan donaciones en dinero.',
+  CampaignAlreadyClosed: 'La convocatoria ya está cerrada.',
+  LastResponsibleRemovalWithoutReplacement: 'Es el último responsable: indica quién lo sustituye.',
+  ReplacementActingRoleRequired: 'Indica el papel de quien sustituye al responsable.',
+  ResponsibleAssignmentNotFound: 'Esa cuenta no es responsable de esta convocatoria.',
+  AssignmentAlreadyRemoved: 'Ese responsable ya fue retirado.',
+  DuplicateEmail: 'Ya existe una cuenta con ese correo.',
+  InvalidInformationRequestMessage: 'El mensaje es obligatorio y admite hasta 2000 caracteres.',
   // Donación (CV-11)
   CampaignClosed: 'Esta convocatoria está cerrada y ya no recibe donaciones.',
   CashDonationIntentNotSupported: 'Las donaciones en efectivo no se registran por este medio.',
