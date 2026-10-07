@@ -15,6 +15,7 @@ Para separar lo que decidió Carlos de lo que decidió el agente:
 | Ampliación del alcance de la web v1: Donar (CV-11 + consulta de estado), `/account/donations` y dispatch/receive/deliver | Respuesta de Carlos, 2026-10-07, punto 3 | Borrador de enmienda: `ADR-046-enmienda-1-alcance-web.md` (pendiente de su aprobación; se implementa mientras tanto, por su indicación) |
 | D6/R11: habilitar crear convocatoria, registrar y dividir cuando el backend demuestre la idempotencia por `Command-Id` | Ídem, punto 3 | Verificado: §3 de este documento |
 | D5: todas las pantallas detrás de la lista de habilitación; habilitadas en el build de demo, desactivadas en el build por defecto | Ídem, punto 3 | §2 de este documento |
+| Crear convocatoria, asignar responsable, "Creadas en esta sesión" y QR | SIN VALIDAR CONTRA PENPOT (sin diseño previo en `diseno-ux`) |
 | Seguimiento por formulario (C2/H1): el código viaja en la cabecera, nunca en la ruta ni en la query | Encargo y respuesta de Carlos, 2026-10-07 | DW-01 |
 | Playwright contra respuestas simuladas que sigan literalmente los contratos si no se puede levantar el backend; el recorrido real queda para la ejecución final (B7) | Ídem, punto 2 | Ver §4 |
 | Acceso al backend en solo lectura | Ídem, punto 1 | El repositorio `Donaciones` estaba clonado en la sesión; se leyó sin cambios (`git status` limpio tras cada lectura y tras ejecutar sus tests) |
@@ -46,6 +47,10 @@ Formato pedido: id · fecha UTC · pantalla · pregunta · opciones · elegida �
 | DW-16 | 2026-10-07T18:05Z | Donar → Seguimiento | ¿Cómo pasa el `trackingCode` de la donación al seguimiento sin URL? | (a) que el usuario lo copie; (b) variable de módulo en memoria, consumo único | **(b)** además de "Copiar código": "Ver seguimiento" deja el código en memoria y `/tracking` lo consume una vez | Cumple "ningún secreto en la URL" y no persiste nada; recargar lo pierde | Sí | `PENDIENTE DE RATIFICACIÓN` |
 | DW-18 | 2026-10-07T18:20Z | Seguimiento | ¿Qué se muestra de TR-01 y cómo se separa la narrativa? | — | Bloque "Hechos verificables" (estado, importes del `financialSnapshot` en unidades mínimas y bienes con su recorrido TR-03 bajo demanda) y bloque aparte "Relato de tu donación" con la advertencia "si algo no coincide, mandan los hechos" y la fuente (IA o plantilla). `PENDING` → "Actualizar" manual. No se muestran `campaignRef` ni `assetRef`. Un importe fuera del rango seguro de JavaScript se muestra "—", nunca aproximado | `front-fase2` §9 (TrackingPage) y la regla de no presentar una estimación o un texto generado como hecho | Sí | `PENDIENTE DE RATIFICACIÓN` |
 | DW-19 | 2026-10-07T18:20Z | Mis donaciones | ¿Se muestra el `trackingCode` que devuelve `/account/donations`? | (a) siempre; (b) oculto hasta que el usuario lo pide | **(b)**, con "Ver seguimiento" que lo pasa en memoria (DW-16). No se muestra `intentId` | Es una credencial; no hace falta en pantalla para seguir la donación | Sí | `PENDIENTE DE RATIFICACIÓN` |
+| DW-20 | 2026-10-07T18:40Z | Convocatorias | ¿Modal o formulario en la página para crear convocatoria? ¿Cómo se piden las fechas? | (a) modal (§4); (b) sección en la página | **(b)**: sección "Nueva convocatoria" que se abre con un botón (sigue siendo acción transitoria, sin ruta). Fechas con `datetime-local` en hora local, enviadas como UTC con `Z` y sin milisegundos; la meta se escribe en unidades de la moneda y se envía en unidades mínimas (DW-14); visibilidad obligatoria; `onTargetReached` solo con `CLOSE_ON_TARGET` (ficha §3.1) | El formulario de CV-01 tiene hasta 12 campos: en un modal a 360 px es incómodo | Sí | `PENDIENTE DE RATIFICACIÓN` |
+| DW-21 | 2026-10-07T18:40Z | Convocatorias | Sin listado (S-02), ¿cómo se elige la convocatoria al asignar responsable? | (a) solo texto; (b) lista en memoria de las creadas en la pestaña + texto si no hay | **(b)**: "Creadas en esta sesión" vive en memoria y se vacía en cualquier `LOGGED_OUT`. Muestra la referencia (`campaignRef`) de la propia organización, que el administrador necesita | No es fuente de verdad; desaparece cuando exista S-02 | Sí | `PENDIENTE DE RATIFICACIÓN` |
+| DW-22 | 2026-10-07T18:40Z | Convocatorias | Sin lectura de miembros (R6), ¿cómo se indica el responsable? | (a) no ofrecer CV-02; (b) campo de texto con el id de la cuenta | **(b)**, con la indicación de que no hay listado de miembros | CV-02 es parte del golden path; el backend valida el destinatario (409 `InvalidResponsibleRecipient`) | Sí | `PENDIENTE DE RATIFICACIÓN` |
+| DW-23 | 2026-10-07T18:40Z | Convocatorias | "Accesible por QR": ¿cómo se genera el QR sin librerías (D8)? | (a) no mostrar QR (`front-fase2` §9 lo dejaba pendiente); (b) codificador propio | **(b)** `src/lib/qr.ts` (modo byte, nivel M, versiones 1–10) y `QrCode.tsx` en SVG, con la URL canónica `/c/{publicCode}` sobre el origen de la web. Verificado bit a bit contra la implementación de referencia (Project Nayuki) en 5 textos × 9 variantes; las huellas quedan en `__tests__/qr.test.ts` | Requisito del encargo sin añadir dependencias | Sí | `PENDIENTE DE RATIFICACIÓN` |
 
 ---
 
@@ -62,6 +67,8 @@ Cada entrada cita la evidencia o la enmienda que la justifica. Una habilitación
 | `action:donate` | 2 | CV-11 y la consulta con `Intent-Token` en `develop` (B6-b, §0.14); ampliación de alcance (Enmienda 1 de ADR-046, borrador); idempotencia de CV-11 probada en `DonationPaymentHttpIntegrationTest.aDuplicateCv11_returnsTheSameIntentWithANewToken_andTheOldOneStopsWorking` | Pago real: solo proveedor simulado en `dev` |
 | `/tracking` | 3 | TR-01 a TR-03 en `develop` con `Authorization: Bearer <trackingCode>` (`TrackingCodeAuthFilter`; B6-d, §0.15, que arregló el 404 del seguimiento real); decisión C2/H1 de Carlos | S-05 (QR de seguimiento) |
 | `/account/donations` | 3 | `GET /account/donations` en `develop` (B6-b, §0.14); ampliación de alcance (Enmienda 1, borrador) | — |
+| `action:create-campaign` | 4 | CV-01 en `develop` (B6-a, §0.13); **R11 verificado** (§3 de este documento) | S-01: sin `/me` no hay `organizationId` y la acción no aparece contra el backend real de hoy |
+| `action:assign-employee` | 4 | CV-02 en `develop` (B6-a); duplicado idéntico probado (`cv02_assigns_andADuplicateIsIdentical`) | S-01; R6 (sin lectura de miembros, DW-22) |
 | `/assets/:assetRef` (lectura) | 1 | `GET /physical-assets/{assetRef}` en `develop` (B6-c, `estado-fase6.md` §0.12) | R10: un `REPRESENTATIVE` recibe 403 (estado de pantalla) |
 
 ---
@@ -101,6 +108,7 @@ Penpot es la fuente visual de verdad y el agente no tiene acceso. Todas las pant
 | PanelHome | SIN VALIDAR CONTRA PENPOT |
 | `/panel/campaigns` | SIN VALIDAR CONTRA PENPOT |
 | `/c/:publicCode` (con datos reales de CV-07; §5.4 solo tenía bloques grises) | SIN VALIDAR CONTRA PENPOT |
+| Crear convocatoria, asignar responsable, "Creadas en esta sesión" y QR | SIN VALIDAR CONTRA PENPOT (sin diseño previo en `diseno-ux`) |
 | Seguimiento por formulario (`/tracking`) | SIN VALIDAR CONTRA PENPOT |
 | Mis donaciones | SIN VALIDAR CONTRA PENPOT |
 | Donar, pasarela simulada, estado de la intención y entrega del `trackingCode` | SIN VALIDAR CONTRA PENPOT (sin diseño previo en `diseno-ux`) |

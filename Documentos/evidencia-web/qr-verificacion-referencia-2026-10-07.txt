@@ -1,0 +1,3 @@
+# Verificación del codificador QR propio contra la referencia (Project Nayuki, qrcodegen para Python, instalado solo en el scratchpad)
+# Fecha: 2026-10-07T18:03:03Z. 5 textos × (8 máscaras forzadas + selección automática), nivel M: matrices idénticas bit a bit.
+Tests 1 passed (1)
