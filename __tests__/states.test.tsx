@@ -1,7 +1,9 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { LoadingState, ErrorState, AmbiguousState, StatusNotice } from '../src/components/States';
+
+afterEach(cleanup);
 
 describe('States Components', () => {
   it('LoadingState muestra "Cargando…"', () => {

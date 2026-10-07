@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import RouteGuard from "./RouteGuard";
+import { Shell } from "../components/Shell";
 
 export const metadata: Metadata = {
   title: "PaxFide",
@@ -12,7 +13,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body>
         <RouteGuard>
-          {children}
+          <Shell>
+            {children}
+          </Shell>
         </RouteGuard>
       </body>
     </html>

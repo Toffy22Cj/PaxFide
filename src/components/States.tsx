@@ -1,4 +1,6 @@
 import React from 'react';
+import { Button } from './Button';
+import { InfoIcon, WarningIcon, ErrorIcon, CheckIcon } from './Icons';
 
 export function LoadingState() {
   return (
@@ -10,9 +12,16 @@ export function LoadingState() {
 
 export function ErrorState({ onRetry }: { onRetry?: () => void }) {
   return (
-    <div style={{ backgroundColor: 'var(--danger-50)', color: 'var(--danger-700)' }}>
-      <p>No pudimos cargar la información. Inténtalo de nuevo.</p>
-      {onRetry && <button onClick={onRetry}>Reintentar</button>}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      <StatusNotice 
+        variant="rejected" 
+        text="No pudimos cargar la información. Inténtalo de nuevo." 
+      />
+      {onRetry && (
+        <div>
+          <Button variant="primary" onClick={onRetry}>Reintentar</Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -44,18 +53,24 @@ export function AmbiguousState({
 
   if (closed) {
     return (
-      <div style={{ backgroundColor: 'var(--brand-yellow-50)', color: 'var(--brand-green-900)' }}>
-        <p>No sabemos si la operación se realizó; revísalo antes de repetirla.</p>
-      </div>
+      <StatusNotice 
+        variant="ambiguous" 
+        text="No sabemos si la operación se realizó; revísalo antes de repetirla." 
+      />
     );
   }
 
   return (
-    <div style={{ backgroundColor: 'var(--brand-yellow-50)', color: 'var(--brand-green-900)' }}>
-      <h2 style={{ color: 'var(--brand-yellow-900)' }}>No pudimos confirmar la operación</h2>
-      <p>Puede que se haya realizado. Revisa antes de repetirla.</p>
-      <button onClick={onRetry}>Reintentar</button>
-      <button onClick={() => { setClosed(true); onClose(); }}>Cerrar</button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      <StatusNotice 
+        variant="ambiguous" 
+        title="No pudimos confirmar la operación"
+        text="Puede que se haya realizado. Revisa antes de repetirla." 
+      />
+      <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+        <Button variant="primary" onClick={onRetry}>Reintentar</Button>
+        <Button variant="secondary" onClick={() => { setClosed(true); onClose(); }}>Cerrar</Button>
+      </div>
     </div>
   );
 }
@@ -73,28 +88,20 @@ export function StatusNotice({
 }) {
   const isAlert = variant === 'rejected' || variant === 'ambiguous';
   
-  let bg = 'var(--brand-green-50)';
-  let color = 'var(--brand-green-900)';
-  let titleColor = color;
-
-  if (variant === 'info') {
-    bg = 'var(--brand-blue-50)';
-    color = 'var(--brand-blue-800)';
-    titleColor = color;
-  } else if (variant === 'rejected') {
-    bg = 'var(--danger-50)';
-    color = 'var(--danger-700)';
-    titleColor = color;
-  } else if (variant === 'ambiguous') {
-    bg = 'var(--brand-yellow-50)';
-    color = 'var(--brand-green-900)';
-    titleColor = 'var(--brand-yellow-900)';
-  }
+  let Icon = InfoIcon;
+  if (variant === 'success') Icon = CheckIcon;
+  else if (variant === 'rejected') Icon = ErrorIcon;
+  else if (variant === 'ambiguous') Icon = WarningIcon;
 
   return (
-    <div role={isAlert ? "alert" : "status"} style={{ backgroundColor: bg, color }}>
-      {title && <strong style={{ color: titleColor }}>{title}</strong>}
-      <p>{text}</p>
+    <div role={isAlert ? "alert" : "status"} className={`pax-status-notice pax-status-${variant}`}>
+      <div className="pax-status-notice-icon">
+        <Icon />
+      </div>
+      <div className="pax-status-notice-content">
+        {title && <h3 className="pax-status-notice-title">{title}</h3>}
+        <p className="pax-status-notice-text">{text}</p>
+      </div>
     </div>
   );
 }

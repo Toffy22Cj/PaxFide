@@ -20,7 +20,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'NEXT_PUBLIC_E2E_BUILD=true NEXT_PUBLIC_API_BASE_URL=http://localhost:3002 pnpm build && pnpm start',
+      command: 'rm -rf .next && NEXT_PUBLIC_E2E_BUILD=true NEXT_PUBLIC_API_BASE_URL=http://localhost:3002 pnpm build && pnpm start',
       url: 'http://localhost:3000',
       reuseExistingServer: false,
       env: {
@@ -28,7 +28,8 @@ export default defineConfig({
           '/login',
           '/panel',
           '/panel/campaigns',
-          '/assets/:assetRef'
+          '/assets/:assetRef',
+          '/c/:publicCode'
         ])
       }
     },

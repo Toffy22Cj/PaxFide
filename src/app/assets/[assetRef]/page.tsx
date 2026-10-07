@@ -3,6 +3,8 @@
 import { useEffect, useState, use } from 'react';
 import { fetchAsset, PhysicalAssetOperationalReadModel, LifecycleStatus } from '../../../lib/api/assetClient';
 import { LoadingState, ErrorState, ForbiddenState, NotFoundState, StatusNotice } from '../../../components/States';
+import { PageHeader } from '../../../components/PageHeader';
+import { DefinitionList } from '../../../components/DefinitionList';
 
 function translateStatus(status: LifecycleStatus): string {
   switch (status) {
@@ -40,18 +42,25 @@ export default function AssetPage({ params, fetchClient = fetchAsset }: { params
 
   if (state === 'SUCCESS' && data) {
     const isReadOnly = data.lifecycleStatus === 'DELIVERED';
+    
+    const items = [
+      { label: 'Estado', value: translateStatus(data.lifecycleStatus) },
+      { label: 'Cantidad', value: String(data.quantity) },
+      { label: 'Unidad de medida', value: data.unitOfMeasure },
+      { label: 'Ubicación actual', value: data.currentLocation === null ? 'Sin registrar' : data.currentLocation },
+      { label: 'Custodio actual', value: data.currentCustodianRef === null ? 'Sin registrar' : data.currentCustodianRef },
+      { label: 'Convocatoria', value: data.campaignRef },
+    ];
+
     return (
       <div data-testid={`state-content${isReadOnly ? '-readonly' : ''}`}>
-        <h1>Activo {data.assetRef}</h1>
-        {isReadOnly && <StatusNotice variant="info" text="Este activo ya fue entregado. Solo lectura." />}
-        <ul>
-          <li data-testid="field-lifecycleStatus">Estado: {translateStatus(data.lifecycleStatus)}</li>
-          <li data-testid="field-currentCustodianRef">Custodio actual: {data.currentCustodianRef === null ? 'Sin registrar' : data.currentCustodianRef}</li>
-          <li data-testid="field-currentLocation">Ubicación actual: {data.currentLocation === null ? 'Sin registrar' : data.currentLocation}</li>
-          <li data-testid="field-quantity">Cantidad: {data.quantity}</li>
-          <li data-testid="field-unitOfMeasure">Unidad de medida: {data.unitOfMeasure}</li>
-          <li data-testid="field-campaignRef">Convocatoria: {data.campaignRef}</li>
-        </ul>
+        <PageHeader title="Activo" subtitle={data.assetRef} />
+        {isReadOnly && (
+          <div style={{ marginBottom: 'var(--space-6)' }}>
+            <StatusNotice variant="info" text="Este activo ya fue entregado. Solo lectura." />
+          </div>
+        )}
+        <DefinitionList items={items} />
       </div>
     );
   }

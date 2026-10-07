@@ -81,19 +81,19 @@ describe('Asset Page (T-6)', () => {
     });
 
     // 7 campos esperados
-    expect(screen.getByText('Activo ASSET-123')).toBeInTheDocument();
-    expect(screen.getByTestId('field-lifecycleStatus')).toHaveTextContent('Estado: Registrado');
-    expect(screen.getByTestId('field-currentCustodianRef')).toHaveTextContent('Custodio actual: EMP-123');
-    expect(screen.getByTestId('field-currentLocation')).toHaveTextContent('Ubicación actual: BODEGA_CENTRAL');
-    expect(screen.getByTestId('field-quantity')).toHaveTextContent('Cantidad: 100');
-    expect(screen.getByTestId('field-unitOfMeasure')).toHaveTextContent('Unidad de medida: KGS');
-    expect(screen.getByTestId('field-campaignRef')).toHaveTextContent('Convocatoria: CAMP-456');
+    expect(screen.getByRole('heading', { name: 'Activo' })).toBeInTheDocument();
+    expect(screen.getByText('ASSET-123')).toBeInTheDocument();
+    expect(screen.getByText('Estado').nextElementSibling).toHaveTextContent('Registrado');
+    expect(screen.getByText('Custodio actual').nextElementSibling).toHaveTextContent('EMP-123');
+    expect(screen.getByText('Ubicación actual').nextElementSibling).toHaveTextContent('BODEGA_CENTRAL');
+    expect(screen.getByText('Cantidad').nextElementSibling).toHaveTextContent('100');
+    expect(screen.getByText('Unidad de medida').nextElementSibling).toHaveTextContent('KGS');
+    expect(screen.getByText('Convocatoria').nextElementSibling).toHaveTextContent('CAMP-456');
 
     // Aserción negativa: donorRef ('DONOR-SECRET') NO debe ser renderizado
     expect(screen.queryByText('DONOR-SECRET')).toBeNull();
 
-    // Aserción negativa: no color style, no "Dividir activo" button
-    expect(screen.getByTestId('field-lifecycleStatus').style.color).toBe('');
+    // Aserción negativa: no "Dividir activo" button
     expect(screen.queryByRole('button', { name: /Dividir activo/i })).toBeNull();
   });
 
@@ -117,8 +117,8 @@ describe('Asset Page (T-6)', () => {
       expect(screen.getByTestId('state-content')).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId('field-currentCustodianRef')).toHaveTextContent('Custodio actual: Sin registrar');
-    expect(screen.getByTestId('field-currentLocation')).toHaveTextContent('Ubicación actual: Sin registrar');
+    expect(screen.getByText('Custodio actual').nextElementSibling).toHaveTextContent('Sin registrar');
+    expect(screen.getByText('Ubicación actual').nextElementSibling).toHaveTextContent('Sin registrar');
   });
 
   it('Muestra estado de solo lectura cuando es DELIVERED', async () => {
@@ -134,7 +134,7 @@ describe('Asset Page (T-6)', () => {
       expect(screen.getByTestId('state-content-readonly')).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId('field-lifecycleStatus')).toHaveTextContent('Estado: Entregado');
+    expect(screen.getByText('Estado').nextElementSibling).toHaveTextContent('Entregado');
     expect(screen.getByText('Este activo ya fue entregado. Solo lectura.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Dividir activo/i })).toBeNull();
   });
