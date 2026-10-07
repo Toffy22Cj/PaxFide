@@ -1,7 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Button } from '../components/ui/Button';
+import { RegisterAssetForm } from '../components/asset/RegisterAssetForm';
 import { fetchMe, Principal } from '../lib/api/identity';
 import { usePrincipal } from '../lib/auth/usePrincipal';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
@@ -48,8 +51,19 @@ function Entries({ entries }: { entries: PanelEntry[] }) {
   );
 }
 
+/**
+ * "Registrar activo" (D-N1-2 (a)): a `EMPLOYEE`; nunca a un principal cuyo único rol aplicable sea
+ * `REPRESENTATIVE` mientras R10 siga abierto.
+ */
+export function canRegisterAsset(principal: Principal | null): boolean {
+  return !!principal && principal.roles.includes('EMPLOYEE') && isSurfaceEnabled('action:register-asset');
+}
+
 export function PanelHomeScreen({ meClient = fetchMe }: { meClient?: typeof fetchMe }) {
   const { state, reload } = usePrincipal(meClient);
+  const router = useRouter();
+  const [registering, setRegistering] = useState(false);
+  const register = state.status === 'ready' && canRegisterAsset(state.data);
 
   return (
     <div data-testid="panel-content">
@@ -62,7 +76,18 @@ export function PanelHomeScreen({ meClient = fetchMe }: { meClient?: typeof fetc
           <Entries entries={panelEntries(null)} />
         </>
       )}
-      {state.status === 'ready' && <Entries entries={panelEntries(state.data)} />}
+      {state.status === 'ready' && (panelEntries(state.data).length > 0 || !register) && <Entries entries={panelEntries(state.data)} />}
+      {register && !registering && (
+        <div style={{ marginTop: 12 }}>
+          <Button variant="secondary" block onClick={() => setRegistering(true)}>Registrar activo</Button>
+        </div>
+      )}
+      {register && registering && (
+        <div style={{ marginTop: 24 }}>
+          <RegisterAssetForm onCancel={() => setRegistering(false)}
+            onRegistered={(assetRef) => router.push(`/assets/${encodeURIComponent(assetRef)}`)} />
+        </div>
+      )}
     </div>
   );
 }

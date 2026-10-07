@@ -16,6 +16,7 @@ Para separar lo que decidió Carlos de lo que decidió el agente:
 | D6/R11: habilitar crear convocatoria, registrar y dividir cuando el backend demuestre la idempotencia por `Command-Id` | Ídem, punto 3 | Verificado: §3 de este documento |
 | D5: todas las pantallas detrás de la lista de habilitación; habilitadas en el build de demo, desactivadas en el build por defecto | Ídem, punto 3 | §2 de este documento |
 | Crear convocatoria, asignar responsable, "Creadas en esta sesión" y QR | SIN VALIDAR CONTRA PENPOT (sin diseño previo en `diseno-ux`) |
+| `AssetPage` con acciones (modales de dividir, despachar, recibir y entregar; progreso de la división) y "Registrar activo" | SIN VALIDAR CONTRA PENPOT (`split` tenía diseño con campos PENDIENTE; el resto, sin diseño previo) |
 | Seguimiento por formulario (C2/H1): el código viaja en la cabecera, nunca en la ruta ni en la query | Encargo y respuesta de Carlos, 2026-10-07 | DW-01 |
 | Playwright contra respuestas simuladas que sigan literalmente los contratos si no se puede levantar el backend; el recorrido real queda para la ejecución final (B7) | Ídem, punto 2 | Ver §4 |
 | Acceso al backend en solo lectura | Ídem, punto 1 | El repositorio `Donaciones` estaba clonado en la sesión; se leyó sin cambios (`git status` limpio tras cada lectura y tras ejecutar sus tests) |
@@ -51,6 +52,10 @@ Formato pedido: id · fecha UTC · pantalla · pregunta · opciones · elegida �
 | DW-21 | 2026-10-07T18:40Z | Convocatorias | Sin listado (S-02), ¿cómo se elige la convocatoria al asignar responsable? | (a) solo texto; (b) lista en memoria de las creadas en la pestaña + texto si no hay | **(b)**: "Creadas en esta sesión" vive en memoria y se vacía en cualquier `LOGGED_OUT`. Muestra la referencia (`campaignRef`) de la propia organización, que el administrador necesita | No es fuente de verdad; desaparece cuando exista S-02 | Sí | `PENDIENTE DE RATIFICACIÓN` |
 | DW-22 | 2026-10-07T18:40Z | Convocatorias | Sin lectura de miembros (R6), ¿cómo se indica el responsable? | (a) no ofrecer CV-02; (b) campo de texto con el id de la cuenta | **(b)**, con la indicación de que no hay listado de miembros | CV-02 es parte del golden path; el backend valida el destinatario (409 `InvalidResponsibleRecipient`) | Sí | `PENDIENTE DE RATIFICACIÓN` |
 | DW-23 | 2026-10-07T18:40Z | Convocatorias | "Accesible por QR": ¿cómo se genera el QR sin librerías (D8)? | (a) no mostrar QR (`front-fase2` §9 lo dejaba pendiente); (b) codificador propio | **(b)** `src/lib/qr.ts` (modo byte, nivel M, versiones 1–10) y `QrCode.tsx` en SVG, con la URL canónica `/c/{publicCode}` sobre el origen de la web. Verificado bit a bit contra la implementación de referencia (Project Nayuki) en 5 textos × 9 variantes; las huellas quedan en `__tests__/qr.test.ts` | Requisito del encargo sin añadir dependencias | Sí | `PENDIENTE DE RATIFICACIÓN` |
+| DW-24 | 2026-10-07T19:00Z | Activo — dividir | ¿Cómo se espera al hijo tras el `202`? | (a) botón manual; (b) consulta automática de `GET …/splits/{child}` | **(b)**: cada 1,5 s, máximo 20 consultas; luego "Consultar de nuevo". Estados: `CHILD_CREATED` (enlace al hijo), `COMPENSATED`, `UNRESOLVED` (amarillo: "no la repitas"), `RESOLVED_MANUALLY`. El comando nunca se repite | Es una lectura sin efectos; el encargo pide consultar "hasta que exista el hijo". `front-fase2` §10 decía que no había verificación honesta de la división: ahora el backend da el recurso de estado | Sí | `PENDIENTE DE RATIFICACIÓN` |
+| DW-25 | 2026-10-07T19:00Z | Activo — acciones | ¿Qué acciones se ofrecen según el estado del activo? | (a) copiar la tabla del móvil (`ActionResolver`); (b) todas las habilitadas salvo en `DELIVERED` | **(b)**: el backend responde 409 (`InvalidAssetTransition`, `AssetTerminalState`…) si no corresponde, con su texto (DW-07). Tras un comando se relee el activo sin desmontar la pantalla; los avisos (p. ej. el enlace al hijo) se conservan aunque el activo pase a `DELIVERED` | Evita la divergencia que temía T3 (Enmienda 1, E1-2) | Sí | `PENDIENTE DE RATIFICACIÓN` |
+| DW-26 | 2026-10-07T19:00Z | Registrar activo | ¿Cómo se ofrecen los dos caminos sin lecturas de apoyo? | — | Un formulario con "Origen del bien": B (especie, `/from-donation`, `campaignRef` opcional) y A (compra, `/register`, `fundId` y `allocationId` escritos a mano, S-04). Nunca se envían `organizationRef` ni `donorRef` (DD-09, DD-10). Tras el éxito, a `/assets/{assetRef}` | El camino A existe en el backend pero sin lectura que dé sus ids (H-B6C-1, H-B6D-1) | Sí | `PENDIENTE DE RATIFICACIÓN` |
+| DW-27 | 2026-10-07T19:00Z | `AssetPage` | Contrato real frente al cliente existente | — | `quantity` es texto (`toPlainString`), los nulos llegan omitidos y el `assetRef` se codifica en la ruta. Los tests existentes de `AssetPage` se adaptan al marcado `dt`/`dd` del diseño (§4 `DefinitionList`) comprobando además que cada valor va junto a su etiqueta; no se quita ninguna aserción | Correcciones contra el contrato de B6-c | Sí | `PENDIENTE DE RATIFICACIÓN` |
 
 ---
 
@@ -69,6 +74,9 @@ Cada entrada cita la evidencia o la enmienda que la justifica. Una habilitación
 | `/account/donations` | 3 | `GET /account/donations` en `develop` (B6-b, §0.14); ampliación de alcance (Enmienda 1, borrador) | — |
 | `action:create-campaign` | 4 | CV-01 en `develop` (B6-a, §0.13); **R11 verificado** (§3 de este documento) | S-01: sin `/me` no hay `organizationId` y la acción no aparece contra el backend real de hoy |
 | `action:assign-employee` | 4 | CV-02 en `develop` (B6-a); duplicado idéntico probado (`cv02_assigns_andADuplicateIsIdentical`) | S-01; R6 (sin lectura de miembros, DW-22) |
+| `action:register-asset` | 5 | Registro A y B en `develop` (B6-c, §0.12); **R11 verificado** (§3); P7 integrado en `core` (`golden-path.md` §5, actualización C6) | S-04 (ids del camino A); R10 (D-N1-2: no a un `REPRESENTATIVE` solo) |
+| `action:split` | 5 | División (`202` + recurso de estado) en `develop` (B6-c; saga B1-bis); **R11 verificado** (§3, en `core`) | Sin test HTTP de duplicado de la división (§3, matiz) |
+| `action:dispatch`, `action:receive`, `action:deliver` | 5 | En `develop` (B6-c, D-ASSET) con `Command-Id`; duplicado probado en `PhysicalAssetHttpIntegrationTest`; ampliación de alcance (Enmienda 1, E1-2) | — |
 | `/assets/:assetRef` (lectura) | 1 | `GET /physical-assets/{assetRef}` en `develop` (B6-c, `estado-fase6.md` §0.12) | R10: un `REPRESENTATIVE` recibe 403 (estado de pantalla) |
 
 ---
@@ -109,6 +117,7 @@ Penpot es la fuente visual de verdad y el agente no tiene acceso. Todas las pant
 | `/panel/campaigns` | SIN VALIDAR CONTRA PENPOT |
 | `/c/:publicCode` (con datos reales de CV-07; §5.4 solo tenía bloques grises) | SIN VALIDAR CONTRA PENPOT |
 | Crear convocatoria, asignar responsable, "Creadas en esta sesión" y QR | SIN VALIDAR CONTRA PENPOT (sin diseño previo en `diseno-ux`) |
+| `AssetPage` con acciones (modales de dividir, despachar, recibir y entregar; progreso de la división) y "Registrar activo" | SIN VALIDAR CONTRA PENPOT (`split` tenía diseño con campos PENDIENTE; el resto, sin diseño previo) |
 | Seguimiento por formulario (`/tracking`) | SIN VALIDAR CONTRA PENPOT |
 | Mis donaciones | SIN VALIDAR CONTRA PENPOT |
 | Donar, pasarela simulada, estado de la intención y entrega del `trackingCode` | SIN VALIDAR CONTRA PENPOT (sin diseño previo en `diseno-ux`) |

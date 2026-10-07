@@ -36,7 +36,12 @@ export default defineConfig({
           '/tracking',
           '/account/donations',
           'action:create-campaign',
-          'action:assign-employee'
+          'action:assign-employee',
+          'action:register-asset',
+          'action:split',
+          'action:dispatch',
+          'action:receive',
+          'action:deliver'
         ])
       }
     },

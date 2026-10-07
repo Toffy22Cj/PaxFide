@@ -21,10 +21,11 @@ const accounts = {
   'sin-me@demo.test': { password: 'demo-sin-me', accountId: 'acc-no-me', organizationId: 'org-1', roles: ['ADMINISTRATOR'], noMe: true },
 };
 
-// Tokens de los tests existentes (W-4): equivalen a la cuenta administradora
+accounts['legacy@demo.test'] = { password: null, accountId: 'acc-legacy', organizationId: 'org-1', roles: ['ADMINISTRATOR', 'EMPLOYEE'] };
+// Tokens de los tests existentes (W-4): cuenta de la organización con los dos roles
 const tokens = new Map([
-  ['fake-jwt-token', 'admin@demo.test'],
-  ['fake-jwt-token-for-security', 'admin@demo.test'],
+  ['fake-jwt-token', 'legacy@demo.test'],
+  ['fake-jwt-token-for-security', 'legacy@demo.test'],
 ]);
 
 function send(res, status, body, extra = {}) {
@@ -99,6 +100,23 @@ const oneOf = (v, xs) => v === undefined || v === null || xs.includes(v);
 /** Activos por fondo: la logística del seguimiento (TR-01) y su historial (TR-03). */
 const assets = new Map();
 const narrativeCalls = new Map();
+const splits = new Map();
+
+function newAsset(a) {
+  const assetRef = a.assetRef || crypto.randomUUID();
+  const asset = { assetRef, lifecycleStatus: 'REGISTERED', history: [{ eventType: 'ASSET_REGISTERED', timestamp: new Date().toISOString(), status: 'REGISTERED' }], ...a, assetRef };
+  assets.set(assetRef, asset);
+  return asset;
+}
+newAsset({ assetRef: 'ASSET-123', organizationRef: 'org-1', assetType: 'Mercado', quantity: '1', unitOfMeasure: 'EA',
+  currentCustodianRef: 'CUST-1', currentLocation: 'LOC-1', campaignRef: 'CAMP-1' });
+
+/** Matriz P7 (ADR-032): EMPLOYEE; REPRESENTATIVE como respaldo solo en registrar y dividir. */
+function canOperate(actor, backup) {
+  return actor.roles.includes('EMPLOYEE') || (backup && actor.roles.includes('REPRESENTATIVE'));
+}
+const QTY = /^[0-9]{1,15}(\.[0-9]{1,4})?$/;
+const text = (v) => typeof v === 'string' && v.trim() !== '' && v.length <= 256;
 
 function intentByTrackingCode(req) {
   const h = req.headers['authorization'];
@@ -422,14 +440,115 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // B6-c — GET /physical-assets/{assetRef} (OperationalResponse)
-  const assetMatch = p.match(/^\/physical-assets\/([^/]+)$/);
-  if (assetMatch && req.method === 'GET') {
+  // B6-c — activos (PhysicalAssetController)
+  if (p.startsWith('/physical-assets')) {
     if (!actor) { problem(res, 401, 'Unauthorized'); return; }
-    send(res, 200, {
-      assetRef: decodeURIComponent(assetMatch[1]), lifecycleStatus: 'REGISTERED', currentCustodianRef: 'CUST-1',
-      currentLocation: 'LOC-1', quantity: '1', unitOfMeasure: 'EA', campaignRef: 'CAMP-1',
-    });
+    const registerMatch = p === '/physical-assets/register' || p === '/physical-assets/from-donation';
+    if (registerMatch && req.method === 'POST') {
+      const commandId = commandIdOf(req);
+      if (!commandId) { problem(res, 400, 'BadRequest'); return; }
+      const b = await readBody(req);
+      if (!b) { problem(res, 400, 'BadRequest'); return; }
+      const pathA = p.endsWith('/register');
+      const required = ['assetType', 'unitOfMeasure', 'custodianRef', 'currentLocation'].concat(pathA ? ['fundId', 'allocationId'] : []);
+      if (!required.every((k) => text(b[k])) || typeof b.quantity !== 'string' || !QTY.test(b.quantity) || Number(b.quantity) <= 0) {
+        problem(res, 400, 'BadRequest'); return;
+      }
+      if (!actor.organizationId || !canOperate(actor, true)) { problem(res, 403, 'Forbidden'); return; }
+      let fund = null;
+      if (pathA) {
+        fund = [...intents.values()].find((i) => i.fundId === b.fundId);
+        if (!fund) { problem(res, 404, 'NotFound'); return; }
+      }
+      const r = claim(res, commandId, pathA ? 'ASSET_REGISTER' : 'ASSET_REGISTER_FROM_DONATION', () => {
+        const c = pathA ? campaigns.get(fund.publicCode) : null;
+        const a = newAsset({
+          organizationRef: actor.organizationId, assetType: b.assetType, quantity: b.quantity, unitOfMeasure: b.unitOfMeasure,
+          currentCustodianRef: b.custodianRef, currentLocation: b.currentLocation,
+          campaignRef: pathA ? c.campaignRef : (b.campaignRef || undefined), fundId: pathA ? b.fundId : undefined,
+        });
+        const out = { assetRef: a.assetRef, status: 'REGISTERED' };
+        if (!pathA) out.donationRef = 'don-' + crypto.randomUUID();
+        if (a.campaignRef) out.campaignRef = a.campaignRef;
+        return out;
+      });
+      if (!r) return;
+      send(res, 201, r.value);
+      return;
+    }
+
+    const m = p.match(/^\/physical-assets\/([^/]+)(?:\/(split|dispatch|receive|deliver)|\/splits\/([^/]+))?$/);
+    if (!m) { problem(res, 404, 'NotFound'); return; }
+    const asset = assets.get(decodeURIComponent(m[1]));
+    const action = m[2];
+    const childRef = m[3] && decodeURIComponent(m[3]);
+    const backup = action === 'split';
+    // Inexistente u otra organización: el mismo 403 (DD-12)
+    const allowed = asset && asset.organizationRef === actor.organizationId && canOperate(actor, backup);
+
+    if (!action && !childRef && req.method === 'GET') {
+      if (!allowed) { problem(res, 403, 'Forbidden'); return; }
+      const out = { assetRef: asset.assetRef, lifecycleStatus: asset.lifecycleStatus, quantity: asset.quantity, unitOfMeasure: asset.unitOfMeasure };
+      if (asset.currentCustodianRef) out.currentCustodianRef = asset.currentCustodianRef;
+      if (asset.currentLocation) out.currentLocation = asset.currentLocation;
+      if (asset.campaignRef) out.campaignRef = asset.campaignRef;
+      send(res, 200, out);
+      return;
+    }
+    if (childRef && req.method === 'GET') {
+      if (!allowed) { problem(res, 403, 'Forbidden'); return; }
+      const sp = splits.get(childRef);
+      if (!sp || sp.parent !== asset.assetRef) { problem(res, 404, 'NotFound'); return; }
+      sp.polls++;
+      // La saga crea el hijo de forma asíncrona: PENDING en las dos primeras consultas
+      if (sp.polls > 2 && sp.status === 'PENDING') {
+        sp.status = 'CHILD_CREATED';
+        newAsset({ ...asset, assetRef: childRef, quantity: sp.quantity, lifecycleStatus: 'REGISTERED',
+          history: [{ eventType: 'ASSET_REGISTERED', timestamp: new Date().toISOString(), status: 'REGISTERED' }] });
+      }
+      send(res, 200, { status: sp.status });
+      return;
+    }
+    if (action && req.method === 'POST') {
+      const commandId = commandIdOf(req);
+      if (!commandId) { problem(res, 400, 'BadRequest'); return; }
+      const b = await readBody(req);
+      if (!b) { problem(res, 400, 'BadRequest'); return; }
+      const fields = { split: [], dispatch: ['carrierRef'], receive: ['facilityLocation', 'receiverRef'], deliver: ['finalCustodianRef', 'beneficiaryRef', 'locationRef', 'evidenceRef'] }[action];
+      if (!fields.every((k) => text(b[k])) || (action === 'split' && (typeof b.quantity !== 'string' || !QTY.test(b.quantity) || Number(b.quantity) <= 0))) {
+        problem(res, 400, 'BadRequest'); return;
+      }
+      if (!allowed) { problem(res, 403, 'Forbidden'); return; }
+      const prev = claims.get(commandId);
+      if (!prev) {
+        if (asset.lifecycleStatus === 'DELIVERED') { problem(res, 409, 'AssetTerminalState'); return; }
+        const next = { dispatch: ['REGISTERED', 'RECEIVED'], receive: ['DISPATCHED'], deliver: ['RECEIVED', 'REGISTERED'], split: ['REGISTERED', 'DISPATCHED', 'RECEIVED'] }[action];
+        if (!next.includes(asset.lifecycleStatus)) { problem(res, 409, 'InvalidAssetTransition'); return; }
+        if (action === 'split' && Number(b.quantity) >= Number(asset.quantity)) { problem(res, 409, 'InsufficientQuantity'); return; }
+      }
+      const r = claim(res, commandId, 'ASSET_' + action.toUpperCase() + ':' + asset.assetRef, () => {
+        const now = new Date().toISOString();
+        if (action === 'split') {
+          const child = crypto.randomUUID();
+          splits.set(child, { parent: asset.assetRef, quantity: b.quantity, status: 'PENDING', polls: 0 });
+          asset.quantity = String(Number(asset.quantity) - Number(b.quantity));
+          asset.history.push({ eventType: 'ASSET_SPLIT', timestamp: now, status: asset.lifecycleStatus });
+          return { parentAssetRef: asset.assetRef, childAssetRef: child, status: 'PENDING' };
+        }
+        const status = { dispatch: 'DISPATCHED', receive: 'RECEIVED', deliver: 'DELIVERED' }[action];
+        asset.lifecycleStatus = status;
+        if (action === 'receive') asset.currentLocation = b.facilityLocation;
+        if (action === 'deliver') asset.currentCustodianRef = b.finalCustodianRef;
+        asset.history.push({ eventType: 'ASSET_' + status, timestamp: now, status });
+        return { assetRef: asset.assetRef, status };
+      });
+      if (!r) return;
+      if (action === 'split') {
+        send(res, 202, r.value, { Location: `${BASE}/physical-assets/${asset.assetRef}/splits/${r.value.childAssetRef}` });
+      } else send(res, 200, r.value);
+      return;
+    }
+    problem(res, 404, 'NotFound');
     return;
   }
 
