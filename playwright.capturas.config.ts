@@ -26,6 +26,7 @@ export default defineConfig({
           '/login', '/panel', '/panel/campaigns', '/assets/:assetRef', '/c/:publicCode', '/tracking', '/account/donations',
           'action:donate', 'action:create-campaign', 'action:assign-employee', 'action:register-asset', 'action:split',
           'action:dispatch', 'action:receive', 'action:deliver',
+          'action:designate-administrator', 'action:remove-responsible', 'action:close-campaign', '/panel/prediction',
         ]),
       },
     },

@@ -15,9 +15,9 @@ Para separar lo que decidió Carlos de lo que decidió el agente:
 | Ampliación del alcance de la web v1: Donar (CV-11 + consulta de estado), `/account/donations` y dispatch/receive/deliver | Respuesta de Carlos, 2026-10-07, punto 3 | Borrador de enmienda: `ADR-046-enmienda-1-alcance-web.md` (pendiente de su aprobación; se implementa mientras tanto, por su indicación) |
 | D6/R11: habilitar crear convocatoria, registrar y dividir cuando el backend demuestre la idempotencia por `Command-Id` | Ídem, punto 3 | Verificado: §3 de este documento |
 | D5: todas las pantallas detrás de la lista de habilitación; habilitadas en el build de demo, desactivadas en el build por defecto | Ídem, punto 3 | §2 de este documento |
-| Crear convocatoria, asignar responsable, "Creadas en esta sesión" y QR | SIN VALIDAR CONTRA PENPOT (sin diseño previo en `diseno-ux`) |
+| Crear convocatoria, listado con acciones (asignar, designar, retirar, cerrar) y QR | SIN VALIDAR CONTRA PENPOT (sin diseño previo en `diseno-ux`) |
 | `AssetPage` con acciones (modales de dividir, despachar, recibir y entregar; progreso de la división) y "Registrar activo" | SIN VALIDAR CONTRA PENPOT (`split` tenía diseño con campos PENDIENTE; el resto, sin diseño previo) |
-| Estimación de convocatorias (predicción, gráficos básico y avanzado) | SIN VALIDAR CONTRA PENPOT (sin diseño previo); no habilitada en ningún build (S-06) |
+| Estimación de convocatorias (predicción, gráficos básico y avanzado) | SIN VALIDAR CONTRA PENPOT (sin diseño previo); habilitada en el build de demo desde P2-B |
 | Seguimiento por formulario (C2/H1): el código viaja en la cabecera, nunca en la ruta ni en la query | Encargo y respuesta de Carlos, 2026-10-07 | DW-01 |
 | Playwright contra respuestas simuladas que sigan literalmente los contratos si no se puede levantar el backend; el recorrido real queda para la ejecución final (B7) | Ídem, punto 2 | Ver §4 |
 | Acceso al backend en solo lectura | Ídem, punto 1 | El repositorio `Donaciones` estaba clonado en la sesión; se leyó sin cambios (`git status` limpio tras cada lectura y tras ejecutar sus tests) |
@@ -64,6 +64,10 @@ Formato pedido: id · fecha UTC · pantalla · pregunta · opciones · elegida �
 | DW-32 | 2026-10-07T21:33Z | Descubrimiento | ¿Dónde vive y se indexa? | — | `/campaigns` (pública, solo cliente) con "Cargar más" por cursor opaco; enlace "Convocatorias" en el Shell para todos; **`noindex`** hasta que se decida la indexación (P-W2 la dejaba para cuando existiera este endpoint) | Prudencia: indexar es una decisión de producto, no de implementación | Sí | `PENDIENTE DE RATIFICACIÓN` |
 | DW-33 | 2026-10-07T21:33Z | `/c/:publicCode` | ¿Se muestra la narrativa de la convocatoria? | — | Sí, como sección `section:campaign-narrative` (habilitable): hechos (`unitsDelivered`, `distinctRecipients` como "receptores distintos") separados del relato; `PENDING` → "Actualizar"; `UNAVAILABLE`/404 → "no disponible" | Estaba en la matriz de pantallas (`front-fase2` §9, "narrativa no disponible"); ahora tiene contrato (B5) | Sí | `PENDIENTE DE RATIFICACIÓN` |
 | DW-34 | 2026-10-07T21:33Z | Todas | `referencia-api-v1.md` y el código del backend difieren en algunos puntos (§D de `solicitudes-backend.md`) | (a) seguir el documento; (b) seguir el código | **(b)**, y cada diferencia anotada en §D. Las unidades de los importes (D-01) **no se cambian** hasta que Carlos y el backend decidan | "Si difieren del backend, manda el backend": el código es lo que responde | Sí | `PENDIENTE DE RATIFICACIÓN` |
+| DW-35 | 2026-10-07T22:40Z | `/panel/campaigns` | Con el listado real, ¿qué pasa con "Creadas en esta sesión" y el formulario suelto de asignar? | (a) mantenerlos; (b) sustituirlos por el listado con acciones por fila | **(b)**: listado de `GET /organizations/{id}/campaigns` con, por fila, "Asignar empleado", "Designar administrador", "Retirar responsable" y "Cerrar convocatoria" (modales), enlace público, QR desplegable y enlace a la estimación. Las acciones solo en convocatorias `OPEN` (representación; el backend responde 409 igualmente). Tras cada éxito se relee el listado | El estado en memoria era un sustituto de S-02, ya resuelta | Sí | `PENDIENTE DE RATIFICACIÓN` |
+| DW-36 | 2026-10-07T22:40Z | Acciones de responsables | ¿Cómo se elige la cuenta? `members` no trae nombre ni email (DD-55) | (a) texto libre; (b) desplegable de miembros por `accountId` y papeles | **(b)**, filtrado por papel (empleados para CV-02, administradores para CV-03; cualquiera para el reemplazo). Si la lectura de miembros falla o da 403, el campo pasa a texto. Se muestran `accountId` de la **propia** organización (no son de otra organización ni PII) | Sin nombres, el id es la única referencia que da el contrato | Sí | `PENDIENTE DE RATIFICACIÓN` |
+| DW-37 | 2026-10-07T22:40Z | Retirar responsable | Reemplazo opcional y papel obligatorio con reemplazo (400 del backend) | — | Validación en cliente en los dos sentidos (reemplazo sin papel, papel sin reemplazo); sin reemplazo **no se envía cuerpo** (el controlador acepta `@RequestBody(required = false)`). Cerrar convocatoria pide confirmación ("es definitivo") y tampoco envía cuerpo | Evitar 400 evitables; `CLOSED` es terminal | Sí | `PENDIENTE DE RATIFICACIÓN` |
+| DW-38 | 2026-10-07T22:40Z | `/panel/prediction` | Contrato real: una sola estimación (D-03), sin serie | (a) inventar la evolución; (b) mostrar hoy frente al final estimado | **(b)**: gráfico básico (probabilidad y % final) y avanzado (tiempo transcurrido, recaudado hoy como **hecho** —del listado—, final estimado como **estimación**, cortes de entrenamiento marcados, sin línea entre puntos) con tabla que etiqueta cada fila "Hecho"/"Estimación". Avisos del backend (`warnings`) visibles. Sin cifra → texto del backend. Convocatoria elegida del listado; un `REPRESENTATIVE` (sin listado, 403) escribe la referencia. Habilitada en el build de demo | Regla: nunca presentar una estimación como hecho; no inventar | Sí | `PENDIENTE DE RATIFICACIÓN` |
 
 ---
 
@@ -75,7 +79,7 @@ Cada entrada cita la evidencia o la enmienda que la justifica. Una habilitación
 |---|---|---|---|
 | `/login` | 1 | `LoginController` en `develop` del backend (ID-01, B3; `estado-fase6.md` §0.8) | — |
 | `/panel` | 1 | Decisión D5 de Carlos (2026-10-07). Lee `/me` (ficha N1 CONGELADA) | **`/me` no existe en el backend (S-01)**: el panel muestra "No disponible" (DW-06) |
-| `/panel/campaigns` | 1 | Ídem | S-01 y S-02 (listado). Sin `/me` no hay `organizationId` |
+| `/panel/campaigns` | 1 | Ídem; listado real desde P2-B (`OrganizationCampaignsController`, `f5266c5`) | — (S-01 y S-02 resueltas) |
 | `/c/:publicCode` | 2 | CV-07 en `develop` (B6-a, `estado-fase6.md` §0.13); "no encontrada" = 404 (S-09) | — |
 | `action:donate` | 2 | CV-11 y la consulta con `Intent-Token` en `develop` (B6-b, §0.14); ampliación de alcance (Enmienda 1 de ADR-046, borrador); idempotencia de CV-11 probada en `DonationPaymentHttpIntegrationTest.aDuplicateCv11_returnsTheSameIntentWithANewToken_andTheOldOneStopsWorking` | Pago real: solo proveedor simulado en `dev` |
 | `/tracking` | 3 | TR-01 a TR-03 en `develop` con `Authorization: Bearer <trackingCode>` (`TrackingCodeAuthFilter`; B6-d, §0.15, que arregló el 404 del seguimiento real); decisión C2/H1 de Carlos | S-05 (QR de seguimiento) |
@@ -88,6 +92,8 @@ Cada entrada cita la evidencia o la enmienda que la justifica. Una habilitación
 | `/register` | P2-A | `POST /auth/register` en `develop` del backend `f5266c5` | Sin política de contraseña (H-P2-1 del backend) |
 | `/campaigns` | P2-A | `GET /public/campaigns` en `f5266c5` (DD-52, DD-53) | — |
 | `section:campaign-narrative` | P2-A | `GET /public/campaigns/{publicCode}/narrative` en `f5266c5` (B5) | — |
+| `action:designate-administrator`, `action:remove-responsible`, `action:close-campaign` | P2-B | CV-03, retirar responsable (DD-50) y cerrar en `CampaignAdministrationController` (`f5266c5`), con `Command-Id` | — |
+| `/panel/prediction` | P2-B | `CampaignPredictionController` (`f5266c5`, S-06 resuelta en parte) | D-03 (sin serie); ADR-044 PROPUESTO |
 | `/assets/:assetRef` (lectura) | 1 | `GET /physical-assets/{assetRef}` en `develop` (B6-c, `estado-fase6.md` §0.12) | R10: un `REPRESENTATIVE` recibe 403 (estado de pantalla) |
 
 ---
@@ -127,9 +133,9 @@ Penpot es la fuente visual de verdad y el agente no tiene acceso. Todas las pant
 | PanelHome | SIN VALIDAR CONTRA PENPOT |
 | `/panel/campaigns` | SIN VALIDAR CONTRA PENPOT |
 | `/c/:publicCode` (con datos reales de CV-07; §5.4 solo tenía bloques grises) | SIN VALIDAR CONTRA PENPOT |
-| Crear convocatoria, asignar responsable, "Creadas en esta sesión" y QR | SIN VALIDAR CONTRA PENPOT (sin diseño previo en `diseno-ux`) |
+| Crear convocatoria, listado con acciones (asignar, designar, retirar, cerrar) y QR | SIN VALIDAR CONTRA PENPOT (sin diseño previo en `diseno-ux`) |
 | `AssetPage` con acciones (modales de dividir, despachar, recibir y entregar; progreso de la división) y "Registrar activo" | SIN VALIDAR CONTRA PENPOT (`split` tenía diseño con campos PENDIENTE; el resto, sin diseño previo) |
-| Estimación de convocatorias (predicción, gráficos básico y avanzado) | SIN VALIDAR CONTRA PENPOT (sin diseño previo); no habilitada en ningún build (S-06) |
+| Estimación de convocatorias (predicción, gráficos básico y avanzado) | SIN VALIDAR CONTRA PENPOT (sin diseño previo); habilitada en el build de demo desde P2-B |
 | Seguimiento por formulario (`/tracking`) | SIN VALIDAR CONTRA PENPOT |
 | Mis donaciones | SIN VALIDAR CONTRA PENPOT |
 | Donar, pasarela simulada, estado de la intención y entrega del `trackingCode` | SIN VALIDAR CONTRA PENPOT (sin diseño previo en `diseno-ux`) |
