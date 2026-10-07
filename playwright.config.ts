@@ -34,7 +34,9 @@ export default defineConfig({
           '/c/:publicCode',
           'action:donate',
           '/tracking',
-          '/account/donations'
+          '/account/donations',
+          'action:create-campaign',
+          'action:assign-employee'
         ])
       }
     },

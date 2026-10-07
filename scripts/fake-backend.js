@@ -15,6 +15,7 @@ const BASE = '/api/v1';
 const accounts = {
   'admin@demo.test': { password: 'demo-admin', accountId: 'acc-admin', organizationId: 'org-1', roles: ['ADMINISTRATOR'] },
   'empleado@demo.test': { password: 'demo-empleado', accountId: 'acc-employee', organizationId: 'org-1', roles: ['EMPLOYEE'] },
+  'admin-sin-verificar@demo.test': { password: 'demo-admin2', accountId: 'acc-admin-2', organizationId: 'org-2', roles: ['ADMINISTRATOR'] },
   'donante@demo.test': { password: 'demo-donante', accountId: 'acc-donor', roles: [] },
   // Para probar el backend real de hoy, que todavía no expone /me (S-01): para esta cuenta /me responde 404
   'sin-me@demo.test': { password: 'demo-sin-me', accountId: 'acc-no-me', organizationId: 'org-1', roles: ['ADMINISTRATOR'], noMe: true },
@@ -87,6 +88,14 @@ addCampaign('01JDEMOPUBLICC0DEINKIND01', {
 });
 
 const intents = new Map();
+const verifiedOrganizations = new Set(['org-1']);
+const assignments = new Map();
+const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+function newPublicCode() {
+  return [...crypto.randomBytes(26)].map((b) => CROCKFORD[b % 32]).join('');
+}
+const UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?Z$/;
+const oneOf = (v, xs) => v === undefined || v === null || xs.includes(v);
 /** Activos por fondo: la logística del seguimiento (TR-01) y su historial (TR-03). */
 const assets = new Map();
 const narrativeCalls = new Map();
@@ -256,6 +265,86 @@ const server = http.createServer(async (req, res) => {
     if (intent.redirect) out.paymentRedirectUrl = intent.redirect;
     if (res.__failAfter) { res.__failAfter === 'drop' ? req.socket.destroy() : problem(res, 503, 'ServiceUnavailable'); return; }
     send(res, 201, out);
+    return;
+  }
+
+  // CV-01 — POST /organizations/{organizationId}/campaigns (CampaignAdministrationController)
+  const createMatch = p.match(/^\/organizations\/([^/]+)\/campaigns$/);
+  if (createMatch && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const commandId = commandIdOf(req);
+    if (!commandId) { problem(res, 400, 'BadRequest'); return; }
+    const b = await readBody(req);
+    const c = b && b.configuration;
+    if (!b || !c) { problem(res, 400, 'BadRequest'); return; }
+    const types = c.acceptedDonationTypes || [];
+    const methods = c.acceptedPaymentMethods || [];
+    if (!types.every((t) => ['MONETARY', 'IN_KIND'].includes(t)) || !methods.every((m) => ['GATEWAY', 'BANK_TRANSFER', 'CASH'].includes(m))
+      || !oneOf(c.targetPolicy, ['FLEXIBLE', 'STRICT', 'CLOSE_ON_TARGET']) || !oneOf(c.onTargetReached, ['CLOSE', 'REJECT_EXCESS', 'ACCEPT_EXCESS'])
+      || !oneOf(b.visibility, ['PUBLIC', 'PRIVATE_LINK']) || (c.targetAmount != null && !/^[0-9]{1,19}$/.test(c.targetAmount))
+      || typeof b.startDate !== 'string' || !UTC.test(b.startDate) || typeof b.endDate !== 'string' || !UTC.test(b.endDate)) {
+      problem(res, 400, 'BadRequest'); return;
+    }
+    const orgId = decodeURIComponent(createMatch[1]);
+    if (actor.organizationId !== orgId) { problem(res, 403, 'Forbidden'); return; }
+    if (!actor.roles.includes('ADMINISTRATOR')) { problem(res, 403, 'Forbidden'); return; }
+    if (!b.title || !String(b.title).trim()) { problem(res, 400, 'CampaignTitleRequired'); return; }
+    if (b.title.length > 200) { problem(res, 400, 'CampaignTitleTooLong'); return; }
+    if (!b.visibility) { problem(res, 400, 'CampaignVisibilityRequired'); return; }
+    if (b.startDate >= b.endDate) { problem(res, 400, 'InvalidCampaignDateRange'); return; }
+    if (new Date(b.startDate).getTime() < Date.now() - 5 * 60 * 1000) { problem(res, 400, 'CampaignDateInPast'); return; }
+    if (types.length === 0) { problem(res, 400, 'EmptyAcceptedDonationTypes'); return; }
+    const monetary = types.includes('MONETARY');
+    if (monetary && (methods.length === 0 || !c.targetAmount || !c.targetPolicy)) { problem(res, 400, 'IncompleteMonetaryConfiguration'); return; }
+    if (monetary && !c.currency) { problem(res, 400, 'MissingCampaignCurrency'); return; }
+    if (monetary && !/^[A-Z]{3}$/.test(c.currency)) { problem(res, 400, 'InvalidCampaignCurrency'); return; }
+    if (monetary && BigInt(c.targetAmount) <= BigInt(0)) { problem(res, 400, 'InvalidTargetAmount'); return; }
+    if ((c.targetPolicy === 'CLOSE_ON_TARGET') !== (c.onTargetReached != null)) { problem(res, 400, 'InvalidOnTargetReached'); return; }
+    if (!monetary && (c.currency || c.targetAmount || c.targetPolicy || c.onTargetReached)) { problem(res, 400, 'MonetaryTermsWithoutMonetaryDonationType'); return; }
+    if (!verifiedOrganizations.has(orgId)) { problem(res, 409, 'OrganizationNotVerified'); return; }
+    const r = claim(res, commandId, 'CREATE_CONVOCATORIA', () => {
+      const publicCode = newPublicCode();
+      const campaignRef = crypto.randomUUID();
+      addCampaign(publicCode, {
+        campaignRef, organizationRef: orgId, organizationName: 'Fundación Demo', title: b.title, description: b.description,
+        status: 'OPEN', startDate: b.startDate, endDate: b.endDate, acceptedDonationTypes: types, acceptedPaymentMethods: methods,
+        currency: monetary ? c.currency : undefined, targetAmount: monetary ? c.targetAmount : undefined,
+        clearedAmount: monetary ? '0' : undefined, targetPolicy: c.targetPolicy,
+      });
+      return { campaignRef, publicCode };
+    });
+    if (!r) return;
+    send(res, 201, r.value);
+    return;
+  }
+
+  // CV-02 — POST /campaigns/{campaignRef}/employees
+  const assignMatch = p.match(/^\/campaigns\/([^/]+)\/employees$/);
+  if (assignMatch && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const commandId = commandIdOf(req);
+    if (!commandId) { problem(res, 400, 'BadRequest'); return; }
+    const b = await readBody(req);
+    if (!b || !b.employeeRef) { problem(res, 400, 'BadRequest'); return; }
+    const campaignRef = decodeURIComponent(assignMatch[1]);
+    const c = [...campaigns.values()].find((x) => x.campaignRef === campaignRef);
+    // Convocatoria inexistente, ajena o actor sin rol: el mismo 403
+    if (!c || c.organizationRef !== actor.organizationId || !actor.roles.includes('ADMINISTRATOR')) { problem(res, 403, 'Forbidden'); return; }
+    if (c.status === 'CLOSED') { problem(res, 409, 'ResponsibleAssignmentOnClosedCampaign'); return; }
+    const prev = claims.get(commandId);
+    if (!prev) {
+      if (b.employeeRef === actor.accountId) { problem(res, 409, 'EmployeeSelfAssignmentNotAllowed'); return; }
+      const employee = Object.values(accounts).find((a) => a.accountId === b.employeeRef);
+      if (!employee || employee.organizationId !== c.organizationRef) { problem(res, 409, 'InvalidResponsibleRecipient'); return; }
+      if (assignments.has(campaignRef + ':' + b.employeeRef)) { problem(res, 409, 'EmployeeAlreadyAssigned'); return; }
+    }
+    const r = claim(res, commandId, 'ASSIGN_EMPLOYEE', () => {
+      const assignmentId = crypto.randomUUID();
+      assignments.set(campaignRef + ':' + b.employeeRef, assignmentId);
+      return { assignmentId };
+    });
+    if (!r) return;
+    send(res, 201, r.value);
     return;
   }
 
