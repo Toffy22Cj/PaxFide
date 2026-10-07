@@ -68,7 +68,7 @@ test.describe('Panel de activos (registrar, dividir, despachar, recibir, entrega
     expect(commands.length).toBe(8);
     const ids = await Promise.all(commands.map(async (r) => (await r.allHeaders())['command-id']));
     ids.forEach((id) => expect(id).toMatch(/^[0-9a-f-]{36}$/));
-    expect(new Set(ids).size).toBe(6);
+    expect(new Set(ids).size).toBe(8);
   });
 
   test('una transición imposible → 409 con su texto; el activo no cambia', async ({ page }) => {
