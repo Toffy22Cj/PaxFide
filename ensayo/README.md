@@ -11,5 +11,8 @@ parte de `pnpm test:e2e` ni de `scripts/ci-local.sh` (necesita el backend en mar
    `pnpm exec playwright test -c playwright.ensayo.config.ts`.
    Salida: `Documentos/evidencia-web/ensayo-conjunto/` (o `ENSAYO_SALIDA`).
 
+Evidencias: `Documentos/evidencia-web/ensayo-conjunto-2026-10-07/` (backend `231a7f6`) y
+`Documentos/evidencia-web/ensayo-conjunto-2026-10-07-p2c/` (backend `4d1d65a`, con las pantallas de P2-C).
+
 Lo que el test hace fuera de la interfaz queda marcado `via: "HTTP"` en `pasos.json`. Nunca escribe JWT, contraseñas,
 `statusToken` ni `trackingCode`: `red.json` guarda solo método, ruta, código y `title`, y las capturas tapan el código.
