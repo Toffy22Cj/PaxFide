@@ -63,6 +63,18 @@
   outline-offset: 2px;
 }
 
+html { -webkit-text-size-adjust: 100%; }
+
 body {
   font-family: var(--font-family-sans);
+  margin: 0;
+  background: var(--neutral-50);
+  color: var(--brand-green-900);
+  font-size: var(--text-md);
+  line-height: 1.5;
 }
+
+/* Sobre neutral-50 los enlaces van en brand-blue-800 (diseno-ux §3.2) */
+a { color: var(--brand-blue-800); }
+
+*, *::before, *::after { box-sizing: border-box; }

@@ -1,0 +1,8 @@
+.header { background: var(--white); border-bottom: 1px solid var(--neutral-200); }
+.bar { max-width: 1120px; margin: 0 auto; padding: 0 var(--gutter-mobile); min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.brand { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--brand-green-900); font-weight: var(--weight-semibold); font-size: var(--text-lg); text-decoration: none; }
+.nav { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.navLink { color: var(--brand-blue-800); font-size: var(--text-sm); }
+.logout { min-height: var(--control-height); padding: 0 var(--space-4); border-radius: var(--radius-control); font: inherit; font-weight: var(--weight-semibold); cursor: pointer; background: var(--white); color: var(--brand-green-900); border: 1px solid var(--neutral-400); }
+.main { max-width: var(--width-detail); margin: 0 auto; padding: var(--space-8) var(--gutter-mobile) var(--space-12); }
+.wide { max-width: 1120px; }

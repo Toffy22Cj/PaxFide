@@ -1,1 +1,7 @@
-"use client"; import { logout } from "@/lib/auth/session"; export default function Campaigns() { return <div><h1 data-testid="campaigns-title">Campañas</h1><button data-testid="logout-btn" onClick={() => logout()}>Cerrar Sesión</button></div>; }
+'use client';
+
+import { CampaignsScreen } from '../../../screens/CampaignsScreen';
+
+export default function CampaignsPage() {
+  return <CampaignsScreen />;
+}

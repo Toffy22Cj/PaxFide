@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:demo": "NEXT_PUBLIC_SURFACE_PROFILE=demo next build",
     "start": "next start",
     "test": "vitest run",
     "test:e2e": "playwright test --reporter=list && playwright test -c playwright.empty.config.ts --reporter=list && playwright test -c playwright.prod.config.ts --reporter=list",

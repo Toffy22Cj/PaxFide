@@ -1,72 +1,52 @@
-import enabledSurfacesList from './enabled-surfaces.json';
+import { isSurfaceEnabled } from './surfaces';
 
 export type RouteCategory = 'PUBLIC' | 'AUTH' | 'AUTHENTICATED' | 'NOT_APPROVED';
 
-function getEnabledSurfaces() {
-  if (process.env.NEXT_PUBLIC_E2E_SURFACES) {
-    return new Set<string>(JSON.parse(process.env.NEXT_PUBLIC_E2E_SURFACES));
-  }
-  return new Set<string>(enabledSurfacesList);
-}
-
-const enabledSurfaces = getEnabledSurfaces();
-
+/** Validación estructural heredada (`front-fase2` §8): no vacío + longitud máxima defensiva. */
 function isValidParam(param: string | undefined): boolean {
-  if (!param) return false;
-  if (param.length === 0 || param.length > 255) return false;
-  return true;
+  return !!param && param.length > 0 && param.length <= 255;
 }
 
+function when(surface: string, category: RouteCategory): RouteCategory {
+  return isSurfaceEnabled(surface) ? category : 'NOT_APPROVED';
+}
+
+/**
+ * Categoría de una ruta (G-W1, G-W4). Solo conoce la ruta y la lista de habilitación; nunca roles, sesión ni
+ * códigos HTTP (invariante 3 de `front-fase2` §8).
+ */
 export function classifyRoute(pathname: string): RouteCategory {
-  if (!pathname.startsWith('/')) {
-    return 'NOT_APPROVED';
-  }
-
+  if (!pathname.startsWith('/')) return 'NOT_APPROVED';
   const parts = pathname.split('/').filter(Boolean);
+  if (parts.length === 0) return 'NOT_APPROVED';
 
-  if (parts.length === 0) {
-    return 'NOT_APPROVED';
+  const [a, b] = parts;
+
+  if (parts.length === 1 && a === 'login') return when('/login', 'AUTH');
+
+  if (parts.length === 2 && a === 'c') {
+    return isValidParam(b) ? when('/c/:publicCode', 'PUBLIC') : 'NOT_APPROVED';
   }
 
-  // Auth
-  if (parts.length === 1 && parts[0] === 'login') {
-    if (!enabledSurfaces.has('/login')) return 'NOT_APPROVED';
-    return 'AUTH';
+  // Seguimiento por formulario (C2/H1, DW-01): el código nunca va en la ruta. `/tracking/<lo-que-sea>` no existe
+  // en ningún build, esté o no en la lista.
+  if (a === 'tracking') {
+    return parts.length === 1 ? when('/tracking', 'PUBLIC') : 'NOT_APPROVED';
   }
 
-  // Public
-  if (parts.length === 2 && parts[0] === 'c') {
-    if (!enabledSurfaces.has('/c/:publicCode')) return 'NOT_APPROVED';
-    if (!isValidParam(parts[1])) return 'NOT_APPROVED';
-    return 'PUBLIC';
+  if (parts.length === 2 && a === 'assets') {
+    return isValidParam(b) ? when('/assets/:assetRef', 'AUTHENTICATED') : 'NOT_APPROVED';
   }
 
-  if (parts.length === 2 && parts[0] === 'tracking') {
-    // tracking is explicitly blocked by C2 until verified, but if it were enabled:
-    if (!enabledSurfaces.has('/tracking/:trackingCode')) return 'NOT_APPROVED';
-    if (!isValidParam(parts[1])) return 'NOT_APPROVED';
-    return 'PUBLIC';
+  if (parts.length === 2 && a === 'account' && b === 'donations') {
+    return when('/account/donations', 'AUTHENTICATED');
   }
 
-  // Authenticated
-  if (parts.length === 2 && parts[0] === 'assets') {
-    if (!enabledSurfaces.has('/assets/:assetRef')) return 'NOT_APPROVED';
-    if (!isValidParam(parts[1])) return 'NOT_APPROVED';
-    return 'AUTHENTICATED';
-  }
-
-  if (parts.length === 1 && parts[0] === 'panel') {
-    if (!enabledSurfaces.has('/panel')) return 'NOT_APPROVED';
-    return 'AUTHENTICATED';
-  }
-
-  if (parts.length === 2 && parts[0] === 'panel' && parts[1] === 'campaigns') {
-    if (!enabledSurfaces.has('/panel/campaigns')) return 'NOT_APPROVED';
-    return 'AUTHENTICATED';
-  }
-
-  // Explicit blocks (R1, etc)
-  if (parts[0] === 'panel' && parts[1] === 'platform') {
+  if (a === 'panel') {
+    if (parts.length === 1) return when('/panel', 'AUTHENTICATED');
+    if (parts.length === 2 && b === 'campaigns') return when('/panel/campaigns', 'AUTHENTICATED');
+    if (parts.length === 2 && b === 'prediction') return when('/panel/prediction', 'AUTHENTICATED');
+    // /panel/platform/** y cualquier otra: fuera de v1 (T6)
     return 'NOT_APPROVED';
   }
 

@@ -7,6 +7,9 @@ let currentState: MachineState = 'RESTORING';
 let jwt: string | null = null;
 let postLoginDestination: string | null = null;
 let lastLogoutReason: LogoutReason | null = null;
+// Último principal leído de GET /me (ficha N1). Solo en memoria y solo para no parpadear entre páginas
+// (D-N1-3): cada página que lo necesita lo vuelve a pedir. Nunca autoriza nada.
+let lastPrincipal: unknown = null;
 const listeners: Set<Listener> = new Set();
 
 const LOGOUT_CHANNEL_NAME = 'paxfide_logout_signal';
@@ -25,7 +28,6 @@ if (typeof window !== 'undefined') {
   if (process.env.NEXT_PUBLIC_E2E_BUILD) {
     (window as any).__TEST_SESSION__ = { login: (t: string) => login(t), logout };
   }
-} else {
 }
 
 function notify() {
@@ -51,6 +53,7 @@ export function subscribe(listener: Listener) {
 
 export function login(token: string) {
   jwt = token;
+  lastPrincipal = null;
   lastLogoutReason = null;
   setState('AUTHENTICATED');
 }
@@ -61,6 +64,7 @@ export function logout() {
 
 function executeLogout(broadcast: boolean, reason: LogoutReason) {
   jwt = null;
+  lastPrincipal = null;
   postLoginDestination = null;
   lastLogoutReason = reason;
   setState('LOGGED_OUT');
@@ -71,6 +75,14 @@ function executeLogout(broadcast: boolean, reason: LogoutReason) {
 
 export function getJwt() {
   return jwt;
+}
+
+export function setLastPrincipal(principal: unknown) {
+  if (jwt) lastPrincipal = principal;
+}
+
+export function getLastPrincipal(): unknown {
+  return lastPrincipal;
 }
 
 export function getLastLogoutReason() {
@@ -102,6 +114,7 @@ export function _resetForTest() {
   jwt = null;
   postLoginDestination = null;
   lastLogoutReason = null;
+  lastPrincipal = null;
   if (typeof window !== 'undefined') {
     currentState = 'LOGGED_OUT';
   }
