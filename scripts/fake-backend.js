@@ -194,6 +194,13 @@ const server = http.createServer(async (req, res) => {
     send(res, 200, { ok: true });
     return;
   }
+  // El test hace de operador con acceso a los datos: el fundId de una intención (la web no tiene de dónde leerlo, S-04)
+  const fundMatch = path.match(/^\/__test\/intents\/([^/]+)\/fund$/);
+  if (fundMatch && req.method === 'GET') {
+    const intent = intents.get(decodeURIComponent(fundMatch[1]));
+    send(res, intent && intent.fundId ? 200 : 404, intent && intent.fundId ? { fundId: intent.fundId } : { ok: false });
+    return;
+  }
   // Datos de prueba: crea una convocatoria pública abierta y devuelve su publicCode
   if (path === '/__test/campaigns' && req.method === 'POST') {
     const body = (await readBody(req)) || {};
