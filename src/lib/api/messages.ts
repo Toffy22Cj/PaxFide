@@ -11,7 +11,9 @@ const BY_TITLE: Record<string, string> = {
   CommandIdReusedForDifferentCommand: 'No pudimos procesar la operación. Ábrela de nuevo e inténtalo otra vez.',
   CommandIdReused: 'No pudimos procesar la operación. Ábrela de nuevo e inténtalo otra vez.',
   ResponsibleAlreadyActiveInCampaign: 'Esa cuenta ya es responsable activa de esta convocatoria.',
-  EmployeeAlreadyAssigned: 'Esa cuenta ya está asignada a esta convocatoria.',
+  // Backend: `EmployeeAlreadyAssigned` = el EMPLOYEE ya es responsable activo de OTRA convocatoria (índice único);
+  // (`ResponsibleAlreadyActiveInCampaign`, arriba = ya es responsable de ESTA convocatoria)
+  EmployeeAlreadyAssigned: 'Esa persona ya es responsable de otra convocatoria activa.',
   EmployeeSelfAssignmentNotAllowed: 'No puedes asignarte a ti mismo con esta acción.',
   InvalidResponsibleRecipient: 'Esa cuenta no puede ser responsable de esta convocatoria.',
   ResponsibleAssignmentOnClosedCampaign: 'La convocatoria está cerrada: ya no admite responsables.',

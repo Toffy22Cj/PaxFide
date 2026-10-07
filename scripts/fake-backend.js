@@ -16,6 +16,7 @@ const accounts = {
   'admin@demo.test': { password: 'demo-admin', accountId: 'acc-admin', organizationId: 'org-1', roles: ['ADMINISTRATOR'] },
   'empleado@demo.test': { password: 'demo-empleado', accountId: 'acc-employee', organizationId: 'org-1', roles: ['EMPLOYEE'] },
   'empleado2@demo.test': { password: 'demo-empleado2', accountId: 'acc-employee-2', organizationId: 'org-1', roles: ['EMPLOYEE'] },
+  'empleado3@demo.test': { password: 'demo-empleado3', accountId: 'acc-employee-3', organizationId: 'org-1', roles: ['EMPLOYEE'] },
   'representante@demo.test': { password: 'demo-representante', accountId: 'acc-rep', organizationId: 'org-1', roles: ['REPRESENTATIVE'] },
   'admin-sin-verificar@demo.test': { password: 'demo-admin2', accountId: 'acc-admin-2', organizationId: 'org-2', roles: ['ADMINISTRATOR'] },
   'donante@demo.test': { password: 'demo-donante', accountId: 'acc-donor', roles: [] },
@@ -92,7 +93,7 @@ addCampaign('01JDEMOPUBLICC0DEINKIND01', {
 
 const intents = new Map();
 const verifiedOrganizations = new Set(['org-1']);
-const assignments = new Map([['camp-demo-1:acc-employee', { assignmentId: 'asg-demo-1', actingRole: 'EMPLOYEE' }]]);
+const assignments = new Map([['camp-demo-1:acc-admin', { assignmentId: 'asg-demo-1', actingRole: 'ADMINISTRATOR' }]]);
 const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 function newPublicCode() {
   return [...crypto.randomBytes(26)].map((b) => CROCKFORD[b % 32]).join('');
@@ -467,7 +468,7 @@ const server = http.createServer(async (req, res) => {
       if (!b || !b.administratorRef) { problem(res, 400, 'BadRequest'); return; }
       if (!prev) {
         if (!recipientOk(b.administratorRef, 'ADMINISTRATOR')) { problem(res, 409, 'InvalidResponsibleRecipient'); return; }
-        if (assignments.has(campaignRef + ':' + b.administratorRef)) { problem(res, 409, 'EmployeeAlreadyAssigned'); return; }
+        if (assignments.has(campaignRef + ':' + b.administratorRef)) { problem(res, 409, 'ResponsibleAlreadyActiveInCampaign'); return; }
       }
       const r = claim(res, commandId, 'DESIGNATE_ADMINISTRATOR', () => {
         const assignmentId = crypto.randomUUID();
@@ -521,7 +522,12 @@ const server = http.createServer(async (req, res) => {
       if (b.employeeRef === actor.accountId) { problem(res, 409, 'EmployeeSelfAssignmentNotAllowed'); return; }
       const employee = Object.values(accounts).find((a) => a.accountId === b.employeeRef);
       if (!employee || employee.organizationId !== c.organizationRef) { problem(res, 409, 'InvalidResponsibleRecipient'); return; }
-      if (assignments.has(campaignRef + ':' + b.employeeRef)) { problem(res, 409, 'EmployeeAlreadyAssigned'); return; }
+      if (assignments.has(campaignRef + ':' + b.employeeRef)) { problem(res, 409, 'ResponsibleAlreadyActiveInCampaign'); return; }
+      // Como el backend real (índice único parcial): un EMPLOYEE solo es responsable activo de una convocatoria; cerrar
+      // la convocatoria no libera la asignación (D-06 de solicitudes-backend.md)
+      if ([...assignments.entries()].some(([k, v]) => k.endsWith(':' + b.employeeRef) && v.actingRole === 'EMPLOYEE')) {
+        problem(res, 409, 'EmployeeAlreadyAssigned'); return;
+      }
     }
     const r = claim(res, commandId, 'ASSIGN_EMPLOYEE', () => {
       const assignmentId = crypto.randomUUID();
@@ -689,7 +695,7 @@ const server = http.createServer(async (req, res) => {
       const prev = claims.get(commandId);
       if (!prev) {
         if (asset.lifecycleStatus === 'DELIVERED') { problem(res, 409, 'AssetTerminalState'); return; }
-        const next = { dispatch: ['REGISTERED', 'RECEIVED'], receive: ['DISPATCHED'], deliver: ['RECEIVED', 'REGISTERED'], split: ['REGISTERED', 'DISPATCHED', 'RECEIVED'] }[action];
+        const next = { dispatch: ['REGISTERED', 'RECEIVED'], receive: ['DISPATCHED'], deliver: ['DISPATCHED', 'RECEIVED'], split: ['REGISTERED', 'DISPATCHED', 'RECEIVED'] }[action];
         if (!next.includes(asset.lifecycleStatus)) { problem(res, 409, 'InvalidAssetTransition'); return; }
         if (action === 'split' && Number(b.quantity) >= Number(asset.quantity)) { problem(res, 409, 'InsufficientQuantity'); return; }
       }

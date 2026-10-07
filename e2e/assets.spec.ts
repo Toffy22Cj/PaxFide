@@ -59,10 +59,13 @@ test.describe('Panel de activos (registrar, dividir, despachar, recibir, entrega
     // El hijo, por separado
     await page.getByTestId('split-child-link').click();
     await expect(page.getByTestId('field-quantity')).toHaveText('4');
+    // El hijo nace REGISTERED (como en el backend real): despachar y recibir antes de entregar
+    await act(page, 'Despachar', [['Transportista (referencia)', 'TRANS-2']]);
+    await act(page, 'Recibir', [['Instalación (ubicación)', 'Centro comunitario'], ['Quién recibe (referencia)', 'REC-2']]);
     await act(page, 'Entregar', DELIVER);
     await expect(page.getByTestId('state-content-readonly')).toBeVisible();
 
-    expect(commands.length).toBe(6);
+    expect(commands.length).toBe(8);
     const ids = await Promise.all(commands.map(async (r) => (await r.allHeaders())['command-id']));
     ids.forEach((id) => expect(id).toMatch(/^[0-9a-f-]{36}$/));
     expect(new Set(ids).size).toBe(6);
