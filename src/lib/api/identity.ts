@@ -1,3 +1,5 @@
+'use client';
+
 import { apiRequest } from './http';
 
 /** ID-01: `POST /api/v1/auth/login` → `200 {token}`; 400 campos vacíos; 401 cualquier fallo; 500 al emitir. */

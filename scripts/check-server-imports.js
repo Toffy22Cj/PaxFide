@@ -3,10 +3,13 @@ import path from 'path';
 
 const SRC_DIR = path.join(process.cwd(), 'src');
 
+// Cualquier import del módulo de sesión o del cliente autenticado, sea cual sea la ruta relativa
 const FORBIDDEN_IMPORTS = [
-  '@/lib/auth/session',
-  '../lib/auth/session',
-  'src/lib/auth/session'
+  /from\s+['"][^'"]*auth\/session['"]/,
+  /from\s+['"][^'"]*auth\/usePrincipal['"]/,
+  /from\s+['"][^'"]*api\/http['"]/,
+  /from\s+['"]\.\/http['"]/,
+  /from\s+['"][^'"]*api\/publicCampaigns['"]/,
 ];
 
 async function getFiles(dir, fileList = []) {
@@ -41,8 +44,10 @@ async function checkServerImports() {
       continue;
     }
 
+    // `import type` desaparece al compilar: no arrastra código de cliente al servidor
+    const runtimeImports = content.split('\n').filter((l) => !/^\s*import\s+type\b/.test(l)).join('\n');
     for (const forbidden of FORBIDDEN_IMPORTS) {
-      if (content.includes(forbidden)) {
+      if (forbidden.test(runtimeImports)) {
         console.error(`❌ ERROR: Archivo de servidor (${path.relative(process.cwd(), file)}) importa un módulo prohibido: ${forbidden}`);
         hasErrors = true;
       }
@@ -57,4 +62,4 @@ async function checkServerImports() {
   }
 }
 
-checkServerImports().catch(console.error);
+checkServerImports().catch((e) => { console.error(e); process.exit(1); });

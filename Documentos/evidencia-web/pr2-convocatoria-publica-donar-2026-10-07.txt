@@ -1,0 +1,33 @@
+# Evidencia PR 2 (/c/:publicCode + Donar) — salida literal resumida
+# Fecha: 2026-10-07T17:52:31Z. Playwright contra el backend simulado (opción B de Carlos).
+
+ Test Files  15 passed (15)
+      Tests  134 passed (134)
+✅ Chequeo estático de imports en servidor: OK.
+  ✓   1 [chromium] › e2e/donate.spec.ts:11:7 › /c/:publicCode — SSR (P-W2, P-W3) › SSR con noindex y Open Graph, sin og:url (222ms)
+  ✓   2 [chromium] › e2e/donate.spec.ts:22:7 › /c/:publicCode — SSR (P-W2, P-W3) › código inexistente → HTTP 404 con el estado "no encontrada" (514ms)
+  ✓   3 [chromium] › e2e/donate.spec.ts:31:7 › Donar sin cuenta (CV-11) → pago simulado → trackingCode › recorrido completo; ningún secreto en URLs ni almacenamiento; Intent-Token solo en cabecera (708ms)
+  ✓   5 [chromium] › e2e/donate.spec.ts:104:7 › Donar sin cuenta (CV-11) → pago simulado → trackingCode › convocatoria cerrada → sin formulario de donación (230ms)
+  ✓   6 [chromium] › e2e/guards.spec.ts:4:7 › Session Guards (T-4) › logout → atrás ⇒ sin contenido autenticado (bfcache invariant) (387ms)
+  ✓   7 [chromium] › e2e/guards.spec.ts:29:7 › Session Guards (T-4) › logout en la pestaña A ⇒ la pestaña B pasa a LOGGED_OUT (507ms)
+  ✓   8 [chromium] › e2e/guards.spec.ts:53:7 › Session Guards (T-4) › superficie deshabilitada ⇒ 404 también con sesión (310ms)
+  ✓   4 [chromium] › e2e/donate.spec.ts:76:7 › Donar sin cuenta (CV-11) → pago simulado → trackingCode › 5xx tras aplicar → ambiguo; Reintentar reenvía el MISMO Command-Id y recibe la misma intención (2.0s)
+  ✓   9 [chromium] › e2e/login.spec.ts:4:7 › Login por la interfaz (ID-01) y PanelHome con /me (N1) › credenciales correctas → /panel con las entradas del rol; JWT solo hacia el backend (410ms)
+  ✓  10 [chromium] › e2e/login.spec.ts:26:7 › Login por la interfaz (ID-01) y PanelHome con /me (N1) › credenciales incorrectas y cuenta inexistente → el mismo mensaje (438ms)
+  ✓  11 [chromium] › e2e/login.spec.ts:39:7 › Login por la interfaz (ID-01) y PanelHome con /me (N1) › /me no disponible en el backend → aviso "No disponible", sin inventar roles (434ms)
+  ✓  12 [chromium] › e2e/login.spec.ts:48:7 › Login por la interfaz (ID-01) y PanelHome con /me (N1) › cerrar sesión desde el Shell → /login (467ms)
+  ✓  13 [chromium] › e2e/security.spec.ts:4:7 › Security constraints (W-4 d, e) › ninguna petición al origen Next lleva Authorization, pero al API sí (448ms)
+  ✓  14 [chromium] › e2e/security.spec.ts:47:7 › Security constraints (W-4 d, e) › almacenamiento no contiene el token (346ms)
+  14 passed (11.8s)
+  ✓  1 [empty-list] › e2e/routing.spec.ts:12:9 › Route Enablement › Route /tracking/123 should 404 when not enabled (434ms)
+  ✓  2 [empty-list] › e2e/routing.spec.ts:12:9 › Route Enablement › Route /c/123 should 404 when not enabled (430ms)
+  ✓  3 [empty-list] › e2e/routing.spec.ts:12:9 › Route Enablement › Route /assets/abc should 404 when not enabled (273ms)
+  ✓  4 [empty-list] › e2e/routing.spec.ts:12:9 › Route Enablement › Route /panel/campaigns should 404 when not enabled (306ms)
+  ✓  5 [empty-list] › e2e/routing.spec.ts:20:9 › Route Enablement › 404 con la lista vacía › 404 para /login, /panel y /panel/platform/x con la lista vacía sin sesión (435ms)
+  ✓  6 [empty-list] › e2e/routing.spec.ts:31:9 › Route Enablement › 404 con la lista vacía › 404 para /login, /panel y /panel/platform/x con la lista vacía con sesión (470ms)
+  6 passed (9.2s)
+  ✓  1 [chromium] › e2e/production.spec.ts:4:7 › Production build (Rule 7) › does not expose __TEST_SESSION__ or __TEST_ROUTER__ backdoors (229ms)
+  1 passed (8.1s)
+✓ Running next.config.ts took 25ms
+✓ Compiled successfully in 371ms
+✓ Generating static pages using 3 workers (6/6) in 226ms
