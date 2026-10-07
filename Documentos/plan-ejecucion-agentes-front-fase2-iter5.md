@@ -9,7 +9,7 @@
 | # | Precondición | Quién | Estado (2026-10-05) |
 |---|---|---|---|
 | P-5.1 | Pila W-0 a W-6 **mergeada en `develop`**, tras los dos ajustes pendientes (Next 16.3.8 en W-0; test de producción para `__TEST_ROUTER__`) | Agente + Carlos (merge) | ✅ Cumplida el 2026-10-05: `develop` = `1db5cc6` contiene W-0..W-9 en orden (ver "Registro del merge") |
-| P-5.2 | El repo contiene en `Documentos/` las copias vigentes de: `diseno-ux-contractual-web-v1.md`, `delta-front-fase2-rev3.md`, `sistema-visual-paxfide-web.md`, `ADR-042-frontend-web-paxfide-web.md`, `front-fase2.md` y `hallazgos-front-fase2.md` | Carlos (copia desde el proyecto) | ✅ Copias añadidas en W-0 e idénticas a las del proyecto a 2026-10-05 (2.ª verificación); `ADR-FRONT-WEB` eliminado. Se cumple al mergear W-0 |
+| P-5.2 | El repo contiene en `Documentos/` las copias vigentes de: `diseno-ux-contractual-web-v1.md`, `delta-front-fase2-rev3.md`, `sistema-visual-paxfide-web.md`, `ADR-046-frontend-web-paxfide-web.md`, `front-fase2.md` y `hallazgos-front-fase2.md` | Carlos (copia desde el proyecto) | ✅ Copias añadidas en W-0 e idénticas a las del proyecto a 2026-10-05 (2.ª verificación); `ADR-FRONT-WEB` eliminado. Se cumple al mergear W-0 |
 | P-5.3 | Iteración 5 aprobada | Carlos | ✅ 2026-10-05 (con la enmienda E-5.1) |
 | P-5.4 | **Solo para W-10:** frames de Penpot de `diseno-ux-contractual-web-v1.md` §8 terminados y aprobados | Equipo + Carlos | ⏳ |
 
@@ -28,7 +28,7 @@ Hallazgos nuevos:
 
 - **V-1 (bloquea el merge):** no existe `.github/workflows/` en ninguna rama. El entregable 5 de W-0 (CI en PRs hacia `develop`) y la precondición P-1/E8 nunca se cumplieron. La regla 3.2 exige CI obligatorio. Sin CI, el único respaldo de la pila es el output local del agente.
 - **V-2:** el commit de W-4 (`d04916b`, guards) borra `eslint`, `eslint-config-next` y `eslint.config.mjs`, cambio ajeno a su tarea. El estado final cumple mejor la lista de D8 que W-0, pero deja el script `"lint": "eslint"` apuntando a un binario no instalado. La limpieza pertenece a W-0.
-- **V-3:** `Documentos/` contiene dos versiones del ADR del frontend: `ADR-042-frontend-web-paxfide-web.md` (APROBADO, rev. 4) y `ADR-FRONT-WEB-paxfide-web.md` (PROPUESTO, rev. 2, obsoleto). Un agente puede leer la versión equivocada.
+- **V-3:** `Documentos/` contiene dos versiones del ADR del frontend: `ADR-046-frontend-web-paxfide-web.md` (APROBADO, rev. 4) y `ADR-FRONT-WEB-paxfide-web.md` (PROPUESTO, rev. 2, obsoleto). Un agente puede leer la versión equivocada.
 - **V-4 (informativo):** las devDependencies incluyen `@vitejs/plugin-react`, `jsdom`, `@testing-library/jest-dom` y `@types/node`, además de la lista literal de W-0. Son soporte directo de Vitest + Testing Library; deben aparecer listadas en el PR de W-0 (DoD de W-0).
 
 ### Segunda verificación (2026-10-05, tras la corrección del agente)
@@ -158,7 +158,7 @@ LOGGED_OUT, para que Login pueda mostrar el aviso correspondiente.
 CONTEXTO YA CONGELADO:
 - diseno-ux-contractual-web-v1.md §5.2 (R-UX-1 y la tabla de estados de
   Login: "Tu sesión expiró…" / "Cerraste sesión en otra pestaña.").
-- ADR-042-frontend-web-paxfide-web.md D2 (JWT solo en memoria), G-W3 (solo
+- ADR-046-frontend-web-paxfide-web.md D2 (JWT solo en memoria), G-W3 (solo
   se propaga la SEÑAL), T-1 (la expiración no se propaga).
 
 ENTREGABLES:

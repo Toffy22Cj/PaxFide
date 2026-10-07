@@ -1,7 +1,7 @@
 # Plan de implementación — `paxfide-web` v1 (Frontend Fase 2)
 
 **Estado:** PROPUESTO — revisión 2 (2026-09-28). No autoriza código hasta aprobación humana explícita (regla 3.4). Se aprueba **por iteración**.
-**Base:** ADR del frontend web (hoy archivado como `ADR-042-frontend-web-paxfide-web.md`, APROBADO — **número en colisión, ver F1**), `claude/front-fase2.md` (consolidación 2026-09-27), `hallazgos-front-fase2.md`, `sistema-visual-paxfide-web.md` (APROBADO).
+**Base:** ADR del frontend web (hoy archivado como `ADR-046-frontend-web-paxfide-web.md`, APROBADO — **número en colisión, ver F1**), `claude/front-fase2.md` (consolidación 2026-09-27), `hallazgos-front-fase2.md`, `sistema-visual-paxfide-web.md` (APROBADO).
 **Regla de trazabilidad:** cada tarea cita la decisión que implementa. Ante discrepancia entre este plan y esos documentos, prevalecen ellos y se reporta.
 
 **Cambios de la revisión 2:** respuestas de Carlos a E1–E8; inspección del backend real (`Toffy22Cj/Donaciones`, rama `develop`); gestor de paquetes pnpm; hallazgos nuevos F1–F5.
@@ -62,8 +62,10 @@
 
 ### F1 — Colisión de número: existen dos ADR-042 · **BLOQUEANTE documental**
 
+*Resuelto el 2026-10-07 (Carlos):* el ADR del frontend web se renumera a **ADR-046** (`ADR-046-frontend-web-paxfide-web.md`); el ADR-042 del backend conserva su número. El texto de abajo se conserva como registro.
+
 - **Backend:** `Documentos/ADR-042-orquestacion-centralizada-reintentos-proyeccion.md` en `Donaciones/develop`. Estado: *Aprobado — implementado en Fase 5 (A7.2)*. Publicado en `develop` el 2026-09-28 (PR #28). Citado por `estado-fase5.md`, `hallazgo-framework-retry-projections.md` y `plan-correccion-fase5-e-ia.md`. No hay referencias en código Java.
-- **Frontend:** `ADR-042-frontend-web-paxfide-web.md` en el proyecto, número asignado el mismo día. Citado por `hallazgos-front-fase2.md`, `sistema-visual-paxfide-web.md` y este plan.
+- **Frontend:** `ADR-046-frontend-web-paxfide-web.md` en el proyecto, número asignado el mismo día. Citado por `hallazgos-front-fase2.md`, `sistema-visual-paxfide-web.md` y este plan.
 - Viola el principio de que cada clase y cada PR se señala contra **un** ADR (regla 2.1): "ADR-042" pasa a ser ambiguo.
 - **No se resuelve en este plan.** Opciones para decisión humana:
   - **(a)** Renumerar el ADR del frontend al siguiente libre (ADR-043, a confirmar que no esté tomado). El ADR del backend se publicó primero en el repo y ya está implementado.

@@ -2,7 +2,7 @@
 
 **Estado:** **APROBADO** por Carlos el 2026-10-05, completo (D-N1-1 a D-N1-4 y §1–§7). **Aprobar este delta no vuelve normativa a N1:** se distinguen tres estados — diseño de frontend aprobado (este delta), contrato N1 congelado (ficha) y normativa pendiente de la Enmienda 1 de ADR-041. No autoriza implementación: `/panel` y `/panel/campaigns` siguen aprobado-bloqueadas (§5).
 **Fecha:** 2026-10-05.
-**Naturaleza:** delta de diseño sobre `claude/front-fase2.md` (versión consolidada del 2026-09-27). **No es un ADR, no modifica ADR-042 y no autoriza implementación.** No aprueba la Enmienda 1 de ADR-041 ni vuelve normativas ID-01, T-33 o N1.
+**Naturaleza:** delta de diseño sobre `claude/front-fase2.md` (versión consolidada del 2026-09-27). **No es un ADR, no modifica ADR-046 y no autoriza implementación.** No aprueba la Enmienda 1 de ADR-041 ni vuelve normativas ID-01, T-33 o N1.
 **Fuente del contrato:** `claude/ficha-N1-quien-soy.md` (CONGELADA, pendiente de incorporación normativa, 2026-10-05).
 
 ---
@@ -13,10 +13,10 @@
 |---|---|---|
 | `PanelHome` (§7, §9) | PROVISIONAL: muestra todas las entradas y cada una resuelve su 403 como estado de pantalla | Deja de ser provisional: muestra las entradas según el principal de `/me` (§3.1). Queda **aprobado-bloqueado** (§5) |
 | `OrgCampaignsPage` (§9) y T5 (§7) | Bloqueada por N1: no puede hacer su primera petición | Obtiene `organizationId` de `/me` (§3.2). Sigue **aprobado-bloqueado** (§5) |
-| Sesión (§4, W2; ADR-042 D2) | JWT solo en memoria | El principal de `/me` vive **solo en memoria**, ligado a la sesión (§3.3) |
+| Sesión (§4, W2; ADR-046 D2) | JWT solo en memoria | El principal de `/me` vive **solo en memoria**, ligado a la sesión (§3.3) |
 | Guards (§8) | El guard conoce solo sesión + categoría de ruta (invariante 3) | **Sin cambio.** El guard no lee `/me` (§3.4) |
 | `AssetPage` (§9) | Entrada por QR; el backend autoriza | **Sin cambio.** No consulta `/me` |
-| Destino post-login (§8, ADR-042 D4) | Destino retenido o `/panel` | **Sin cambio** |
+| Destino post-login (§8, ADR-046 D4) | Destino retenido o `/panel` | **Sin cambio** |
 
 ## 2. Principio que rige todo el delta (HEREDADO)
 
@@ -56,7 +56,7 @@ La respuesta de `/me` sirve **solo para representar**: qué entradas mostrar y q
 
 ### 3.3 Dónde vive el principal
 
-- Solo en memoria, en el mismo módulo de sesión (ADR-042 D2). Nunca en `localStorage`, `sessionStorage`, cookies, IndexedDB ni la URL.
+- Solo en memoria, en el mismo módulo de sesión (ADR-046 D2). Nunca en `localStorage`, `sessionStorage`, cookies, IndexedDB ni la URL.
 - Se descarta en toda transición a `LOGGED_OUT` (logout manual, T-1, señal de otra pestaña).
 - **No viaja entre pestañas:** el mensaje de `BroadcastChannel` sigue siendo solo la señal (G-W3). Cada pestaña pide su propio `/me`.
 - No se registra en logs ni en analítica (ya excluido para el JWT; se extiende al principal).
@@ -122,7 +122,7 @@ Mientras tanto, por D5 / G-W1, ambas responden 404 en cualquier build desplegado
 - **`diseno-ux-contractual-web-v1.md`:** necesita un delta para `PanelHome` (contenido y estados de §3.1), el texto del estado "sin entradas" y, según D-N1-4, el de `/panel/campaigns` sin organización. Hoy el contenido de `/panel` está fuera de su alcance.
 - **`hallazgos-front-fase2.md`:** N1 pasa de "sin ficha" a "ficha CONGELADA, pendiente de incorporación normativa".
 - **Plan de implementación:** cuando se desbloquee, hace falta una tarea nueva (cliente de `/me` + `PanelHome` + `organizationId` en `OrgCampaignsPage`) con su plan aprobado (regla 3.4). Este delta no la crea.
-- **ADR:** no requiere ADR nuevo (regla 3.5): no introduce dependencias, no cambia aggregates ni puertos, no introduce concurrencia ni reintentos. Aplica ADR-042 D2 tal como está.
+- **ADR:** no requiere ADR nuevo (regla 3.5): no introduce dependencias, no cambia aggregates ni puertos, no introduce concurrencia ni reintentos. Aplica ADR-046 D2 tal como está.
 
 ## 7. Tests que exigirá la implementación (para el futuro plan)
 
