@@ -48,7 +48,10 @@ export function classifyRoute(pathname: string): RouteCategory {
     if (parts.length === 1) return when('/panel', 'AUTHENTICATED');
     if (parts.length === 2 && b === 'campaigns') return when('/panel/campaigns', 'AUTHENTICATED');
     if (parts.length === 2 && b === 'prediction') return when('/panel/prediction', 'AUTHENTICATED');
-    // /panel/platform/** y cualquier otra: fuera de v1 (T6)
+    if (parts.length === 2 && b === 'funds') return when('/panel/funds', 'AUTHENTICATED');
+    if (parts.length === 2 && b === 'assets') return when('/panel/assets', 'AUTHENTICATED');
+    // Verificación de organizaciones (Autorización (2) §2.2; DW-41): solo `/panel/platform`; cualquier subruta, no existe
+    if (parts.length === 2 && b === 'platform') return when('/panel/platform', 'AUTHENTICATED');
     return 'NOT_APPROVED';
   }
 

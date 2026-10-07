@@ -37,22 +37,22 @@ test.describe('P2-A — registro, descubrimiento y narrativa', () => {
     await page.getByRole('link', { name: 'Crear cuenta' }).click();
     await expect(page).toHaveURL(/\/register$/);
     await page.getByLabel('Correo electrónico').fill(email);
-    await page.getByLabel('Contraseña', { exact: true }).fill('clave-demo');
-    await page.getByLabel('Repite la contraseña').fill('clave-demo');
+    await page.getByLabel('Contraseña', { exact: true }).fill('clave-demo-larga');
+    await page.getByLabel('Repite la contraseña').fill('clave-demo-larga');
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page.getByText('Cuenta creada')).toBeVisible();
 
     // El mismo correo otra vez → 409
     await page.goto('/register');
     await page.getByLabel('Correo electrónico').fill(email);
-    await page.getByLabel('Contraseña', { exact: true }).fill('x');
-    await page.getByLabel('Repite la contraseña').fill('x');
+    await page.getByLabel('Contraseña', { exact: true }).fill('clave-demo-larga');
+    await page.getByLabel('Repite la contraseña').fill('clave-demo-larga');
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page.getByText('Ya existe una cuenta con ese correo.')).toBeVisible();
 
     await page.goto('/login');
     await page.getByLabel('Correo electrónico').fill(email);
-    await page.getByLabel('Contraseña').fill('clave-demo');
+    await page.getByLabel('Contraseña').fill('clave-demo-larga');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
     await expect(page).toHaveURL(/\/panel$/);
     await expect(page.getByRole('link', { name: 'Mis donaciones' })).toBeVisible();

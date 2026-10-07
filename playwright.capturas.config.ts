@@ -27,6 +27,8 @@ export default defineConfig({
           'action:donate', 'action:create-campaign', 'action:assign-employee', 'action:register-asset', 'action:split',
           'action:dispatch', 'action:receive', 'action:deliver',
           'action:designate-administrator', 'action:remove-responsible', 'action:close-campaign', '/panel/prediction',
+          '/panel/funds', '/panel/assets', '/panel/platform', 'action:request-allocation', 'action:confirm-allocation',
+          'action:platform-verify', 'action:platform-reject', 'action:platform-request-information',
         ]),
       },
     },

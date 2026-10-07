@@ -24,13 +24,25 @@ describe('Registro de cuenta (POST /auth/register)', () => {
     expect(client).not.toHaveBeenCalled();
   });
 
+  it('contraseña de menos de 12 caracteres: aviso local y, si el backend responde PasswordTooShort, el mismo aviso', async () => {
+    const client = vi.fn().mockResolvedValue({ kind: 'password-too-short' });
+    render(<RegisterScreen client={client} />);
+    expect(screen.getByText('Al menos 12 caracteres.')).toBeInTheDocument();
+    fill('nueva@demo.test', 'corta', 'corta');
+    expect(screen.getByText('La contraseña debe tener al menos 12 caracteres.')).toBeInTheDocument();
+    expect(client).not.toHaveBeenCalled();
+    fill('nueva@demo.test', 'doce-caracte', 'doce-caracte');
+    expect(await screen.findByText('La contraseña debe tener al menos 12 caracteres.')).toBeInTheDocument();
+    expect(client).toHaveBeenCalledTimes(1);
+  });
+
   it('201 → cuenta creada y enlace a iniciar sesión (no inicia sesión sola)', async () => {
     const client = vi.fn().mockResolvedValue({ kind: 'ok' });
     render(<RegisterScreen client={client} />);
-    fill('nueva@demo.test', 'clave', 'clave');
+    fill('nueva@demo.test', 'clave-de-prueba', 'clave-de-prueba');
     expect(await screen.findByText('Cuenta creada')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute('href', '/login');
-    expect(client).toHaveBeenCalledWith('nueva@demo.test', 'clave');
+    expect(client).toHaveBeenCalledWith('nueva@demo.test', 'clave-de-prueba');
   });
 
   it('409 DuplicateEmail, correo inválido, 5xx y red', async () => {
@@ -40,16 +52,16 @@ describe('Registro de cuenta (POST /auth/register)', () => {
       .mockResolvedValueOnce({ kind: 'server-error' })
       .mockResolvedValueOnce({ kind: 'network' });
     render(<RegisterScreen client={client} />);
-    fill('a@demo.test', 'c', 'c');
+    fill('a@demo.test', 'clave-de-prueba', 'clave-de-prueba');
     expect(await screen.findByText('Ya existe una cuenta con ese correo.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
     expect(await screen.findByText('El correo no es válido.')).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'c' } });
-    fireEvent.change(screen.getByLabelText('Repite la contraseña'), { target: { value: 'c' } });
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'clave-de-prueba' } });
+    fireEvent.change(screen.getByLabelText('Repite la contraseña'), { target: { value: 'clave-de-prueba' } });
     fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
     expect(await screen.findByText(/No pudimos crear la cuenta/)).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'c' } });
-    fireEvent.change(screen.getByLabelText('Repite la contraseña'), { target: { value: 'c' } });
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'clave-de-prueba' } });
+    fireEvent.change(screen.getByLabelText('Repite la contraseña'), { target: { value: 'clave-de-prueba' } });
     fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
     expect(await screen.findByText(/No pudimos conectar/)).toBeInTheDocument();
   });
