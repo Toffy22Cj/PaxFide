@@ -85,6 +85,8 @@ Riesgo operativo registrado sin reabrir W3: `split` puede ocurrir en campo. W1-b
 
 ## 5. Inventario contractual
 
+> **Nota (2026-10-07):** La Enmienda 1 de ADR-046 incorpora a la web v1 **Donar** (CV-11 + consulta de estado con `Intent-Token`), **`/account/donations`** y **dispatch/receive/deliver**; lo que aquí figura como "Fuera de web v1" o "Fuera de `paxfide-web`" para esas superficies queda sustituido. Ver `ADR-046-enmienda-1-alcance-web.md` (APROBADA por Carlos el 2026-10-07T19:17Z). Donde esta sección y la enmienda difieran, manda la enmienda.
+
 Estados literales de `api-contract-matrix.md`. Los huecos marcados "heredado" provienen de ADR-037 §2.3.
 
 ### A. Pública (fallback de QR)
@@ -166,6 +168,8 @@ Patrón común: hay comandos diseñados, pero faltan las consultas que permiten 
 
 ## 7. Árbol de rutas (T1–T6)
 
+> **Nota (2026-10-07):** La Enmienda 1 de ADR-046 cambia el árbol: entran Donar (acción en `/c/:publicCode`), `/account/donations`, `/tracking` sin parámetros (sustituye a `/tracking/:trackingCode`, que no existe en ningún build; el QR de seguimiento apunta a `/tracking` sin el código) y `/panel/prediction`; dispatch/receive/deliver pasan a ser acciones de `/assets/:assetRef`. T3 queda sustituido (ver su nota). Ver `ADR-046-enmienda-1-alcance-web.md` (APROBADA por Carlos el 2026-10-07T19:17Z). Donde esta sección y la enmienda difieran, manda la enmienda.
+
 ### T1 — Criterio de inclusión (CERRADO)
 
 | Categoría | Regla | En el árbol |
@@ -179,7 +183,7 @@ Mejora explícita sobre el criterio binario de `front-fase1.md` §9: separa "fal
 ### Decisiones
 
 - **T2 — Espacio de nombres (CERRADO).** Rutas de QR (`/c`, `/tracking`, `/assets`) en la raíz, porque sus paths están fijados por la URL canónica de la matriz §4b. Panel bajo `/panel`. `/assets/:assetRef` es ruta **autenticada fuera de `/panel`**: la categoría de guard no depende del prefijo.
-- **T3 — `/assets/:assetRef` en web: lectura + `split` únicamente (CERRADO).** `dispatch`/`receive`/`deliver` permanecen en móvil. Motivos: W3 no los asigna a web; `dispatch`/`receive` en CONTRATO CONCEPTUAL; duplicar `ActionResolver` entre repos garantiza divergencia. Si web los necesita en el futuro, primero se define una **fuente contractual de acciones disponibles** (backend), no una copia de la tabla del móvil. La disponibilidad de `split` según el estado del activo **no** se decide aquí (la matriz solo fija `DELIVERED → solo lectura`).
+- **T3 — SUSTITUIDO por la Enmienda 1 de ADR-046 (E1-2, APROBADA 2026-10-07T19:17Z):** `/assets/:assetRef` en web ofrece lectura, `split`, `dispatch`, `receive` y `deliver`; las acciones logísticas existen en web **y** en móvil. La web no copia el `ActionResolver`: salvo `DELIVERED` (solo lectura), el backend rechaza con 409 lo que no corresponda; con `/me` disponible, las acciones se muestran solo a los roles que pueden ejecutarlas, y el backend sigue autorizando. *Texto original, conservado como registro:* **T3 — `/assets/:assetRef` en web: lectura + `split` únicamente (CERRADO).** `dispatch`/`receive`/`deliver` permanecen en móvil. Motivos: W3 no los asigna a web; `dispatch`/`receive` en CONTRATO CONCEPTUAL; duplicar `ActionResolver` entre repos garantiza divergencia. Si web los necesita en el futuro, primero se define una **fuente contractual de acciones disponibles** (backend), no una copia de la tabla del móvil. La disponibilidad de `split` según el estado del activo **no** se decide aquí (la matriz solo fija `DELIVERED → solo lectura`).
 - **T4 — Retorno post-login en memoria (CERRADO).** Sin `?next=` (superficie de open redirect y segunda regla de navegación). Extendido por G-W2 a todas las rutas autenticadas.
 - **T5 — Organización sin `organizationId` en URL (CERRADO, bloqueado por N1).** Por pertenencia única (`identity-resumen.md` §1: una `Account` pertenece a cero o una `Organization`) no hace falta `/panel/org/:organizationId`. Pero `GET /organizations/{organizationId}/campaigns` exige el id y el cliente no lo conoce (JWT sin organización, N1). Anotado sin decidir: un endpoint implícito ("convocatorias de mi organización") eliminaría la dependencia, pero es cambio de contrato de backend.
 - **T6 — Platform Administrator fuera de web v1 (CERRADO).** Sin R1 no hay pantalla implementable; `grant/revoke` tampoco entra (sin lectura de cuentas; precondición de despliegue). **Consecuencia:** el paso 1 del Golden Path (verificar la organización) no tiene superficie web en v1; el bootstrap administrativo sigue siendo precondición externa de la demo. No es un fallo del frontend: es R1.
@@ -443,7 +447,7 @@ En web no se ofrece "Verificar estado" para `split`: `PhysicalAssetOperationalRe
 | C2 `/tracking` client-side + noindex | PROPUESTA, bloqueada por H1 + verificación de credencial |
 | T1 categorías de inclusión | CERRADO |
 | T2 `/panel` separado de rutas QR | CERRADO |
-| T3 `/assets` lectura + `split` | CERRADO |
+| T3 `/assets` lectura + `split` | **SUSTITUIDO** por la Enmienda 1 de ADR-046 (E1-2): lectura + `split` + dispatch/receive/deliver |
 | T4 retorno post-login en memoria | CERRADO (extendido por G-W2) |
 | T5 organización sin `organizationId` en URL | CERRADO, bloqueado por N1 |
 | T6 Platform Administrator fuera de v1 | CERRADO |
