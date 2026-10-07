@@ -4,5 +4,7 @@
   "/panel/campaigns",
   "/assets/:assetRef",
   "/c/:publicCode",
-  "action:donate"
+  "action:donate",
+  "/tracking",
+  "/account/donations"
 ]

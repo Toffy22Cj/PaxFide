@@ -87,6 +87,17 @@ addCampaign('01JDEMOPUBLICC0DEINKIND01', {
 });
 
 const intents = new Map();
+/** Activos por fondo: la logística del seguimiento (TR-01) y su historial (TR-03). */
+const assets = new Map();
+const narrativeCalls = new Map();
+
+function intentByTrackingCode(req) {
+  const h = req.headers['authorization'];
+  if (!h || !h.startsWith('Bearer ')) return null;
+  const code = h.slice(7);
+  for (const i of intents.values()) if (i.trackingCode && i.trackingCode === code) return i;
+  return null;
+}
 
 /** CV-07: exactamente los campos de PublicCampaignResponse, nulos omitidos. */
 function publicView(c) {
@@ -148,6 +159,7 @@ const server = http.createServer(async (req, res) => {
       intent.status = 'CONFIRMED';
       if (!body.withoutApplying) {
         intent.trackingCode = 'TRK.' + crypto.randomBytes(24).toString('base64url');
+        intent.fundId = 'fund-' + crypto.randomUUID();
         const c = campaigns.get(intent.publicCode);
         c.clearedAmount = String(BigInt(c.clearedAmount || '0') + BigInt(intent.amount));
       }
@@ -244,6 +256,57 @@ const server = http.createServer(async (req, res) => {
     if (intent.redirect) out.paymentRedirectUrl = intent.redirect;
     if (res.__failAfter) { res.__failAfter === 'drop' ? req.socket.destroy() : problem(res, 503, 'ServiceUnavailable'); return; }
     send(res, 201, out);
+    return;
+  }
+
+  // TR-01 a TR-03 — seguimiento con Authorization: Bearer <trackingCode> (TrackingCodeAuthFilter); nunca JWT
+  if (p.startsWith('/donations/tracking') && req.method === 'GET') {
+    const intent = intentByTrackingCode(req);
+    if (!intent) { send(res, 401, { type: 'about:blank', title: 'Unauthorized', status: 401, detail: 'Invalid or missing tracking code' }); return; }
+    if (p === '/donations/tracking') {
+      const c = campaigns.get(intent.publicCode);
+      const items = [...assets.values()].filter((a) => a.fundId === intent.fundId);
+      send(res, 200, {
+        financialSnapshot: {
+          currency: intent.currency, originalAmount: Number(intent.amount), clearedAmount: Number(intent.amount),
+          pendingAllocationAmount: 0, confirmedAllocationAmount: items.length ? Number(intent.amount) : 0, refundedAmount: 0,
+        },
+        campaignRef: c.campaignRef,
+        logistics: items.map((a) => ({
+          assetRef: a.assetRef, lifecycleStatus: a.lifecycleStatus, assetType: a.assetType, unitOfMeasure: a.unitOfMeasure,
+          quantity: a.quantity, locationZone: 'Zona centro', custodianCategory: 'LOCAL_ALLY',
+        })),
+        status: items.length ? 'EN_PROCESO' : 'ACTIVA',
+      });
+      return;
+    }
+    if (p === '/donations/tracking/narrative') {
+      const n = (narrativeCalls.get(intent.intentId) || 0) + 1;
+      narrativeCalls.set(intent.intentId, n);
+      if (n === 1) { send(res, 202, { status: 'PENDING' }); return; }
+      send(res, 200, { status: 'AVAILABLE', content: 'Tu donación fue recibida y aplicada a la convocatoria.', source: 'FALLBACK_TEMPLATE' });
+      return;
+    }
+    const hist = p.match(/^\/donations\/tracking\/assets\/([^/]+)\/history$/);
+    if (hist) {
+      const a = assets.get(decodeURIComponent(hist[1]));
+      if (!a || a.fundId !== intent.fundId) { send(res, 401, { type: 'about:blank', title: 'Unauthorized', status: 401, detail: 'Invalid or missing token' }); return; }
+      send(res, 200, { history: a.history.map((h) => ({ eventType: h.eventType, timestamp: h.timestamp, locationZone: 'Zona centro', custodianCategory: 'LOCAL_ALLY', status: h.status })) });
+      return;
+    }
+    problem(res, 404, 'NotFound');
+    return;
+  }
+
+  // GET /account/donations — JWT obligatorio; sin seudónimo ni donorRef
+  if (p === '/account/donations' && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const items = [...intents.values()].filter((i) => i.donorAccount === actor.accountId).map((i) => {
+      const out = { intentId: i.intentId, campaignTitle: i.campaignTitle, amount: i.amount, currency: i.currency, status: i.status };
+      if (i.status === 'CONFIRMED' && i.trackingCode) out.trackingCode = i.trackingCode;
+      return out;
+    });
+    send(res, 200, { items });
     return;
   }
 
