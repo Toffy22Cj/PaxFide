@@ -77,6 +77,14 @@ Antes de dar por cumplido un invariante de seguridad, concurrencia o integridad:
 - CI obligatorio corriendo `mvn test` en los cuatro módulos (`contracts`, `core`, `crypto`, `ai`) contra Testcontainers real — no se permite mergear con tests deshabilitados o con `-DskipTests`.
 - PR hacia `main`: solo desde `develop`, nunca desde una rama feature directamente.
 
+#### Excepción permanente a la regla 3.2 en `paxfide-web`: CI local (Carlos, 2026-10-07T20:14Z)
+
+- **Decisión de Carlos, 2026-10-07T20:14Z.** **Motivo:** la cuenta de GitHub está bloqueada por facturación y no hay presupuesto. GitHub Actions no arranca ningún job (anotación del check: *"The job was not started because your account is locked due to a billing issue."*). Diagnóstico en `decisiones-delegadas-web-2026-10.md` §5.
+- **El CI es local:** `scripts/ci-local.sh` ejecuta exactamente los pasos de `.github/workflows/ci.yml`, en el mismo orden. **Si cambia uno, cambia el otro.** El workflow **no se borra**.
+- El script se niega a ejecutarse con cambios sin commit, termina con código distinto de 0 si algo falla y guarda la salida en `Documentos/evidencia-web/ci-local-<commit corto>-<fecha UTC>.txt`, con commit, rama, fecha UTC, versiones de Node y pnpm, el resultado de cada paso y su `sha256`.
+- **Regla para todo PR:** debe adjuntar la salida de `scripts/ci-local.sh` ejecutado sobre su **último commit**. Sin ella, no se fusiona.
+- Sigue vigente el resto de la regla 3.2: nada de tests deshabilitados ni de saltarse pasos.
+
 ### 3.3 Checklist de revisión de PR (humano revisando a otro humano, o a un agente)
 
 Antes de aprobar cualquier PR, confirmar:
