@@ -10,8 +10,24 @@ import { Actions } from '../ui/Layout';
 import { StatusNotice } from '../States';
 import { CommandModal, FieldSpec } from './CommandModal';
 import { SplitProgress } from './SplitProgress';
+import type { PrincipalState } from '../../lib/auth/usePrincipal';
 
 type ActionId = 'split' | 'dispatch' | 'receive' | 'deliver';
+
+/** Acciones logísticas: su contrato exige `EMPLOYEE` (`RoleAuthorizationPolicy` del backend). */
+const LOGISTIC: ActionId[] = ['dispatch', 'receive', 'deliver'];
+
+/**
+ * A1 (Enmienda 1 de ADR-046, APROBADA): con `/me` disponible, las acciones logísticas solo se muestran a quien tiene
+ * `EMPLOYEE`. Mientras `/me` carga, no se muestran; si `/me` no está disponible (404) o falla, se mantiene el
+ * comportamiento anterior y el backend responde 403. Es representación: el backend sigue autorizando.
+ */
+function logisticVisible(principal?: PrincipalState): boolean {
+  if (!principal) return true;
+  if (principal.status === 'loading') return false;
+  if (principal.status === 'ready') return principal.data.roles.includes('EMPLOYEE');
+  return true;
+}
 
 const QUANTITY_FIELD: FieldSpec = {
   name: 'quantity', label: 'Cantidad a separar', hint: 'Número positivo, hasta 4 decimales.',
@@ -56,13 +72,21 @@ const BUILDERS: Record<ActionId, (assetRef: string) => (p: unknown) => any> = {
  * cada estado (sin `ActionResolver`): ofrece las habilitadas, salvo en `DELIVERED` (matriz §4b: solo lectura), y el
  * backend rechaza con 409 lo que no corresponda.
  */
-export function AssetActions({ assetRef, delivered, onChanged }: { assetRef: string; delivered: boolean; onChanged: () => void }) {
+export function AssetActions({ assetRef, delivered, onChanged, principal }: {
+  assetRef: string;
+  delivered: boolean;
+  onChanged: () => void;
+  principal?: PrincipalState;
+}) {
   const [open, setOpen] = useState<ActionId | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [split, setSplit] = useState<{ parentAssetRef: string; childAssetRef: string } | null>(null);
 
   // En DELIVERED no hay acciones, pero los avisos de lo ya hecho (p. ej. el enlace al hijo) se conservan
-  const available = delivered ? [] : (Object.keys(SPECS) as ActionId[]).filter((a) => isSurfaceEnabled(`action:${a}`));
+  const showLogistic = logisticVisible(principal);
+  const available = delivered ? [] : (Object.keys(SPECS) as ActionId[])
+    .filter((a) => isSurfaceEnabled(`action:${a}`))
+    .filter((a) => showLogistic || !LOGISTIC.includes(a));
   if (available.length === 0 && !done && !split) return null;
 
   return (

@@ -199,3 +199,34 @@ describe('Registrar activo (PanelHome)', () => {
     await waitFor(() => expect(session.getState()).toBe('LOGGED_OUT'));
   });
 });
+
+describe('A1 — acciones logísticas por rol con /me (Enmienda 1, E1-2)', () => {
+  afterEach(() => vi.unstubAllEnvs());
+  const LOGISTIC = ['Despachar', 'Recibir', 'Entregar'];
+  const ready = (roles: string[]) => ({ status: 'ready' as const, data: { accountId: 'a', organizationId: 'o', roles: roles as any } });
+
+  it('/me con EMPLOYEE → se muestran despachar, recibir y entregar', async () => {
+    const { AssetActions } = await load();
+    render(<AssetActions assetRef="A1" delivered={false} onChanged={() => {}} principal={ready(['EMPLOYEE'])} />);
+    LOGISTIC.forEach((n) => expect(screen.getByRole('button', { name: n })).toBeInTheDocument());
+  });
+
+  it('/me sin EMPLOYEE (p. ej. REPRESENTATIVE) → no se muestran; dividir no se filtra', async () => {
+    const { AssetActions } = await load();
+    render(<AssetActions assetRef="A1" delivered={false} onChanged={() => {}} principal={ready(['REPRESENTATIVE'])} />);
+    LOGISTIC.forEach((n) => expect(screen.queryByRole('button', { name: n })).toBeNull());
+    expect(screen.getByRole('button', { name: 'Dividir activo' })).toBeInTheDocument();
+  });
+
+  it('/me responde 404 (no disponible) → comportamiento actual: se muestran y el backend responde 403', async () => {
+    const { AssetActions } = await load();
+    render(<AssetActions assetRef="A1" delivered={false} onChanged={() => {}} principal={{ status: 'unavailable' }} />);
+    LOGISTIC.forEach((n) => expect(screen.getByRole('button', { name: n })).toBeInTheDocument());
+  });
+
+  it('mientras /me carga no se muestran (sin parpadeo)', async () => {
+    const { AssetActions } = await load();
+    render(<AssetActions assetRef="A1" delivered={false} onChanged={() => {}} principal={{ status: 'loading' }} />);
+    LOGISTIC.forEach((n) => expect(screen.queryByRole('button', { name: n })).toBeNull());
+  });
+});

@@ -107,3 +107,43 @@ test.describe('Donar sin cuenta (CV-11) → pago simulado → trackingCode', () 
     await expect(page.getByRole('button', { name: 'Donar' })).toHaveCount(0);
   });
 });
+
+test.describe('A3 — aviso antes de salir con una donación sin confirmar', () => {
+  test('recargar pide confirmación (beforeunload) y no se pierde la donación si se cancela', async ({ page, request }) => {
+    const code = await newCampaign(request);
+    await page.goto(`/c/${code}`);
+    await page.getByLabel('Monto (COP)').fill('10000');
+    await page.getByLabel('Medio de pago').selectOption('GATEWAY');
+    await page.getByRole('button', { name: 'Donar' }).click();
+    await expect(page.getByText('Intención de donación registrada')).toBeVisible();
+
+    const dialogs: string[] = [];
+    page.on('dialog', async (d) => { dialogs.push(d.type()); await d.dismiss(); });
+    await page.evaluate(() => { window.location.reload(); });
+    await expect.poll(() => dialogs).toContain('beforeunload');
+    await expect(page.getByText('Intención de donación registrada')).toBeVisible();
+  });
+
+  test('con sesión: el enlace "Panel" pide confirmación; al cancelar se queda en la donación', async ({ page, request }) => {
+    const code = await newCampaign(request);
+    await page.goto('/login');
+    await page.getByLabel('Correo electrónico').fill('donante@demo.test');
+    await page.getByLabel('Contraseña').fill('demo-donante');
+    await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+    await expect(page).toHaveURL(/\/panel$/);
+    await page.waitForFunction(() => !!(window as any).__TEST_ROUTER__);
+    await page.evaluate((c) => (window as any).__TEST_ROUTER__.push(`/c/${c}`), code);
+    await page.getByLabel('Monto (COP)').fill('10000');
+    await page.getByLabel('Medio de pago').selectOption('GATEWAY');
+    await page.getByRole('button', { name: 'Donar' }).click();
+    await expect(page.getByText('Intención de donación registrada')).toBeVisible();
+
+    const messages: string[] = [];
+    page.once('dialog', async (d) => { messages.push(d.message()); await d.dismiss(); });
+    await page.getByRole('link', { name: 'Panel' }).click();
+    await expect.poll(() => messages.length).toBe(1);
+    expect(messages[0]).toMatch(/perderás el acceso al estado de tu donación/);
+    await expect(page).toHaveURL(new RegExp(`/c/${code}$`));
+    await expect(page.getByText('Intención de donación registrada')).toBeVisible();
+  });
+});

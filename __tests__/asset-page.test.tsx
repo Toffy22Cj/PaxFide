@@ -176,7 +176,7 @@ describe('Asset Page (T-6)', () => {
 
       render(
         <Suspense fallback={<div data-testid="suspense-loading"></div>}>
-          <AssetPage params={createResolvedPromise({ assetRef: 'ASSET-123' })} />
+          <AssetPage params={createResolvedPromise({ assetRef: 'ASSET-123' })} meClient={async () => ({ kind: 'unavailable' })} />
         </Suspense>
       );
       
@@ -197,7 +197,7 @@ describe('Asset Page (T-6)', () => {
 
       render(
         <Suspense fallback={<div data-testid="suspense-loading"></div>}>
-          <AssetPage params={createResolvedPromise({ assetRef: 'ASSET-123' })} />
+          <AssetPage params={createResolvedPromise({ assetRef: 'ASSET-123' })} meClient={async () => ({ kind: 'unavailable' })} />
         </Suspense>
       );
       
@@ -218,7 +218,7 @@ describe('Asset Page (T-6)', () => {
 
       render(
         <Suspense fallback={<div data-testid="suspense-loading"></div>}>
-          <AssetPage params={createResolvedPromise({ assetRef: 'ASSET-123' })} />
+          <AssetPage params={createResolvedPromise({ assetRef: 'ASSET-123' })} meClient={async () => ({ kind: 'unavailable' })} />
         </Suspense>
       );
       

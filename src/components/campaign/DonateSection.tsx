@@ -14,6 +14,18 @@ import { Actions, Surface } from '../ui/Layout';
 import { CommandFeedback } from '../CommandFeedback';
 import { ErrorState, StatusNotice } from '../States';
 import { TrackingCodeReveal } from './TrackingCodeReveal';
+import { useLeaveWarning } from '../../lib/useLeaveWarning';
+
+const LEAVE_MESSAGE = 'Si sales de esta página perderás el acceso al estado de tu donación, que todavía no está confirmada. ¿Quieres salir?';
+
+/** La consulta queda resuelta cuando llega el trackingCode o un estado final; antes, salir pierde el acceso (A3). */
+function settled(status: StatusView): boolean {
+  if (!status || status.loading) return false;
+  const o = status.outcome;
+  if (o.kind === 'not-found') return true;
+  if (o.kind !== 'ok') return false;
+  return !!o.trackingCode || ['FAILED', 'FUNDING_REJECTED', 'EXPIRED_UNKNOWN'].includes(o.status);
+}
 import s from './campaign.module.css';
 
 /** Medios con los que CV-11 crea una intención: el efectivo no se registra por esta vía (CashDonationIntentNotSupported). */
@@ -30,6 +42,7 @@ type StatusView = { loading: true } | { loading: false; outcome: IntentStatusOut
  * - El `statusToken` vive solo en el estado de este componente: nunca en almacenamiento, URL, DOM ni logs. Viaja
  *   únicamente en la cabecera `Intent-Token`.
  * - La consulta del estado es una lectura: la pide el usuario; no hay sondeo automático (DW-15).
+ * - Mientras la donación no esté resuelta, salir de la página pide confirmación (A3, Enmienda 1 de ADR-046).
  */
 export function DonateSection({ publicCode, campaign, statusClient = fetchIntentStatus }: {
   publicCode: string;
@@ -43,6 +56,8 @@ export function DonateSection({ publicCode, campaign, statusClient = fetchIntent
   const [errors, setErrors] = useState<{ amount?: string; method?: string }>({});
   const [status, setStatus] = useState<StatusView>(null);
   const command = useCommand<unknown>(donationIntentRequest(publicCode));
+  const openIntent = command.state === 'SUCCESS' && !!parseCreatedIntent(command.data)?.statusToken;
+  useLeaveWarning(openIntent && !settled(status), LEAVE_MESSAGE);
 
   const accepted = campaign.status === 'OPEN' && campaign.acceptedDonationTypes.includes('MONETARY')
     && !!campaign.currency && methods.length > 0;

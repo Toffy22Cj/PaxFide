@@ -6,6 +6,8 @@ import { lifecycleLabel } from '../../../lib/labels';
 import { LoadingState, ErrorState, ForbiddenState, NotFoundState, StatusNotice } from '../../../components/States';
 import { DefinitionList, PageHeader } from '../../../components/ui/Layout';
 import { AssetActions } from '../../../components/asset/AssetActions';
+import { fetchMe } from '../../../lib/api/identity';
+import { usePrincipal } from '../../../lib/auth/usePrincipal';
 
 type State = 'LOADING' | 'SUCCESS' | 'FORBIDDEN' | 'NOT_FOUND' | 'ERROR';
 
@@ -14,8 +16,14 @@ type State = 'LOADING' | 'SUCCESS' | 'FORBIDDEN' | 'NOT_FOUND' | 'ERROR';
  * ninguno más; referencias opacas tal cual; `quantity` sin transformar; estado sin color. Acciones: ver
  * `AssetActions`. Tras un comando se vuelve a leer sin desmontar la pantalla.
  */
-export default function AssetPage({ params, fetchClient = fetchAsset }: { params: Promise<{ assetRef: string }>, fetchClient?: typeof fetchAsset }) {
+export default function AssetPage({ params, fetchClient = fetchAsset, meClient = fetchMe }: {
+  params: Promise<{ assetRef: string }>;
+  fetchClient?: typeof fetchAsset;
+  meClient?: typeof fetchMe;
+}) {
   const { assetRef } = use(params);
+  // `/me` solo representa qué acciones se ofrecen (A1); nunca bloquea la lectura del activo
+  const { state: principal } = usePrincipal(meClient);
   const [state, setState] = useState<State>('LOADING');
   const [data, setData] = useState<PhysicalAssetOperationalReadModel | null>(null);
 
@@ -51,7 +59,7 @@ export default function AssetPage({ params, fetchClient = fetchAsset }: { params
         { label: 'Custodio actual', value: orNone(data.currentCustodianRef), testId: 'field-currentCustodianRef' },
         { label: 'Convocatoria', value: data.campaignRef ?? 'Sin registrar', testId: 'field-campaignRef' },
       ]} />
-      <AssetActions assetRef={data.assetRef} delivered={isReadOnly} onChanged={() => void read(true)} />
+      <AssetActions assetRef={data.assetRef} delivered={isReadOnly} onChanged={() => void read(true)} principal={principal} />
     </div>
   );
 }
