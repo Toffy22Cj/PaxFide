@@ -28,6 +28,9 @@ export function panelEntries(principal: Principal | null): PanelEntry[] {
   if (roles.includes('ADMINISTRATOR') && isSurfaceEnabled('/panel/campaigns')) {
     entries.push({ id: 'campaigns', label: 'Convocatorias de mi organización', href: '/panel/campaigns' });
   }
+  if ((roles.includes('ADMINISTRATOR') || roles.includes('REPRESENTATIVE')) && isSurfaceEnabled('/panel/prediction')) {
+    entries.push({ id: 'prediction', label: 'Estimación de convocatorias', href: '/panel/prediction' });
+  }
   if (isSurfaceEnabled('/account/donations')) {
     entries.push({ id: 'donations', label: 'Mis donaciones', href: '/account/donations' });
   }
