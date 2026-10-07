@@ -31,16 +31,17 @@ poder señalarse contra una decisión concreta (D1–D8 del ADR del frontend web
 W/C/T/G-W/P-W de front-fase2.md, o una sección de sistema-visual). Si no puedes
 señalar cuál, DETENTE y pregunta.
 
-CITA DEL ADR — MUY IMPORTANTE (hallazgo F1, sin resolver):
-Existen DOS documentos numerados ADR-042:
+CITA DEL ADR — MUY IMPORTANTE (hallazgo F1, resuelto el 2026-10-07):
+[Actualizado el 2026-10-07: la colisión se resolvió renumerando el ADR del frontend web a ADR-046. Cita siempre `ADR-046-frontend-web-paxfide-web.md`.]
+Existían DOS documentos numerados ADR-042:
   - ADR-042-orquestacion-centralizada-reintentos-proyeccion.md (backend, Fase 5)
-  - ADR-042-frontend-web-paxfide-web.md (el que rige tu trabajo)
+  - ADR-046-frontend-web-paxfide-web.md (el que rige tu trabajo)
 Nunca escribas "ADR-042" a secas. Cita SIEMPRE por nombre de archivo completo:
-  // Ref: ADR-042-frontend-web-paxfide-web.md D5
+  // Ref: ADR-046-frontend-web-paxfide-web.md D5
 Cuando el equipo renumere, se hará un reemplazo mecánico. No renumeres tú.
 
 DOCUMENTOS QUE RIGEN (léelos antes de escribir código; cita por sección):
-- ADR-042-frontend-web-paxfide-web.md (APROBADO): D1–D8.
+- ADR-046-frontend-web-paxfide-web.md (APROBADO): D1–D8.
 - claude/front-fase2.md: árbol de rutas §7, guards §8, pantallas §9,
   comandos §10, tests §11.
 - hallazgos-front-fase2.md: bloqueos y criterios de cierre.

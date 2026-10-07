@@ -15,7 +15,7 @@ TAREA: Crear el esqueleto de paxfide-web en Toffy22Cj/PaxFide sin ninguna
 página de producto.
 
 CONTEXTO YA CONGELADO:
-- ADR-042-frontend-web-paxfide-web.md D1 (Next.js 16.3.x, App Router,
+- ADR-046-frontend-web-paxfide-web.md D1 (Next.js 16.3.x, App Router,
   TypeScript strict) y D8 (lista cerrada de dependencias).
 - Toolchain del Prompt Maestro: pnpm 11, Node >= 22, defaults de
   seguridad de pnpm intactos, sin minimumReleaseAgeExclude.
@@ -69,7 +69,7 @@ garantice los contrastes aprobados.
 CONTEXTO YA CONGELADO:
 - sistema-visual-paxfide-web.md (APROBADO): tokens §2.1–§2.3, combinaciones
   permitidas §3, estados §4, reglas §5, script de referencia en el Anexo A.
-- ADR-042-frontend-web-paxfide-web.md §5: WCAG 2.2 AA; D8: CSS Modules +
+- ADR-046-frontend-web-paxfide-web.md §5: WCAG 2.2 AA; D8: CSS Modules +
   custom properties.
 - Los tokens danger-* son semánticos, NO de marca: mantenlos separados.
 
@@ -112,7 +112,7 @@ habilitación por build, de modo que toda superficie no habilitada responda
 CONTEXTO YA CONGELADO:
 - claude/front-fase2.md §7 (árbol, T1–T6) y §8 (categorías Pública / Auth /
   Autenticada / No aprobada; G-W1; G-W4).
-- ADR-042-frontend-web-paxfide-web.md D5: la lista se lee en build, vacía por
+- ADR-046-frontend-web-paxfide-web.md D5: la lista se lee en build, vacía por
   defecto; deshabilitada ⇒ 404 con o sin sesión; la lista NO es autorización.
 - Superficies del árbol: /c/:publicCode, /tracking/:trackingCode, /login,
   /assets/:assetRef (lectura + acción split), /panel (+ acción registrar),
@@ -159,7 +159,7 @@ TAREA: Implementar la sesión del cliente según D2 y G-W2/G-W3, sin pantalla de
 login real (su contrato no existe).
 
 CONTEXTO YA CONGELADO:
-- ADR-042-frontend-web-paxfide-web.md D2; claude/front-fase2.md §8 (G-W2,
+- ADR-046-frontend-web-paxfide-web.md D2; claude/front-fase2.md §8 (G-W2,
   G-W3) y §11 (auditoría de salidas); front-fase1.md §3 (máquina de sesión,
   T-1).
 - El JWT es mínimo (sub, iat, exp, firma): NO contiene roles ni organización.
@@ -211,7 +211,7 @@ CONTEXTO YA CONGELADO:
 - claude/front-fase2.md §8: tabla de decisión (3 estados × 4 categorías),
   invariantes 1–6, invariante 4 reforzado (bfcache), consecuencia de C1
   (guard exclusivamente de cliente).
-- ADR-042-frontend-web-paxfide-web.md D3 y D4.
+- ADR-046-frontend-web-paxfide-web.md D3 y D4.
 
 ENTREGABLES:
 1. Función de guard pura: (estado de sesión, categoría) → permitir / esperar
@@ -258,7 +258,7 @@ TAREA: Implementar el mecanismo genérico de comandos sin Outbox. NINGÚN
 comando concreto lo usa todavía.
 
 CONTEXTO YA CONGELADO:
-- ADR-042-frontend-web-paxfide-web.md D6; claude/front-fase2.md §10 (P-W1,
+- ADR-046-frontend-web-paxfide-web.md D6; claude/front-fase2.md §10 (P-W1,
   P-W1a, P-W1b).
 - sistema-visual-paxfide-web.md §4: el estado ambiguo va en amarillo, con
   título en brand-yellow-900 sobre brand-yellow-50. NUNCA en rojo.

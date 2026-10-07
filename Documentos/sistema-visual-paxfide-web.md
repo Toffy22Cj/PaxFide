@@ -2,7 +2,7 @@
 
 **Estado:** APROBADO (2026-09-28, aprobación humana explícita de los cuatro puntos de §7).
 **Fecha:** 2026-09-28
-**Condicionado a:** `ADR-042-frontend-web-paxfide-web.md` (PROPUESTO). Este documento **no es un ADR** y no toma decisiones de arquitectura. Solo tiene validez operativa cuando el ADR esté APROBADO, porque D8 fija el mecanismo de implementación (CSS Modules + custom properties) y §5 del ADR fija el requisito de contraste (WCAG 2.2 AA). La aprobación de este documento **no cambia** el estado del ADR.
+**Condicionado a:** `ADR-046-frontend-web-paxfide-web.md` (PROPUESTO). Este documento **no es un ADR** y no toma decisiones de arquitectura. Solo tiene validez operativa cuando el ADR esté APROBADO, porque D8 fija el mecanismo de implementación (CSS Modules + custom properties) y §5 del ADR fija el requisito de contraste (WCAG 2.2 AA). La aprobación de este documento **no cambia** el estado del ADR.
 **No es código.** Especifica nombres, valores y reglas de uso. La implementación como custom properties es una tarea del plan de implementación, todavía no redactado.
 
 ---
@@ -133,7 +133,7 @@ Los estados cerrados en `claude/front-fase2.md` §9–§10 tienen significados d
 | 3 | Estado AMBIGUO en amarillo, no en rojo (§4) | **APROBADO** |
 | 4 | Regla de enlaces: `brand-blue-700` para cuerpo, `brand-blue-800` para texto pequeño; `brand-blue-500` fuera del uso como texto normal (§5.2) | **APROBADO** |
 
-No se convierte en ADR: sigue como documento de sistema visual condicionado al ADR del frontend web (ADR-042).
+No se convierte en ADR: sigue como documento de sistema visual condicionado al ADR del frontend web (ADR-046).
 
 ---
 

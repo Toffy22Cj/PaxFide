@@ -78,7 +78,7 @@ Tras el login, el cliente no sabe a qué organización pertenece el usuario ni q
 
 | Opción | Contenido |
 |---|---|
-| **(a) `Cache-Control: no-store`** — recomendada | Ningún intermediario ni el navegador guarda la respuesta. Coherente con "nunca cacheado como fuente de verdad" (criterio de cierre de N1) y con D2 de ADR-042 (nada de sesión persistido) |
+| **(a) `Cache-Control: no-store`** — recomendada | Ningún intermediario ni el navegador guarda la respuesta. Coherente con "nunca cacheado como fuente de verdad" (criterio de cierre de N1) y con D2 de ADR-046 (nada de sesión persistido) |
 | (b) Sin cabecera específica | Deja el comportamiento a los valores por defecto de cada intermediario |
 
 ## 5. Lo que esta ficha NO decide ni permite
@@ -93,8 +93,8 @@ Tras el login, el cliente no sabe a qué organización pertenece el usuario ni q
 
 - `PanelHome` deja de ser provisional: muestra solo las entradas que corresponden a `roles` y `platformAuthority`.
 - `/panel/campaigns` obtiene `organizationId` de N1.
-- La respuesta vive en memoria con la sesión (ADR-042 D2), se descarta en `LOGGED_OUT` y no se persiste.
-- El guard de rutas **no** pasa a depender de N1: sigue conociendo solo sesión y categoría (ADR-042 D4).
+- La respuesta vive en memoria con la sesión (ADR-046 D2), se descarta en `LOGGED_OUT` y no se persiste.
+- El guard de rutas **no** pasa a depender de N1: sigue conociendo solo sesión y categoría (ADR-046 D4).
 
 ## 7. Criterio de cierre de N1 (de `hallazgos-front-fase2.md`)
 

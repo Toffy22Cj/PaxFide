@@ -1,4 +1,6 @@
-# ADR-042 — Frontend web `paxfide-web`: stack, sesión, frontera cliente/servidor y comandos sin Outbox
+# ADR-046 — Frontend web `paxfide-web`: stack, sesión, frontera cliente/servidor y comandos sin Outbox
+
+*Nota de numeración (2026-10-07, decisión de Carlos):* este ADR se renumera de **042 a 046** por colisión con `ADR-042-orquestacion-centralizada-reintentos-proyeccion.md` del repositorio backend `Toffy22Cj/Donaciones`, que conserva su número. Las decisiones D1–D8 y el estado APROBADO no cambian. Catálogo de números: `documento-maestro-proyecto.md` §5 en Donaciones.
 
 **Status:** APROBADO (2026-09-28). Las cinco condiciones de §6 están cumplidas; el paso a APROBADO se produce por la regla fijada en §6 ("sin necesidad de nueva revisión técnica"). Aprobar el ADR **no** autoriza escribir código: antes se requiere el plan de implementación aprobado (regla 3.4).
 **Fecha:** 2026-09-28 (revisión 4: solo cambian estado, rutas de documentos y condición 5; ninguna decisión D1–D8 se modifica)
@@ -11,7 +13,7 @@
 | Blockchain | 035 | **039** |
 | IA | 036 | **040** |
 | APIs/Frontend | 037 | **041** |
-| Frontend web (este ADR) | — (ADR-FRONT-WEB) | **042** |
+| Frontend web (este ADR) | — (ADR-FRONT-WEB) | **042** → **046** (renumerado el 2026-10-07) |
 
 Todas las referencias de este documento usan la numeración vigente. Los archivos del catálogo que aún conserven el número anterior se renombran según `plan-correccion-fase5-e-ia.md`; esa tarea no forma parte de este ADR.
 
@@ -220,7 +222,7 @@ Estado verificado el 2026-09-28 tras la limpieza:
 
 | Documento | Copia vigente | Copias históricas (no son fuente) |
 |---|---|---|
-| Este ADR | `ADR-042-frontend-web-paxfide-web.md` (raíz) | — |
+| Este ADR | `ADR-046-frontend-web-paxfide-web.md` (raíz) | — |
 | Hallazgos | `hallazgos-front-fase2.md` (raíz, 2026-09-29 01:51 UTC) | dos copias del 2026-09-27 con numeración de ADR anterior |
 | Sistema visual | `sistema-visual-paxfide-web.md` (raíz, 2026-09-29 01:51 UTC, APROBADO) | una copia del 2026-09-29 01:35 UTC en estado PROPUESTO |
 | Diseño | `claude/front-fase2.md` | — |
