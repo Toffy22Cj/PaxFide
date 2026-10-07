@@ -41,7 +41,10 @@ export default defineConfig({
           'action:split',
           'action:dispatch',
           'action:receive',
-          'action:deliver'
+          'action:deliver',
+          '/register',
+          '/campaigns',
+          'section:campaign-narrative'
         ])
       }
     },

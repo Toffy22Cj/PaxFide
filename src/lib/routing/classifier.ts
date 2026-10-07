@@ -23,6 +23,8 @@ export function classifyRoute(pathname: string): RouteCategory {
   const [a, b] = parts;
 
   if (parts.length === 1 && a === 'login') return when('/login', 'AUTH');
+  if (parts.length === 1 && a === 'register') return when('/register', 'AUTH');
+  if (parts.length === 1 && a === 'campaigns') return when('/campaigns', 'PUBLIC');
 
   if (parts.length === 2 && a === 'c') {
     return isValidParam(b) ? when('/c/:publicCode', 'PUBLIC') : 'NOT_APPROVED';
