@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import * as session from '../lib/auth/session';
+import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { login as loginRequest, LoginOutcome } from '../lib/api/identity';
 import { PageHeader } from '../components/ui/Layout';
 import { TextField, PasswordField } from '../components/ui/Field';
@@ -76,6 +78,7 @@ export function LoginScreen({ loginClient = loginRequest }: Props) {
           onChange={(e) => setPassword(e.target.value)} error={errors.password} disabled={sending} />
         <Button type="submit" block sending={sending}>Iniciar sesión</Button>
       </form>
+      {isSurfaceEnabled('/register') && <p><Link href="/register">Crear cuenta</Link></p>}
     </div>
   );
 }

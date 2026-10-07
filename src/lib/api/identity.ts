@@ -69,3 +69,21 @@ export async function fetchMe(): Promise<MeOutcome> {
   if (r.status === 404) return { kind: 'unavailable' };
   return { kind: 'error' };
 }
+
+/** `POST /auth/register` (P2; sin `Command-Id`, DD-56): `201 {accountId, status}`; 409 `DuplicateEmail`. */
+export type RegisterOutcome =
+  | { kind: 'ok' }
+  | { kind: 'duplicate-email' }
+  | { kind: 'invalid-email' }
+  | { kind: 'bad-request' }
+  | { kind: 'server-error' }
+  | { kind: 'network' };
+
+export async function registerAccount(email: string, password: string): Promise<RegisterOutcome> {
+  const r = await apiRequest<unknown>({ path: '/auth/register', method: 'POST', body: { email, password }, auth: 'none' });
+  if (r.kind === 'network') return { kind: 'network' };
+  if (r.kind === 'ok') return { kind: 'ok' };
+  if (r.status === 409) return { kind: 'duplicate-email' };
+  if (r.status === 400) return r.problem.title === 'InvalidEmailFormat' ? { kind: 'invalid-email' } : { kind: 'bad-request' };
+  return { kind: 'server-error' };
+}

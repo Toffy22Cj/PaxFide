@@ -67,3 +67,62 @@ export async function fetchIntentStatus(intentId: string, statusToken: string): 
   if (r.kind === 'error' && r.status === 404) return { kind: 'not-found' };
   return { kind: 'error' };
 }
+
+/** `GET /public/campaigns?cursor=` (P2.6; DD-52/53): solo `PUBLIC` y `OPEN`; cursor opaco; sin `nextCursor` al final. */
+export interface DiscoveryItem {
+  publicCode: string;
+  title: string;
+  organizationName?: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  acceptedDonationTypes: string[];
+  currency?: string;
+  targetAmount?: string;
+  clearedAmount?: string;
+}
+
+export type DiscoveryOutcome = { kind: 'ok'; items: DiscoveryItem[]; nextCursor?: string } | { kind: 'error' };
+
+export async function fetchDiscovery(cursor?: string): Promise<DiscoveryOutcome> {
+  const r = await apiRequest<{ items?: unknown; nextCursor?: unknown }>({
+    path: `/public/campaigns${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`, auth: 'none',
+  });
+  if (r.kind !== 'ok' || !Array.isArray(r.data?.items)) return { kind: 'error' };
+  const items = r.data.items.filter((i: any) => i && typeof i.publicCode === 'string' && typeof i.title === 'string')
+    .map((i: any) => ({
+      publicCode: i.publicCode, title: i.title, organizationName: optStr(i.organizationName), status: String(i.status),
+      startDate: String(i.startDate), endDate: String(i.endDate),
+      acceptedDonationTypes: Array.isArray(i.acceptedDonationTypes) ? i.acceptedDonationTypes : [],
+      currency: optStr(i.currency), targetAmount: optStr(i.targetAmount), clearedAmount: optStr(i.clearedAmount),
+    }));
+  return { kind: 'ok', items, nextCursor: optStr(r.data.nextCursor) };
+}
+
+/** `GET /public/campaigns/{publicCode}/narrative` (ADR-040; B5): relato generado + hechos deterministas. */
+export interface CampaignFacts {
+  status?: string;
+  currency?: string;
+  targetAmount?: string;
+  clearedAmount?: string;
+  unitsDelivered?: string;
+  distinctRecipients?: number;
+}
+
+export type CampaignNarrativeOutcome =
+  | { kind: 'ok'; status: 'AVAILABLE' | 'PENDING' | 'UNAVAILABLE' | string; content?: string; source?: string; facts: CampaignFacts | null }
+  | { kind: 'not-found' }
+  | { kind: 'error' };
+
+export async function fetchCampaignNarrative(publicCode: string): Promise<CampaignNarrativeOutcome> {
+  const r = await apiRequest<any>({ path: `/public/campaigns/${segment(publicCode)}/narrative`, auth: 'none' });
+  if (r.kind === 'error' && r.status === 404) return { kind: 'not-found' };
+  if (r.kind !== 'ok' || !r.data || typeof r.data.status !== 'string') return { kind: 'error' };
+  const f = r.data.facts;
+  const facts: CampaignFacts | null = f && typeof f === 'object' ? {
+    status: optStr(f.status), currency: optStr(f.currency), targetAmount: optStr(f.targetAmount),
+    clearedAmount: optStr(f.clearedAmount), unitsDelivered: optStr(f.unitsDelivered),
+    distinctRecipients: typeof f.distinctRecipients === 'number' && Number.isSafeInteger(f.distinctRecipients) ? f.distinctRecipients : undefined,
+  } : null;
+  return { kind: 'ok', status: r.data.status, content: optStr(r.data.content), source: optStr(r.data.source), facts };
+}

@@ -232,6 +232,19 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // POST /auth/register (AccountRegistrationController): 201 {accountId, status}; 409 DuplicateEmail
+  if (p === '/auth/register' && req.method === 'POST') {
+    const body = await readBody(req);
+    if (!body || !body.email || !String(body.email).trim()) { problem(res, 400, 'InvalidRequestField'); return; }
+    if (!body.password) { problem(res, 400, 'InvalidRequestField'); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)) { problem(res, 400, 'InvalidEmailFormat'); return; }
+    if (accounts[body.email]) { problem(res, 409, 'DuplicateEmail'); return; }
+    const accountId = crypto.randomUUID();
+    accounts[body.email] = { password: body.password, accountId, roles: [] };
+    send(res, 201, { accountId, status: 'ACTIVE' });
+    return;
+  }
+
   // ID-01 — POST /auth/login
   if (p === '/auth/login' && req.method === 'POST') {
     const body = await readBody(req);
@@ -245,6 +258,39 @@ const server = http.createServer(async (req, res) => {
   }
 
   const actor = accountOf(req);
+
+  // GET /public/campaigns?cursor= (PublicCampaignDiscoveryController): solo PUBLIC y OPEN, 20 por página, cursor opaco
+  if (p === '/public/campaigns' && req.method === 'GET') {
+    const all = [...campaigns.values()].filter((c) => c.status === 'OPEN' && (c.visibility || 'PUBLIC') === 'PUBLIC')
+      .sort((a, b) => (a.publicCode < b.publicCode ? -1 : 1));
+    let start = 0;
+    const cursor = url.searchParams.get('cursor');
+    if (cursor !== null) {
+      let after;
+      try { after = Buffer.from(cursor, 'base64url').toString(); } catch { after = null; }
+      if (!after || !campaigns.has(after)) { problem(res, 400, 'InvalidRequestField'); return; }
+      start = all.findIndex((c) => c.publicCode > after);
+      if (start < 0) start = all.length;
+    }
+    const page = all.slice(start, start + 20);
+    const out = { items: page.map((c) => { const v = publicView(c); delete v.description; delete v.acceptedPaymentMethods; return { publicCode: c.publicCode, ...v }; }) };
+    if (start + 20 < all.length) out.nextCursor = Buffer.from(page[page.length - 1].publicCode).toString('base64url');
+    send(res, 200, out);
+    return;
+  }
+
+  // GET /public/campaigns/{publicCode}/narrative (PublicCampaignNarrativeController): 202 PENDING la primera vez
+  const narrMatch = p.match(/^\/public\/campaigns\/([^/]+)\/narrative$/);
+  if (narrMatch && req.method === 'GET') {
+    const c = campaigns.get(decodeURIComponent(narrMatch[1]));
+    if (!c) { problem(res, 404, 'NotFound'); return; }
+    const facts = { status: c.status, unitsDelivered: '0', distinctRecipients: 0 };
+    if (c.currency) { facts.currency = c.currency; facts.targetAmount = c.targetAmount; facts.clearedAmount = c.clearedAmount; }
+    c.narrativeCalls = (c.narrativeCalls || 0) + 1;
+    if (c.narrativeCalls === 1) { send(res, 202, { status: 'PENDING', content: null, source: null, facts }); return; }
+    send(res, 200, { status: 'AVAILABLE', content: 'La convocatoria avanza con aportes de la comunidad.', source: 'LLM_GENERATED', facts });
+    return;
+  }
 
   // CV-07 — GET /public/campaigns/{publicCode}
   const publicMatch = p.match(/^\/public\/campaigns\/([^/]+)$/);
@@ -331,7 +377,7 @@ const server = http.createServer(async (req, res) => {
       const publicCode = newPublicCode();
       const campaignRef = crypto.randomUUID();
       addCampaign(publicCode, {
-        campaignRef, organizationRef: orgId, organizationName: 'Fundación Demo', title: b.title, description: b.description,
+        campaignRef, organizationRef: orgId, organizationName: 'Fundación Demo', title: b.title, description: b.description, visibility: b.visibility,
         status: 'OPEN', startDate: b.startDate, endDate: b.endDate, acceptedDonationTypes: types, acceptedPaymentMethods: methods,
         currency: monetary ? c.currency : undefined, targetAmount: monetary ? c.targetAmount : undefined,
         clearedAmount: monetary ? '0' : undefined, targetPolicy: c.targetPolicy,

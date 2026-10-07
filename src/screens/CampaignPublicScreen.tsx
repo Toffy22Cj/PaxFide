@@ -9,6 +9,7 @@ import { DefinitionList, PageHeader } from '../components/ui/Layout';
 import { ErrorState, LoadingState, NotFoundState } from '../components/States';
 import { LocalDate } from '../components/LocalDate';
 import { DonateSection } from '../components/campaign/DonateSection';
+import { CampaignNarrative } from '../components/campaign/CampaignNarrative';
 import s from '../components/campaign/campaign.module.css';
 
 function Chips({ items, label }: { items: string[]; label: (v: string) => string }) {
@@ -83,6 +84,7 @@ export function CampaignPublicScreen({ publicCode, initial, client = fetchPublic
       {isSurfaceEnabled('action:donate') && (
         <DonateSection publicCode={publicCode} campaign={state.campaign} />
       )}
+      {isSurfaceEnabled('section:campaign-narrative') && <CampaignNarrative publicCode={publicCode} />}
     </article>
   );
 }

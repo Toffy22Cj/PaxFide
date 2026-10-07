@@ -4,6 +4,7 @@ import React, { useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as session from '../../lib/auth/session';
+import { isSurfaceEnabled } from '../../lib/routing/surfaces';
 import s from './Shell.module.css';
 
 /** Marca: SVG propio con los colores de marca (sustituto ligero del raster, `sistema-visual` §6). */
@@ -31,14 +32,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <header className={s.header}>
         <div className={s.bar}>
           <span className={s.brand}><Mark />PaxFide</span>
+          <nav className={s.nav} aria-label="Principal">
+            {isSurfaceEnabled('/campaigns') && <Link href="/campaigns" className={s.navLink}>Convocatorias</Link>}
           {state === 'AUTHENTICATED' && (
-            <nav className={s.nav} aria-label="Sesión">
+            <>
               <Link href="/panel" className={s.navLink}>Panel</Link>
               <button type="button" className={s.logout} data-testid="logout-btn" onClick={() => session.logout()}>
                 Cerrar sesión
               </button>
-            </nav>
+            </>
           )}
+          </nav>
         </div>
       </header>
       <main className={[s.main, wide ? s.wide : ''].join(' ')}>{children}</main>
