@@ -45,14 +45,14 @@ test.describe('Panel de convocatorias (CV-01, CV-02)', () => {
     // Responsable: empleado de la organización, elegido entre los miembros desde la fila del listado
     const row = page.getByTestId('org-campaign').filter({ hasText: 'Agua potable e2e' });
     await row.getByRole('button', { name: 'Asignar empleado' }).click();
-    await page.getByLabel('Empleado', { exact: true }).selectOption('acc-employee');
+    await page.getByLabel('Empleado', { exact: true }).selectOption('acc-employee-3');
     await page.getByRole('dialog').getByRole('button', { name: 'Asignar empleado' }).click();
     await expect(page.getByText('Empleado asignado.')).toBeVisible();
-    await expect(row).toContainText('acc-employee (Empleado)');
+    await expect(row).toContainText('acc-employee-3 (Empleado)');
     await row.getByRole('button', { name: 'Asignar empleado' }).click();
-    await page.getByLabel('Empleado', { exact: true }).selectOption('acc-employee');
+    await page.getByLabel('Empleado', { exact: true }).selectOption('acc-employee-3');
     await page.getByRole('dialog').getByRole('button', { name: 'Asignar empleado' }).click();
-    await expect(page.getByRole('dialog').getByRole('alert')).toHaveText('Esa cuenta ya está asignada a esta convocatoria.');
+    await expect(page.getByRole('dialog').getByRole('alert')).toHaveText('Esa cuenta ya es responsable activa de esta convocatoria.');
     await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
 
     // Enlace público (navegación de cliente; la página pública no necesita sesión)

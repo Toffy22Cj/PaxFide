@@ -1,0 +1,111 @@
+[
+  {
+    "id": "login-administrador",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "verificar-organizacion",
+    "via": "HTTP",
+    "resultado": "OK",
+    "nota": "HTTP 200; sin pantalla de plataforma todavía (P2-C)"
+  },
+  {
+    "id": "cerrar-ensayos-anteriores",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "cerradas: 0"
+  },
+  {
+    "id": "crear-convocatoria",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "asignar-empleado",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "donar-sin-cuenta",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "pago-sin-cuenta (proveedor simulado)",
+    "via": "HTTP",
+    "resultado": "OK",
+    "nota": "el test hace de proveedor de pago (DW-30)"
+  },
+  {
+    "id": "codigo-seguimiento-sin-cuenta",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "donar-con-cuenta",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "pago-con-cuenta (proveedor simulado)",
+    "via": "HTTP",
+    "resultado": "OK",
+    "nota": "el test hace de proveedor de pago (DW-30)"
+  },
+  {
+    "id": "historial-donante",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "convocatoria-publica-recaudado",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "recaudado mostrado: 100.000 COP (enviado: 60.000 + 40.000 COP; D-01)"
+  },
+  {
+    "id": "fondo-y-asignacion",
+    "via": "HTTP",
+    "resultado": "OK",
+    "nota": "sin pantalla de fondos todavía (P2-C)"
+  },
+  {
+    "id": "registrar-activo-camino-A",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "despachar-recibir",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "dividir",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "entregar-padre-e-hijo",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "seguimiento",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "relato individual: plantilla (FALLBACK_TEMPLATE)"
+  },
+  {
+    "id": "estimacion",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "sin cifra: La convocatoria aún no ha empezado"
+  },
+  {
+    "id": "narrativa-convocatoria",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "UNAVAILABLE sin clave de LLM, con sus hechos (lo esperado según el runbook)"
+  }
+]

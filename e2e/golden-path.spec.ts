@@ -129,6 +129,9 @@ test('golden path por la interfaz: convocatoria → donaciones (sin y con cuenta
   await expect(employee.getByTestId('state-content-readonly')).toBeVisible();
   await employee.getByTestId('split-child-link').click();
   await expect(employee.getByTestId('field-quantity')).toHaveText('4');
+  // El hijo nace REGISTERED (como en el backend real): despachar y recibir antes de entregar
+  await act(employee, 'Despachar', [['Transportista (referencia)', 'TRANS-2']]);
+  await act(employee, 'Recibir', [['Instalación (ubicación)', 'Centro comunitario'], ['Quién recibe (referencia)', 'REC-2']]);
   await act(employee, 'Entregar', DELIVER);
   await expect(employee.getByTestId('state-content-readonly')).toBeVisible();
 
