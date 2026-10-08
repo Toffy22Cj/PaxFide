@@ -100,6 +100,12 @@ test.describe('Panel de convocatorias (CV-01, CV-02)', () => {
     await expect(estimate.getByText('ESTIMACIÓN — modelo entrenado con datos sintéticos')).toBeVisible();
     await expect(estimate.getByTestId('basic-probability')).toContainText('62 %');
     await expect(estimate.getByTestId('advanced-chart')).toBeVisible();
+    // S-17: evolución por cortes; el del 50 % aún no llega y sale vacío con el motivo del backend
+    const history = estimate.getByTestId('history-section');
+    await expect(history.getByTestId('history-chart')).toBeVisible();
+    await expect(history.getByTestId('history-cut-50')).toHaveAttribute('data-available', 'false');
+    await expect(history.getByTestId('history-table')).toContainText('Sin cifra: Este corte aún no ha llegado');
+    await expect(history.getByTestId('history-warnings')).toContainText('la tasa de fallos es 0');
 
     // Cerrar: confirmación; después, sin acciones
     await page.getByRole('link', { name: 'Panel' }).click();

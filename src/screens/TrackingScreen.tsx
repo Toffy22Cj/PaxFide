@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  DonationTracking, fetchAssetHistory, fetchNarrative, fetchTracking, LogisticsItem, Narrative, TrackingOutcome, Transition,
+  DonationIntegrity, DonationTracking, fetchAssetHistory, fetchIntegrity, fetchNarrative, fetchTracking, IntegrityBatch, LogisticsItem,
+  Narrative, TrackingOutcome, Transition,
 } from '../lib/api/tracking';
 import { consumeHandedOffTrackingCode } from '../lib/tracking/handoff';
 import { formatMinorUnits } from '../lib/money';
@@ -10,7 +11,7 @@ import { custodianLabel, donationStatusLabel, eventLabel, lifecycleLabel } from 
 import { PageHeader, DefinitionList, Surface, Actions, uiClasses as ui } from '../components/ui/Layout';
 import { TextField } from '../components/ui/Field';
 import { Button } from '../components/ui/Button';
-import { ErrorState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
+import { ErrorState, LoadingState, StatusNotice } from '../components/States';
 import { LocalDate } from '../components/LocalDate';
 import { formatQuantity } from '../lib/quantity';
 
@@ -18,6 +19,7 @@ type Clients = {
   tracking?: typeof fetchTracking;
   narrative?: typeof fetchNarrative;
   history?: typeof fetchAssetHistory;
+  integrity?: typeof fetchIntegrity;
 };
 
 const money = (v: string | undefined, currency?: string) => (v === undefined ? '—' : formatMinorUnits(v, currency));
@@ -126,11 +128,7 @@ function TrackingDetails({ data, trackingCode, clients, onClose }: {
             <AssetItem key={item.assetRef} index={i + 1} item={item} trackingCode={trackingCode} clients={clients} />
           ))}</ul>}
       </Surface>
-      {/* S-22: el backend aún no expone la verificación de integridad (anclaje, raíz, transacción, resultado) */}
-      <Surface title="Verificación de integridad">
-        <p>Comprueba que el registro de tu donación no se ha modificado desde que se ancló en la cadena de bloques.</p>
-        <UnavailableState what="La verificación de integridad" />
-      </Surface>
+      <IntegritySection trackingCode={trackingCode} client={clients.integrity ?? fetchIntegrity} />
       <NarrativeSection trackingCode={trackingCode} client={clients.narrative ?? fetchNarrative} />
       <Actions><Button variant="secondary" onClick={onClose}>Cerrar seguimiento</Button></Actions>
     </>
@@ -208,6 +206,91 @@ function NarrativeSection({ trackingCode, client }: { trackingCode: string; clie
       )}
       {state !== 'loading' && state.kind === 'not-found' && <p>El relato todavía no está disponible.</p>}
       {state !== 'loading' && (state.kind === 'error' || state.kind === 'invalid-code') && <ErrorState onRetry={() => void load()} />}
+    </Surface>
+  );
+}
+
+const ANCHOR_STATUS: Record<string, string> = {
+  COLLECTING: 'Reuniendo eventos para anclarlos',
+  PENDING: 'Pendiente de anclar',
+  SUBMITTING: 'Enviándose a la cadena de bloques',
+  SUBMITTED: 'Enviado; esperando confirmación de la cadena',
+  ANCHORED: 'Anclado en la cadena de bloques',
+  STUCK: 'Anclaje detenido; se reintentará',
+  FAILED: 'El anclaje falló',
+  ANCHOR_MISMATCH: 'Lo anclado no coincide con lo registrado',
+};
+
+/** Resultado en lenguaje llano: qué significa para el donante, sin jerga. */
+function verdict(b: IntegrityBatch): { variant: 'success' | 'rejected' | 'info'; title: string; text: string } {
+  if (b.result === 'MATCH') {
+    return { variant: 'success', title: 'Coincide',
+      text: 'Los eventos de este grupo son los mismos que se anclaron en la cadena de bloques: no se han modificado.' };
+  }
+  if (b.result === 'MISMATCH') {
+    const affects = b.affectsThisDonation === true ? ' Afecta a eventos de tu donación.'
+      : b.affectsThisDonation === false ? ' No afecta a los eventos de tu donación.' : '';
+    return { variant: 'rejected', title: 'No coincide',
+      text: `El registro de este grupo no es igual al que se ancló: algo cambió después del anclaje.${affects}` };
+  }
+  return { variant: 'info', title: 'No se pudo comprobar',
+    text: 'Por ahora no se puede confirmar ni descartar ningún cambio en este grupo de eventos.' };
+}
+
+/**
+ * Verificación de integridad (S-22): se consulta a petición con el mismo código, en `Authorization`. Cada grupo de
+ * eventos anclado (lote) se explica en lenguaje llano; la raíz y la transacción son datos públicos de la cadena.
+ */
+function IntegritySection({ trackingCode, client }: { trackingCode: string; client: typeof fetchIntegrity }) {
+  const [state, setState] = useState<TrackingOutcome<DonationIntegrity> | 'loading' | null>(null);
+  const load = async () => {
+    setState('loading');
+    setState(await client(trackingCode));
+  };
+  return (
+    <Surface title="Verificación de integridad">
+      <p>Comprueba que el registro de tu donación no se ha modificado desde que se ancló en la cadena de bloques. Los
+        eventos se anclan por grupos: cada grupo guarda en la cadena una huella (raíz) de todos sus eventos.</p>
+      {state === null && <Button variant="secondary" onClick={() => void load()}>Comprobar integridad</Button>}
+      {state === 'loading' && <LoadingState />}
+      {state !== null && state !== 'loading' && state.kind === 'ok' && (
+        <div data-testid="integrity">
+          {state.data.batches.length === 0 && state.data.unanchoredEvents === 0 && (
+            <p>Tu donación todavía no tiene eventos que comprobar.</p>
+          )}
+          {state.data.unanchoredEvents > 0 && (
+            <StatusNotice variant="info" text={state.data.unanchoredEvents === 1
+              ? 'Hay 1 evento de tu donación que todavía no se ha anclado; se comprobará cuando se ancle.'
+              : `Hay ${state.data.unanchoredEvents} eventos de tu donación que todavía no se han anclado; se comprobarán cuando se anclen.`} />
+          )}
+          {state.data.batches.length > 0 && (
+            <ul className={ui.list}>{state.data.batches.map((b, i) => {
+              const v = verdict(b);
+              return (
+                <li key={i} className={ui.surface} style={{ marginBottom: 0 }} data-testid="integrity-batch" data-result={b.result}>
+                  <h3 className={ui.sectionTitle}>Grupo {i + 1}</h3>
+                  <StatusNotice variant={v.variant} title={v.title} text={v.text} />
+                  <DefinitionList items={[
+                    { label: 'Eventos de tu donación en este grupo', value: String(b.eventsOfThisDonation) },
+                    { label: 'Estado del anclaje', value: ANCHOR_STATUS[b.anchorStatus] ?? b.anchorStatus },
+                    ...(b.reasonText ? [{ label: 'Motivo', value: b.reasonText }] : []),
+                    ...(b.anchoredAt ? [{ label: 'Anclado el', value: <LocalDate iso={b.anchoredAt} withTime /> }] : []),
+                    ...(b.network ? [{ label: 'Red', value: b.network }] : []),
+                    ...(b.confirmedBlockNumber !== undefined ? [{ label: 'Bloque', value: String(b.confirmedBlockNumber) }] : []),
+                    ...(b.merkleRoot ? [{ label: 'Raíz (huella del grupo)', value: <code style={{ wordBreak: 'break-all' }}>{b.merkleRoot}</code> }] : []),
+                    ...(b.transactionHash ? [{ label: 'Transacción', value: <code style={{ wordBreak: 'break-all' }}>{b.transactionHash}</code> }] : []),
+                  ]} />
+                </li>
+              );
+            })}</ul>
+          )}
+          {state.data.checkedAt && <p className={ui.hint}>Comprobado el <LocalDate iso={state.data.checkedAt} withTime />. El resultado puede tardar unos minutos en actualizarse.</p>}
+          <Actions><Button variant="secondary" onClick={() => void load()}>Volver a comprobar</Button></Actions>
+        </div>
+      )}
+      {state !== null && state !== 'loading' && state.kind === 'not-found' && <p>La verificación todavía no está disponible para tu donación.</p>}
+      {state !== null && state !== 'loading' && state.kind === 'invalid-code' && <StatusNotice variant="rejected" text="El código no es válido o expiró." />}
+      {state !== null && state !== 'loading' && state.kind === 'error' && <ErrorState onRetry={() => void load()} />}
     </Surface>
   );
 }

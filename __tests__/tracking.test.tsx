@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as session from '../src/lib/auth/session';
-import { fetchTracking, fetchAssetHistory, fetchNarrative, parseTracking } from '../src/lib/api/tracking';
+import { fetchTracking, fetchAssetHistory, fetchIntegrity, fetchNarrative, parseIntegrity, parseTracking } from '../src/lib/api/tracking';
 import { TrackingScreen } from '../src/screens/TrackingScreen';
 import { handOffTrackingCode } from '../src/lib/tracking/handoff';
 
@@ -15,6 +15,19 @@ const TRACKING = {
   campaignRef: 'camp-1',
   logistics: [{ assetRef: 'AS-1', lifecycleStatus: 'DISPATCHED', assetType: 'Mercado', unitOfMeasure: 'kit', quantity: '10', locationZone: 'Zona centro', custodianCategory: 'LOCAL_ALLY' }],
   status: 'EN_PROCESO',
+};
+
+// Datos de PRUEBA con la forma de `GET /donations/tracking/integrity` (backend d169dda)
+const INTEGRITY = {
+  batches: [
+    { anchorStatus: 'ANCHORED', merkleRoot: '0xraiz', transactionHash: '0xtx', network: 'sepolia', anchoredAt: '2026-10-08T10:00:00Z',
+      confirmedBlockNumber: 7, eventsOfThisDonation: 2, verification: { result: 'MATCH' } },
+    { anchorStatus: 'ANCHORED', merkleRoot: '0xotra', eventsOfThisDonation: 1,
+      verification: { result: 'MISMATCH', reason: 'ROOT_MISMATCH', reasonText: 'La raíz recalculada desde los eventos no coincide con la anclada', affectsThisDonation: false } },
+    { anchorStatus: 'PENDING', eventsOfThisDonation: 1,
+      verification: { result: 'INCONCLUSIVE', reason: 'NOT_ANCHORED', reasonText: 'El lote aún no está anclado en la cadena' } },
+  ],
+  unanchoredEvents: 3, checkedAt: '2026-10-08T11:00:00Z',
 };
 
 describe('Cliente de seguimiento (TR-01 a TR-03)', () => {
@@ -55,6 +68,22 @@ describe('Cliente de seguimiento (TR-01 a TR-03)', () => {
     const h = await fetchAssetHistory('c', 'A/1');
     expect(h.kind).toBe('ok');
     expect(fetchMock.mock.calls[2][0]).toBe('http://api.paxfide.test/api/v1/donations/tracking/assets/A%2F1/history');
+  });
+
+  it('integridad (S-22): el código va en Authorization, nunca en la URL; resultado desconocido → no concluyente', async () => {
+    session.login('jwt-usuario');
+    fetchMock.mockResolvedValueOnce(res(200, INTEGRITY));
+    const r = await fetchIntegrity('TRK.secreto');
+    expect(r.kind).toBe('ok');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('http://api.paxfide.test/api/v1/donations/tracking/integrity');
+    expect(init.headers.Authorization).toBe('Bearer TRK.secreto');
+    fetchMock.mockResolvedValueOnce(res(401, { title: 'Unauthorized' }));
+    expect(await fetchIntegrity('malo')).toEqual({ kind: 'invalid-code' });
+    expect(session.getJwt()).toBe('jwt-usuario');
+    const odd = parseIntegrity({ batches: [{ anchorStatus: 'ANCHORED', eventsOfThisDonation: 1, verification: { result: 'RARO' } }], unanchoredEvents: 0 });
+    expect(odd?.batches[0].result).toBe('INCONCLUSIVE');
+    expect(parseIntegrity({ unanchoredEvents: 0 })).toBeNull();
   });
 
   it('importes fuera del rango seguro no se aproximan', () => {
@@ -111,8 +140,8 @@ describe('TrackingScreen (formulario)', () => {
     render(<TrackingScreen clients={{ tracking: async () => ok, narrative, history }} />);
     submit('TRK.1');
     expect(await screen.findByTestId('tracking-original')).toHaveTextContent('50.000 COP');
-    // S-22: sin endpoint de integridad, la sección dice "No disponible" (nunca inventa un resultado)
-    expect(screen.getByText('Verificación de integridad').closest('section')).toHaveTextContent('La verificación de integridad');
+    // S-22: la integridad se pide a petición; antes de pedirla no hay ningún resultado
+    expect(screen.getByRole('button', { name: 'Comprobar integridad' })).toBeInTheDocument();
     expect(screen.queryByText(/MATCH|Coincide/)).toBeNull();
     expect(screen.getByTestId('tracking-status')).toHaveTextContent('En proceso');
     expect(screen.getByText('Mercado')).toBeInTheDocument();
@@ -125,6 +154,32 @@ describe('TrackingScreen (formulario)', () => {
     expect(history).toHaveBeenCalledWith('TRK.1', 'AS-1');
     // El código no se pinta en la pantalla
     expect(document.body.textContent).not.toContain('TRK.1');
+  });
+
+  it('integridad (S-22): a petición, en lenguaje llano, por grupo; 401 → mensaje del código', async () => {
+    const integrity = vi.fn()
+      .mockResolvedValueOnce({ kind: 'ok', data: parseIntegrity(INTEGRITY)! })
+      .mockResolvedValueOnce({ kind: 'invalid-code' });
+    render(<TrackingScreen clients={{ tracking: async () => ok, narrative: async () => ({ kind: 'not-found' }), integrity }} />);
+    submit('TRK.2');
+    fireEvent.click(await screen.findByRole('button', { name: 'Comprobar integridad' }));
+    const groups = await screen.findAllByTestId('integrity-batch');
+    expect(integrity).toHaveBeenCalledWith('TRK.2');
+    expect(groups.map((g) => g.getAttribute('data-result'))).toEqual(['MATCH', 'MISMATCH', 'INCONCLUSIVE']);
+    expect(groups[0]).toHaveTextContent('Coincide');
+    expect(groups[0]).toHaveTextContent('Anclado en la cadena de bloques');
+    expect(groups[0]).toHaveTextContent('0xraiz');
+    expect(groups[0]).toHaveTextContent('0xtx');
+    expect(groups[0]).toHaveTextContent('sepolia');
+    expect(groups[1]).toHaveTextContent('No coincide');
+    expect(groups[1]).toHaveTextContent('No afecta a los eventos de tu donación.');
+    expect(groups[1]).toHaveTextContent('La raíz recalculada desde los eventos no coincide con la anclada');
+    expect(groups[2]).toHaveTextContent('No se pudo comprobar');
+    expect(groups[2]).toHaveTextContent('El lote aún no está anclado en la cadena');
+    expect(screen.getByText(/Hay 3 eventos de tu donación que todavía no se han anclado/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Volver a comprobar' }));
+    expect(await screen.findByText('El código no es válido o expiró.')).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain('TRK.2');
   });
 
   it('código entregado en memoria desde la donación → se abre solo, una vez', async () => {

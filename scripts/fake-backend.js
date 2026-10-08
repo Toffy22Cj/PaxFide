@@ -570,6 +570,32 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // GET /organizations/{id}/campaigns/{ref}/prediction/history (S-17, backend d169dda): cortes 0.15/0.25/0.50; el doble
+  // está al 30 % del tiempo, así que el corte del 50 % es futuro (sin cifra). Cifras de PRUEBA, no del modelo.
+  const histMatch = p.match(/^\/organizations\/([^/]+)\/campaigns\/([^/]+)\/prediction\/history$/);
+  if (histMatch && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(histMatch[1]);
+    const c = [...campaigns.values()].find((x) => x.campaignRef === decodeURIComponent(histMatch[2]));
+    if (!c || c.organizationRef !== orgId || actor.organizationId !== orgId
+      || !actor.roles.some((r) => r === 'ADMINISTRATOR' || r === 'REPRESENTATIVE')) { problem(res, 403, 'Forbidden'); return; }
+    const warning = 'Estimación de un modelo entrenado con datos sintéticos.';
+    const base = { kind: 'ESTIMATE', modelVersion: 'fake-1', warning, basis: 'EVENT_STORE', asOf: new Date().toISOString() };
+    const headers = { 'Cache-Control': 'no-store' };
+    if (c.targetPolicy === 'STRICT') {
+      send(res, 200, { ...base, available: false, unavailableReason: 'STRICT_POLICY_EXCLUDED', unavailableText: 'Las convocatorias con meta estricta no se estiman.', cuts: [], warnings: [warning] }, headers);
+      return;
+    }
+    const day = 24 * 3600 * 1000;
+    const start = Date.parse('2026-09-01T00:00:00Z');
+    send(res, 200, { ...base, available: true, warnings: [warning, 'En los cortes pasados la tasa de fallos es 0: los pagos fallidos no están en el Event Store'], cuts: [
+      { t: 0.15, cutAt: new Date(start + 9 * day).toISOString(), available: true, probabilityReachTarget: 0.41, estimatedFinalPctOfTarget: 0.82, pctRaisedAtCut: 0.12 },
+      { t: 0.25, cutAt: new Date(start + 15 * day).toISOString(), available: true, probabilityReachTarget: 0.55, estimatedFinalPctOfTarget: 0.97, pctRaisedAtCut: 0.21 },
+      { t: 0.5, cutAt: new Date(start + 30 * day).toISOString(), available: false, unavailableReason: 'FUTURE_CUT', unavailableText: 'Este corte aún no ha llegado' },
+    ] }, headers);
+    return;
+  }
+
   // GET /organizations/{id}/funds (DD-31): ADMINISTRATOR o EMPLOYEE. Un fondo por donación con fondos aplicados
   const fundsMatch = p.match(/^\/organizations\/([^/]+)\/funds$/);
   if (fundsMatch && req.method === 'GET') {
@@ -936,6 +962,17 @@ const server = http.createServer(async (req, res) => {
       narrativeCalls.set(intent.intentId, n);
       if (n === 1) { send(res, 202, { status: 'PENDING' }); return; }
       send(res, 200, { status: 'AVAILABLE', content: 'Tu donación fue recibida y aplicada a la convocatoria.', source: 'FALLBACK_TEMPLATE' });
+      return;
+    }
+    // S-22 (backend d169dda): un lote anclado que coincide y un evento aún sin anclar. Valores de PRUEBA del doble
+    if (p === '/donations/tracking/integrity') {
+      send(res, 200, {
+        batches: [{
+          anchorStatus: 'ANCHORED', merkleRoot: '0x' + 'ab'.repeat(32), transactionHash: '0x' + 'cd'.repeat(32), network: 'ganache-local',
+          anchoredAt: '2026-10-08T10:00:00Z', confirmedBlockNumber: 42, eventsOfThisDonation: 2, verification: { result: 'MATCH' },
+        }],
+        unanchoredEvents: 1, checkedAt: new Date().toISOString(),
+      }, { 'Cache-Control': 'no-store' });
       return;
     }
     const hist = p.match(/^\/donations\/tracking\/assets\/([^/]+)\/history$/);

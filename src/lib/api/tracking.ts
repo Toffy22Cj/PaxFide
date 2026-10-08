@@ -126,3 +126,57 @@ export async function fetchAssetHistory(trackingCode: string, assetRef: string):
     }));
   });
 }
+
+export interface IntegrityBatch {
+  anchorStatus: string;
+  merkleRoot?: string;
+  transactionHash?: string;
+  network?: string;
+  anchoredAt?: string;
+  confirmedBlockNumber?: number;
+  eventsOfThisDonation: number;
+  result: 'MATCH' | 'MISMATCH' | 'INCONCLUSIVE';
+  reason?: string;
+  reasonText?: string;
+  affectsThisDonation?: boolean;
+}
+
+export interface DonationIntegrity {
+  batches: IntegrityBatch[];
+  unanchoredEvents: number;
+  checkedAt?: string;
+}
+
+const RESULTS = ['MATCH', 'MISMATCH', 'INCONCLUSIVE'] as const;
+const count = (v: unknown) => (typeof v === 'number' && Number.isSafeInteger(v) && v >= 0 ? v : 0);
+
+export function parseIntegrity(data: unknown): DonationIntegrity | null {
+  const d = data as Record<string, unknown> | null;
+  if (!d || typeof d !== 'object' || !Array.isArray(d.batches)) return null;
+  return {
+    unanchoredEvents: count(d.unanchoredEvents),
+    checkedAt: opt(d.checkedAt),
+    batches: d.batches.filter((b): b is Record<string, any> => !!b && typeof b === 'object' && typeof (b as any).anchorStatus === 'string')
+      .map((b) => {
+        const v = (b.verification ?? {}) as Record<string, unknown>;
+        // Un resultado desconocido nunca se presenta como "coincide": se trata como no concluyente
+        const result = RESULTS.includes(v.result as any) ? v.result as IntegrityBatch['result'] : 'INCONCLUSIVE';
+        return {
+          anchorStatus: b.anchorStatus, merkleRoot: opt(b.merkleRoot), transactionHash: opt(b.transactionHash),
+          network: opt(b.network), anchoredAt: opt(b.anchoredAt),
+          confirmedBlockNumber: typeof b.confirmedBlockNumber === 'number' ? b.confirmedBlockNumber : undefined,
+          eventsOfThisDonation: count(b.eventsOfThisDonation),
+          result, reason: opt(v.reason), reasonText: opt(v.reasonText),
+          affectsThisDonation: typeof v.affectsThisDonation === 'boolean' ? v.affectsThisDonation : undefined,
+        };
+      }),
+  };
+}
+
+/**
+ * Integridad de la donación (S-22, backend `d169dda`): `GET /donations/tracking/integrity` con el código en
+ * `Authorization`, como TR-01. Solo lectura; el backend guarda el resultado 5 min por lote (DD-76).
+ */
+export async function fetchIntegrity(trackingCode: string): Promise<TrackingOutcome<DonationIntegrity>> {
+  return outcomeOf(await trackingRequest('/donations/tracking/integrity', trackingCode), parseIntegrity);
+}
