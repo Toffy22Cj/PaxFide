@@ -16,6 +16,7 @@ Regenerar: `PW_CHROMIUM_PATH=… pnpm exec playwright test -c playwright.captura
 | `personas` | `invitaciones-cargando`, `invitar`, `listado-con-invitacion`, `miembros-403`, `quitar-409` (y `panel__con-entradas-administrador-p3`) |
 | `invitacion` | `con-sesion`, `no-valida`, `sin-sesion`, `sin-token` (el token nunca aparece en pantalla) |
 | `mis-convocatorias` | `listado`, `vacio` |
+| `configuracion` | `actual-y-formulario`, `eleccion`, `guardar-409-con-donaciones`, `solicitudes` |
 | `organizacion` | `creada-pendiente`, `sin-organizacion`, `validacion` (y `panel__sin-organizacion`) |
 | `convocatorias` | `409-organizacion-sin-verificar`, `ambiguo`, `asignar-403`, `asignar-409`, `cargando`, `creada-con-qr`, `cerrar-confirmacion`, `formulario`, `listado`, `listado-403`, `listado-vacio`, `retirar-responsable`, `validacion` (`listado-no-disponible` es de antes de P2-B: el listado ya existe) |
 | `donar` | `409-convocatoria-cerrada`, `ambiguo`, `confirmada-tracking-code`, `consulta-404`, `formulario`, `intencion-registrada-pasarela-simulada`, `intencion-registrada-transferencia`, `pago-fallido`, `pago-pendiente`, `validacion` |

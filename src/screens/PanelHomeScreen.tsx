@@ -40,6 +40,9 @@ export function panelEntries(principal: Principal | null): PanelEntry[] {
   if (principal?.platformAuthority && isSurfaceEnabled('/panel/platform')) {
     entries.push({ id: 'platform', label: 'Plataforma: verificación y administradores', href: '/panel/platform' });
   }
+  if ((roles.includes('ADMINISTRATOR') || roles.includes('REPRESENTATIVE')) && isSurfaceEnabled('/panel/configuration')) {
+    entries.push({ id: 'configuration', label: 'Configuración de convocatorias', href: '/panel/configuration' });
+  }
   if ((roles.includes('ADMINISTRATOR') || roles.includes('REPRESENTATIVE')) && isSurfaceEnabled('/panel/members')) {
     entries.push({ id: 'members', label: 'Personas de mi organización', href: '/panel/members' });
   }
