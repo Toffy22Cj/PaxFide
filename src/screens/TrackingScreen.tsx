@@ -10,7 +10,7 @@ import { custodianLabel, donationStatusLabel, eventLabel, lifecycleLabel } from 
 import { PageHeader, DefinitionList, Surface, Actions, uiClasses as ui } from '../components/ui/Layout';
 import { TextField } from '../components/ui/Field';
 import { Button } from '../components/ui/Button';
-import { ErrorState, LoadingState, StatusNotice } from '../components/States';
+import { ErrorState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
 import { LocalDate } from '../components/LocalDate';
 import { formatQuantity } from '../lib/quantity';
 
@@ -125,6 +125,11 @@ function TrackingDetails({ data, trackingCode, clients, onClose }: {
           : <ul className={ui.list}>{data.logistics.map((item, i) => (
             <AssetItem key={item.assetRef} index={i + 1} item={item} trackingCode={trackingCode} clients={clients} />
           ))}</ul>}
+      </Surface>
+      {/* S-22: el backend aún no expone la verificación de integridad (anclaje, raíz, transacción, resultado) */}
+      <Surface title="Verificación de integridad">
+        <p>Comprueba que el registro de tu donación no se ha modificado desde que se ancló en la cadena de bloques.</p>
+        <UnavailableState what="La verificación de integridad" />
       </Surface>
       <NarrativeSection trackingCode={trackingCode} client={clients.narrative ?? fetchNarrative} />
       <Actions><Button variant="secondary" onClick={onClose}>Cerrar seguimiento</Button></Actions>

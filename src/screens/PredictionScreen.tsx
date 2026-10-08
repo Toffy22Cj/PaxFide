@@ -86,6 +86,8 @@ export function PredictionScreen({ meClient = fetchMe, client = fetchPrediction,
               <section className={s.estimate} aria-label="Estimación">
                 <span className={s.badge}>{ESTIMATE_LABEL}</span>
                 <StatusNotice variant="info" title="Sin cifra para esta convocatoria" text={result.reason} />
+                <h2 style={{ fontSize: 'var(--text-lg)' }}>Evolución en los cortes de entrenamiento</h2>
+                <UnavailableState what="La evolución de la estimación en los cortes de entrenamiento" />
               </section>
             )}
             {result !== null && result !== 'loading' && result.kind === 'ok' && (
@@ -101,6 +103,9 @@ export function PredictionScreen({ meClient = fetchMe, client = fetchPrediction,
                 <BasicPredictionChart view={result.view} />
                 <h2 style={{ fontSize: 'var(--text-lg)' }}>Hoy frente al final estimado</h2>
                 <AdvancedPredictionChart view={result.view} observedFraction={observed === null ? undefined : observed / 100} />
+                {/* S-17: el backend aún no da las estimaciones históricas por corte; nunca se inventan */}
+                <h2 style={{ fontSize: 'var(--text-lg)' }}>Evolución en los cortes de entrenamiento</h2>
+                <UnavailableState what="La evolución de la estimación en los cortes de entrenamiento" />
               </section>
             )}
           </div>

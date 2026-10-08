@@ -89,6 +89,18 @@ describe('Predicción (P3)', () => {
     expect(document.body.textContent).not.toMatch(/\d+ %/);
   });
 
+  it('OUTSIDE_TRAINED_RANGE (backend 85b702b): el motivo del backend, sin cifra, y la evolución "No disponible" (S-17)', async () => {
+    const outcome = parsePrediction({ kind: 'ESTIMATE', available: false, unavailableReason: 'OUTSIDE_TRAINED_RANGE',
+      unavailableText: 'Fuera del rango de entrenamiento: el modelo solo estima entre el 15 % y el 50 % del tiempo.', asOf: '2026-10-08T00:00:00Z' });
+    expect(outcome).toEqual({ kind: 'no-figure', reason: 'Fuera del rango de entrenamiento: el modelo solo estima entre el 15 % y el 50 % del tiempo.' });
+    await consult(async () => outcome);
+    expect(await screen.findByText(/Fuera del rango de entrenamiento/)).toBeInTheDocument();
+    expect(screen.getByText(ESTIMATE_LABEL)).toBeInTheDocument();
+    expect(screen.queryByTestId('basic-probability')).toBeNull();
+    expect(screen.queryByTestId('advanced-chart')).toBeNull();
+    expect(screen.getByTestId('unavailable-state')).toHaveTextContent('La evolución de la estimación en los cortes de entrenamiento');
+  });
+
   it('403', async () => {
     await consult(async () => ({ kind: 'forbidden' }));
     expect(await screen.findByText('No tienes acceso a este recurso.')).toBeInTheDocument();

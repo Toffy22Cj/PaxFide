@@ -111,6 +111,9 @@ describe('TrackingScreen (formulario)', () => {
     render(<TrackingScreen clients={{ tracking: async () => ok, narrative, history }} />);
     submit('TRK.1');
     expect(await screen.findByTestId('tracking-original')).toHaveTextContent('50.000 COP');
+    // S-22: sin endpoint de integridad, la sección dice "No disponible" (nunca inventa un resultado)
+    expect(screen.getByText('Verificación de integridad').closest('section')).toHaveTextContent('La verificación de integridad');
+    expect(screen.queryByText(/MATCH|Coincide/)).toBeNull();
     expect(screen.getByTestId('tracking-status')).toHaveTextContent('En proceso');
     expect(screen.getByText('Mercado')).toBeInTheDocument();
     expect(await screen.findByText('El relato se está generando.')).toBeInTheDocument();
