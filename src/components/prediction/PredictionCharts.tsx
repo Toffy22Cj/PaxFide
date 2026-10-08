@@ -1,7 +1,8 @@
 import React from 'react';
 import s from './prediction.module.css';
 import { uiClasses as ui } from '../ui/Layout';
-import type { PredictionView } from '../../lib/api/prediction';
+import type { PredictionCut, PredictionView } from '../../lib/api/prediction';
+import { LocalDate } from '../LocalDate';
 
 const pct = (x: number) => `${Math.round(x)} %`;
 const GREEN = 'var(--brand-green-900)';
@@ -109,6 +110,93 @@ export function AdvancedPredictionChart({ view, observedFraction }: { view: Pred
           </table>
         </div>
       </details>
+    </figure>
+  );
+}
+
+/**
+ * Evolución en los cortes de entrenamiento (S-17): para cada corte (15 %, 25 % y 50 % del tiempo), lo recaudado en
+ * ese momento (hecho reconstruido del Event Store) y el final que el modelo estimaba entonces (estimación). Un corte sin
+ * cifra se dibuja vacío, con una marca "Sin cifra" y el texto del backend en la tabla; nunca se rellena ni se interpola.
+ * No se unen los puntos con líneas para no sugerir una trayectoria que el backend no da.
+ */
+export function PredictionHistoryChart({ cuts }: { cuts: PredictionCut[] }) {
+  const W = 560, H = 280, L = 44, R = 24, T = 16, B = 40;
+  const values = cuts.flatMap((c) => [c.raisedAtCut, c.estimatedFinal]).filter((v): v is number => v !== undefined).map((v) => v * 100);
+  const top = Math.max(150, Math.ceil(Math.max(0, ...values) / 50) * 50);
+  // Eje X: solo el tramo de los cortes (0 a 60 % del tiempo), para que se distingan
+  const span = 0.6;
+  const x = (t: number) => L + (t / span) * (W - L - R);
+  const y = (v: number) => T + (1 - v / top) * (H - T - B);
+  const ticks = Array.from({ length: top / 50 + 1 }, (_, i) => i * 50);
+  const label = cuts.map((c) => `Corte ${pct(c.t * 100)}: ${c.available
+    ? `recaudado ${c.raisedAtCut !== undefined ? pct(c.raisedAtCut * 100) : 'sin dato'}, final estimado ${pct((c.estimatedFinal ?? 0) * 100)}, probabilidad ${pct((c.probability ?? 0) * 100)}`
+    : `sin cifra${c.raisedAtCut !== undefined ? ` (recaudado ${pct(c.raisedAtCut * 100)})` : ''}`}`).join('; ');
+
+  return (
+    <figure style={{ margin: 0 }} data-testid="prediction-history">
+      <ul className={s.legend}>
+        <li><svg width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill={GREEN} /></svg>Recaudado en el corte (hecho)</li>
+        <li><svg width="16" height="16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" fill={BLUE} /></svg>Final estimado en el corte (estimación)</li>
+        <li><svg width="16" height="16" aria-hidden="true"><rect x="2" y="2" width="12" height="12" fill="none" stroke="var(--brand-neutral-700)" strokeDasharray="2 2" /></svg>Corte sin cifra</li>
+      </ul>
+      <div className={s.scroll} tabIndex={0} aria-label="Gráfico desplazable horizontalmente">
+        <svg viewBox={`0 0 ${W} ${H}`} className={[s.chart, s.wideChart].join(' ')} role="img" data-testid="history-chart" aria-label={label}>
+          {ticks.map((v) => (
+            <g key={v}>
+              <line className={s.grid} x1={L} x2={W - R} y1={y(v)} y2={y(v)} />
+              <text className={s.axis} x={L - 6} y={y(v) + 4} textAnchor="end">{v} %</text>
+            </g>
+          ))}
+          <line x1={L} x2={W - R} y1={y(100)} y2={y(100)} stroke={GREEN} strokeWidth="1" strokeDasharray="2 3" />
+          <text className={s.axis} x={W - R - 2} y={y(100) - 4} textAnchor="end">Meta</text>
+          {cuts.map((c) => (
+            <g key={c.t} data-testid={`history-cut-${Math.round(c.t * 100)}`} data-available={c.available ? 'true' : 'false'}>
+              <line x1={x(c.t)} x2={x(c.t)} y1={T} y2={H - B} stroke="var(--brand-neutral-700)" strokeWidth="1" strokeDasharray="2 2" opacity="0.6" />
+              <text className={s.axis} x={x(c.t)} y={H - B + 16} textAnchor="middle">{pct(c.t * 100)}</text>
+              {c.raisedAtCut !== undefined && (
+                <circle cx={x(c.t) - 8} cy={y(c.raisedAtCut * 100)} r="6" fill={GREEN} stroke="#FFFFFF" strokeWidth="2">
+                  <title>{`Corte ${pct(c.t * 100)}: recaudado ${pct(c.raisedAtCut * 100)} de la meta`}</title>
+                </circle>
+              )}
+              {c.available && c.estimatedFinal !== undefined ? (
+                <rect x={x(c.t) + 2} y={y(c.estimatedFinal * 100) - 6} width="12" height="12" fill={BLUE} stroke="#FFFFFF" strokeWidth="2">
+                  <title>{`Corte ${pct(c.t * 100)}: final estimado ${pct(c.estimatedFinal * 100)} de la meta`}</title>
+                </rect>
+              ) : (
+                <g>
+                  <rect x={x(c.t) - 28} y={T + 20} width="56" height="22" fill="var(--white)" stroke="var(--brand-neutral-700)" strokeDasharray="2 2" />
+                  <text className={s.axis} x={x(c.t)} y={T + 35} textAnchor="middle">Sin cifra</text>
+                </g>
+              )}
+            </g>
+          ))}
+          <text className={s.axis} x={(L + W - R) / 2} y={H - 6} textAnchor="middle">Tiempo transcurrido de la convocatoria (corte)</text>
+        </svg>
+      </div>
+      <div className={ui.tableWrap}>
+        <table className={ui.table} data-testid="history-table">
+          <caption className={ui.hint} style={{ textAlign: 'left' }}>Estimaciones calculadas en cada corte con lo recaudado hasta ese momento</caption>
+          <thead>
+            <tr>
+              <th scope="col">Corte</th><th scope="col">Fecha del corte</th><th scope="col">Recaudado (hecho)</th>
+              <th scope="col">Final estimado (estimación)</th><th scope="col">Probabilidad (estimación)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cuts.map((c) => (
+              <tr key={c.t}>
+                <th scope="row">{pct(c.t * 100)} del tiempo</th>
+                <td>{c.cutAt ? <LocalDate iso={c.cutAt} /> : '—'}</td>
+                <td>{c.raisedAtCut !== undefined ? `${pct(c.raisedAtCut * 100)} de la meta` : '—'}</td>
+                {c.available
+                  ? <><td>{pct((c.estimatedFinal ?? 0) * 100)} de la meta</td><td>{pct((c.probability ?? 0) * 100)}</td></>
+                  : <td colSpan={2}>Sin cifra: {c.reason}</td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 }

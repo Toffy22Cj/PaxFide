@@ -174,6 +174,10 @@ test('estimación', async ({ page }) => {
   await expect(page.getByTestId('prediction-estimate')).toBeVisible();
   await page.getByText('Ver los datos en tabla').click();
   await shot(page, 'estimacion', 'con-cifra');
+  await page.getByTestId('history-section').scrollIntoViewIfNeeded();
+  await shot(page, 'estimacion', 'evolucion-cortes');
+  await page.route('**/prediction/history', json(200, { kind: 'ESTIMATE', basis: 'EVENT_STORE', available: false, unavailableReason: 'STRICT_POLICY_EXCLUDED',
+    unavailableText: 'Las convocatorias con meta estricta no se estiman.', cuts: [], warnings: [], asOf: '2026-10-07T00:00:00Z' }));
   await page.route('**/prediction', json(200, { kind: 'ESTIMATE', available: false, unavailableReason: 'STRICT_POLICY_EXCLUDED',
     unavailableText: 'Las convocatorias con meta estricta no se estiman.', asOf: '2026-10-07T00:00:00Z' }));
   await page.getByRole('button', { name: 'Ver estimación' }).click();
@@ -496,6 +500,21 @@ test('seguimiento', async ({ page, request }) => {
   await page.getByRole('button', { name: 'Actualizar' }).click();
   await expect(page.getByTestId('narrative')).toBeVisible();
   await shot(page, 'seguimiento', 'contenido-relato-disponible');
+  await page.getByRole('button', { name: 'Comprobar integridad' }).click();
+  await expect(page.getByTestId('integrity-batch')).toContainText('Coincide');
+  await page.getByTestId('integrity').scrollIntoViewIfNeeded();
+  await shot(page, 'seguimiento', 'integridad-coincide');
+  // Datos de PRUEBA con la forma del contrato: un grupo que no coincide y otro sin anclar
+  await page.route('**/api/v1/donations/tracking/integrity', json(200, { batches: [
+    { anchorStatus: 'ANCHOR_MISMATCH', merkleRoot: '0x' + '12'.repeat(32), transactionHash: '0x' + '34'.repeat(32), network: 'ganache-local',
+      anchoredAt: '2026-10-08T10:00:00Z', confirmedBlockNumber: 42, eventsOfThisDonation: 1,
+      verification: { result: 'MISMATCH', reason: 'ROOT_MISMATCH', reasonText: 'La raíz recalculada desde los eventos no coincide con la anclada', affectsThisDonation: true } },
+    { anchorStatus: 'PENDING', eventsOfThisDonation: 2,
+      verification: { result: 'INCONCLUSIVE', reason: 'NOT_ANCHORED', reasonText: 'El lote aún no está anclado en la cadena' } },
+  ], unanchoredEvents: 0, checkedAt: '2026-10-08T11:00:00Z' }));
+  await page.getByRole('button', { name: 'Volver a comprobar' }).click();
+  await expect(page.getByText('No coincide')).toBeVisible();
+  await shot(page, 'seguimiento', 'integridad-no-coincide');
 });
 
 test('mis donaciones', async ({ page }) => {

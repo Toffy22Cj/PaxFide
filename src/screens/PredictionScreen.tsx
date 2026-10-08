@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { fetchMe } from '../lib/api/identity';
-import { fetchPrediction, PredictionOutcome } from '../lib/api/prediction';
+import { fetchPrediction, fetchPredictionHistory, PredictionHistoryOutcome, PredictionOutcome } from '../lib/api/prediction';
 import { AdminCampaign, fetchOrganizationCampaigns, ListOutcome } from '../lib/api/campaignAdmin';
 import { percentOf } from '../lib/money';
 import { usePrincipal } from '../lib/auth/usePrincipal';
@@ -10,7 +10,7 @@ import { PageHeader } from '../components/ui/Layout';
 import { TextField, SelectField } from '../components/ui/Field';
 import { Button } from '../components/ui/Button';
 import { EmptyState, ErrorState, ForbiddenState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
-import { AdvancedPredictionChart, BasicPredictionChart } from '../components/prediction/PredictionCharts';
+import { AdvancedPredictionChart, BasicPredictionChart, PredictionHistoryChart } from '../components/prediction/PredictionCharts';
 import s from '../components/prediction/prediction.module.css';
 
 export const ESTIMATE_LABEL = 'ESTIMACIÓN — modelo entrenado con datos sintéticos';
@@ -20,17 +20,20 @@ export const ESTIMATE_LABEL = 'ESTIMACIÓN — modelo entrenado con datos sinté
  * `ADMINISTRATOR`/`REPRESENTATIVE` (representación; el backend autoriza). La etiqueta de estimación es visible y
  * permanente, y la estimación va en un bloque separado de los hechos verificables. Sin cifra (p. ej. `STRICT`): se
  * muestra el texto del backend, nunca un número. La convocatoria se elige del listado de la organización (solo
- * `ADMINISTRATOR`); si el listado no está permitido (`REPRESENTATIVE`), se escribe la referencia.
+ * `ADMINISTRATOR`); si el listado no está permitido (`REPRESENTATIVE`), se escribe la referencia. Junto a la estimación
+ * actual se pide la evolución en los cortes de entrenamiento (S-17, `…/prediction/history`).
  */
-export function PredictionScreen({ meClient = fetchMe, client = fetchPrediction, listClient = fetchOrganizationCampaigns }: {
+export function PredictionScreen({ meClient = fetchMe, client = fetchPrediction, historyClient = fetchPredictionHistory, listClient = fetchOrganizationCampaigns }: {
   meClient?: typeof fetchMe;
   client?: typeof fetchPrediction;
+  historyClient?: typeof fetchPredictionHistory;
   listClient?: typeof fetchOrganizationCampaigns;
 }) {
   const { state, reload } = usePrincipal(meClient);
   const [campaigns, setCampaigns] = useState<ListOutcome<AdminCampaign> | null>(null);
   const [campaignRef, setCampaignRef] = useState('');
   const [result, setResult] = useState<PredictionOutcome | 'loading' | null>(null);
+  const [history, setHistory] = useState<PredictionHistoryOutcome | 'loading' | null>(null);
   const [consulted, setConsulted] = useState<AdminCampaign | undefined>(undefined);
 
   const organizationId = state.status === 'ready' ? state.data.organizationId : undefined;
@@ -53,7 +56,13 @@ export function PredictionScreen({ meClient = fetchMe, client = fetchPrediction,
     if (!ref || !organizationId) return;
     setConsulted(items.find((c) => c.campaignRef === ref));
     setResult('loading');
-    setResult(await client(organizationId, ref));
+    setHistory('loading');
+    const [current, past] = await Promise.all([
+      client(organizationId, ref),
+      historyClient(organizationId, ref).catch((): PredictionHistoryOutcome => ({ kind: 'error' })),
+    ]);
+    setResult(current);
+    setHistory(past);
   };
 
   const observed = consulted?.clearedAmount && consulted.targetAmount ? percentOf(consulted.clearedAmount, consulted.targetAmount) : null;
@@ -86,8 +95,7 @@ export function PredictionScreen({ meClient = fetchMe, client = fetchPrediction,
               <section className={s.estimate} aria-label="Estimación">
                 <span className={s.badge}>{ESTIMATE_LABEL}</span>
                 <StatusNotice variant="info" title="Sin cifra para esta convocatoria" text={result.reason} />
-                <h2 style={{ fontSize: 'var(--text-lg)' }}>Evolución en los cortes de entrenamiento</h2>
-                <UnavailableState what="La evolución de la estimación en los cortes de entrenamiento" />
+                <HistorySection history={history} />
               </section>
             )}
             {result !== null && result !== 'loading' && result.kind === 'ok' && (
@@ -103,14 +111,44 @@ export function PredictionScreen({ meClient = fetchMe, client = fetchPrediction,
                 <BasicPredictionChart view={result.view} />
                 <h2 style={{ fontSize: 'var(--text-lg)' }}>Hoy frente al final estimado</h2>
                 <AdvancedPredictionChart view={result.view} observedFraction={observed === null ? undefined : observed / 100} />
-                {/* S-17: el backend aún no da las estimaciones históricas por corte; nunca se inventan */}
-                <h2 style={{ fontSize: 'var(--text-lg)' }}>Evolución en los cortes de entrenamiento</h2>
-                <UnavailableState what="La evolución de la estimación en los cortes de entrenamiento" />
+                <HistorySection history={history} />
               </section>
             )}
           </div>
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * S-17: estimaciones por corte (`…/prediction/history`). Sin cifra en la convocatoria (STRICT, otra moneda, sin meta):
+ * el texto del backend. Los avisos del historial (p. ej. "en los cortes pasados la tasa de fallos es 0") se muestran
+ * tal cual. Un error del historial no tapa la estimación actual.
+ */
+function HistorySection({ history }: { history: PredictionHistoryOutcome | 'loading' | null }) {
+  if (history === null) return null;
+  return (
+    <section aria-labelledby="history-title" data-testid="history-section">
+      <h2 id="history-title" style={{ fontSize: 'var(--text-lg)' }}>Evolución en los cortes de entrenamiento</h2>
+      {history === 'loading' && <LoadingState />}
+      {history !== 'loading' && history.kind === 'forbidden' && <ForbiddenState />}
+      {history !== 'loading' && history.kind === 'error' && <ErrorState text="No pudimos cargar la evolución de la estimación. Inténtalo de nuevo." />}
+      {history !== 'loading' && history.kind === 'no-figure' && (
+        <StatusNotice variant="info" title="Sin estimaciones por corte" text={history.reason} />
+      )}
+      {history !== 'loading' && history.kind === 'ok' && (
+        <>
+          {history.warnings.length > 0 && (
+            <ul data-testid="history-warnings">
+              {history.warnings.map((w) => <li key={w}>{w}</li>)}
+            </ul>
+          )}
+          {history.cuts.length === 0
+            ? <StatusNotice variant="info" title="Sin estimaciones por corte" text="El backend no devolvió ningún corte para esta convocatoria." />
+            : <PredictionHistoryChart cuts={history.cuts} />}
+        </>
+      )}
+    </section>
   );
 }

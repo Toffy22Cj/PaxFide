@@ -55,3 +55,60 @@ export async function fetchPrediction(organizationId: string, campaignRef: strin
   if (r.kind === 'error' && r.status === 403) return { kind: 'forbidden' };
   return { kind: 'error' };
 }
+
+/**
+ * Estimaciones históricas por corte (S-17, backend `d169dda`):
+ * `GET /organizations/{organizationId}/campaigns/{campaignRef}/prediction/history`. Lo recaudado en cada corte se
+ * reconstruye con el Event Store anterior al corte (`basis: "EVENT_STORE"`). Un corte sin cifra (`FUTURE_CUT`,
+ * `CAMPAIGN_ENDED`, `CONFIGURATION_CHANGED_AFTER_CUT`, `TARGET_ALREADY_REACHED`) se muestra vacío con el texto del
+ * backend; nunca se rellena. Escalas: fracciones (1,05 = 105 %).
+ */
+export interface PredictionCut {
+  t: number;
+  cutAt?: string;
+  available: boolean;
+  reason?: string;
+  probability?: number;
+  estimatedFinal?: number;
+  /** Hecho reconstruido: lo recaudado en ese corte (también con `TARGET_ALREADY_REACHED`). */
+  raisedAtCut?: number;
+}
+
+export type PredictionHistoryOutcome =
+  | { kind: 'ok'; cuts: PredictionCut[]; warnings: string[]; asOf?: string }
+  | { kind: 'no-figure'; reason: string }
+  | { kind: 'forbidden' }
+  | { kind: 'error' };
+
+export function parsePredictionHistory(d: any): PredictionHistoryOutcome {
+  if (!d || d.kind !== 'ESTIMATE' || typeof d.available !== 'boolean') return { kind: 'error' };
+  if (!d.available) {
+    return { kind: 'no-figure', reason: typeof d.unavailableText === 'string' ? d.unavailableText : 'Sin estimaciones por corte para esta convocatoria.' };
+  }
+  if (!Array.isArray(d.cuts)) return { kind: 'error' };
+  const cuts: PredictionCut[] = d.cuts.filter((c: any) => c && num(c.t) !== null).map((c: any) => {
+    const probability = num(c.probabilityReachTarget) ?? undefined;
+    const estimatedFinal = num(c.estimatedFinalPctOfTarget) ?? undefined;
+    // Un corte "disponible" sin las dos cifras no se dibuja: se trata como sin cifra en vez de inventarla
+    const available = c.available === true && probability !== undefined && estimatedFinal !== undefined;
+    return {
+      t: c.t, available,
+      cutAt: typeof c.cutAt === 'string' ? c.cutAt : undefined,
+      reason: available ? undefined : (typeof c.unavailableText === 'string' ? c.unavailableText : 'Sin cifra en este corte.'),
+      probability: available ? probability : undefined,
+      estimatedFinal: available ? estimatedFinal : undefined,
+      raisedAtCut: num(c.pctRaisedAtCut) ?? undefined,
+    };
+  }).sort((a: PredictionCut, b: PredictionCut) => a.t - b.t);
+  const warnings = Array.isArray(d.warnings) ? d.warnings.filter((w: unknown): w is string => typeof w === 'string') : [];
+  return { kind: 'ok', cuts, warnings, asOf: typeof d.asOf === 'string' ? d.asOf : undefined };
+}
+
+export async function fetchPredictionHistory(organizationId: string, campaignRef: string): Promise<PredictionHistoryOutcome> {
+  const r = await apiRequest<unknown>({
+    path: `/organizations/${segment(organizationId)}/campaigns/${segment(campaignRef)}/prediction/history`, auth: 'required',
+  });
+  if (r.kind === 'ok') return parsePredictionHistory(r.data);
+  if (r.kind === 'error' && r.status === 403) return { kind: 'forbidden' };
+  return { kind: 'error' };
+}
