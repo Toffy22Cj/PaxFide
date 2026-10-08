@@ -27,6 +27,7 @@
 | S-18 | Lectura del estado de verificación de la propia organización (p. ej. `GET /organizations/{id}` con `verificationStatus` e `informationRequest`) | El representante solo ve "pendiente de verificación" en la respuesta de la creación; después no sabe si se verificó ni qué información se le pidió | `/panel/organization` (muestra "No disponible") | **ABIERTA** |
 | S-19 | Lectura de la configuración actual de una convocatoria con su `configurationVersion` (p. ej. añadirlas a `GET /organizations/{id}/campaigns` o un `GET /campaigns/{ref}/configuration`) | D-10: editar y solicitar cambios exigen la versión y la configuración completa | Configuración de la convocatoria (P3-C) | **ABIERTA** |
 | S-20 | Listado de convocatorias de la organización también para `REPRESENTATIVE` (hoy solo `ADMINISTRATOR`, DD-49) | El representante aprueba cambios de configuración y ve estimaciones, pero no puede elegir la convocatoria: tiene que escribir su referencia | `/panel/configuration`, `/panel/prediction` | **ABIERTA** |
+| S-21 | Algún identificador legible de cada miembro (nombre, o el correo enmascarado como en las invitaciones) en `GET /organizations/{id}/members` | En "Personas de mi organización" y al elegir responsables solo se ve el identificador de la cuenta (ULID): visto en el ensayo conjunto, no se sabe quién es quién | `/panel/members`, asignar responsables | **ABIERTA** |
 
 ## S-06 — Lo que la web necesita de la predicción
 
@@ -71,4 +72,22 @@ organización y fondos/asignación (P2-C). Diferencias: D-05 a D-08.
 Ya por la interfaz: verificar la organización (`/panel/platform`; el id se escribe, D-04), solicitar y confirmar la
 asignación (`/panel/funds`), elegir fondo y asignación al registrar, y "Activos de la organización". Evidencia:
 `PaxFide/Documentos/evidencia-web/ensayo-conjunto-2026-10-07-p2c/`. Sin diferencias nuevas.
+
+### Ensayo conjunto tras P3 (2026-10-08, backend `8c9e159`)
+
+**30/30 pasos OK, 119 llamadas**, todo por la interfaz salvo el pago (proveedor simulado) y la lectura del correo de
+invitación en Mailpit. Las únicas respuestas de error fueron las esperadas: un 409 provocado
+(`CampaignAlreadyHasDonations`) y el 403 del listado para el representante (S-20).
+
+Ya por la interfaz contra el backend real:
+- verificación desde la cola;
+- crear organización y pedirle información desde la cola;
+- invitación por correo aceptada con el token del fragmento (no aparece en URLs, almacenamiento ni log);
+- personas y mis convocatorias;
+- configuración con solicitud y aprobación del representante;
+- cantidades sin ceros sobrantes.
+
+Siguen abiertas: D-05 (el ejemplo de `demo.env` apunta a `:5173`, también el enlace del correo), D-06 (el ensayo
+solo se repite sobre base vacía), D-08 (H-DEMO-2), D-10/S-19, S-18, S-20 y S-21. Evidencia:
+`PaxFide/Documentos/evidencia-web/ensayo-conjunto-2026-10-08-p3/`.
 
