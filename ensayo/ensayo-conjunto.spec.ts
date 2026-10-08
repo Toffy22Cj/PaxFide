@@ -10,9 +10,10 @@ import path from 'path';
  *
  * Lo que el test hace FUERA de la interfaz, con su motivo (se marca `via: "HTTP"` en `pasos.json`):
  * - pago: el test es el proveedor de pago (webhook simulado firmado, como `recorrido.py` del backend; DW-30);
- * - el identificador de la organización para la plataforma lo toma de `/me` del administrador (D-04: sin listado).
+ * - el correo de invitación se lee en Mailpit (runbook §5b), como lo leería la persona invitada.
  */
 const API = process.env.ENSAYO_API ?? 'http://localhost:8080/api/v1';
+const MAILPIT = process.env.ENSAYO_MAILPIT ?? 'http://localhost:8025';
 const PASSWORD = process.env.TRACEABILITY_DEMO_SEED_PASSWORD ?? '';
 const WEBHOOK_SECRET = process.env.TRACEABILITY_DEMO_WEBHOOK_SECRET ?? '';
 const OUT = process.env.ENSAYO_SALIDA ?? path.join(__dirname, '..', 'Documentos', 'evidencia-web', 'ensayo-conjunto');
@@ -151,20 +152,20 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     await expect(s.admin.getByRole('link', { name: 'Convocatorias de mi organización' })).toBeVisible();
   }, () => s.admin);
 
-  // 1. Verificar la organización por la interfaz de plataforma. Sin listado de pendientes (D-04), el identificador lo
-  // da la organización: el test lo toma de su `/me` (como haría el representante al comunicarlo)
+  // 1. Verificar la organización desde la cola de la plataforma (sin escribir identificadores)
   await paso('verificar-organizacion', 'UI', async () => {
-    const t = await jwt(request, 'administrador');
-    s.org = (await (await request.get(`${API}/me`, { headers: { Authorization: `Bearer ${t}` } })).json()).organizationId;
     const p = await login(browser, 'plataforma');
     s.platform = p;
-    await p.getByRole('link', { name: 'Verificación de organizaciones' }).click();
-    await p.getByLabel('Identificador de la organización').fill(s.org);
-    await p.getByRole('button', { name: 'Verificar organización' }).click();
+    await p.getByRole('link', { name: 'Plataforma: verificación y administradores' }).click();
+    const row = p.getByTestId('queue-item').filter({ hasText: 'Fundación Demo PaxFide' });
+    // Se espera a que la cola cargue antes de decidir
+    await expect(p.getByTestId('queue-item').or(p.getByText('No hay organizaciones pendientes.')).first()).toBeVisible();
+    if (await row.count() === 0) return 'no estaba en la cola (ya verificada)';
+    await row.getByRole('button', { name: 'Verificar' }).click();
     await p.getByRole('dialog').getByRole('button', { name: 'Verificar organización' }).click();
-    await expect(p.getByText(/: Verificada\./).or(p.getByRole('dialog').getByRole('alert'))).toBeVisible();
-    const already = await p.getByRole('dialog').isVisible();
-    return already ? 'ya estaba verificada (409 mostrado)' : 'Verificada; id dado por la organización (D-04)';
+    await expect(p.getByText('Fundación Demo PaxFide: Verificada.')).toBeVisible();
+    await expect(row).toHaveCount(0);
+    return 'verificada desde la cola';
   }, () => s.platform);
 
   // Repetible: un EMPLOYEE solo es responsable de una convocatoria activa, así que se cierran por la interfaz las
@@ -304,14 +305,14 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     const e = s.employee as Page;
     await act(e, 'Dividir activo', [['Cantidad a separar', '4']]);
     await expect(e.getByText('División completada')).toBeVisible({ timeout: 60000 });
-    await expect(e.getByTestId('field-quantity')).toHaveText(/^6(\.0+)?$/);
+    await expect(e.getByTestId('field-quantity')).toHaveText('6');
   }, () => s.employee);
   await paso('entregar-padre-e-hijo', 'UI', async () => {
     const e = s.employee as Page;
     await act(e, 'Entregar', DELIVER);
     await expect(e.getByTestId('state-content-readonly')).toBeVisible();
     await e.getByTestId('split-child-link').click();
-    await expect(e.getByTestId('field-quantity')).toHaveText(/^4(\.0+)?$/);
+    await expect(e.getByTestId('field-quantity')).toHaveText('4');
     // El hijo nace REGISTERED: despachar y recibir antes de entregar (como recorrido.py)
     await act(e, 'Despachar', [['Transportista (referencia)', 'transportista-1']]);
     await act(e, 'Recibir', [['Instalación (ubicación)', 'centro-1'], ['Quién recibe (referencia)', 'recibe-1']]);
@@ -372,6 +373,163 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     await expect(p.getByText('El relato de esta convocatoria no está disponible.')).toBeVisible();
     return 'UNAVAILABLE sin clave de LLM, con sus hechos (lo esperado según el runbook)';
   }, () => s.pub);
+
+  // P3 — mis convocatorias (empleado de la semilla, responsable de la convocatoria del ensayo)
+  await paso('mis-convocatorias', 'UI', async () => {
+    const e = s.employee as Page;
+    await e.getByRole('link', { name: 'Panel' }).click();
+    await e.getByRole('link', { name: 'Mis convocatorias' }).click();
+    await expect(e.getByTestId('my-campaign').filter({ hasText: title })).toContainText('Empleado');
+  }, () => s.employee);
+
+  // P3 — configuración: con donaciones, guardar sin aprobación da 409; la solicitud la aprueba el representante
+  await paso('configuracion-solicitud', 'UI', async () => {
+    const a = s.admin as Page;
+    await a.getByRole('link', { name: 'Panel' }).click();
+    await a.getByRole('link', { name: 'Configuración de convocatorias' }).click();
+    await a.getByLabel('Convocatoria').selectOption({ label: title });
+    await a.getByRole('button', { name: 'Ver configuración' }).click();
+    await expect(a.getByTestId('configuration-version')).toContainText('1');
+    await a.getByLabel('Transferencia bancaria').check();
+    await a.getByRole('button', { name: 'Guardar sin aprobación' }).click();
+    await a.getByRole('dialog').getByRole('button', { name: 'Guardar' }).click();
+    await expect(a.getByRole('dialog').getByRole('alert')).toContainText('ya tiene donaciones');
+    await a.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+    await a.getByRole('button', { name: 'Solicitar cambio' }).click();
+    await a.getByRole('dialog').getByRole('button', { name: 'Solicitar' }).click();
+    await expect(a.getByText('Solicitud de cambio enviada.')).toBeVisible();
+    await expect(a.getByTestId('change-request').filter({ hasText: 'Pendiente' }).getByRole('button', { name: 'Aprobar' })).toHaveCount(0);
+    s.campaignRef = (await a.getByLabel('Convocatoria').inputValue());
+  }, () => s.admin);
+
+  await paso('configuracion-aprobacion', 'UI', async () => {
+    const r = await login(browser, 'representante');
+    s.rep = r;
+    await r.getByRole('link', { name: 'Configuración de convocatorias' }).click();
+    // El representante no tiene listado de convocatorias (S-20): escribe la referencia
+    await r.getByLabel('Referencia de la convocatoria').fill(s.campaignRef);
+    await r.getByRole('button', { name: 'Ver configuración' }).click();
+    const pending = r.getByTestId('change-request').filter({ hasText: 'Pendiente' });
+    await expect(pending).toContainText('Transferencia bancaria');
+    await pending.getByRole('button', { name: 'Aprobar' }).click();
+    await r.getByRole('dialog').getByRole('button', { name: 'Aprobar' }).click();
+    await expect(r.getByText('Cambio aprobado.')).toBeVisible();
+    const pub = s.pub as Page;
+    await pub.reload();
+    await expect(pub.getByRole('listitem').filter({ hasText: 'Transferencia bancaria' })).toBeVisible();
+    return 'aprobada por el representante; la página pública ofrece la transferencia';
+  }, () => s.rep);
+
+  // P3 — invitación por correo (Mailpit) aceptada por la interfaz
+  const invited = `invitada-${Date.now()}@demo.paxfide.local`;
+  await paso('invitar', 'UI', async () => {
+    const a = s.admin as Page;
+    await a.getByRole('link', { name: 'Panel' }).click();
+    await a.getByRole('link', { name: 'Personas de mi organización' }).click();
+    await a.getByRole('button', { name: 'Invitar' }).click();
+    await a.getByRole('dialog').getByLabel('Correo electrónico').fill(invited);
+    await a.getByRole('dialog').getByLabel('Papel').selectOption('EMPLOYEE');
+    await a.getByRole('dialog').getByRole('button', { name: 'Enviar invitación' }).click();
+    await expect(a.getByText('Invitación enviada.')).toBeVisible();
+    await expect(a.getByTestId('invitation').filter({ hasText: 'Empleado' }).first()).toBeVisible();
+  }, () => s.admin);
+
+  await paso('correo-de-invitacion (Mailpit)', 'HTTP', async () => {
+    // El test abre el buzón como lo haría la persona invitada (Mailpit, runbook §5b). El enlace solo vive en memoria
+    for (let i = 0; i < 20 && !s.inviteLink; i++) {
+      const found = await (await request.get(`${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:${invited}`)}`)).json();
+      const id = found?.messages?.[0]?.ID;
+      if (id) {
+        const msg = await (await request.get(`${MAILPIT}/api/v1/message/${id}`)).json();
+        const m = String(msg.Text ?? msg.HTML ?? '').match(/https?:\/\/[^\s"<]+\/invitaciones#token=[^\s"<]+/);
+        if (m) s.inviteLink = m[0];
+      }
+      if (!s.inviteLink) await new Promise((r) => setTimeout(r, 1000));
+    }
+    expect(s.inviteLink, 'enlace de invitación en Mailpit').toBeTruthy();
+    expect(new URL(s.inviteLink).origin).toBe('http://localhost:3000');
+    return 'enlace del correo a la web (:3000), token en el fragmento';
+  });
+
+  await paso('aceptar-invitacion', 'UI', async () => {
+    const i = await (await browser.newContext()).newPage();
+    watch(i, 'invitada');
+    s.invitee = i;
+    const token = decodeURIComponent(String(s.inviteLink).split('#token=')[1]);
+    const urls: string[] = [];
+    i.on('request', (r) => urls.push(r.url()));
+    await i.goto(s.inviteLink);
+    await expect(i.getByText(/inicia sesión con la cuenta del correo/)).toBeVisible();
+    expect(i.url()).not.toContain(token);
+    await i.getByRole('button', { name: 'Crear cuenta' }).click();
+    await i.getByLabel('Correo electrónico').fill(invited);
+    await i.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
+    await i.getByLabel('Repite la contraseña').fill(PASSWORD);
+    await i.getByRole('button', { name: 'Crear cuenta' }).click();
+    await i.getByRole('link', { name: 'Iniciar sesión' }).click();
+    await i.getByLabel('Correo electrónico').fill(invited);
+    await i.getByLabel('Contraseña').fill(PASSWORD);
+    await i.getByRole('button', { name: 'Iniciar sesión' }).click();
+    await expect(i).toHaveURL(/\/invitaciones$/);
+    await i.getByRole('button', { name: 'Aceptar invitación' }).click();
+    await expect(i.getByText('Invitación aceptada')).toBeVisible();
+    expect(urls.filter((u) => u.includes(token))).toEqual([]);
+    const stored = await i.evaluate(() => JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }) + document.cookie);
+    expect(stored).not.toContain(token);
+    await i.getByRole('link', { name: 'Ir al panel' }).click();
+    await expect(i.getByRole('link', { name: 'Mis convocatorias' })).toBeVisible();
+    return 'token: fuera de la barra, de todas las URL y del almacenamiento';
+  }, () => s.invitee);
+
+  await paso('personas', 'UI', async () => {
+    const a = s.admin as Page;
+    // Navegación de cliente: recargar cerraría la sesión (JWT solo en memoria)
+    await a.getByRole('link', { name: 'Panel' }).click();
+    await a.getByRole('link', { name: 'Personas de mi organización' }).click();
+    await expect(a.getByTestId('member').filter({ hasText: 'Empleado' }).first()).toBeVisible();
+    const count = await a.getByTestId('member').count();
+    return `${count} miembros, también la invitada (por cuenta y papeles: el contrato no trae correo)`;
+  }, () => s.admin);
+
+  // P3 — crear organización con una cuenta nueva; la plataforma la ve en la cola y pide información
+  const orgName = `Fundación del ensayo ${new Date().toISOString().slice(0, 19)}`;
+  await paso('crear-organizacion', 'UI', async () => {
+    const email = `representante-${Date.now()}@demo.paxfide.local`;
+    const n = await (await browser.newContext()).newPage();
+    watch(n, 'nueva-organizacion');
+    s.newOrg = n;
+    await n.goto('/register');
+    await n.getByLabel('Correo electrónico').fill(email);
+    await n.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
+    await n.getByLabel('Repite la contraseña').fill(PASSWORD);
+    await n.getByRole('button', { name: 'Crear cuenta' }).click();
+    await n.getByRole('link', { name: 'Iniciar sesión' }).click();
+    await n.getByLabel('Correo electrónico').fill(email);
+    await n.getByLabel('Contraseña').fill(PASSWORD);
+    await n.getByRole('button', { name: 'Iniciar sesión' }).click();
+    await n.getByRole('link', { name: 'Crear organización' }).click();
+    await n.getByRole('button', { name: 'Crear organización' }).click();
+    await n.getByRole('dialog').getByLabel('Tipo').selectOption('FOUNDATION');
+    await n.getByRole('dialog').getByLabel('Nombre').fill(orgName);
+    await n.getByRole('dialog').getByRole('button', { name: 'Crear organización' }).click();
+    await expect(n.getByTestId('organization-status')).toHaveText('Pendiente de verificación');
+    await expect(n.getByTestId('organization-roles')).toHaveText('Representante');
+  }, () => s.newOrg);
+
+  await paso('cola-pedir-informacion', 'UI', async () => {
+    const q = s.platform as Page;
+    await q.getByRole('link', { name: 'Panel' }).click();
+    await q.getByRole('link', { name: 'Plataforma: verificación y administradores' }).click();
+    const row = q.getByTestId('queue-item').filter({ hasText: orgName });
+    await expect(row).toContainText('Pendiente de verificación');
+    await row.getByRole('button', { name: 'Pedir más información' }).click();
+    await q.getByRole('dialog').getByLabel('Mensaje para la organización').fill('Envíen el certificado de existencia.');
+    await q.getByRole('dialog').getByRole('button', { name: 'Pedir más información' }).click();
+    await expect(q.getByText(`${orgName}: Se pidió más información.`)).toBeVisible();
+    await expect(row).toContainText('Envíen el certificado de existencia.');
+    await expect(q.getByTestId('platform-admin').first()).toBeVisible();
+    return `cola con la organización nueva; ${await q.getByTestId('platform-admin').count()} administrador(es) de plataforma listados`;
+  }, () => s.platform);
 
   fs.writeFileSync(path.join(OUT, 'pasos.json'), JSON.stringify(pasos, null, 2) + '\n');
   fs.writeFileSync(path.join(OUT, 'red.json'), JSON.stringify(red, null, 2) + '\n');
