@@ -1,0 +1,159 @@
+# CI local de paxfide-web (réplica de .github/workflows/ci.yml)
+commit:     b8e9945b703fc8e939652d42af4e41559cb5b1d7
+rama:       claude/dazzling-keller-gzybpc
+fecha UTC:  2026-10-08T05:52:58Z
+node:       v22.22.0
+pnpm:       11.26.0
+workflow:   .github/workflows/ci.yml sha256 58be251021d385529aa74b0f1b0dd601c37705e160a32f4e3a79302944b8992c
+
+===== PASO: Checkout repository =====
+$ git cat-file -e b8e9945b703fc8e939652d42af4e41559cb5b1d7 && echo 'Árbol limpio en b8e9945b703fc8e939652d42af4e41559cb5b1d7'
+Árbol limpio en b8e9945b703fc8e939652d42af4e41559cb5b1d7
+RESULTADO: OK (0 s)
+
+===== PASO: Check for .skip or .only in tests =====
+$ if grep -E '\.(skip|only)\(' -r __tests__/ e2e/; then echo 'Error: Found .skip() or .only() in tests. Please remove them.'; exit 1; fi
+RESULTADO: OK (0 s)
+
+===== PASO: Setup Node.js 22 =====
+$ node -v | grep -Eq '^v22\.' || { echo 'Se exige Node 22.x'; exit 1; }; node -v
+v22.22.0
+RESULTADO: OK (0 s)
+
+===== PASO: Install pnpm =====
+$ [ "$(pnpm -v)" = '11.26.0' ] || { echo 'Se exige pnpm 11.26.0 (npm install -g pnpm@11.26.0)'; exit 1; }; pnpm -v
+11.26.0
+RESULTADO: OK (2 s)
+
+===== PASO: Install dependencies =====
+$ pnpm install --frozen-lockfile
+Already up to date
+Done in 554ms using pnpm v11.26.0
+RESULTADO: OK (1 s)
+
+===== PASO: Typecheck =====
+$ pnpm typecheck
+$ tsc --noEmit
+RESULTADO: OK (6 s)
+
+===== PASO: Vitest =====
+$ pnpm vitest run
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.2 /home/user/PaxFide
+
+
+ Test Files  29 passed (29)
+      Tests  259 passed (259)
+   Start at  05:53:10
+   Duration  17.58s (environment 53%, tests 32%, setup 11%, transform 3%, import 1%)
+
+Environment  jsdom was created 29 times · 24.84s total, 53% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
+RESULTADO: OK (20 s)
+
+===== PASO: Check Server Imports =====
+$ pnpm check:server
+$ node scripts/check-server-imports.js
+(node:1970) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/user/PaxFide/scripts/check-server-imports.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/user/PaxFide/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✅ Chequeo estático de imports en servidor: OK.
+RESULTADO: OK (1 s)
+
+===== PASO: Install Playwright Chromium =====
+$ test -x "$PW_CHROMIUM_PATH" && echo "Chromium local (PW_CHROMIUM_PATH=$PW_CHROMIUM_PATH); no se descarga" && "$PW_CHROMIUM_PATH" --version
+Chromium local (PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome); no se descarga
+Chromium 141.0.7390.37 
+RESULTADO: OK (0 s)
+
+===== PASO: Playwright E2E Tests =====
+$ pnpm test:e2e
+$ playwright test --reporter=list && playwright test -c playwright.empty.config.ts --reporter=list && playwright test -c playwright.prod.config.ts --reporter=list
+[WebServer] $ next build
+[WebServer] $ next start
+
+Running 38 tests using 2 workers
+
+  ✓   2 [chromium] › e2e/assets.spec.ts:74:7 › Panel de activos (registrar, dividir, despachar, recibir, entregar) › una transición imposible → 409 con su texto; el activo no cambia (1.4s)
+  ✓   3 [chromium] › e2e/assets.spec.ts:92:7 › Panel de activos (registrar, dividir, despachar, recibir, entregar) › activo inexistente o de otra organización → 403 como estado de pantalla, sin redirigir (600ms)
+  ✓   4 [chromium] › e2e/campaigns.spec.ts:32:7 › Panel de convocatorias (CV-01, CV-02) › crear por la interfaz → página pública con los medios aceptados → asignar responsable (1.4s)
+  ✓   5 [chromium] › e2e/campaigns.spec.ts:67:7 › Panel de convocatorias (CV-01, CV-02) › listado real: designar administrador, retirar responsable con reemplazo, cerrar y estimación (1.8s)
+  ✓   1 [chromium] › e2e/assets.spec.ts:25:7 › Panel de activos (registrar, dividir, despachar, recibir, entregar) › recorrido del activo y de su hijo hasta DELIVERED, con Command-Id en cada comando (5.8s)
+  ✓   6 [chromium] › e2e/campaigns.spec.ts:115:7 › Panel de convocatorias (CV-01, CV-02) › representante: estimación con la referencia escrita (el listado no le está permitido) (697ms)
+  ✓   8 [chromium] › e2e/campaigns.spec.ts:131:7 › Panel de convocatorias (CV-01, CV-02) › un empleado no ve las acciones de convocatoria (representa; el backend autoriza) (500ms)
+  ✓   9 [chromium] › e2e/donate.spec.ts:11:7 › /c/:publicCode — SSR (P-W2, P-W3) › SSR con noindex y Open Graph, sin og:url (150ms)
+  ✓   7 [chromium] › e2e/campaigns.spec.ts:124:7 › Panel de convocatorias (CV-01, CV-02) › organización sin verificar → 409 con su texto (993ms)
+  ✓  10 [chromium] › e2e/donate.spec.ts:22:7 › /c/:publicCode — SSR (P-W2, P-W3) › código inexistente → HTTP 404 con el estado "no encontrada" (423ms)
+  ✓  11 [chromium] › e2e/donate.spec.ts:31:7 › Donar sin cuenta (CV-11) → pago simulado → trackingCode › recorrido completo; ningún secreto en URLs ni almacenamiento; Intent-Token solo en cabecera (791ms)
+  ✓  13 [chromium] › e2e/donate.spec.ts:104:7 › Donar sin cuenta (CV-11) → pago simulado → trackingCode › convocatoria cerrada → sin formulario de donación (343ms)
+  ✓  14 [chromium] › e2e/donate.spec.ts:112:7 › A3 — aviso antes de salir con una donación sin confirmar › recargar pide confirmación (beforeunload) y no se pierde la donación si se cancela (394ms)
+  ✓  15 [chromium] › e2e/donate.spec.ts:127:7 › A3 — aviso antes de salir con una donación sin confirmar › con sesión: el enlace "Panel" pide confirmación; al cancelar se queda en la donación (600ms)
+  ✓  12 [chromium] › e2e/donate.spec.ts:76:7 › Donar sin cuenta (CV-11) → pago simulado → trackingCode › 5xx tras aplicar → ambiguo; Reintentar reenvía el MISMO Command-Id y recibe la misma intención (2.1s)
+  ✓  17 [chromium] › e2e/guards.spec.ts:4:7 › Session Guards (T-4) › logout → atrás ⇒ sin contenido autenticado (bfcache invariant) (806ms)
+  ✓  18 [chromium] › e2e/guards.spec.ts:29:7 › Session Guards (T-4) › logout en la pestaña A ⇒ la pestaña B pasa a LOGGED_OUT (827ms)
+  ✓  19 [chromium] › e2e/guards.spec.ts:53:7 › Session Guards (T-4) › superficie deshabilitada ⇒ 404 también con sesión (644ms)
+  ✓  20 [chromium] › e2e/login.spec.ts:4:7 › Login por la interfaz (ID-01) y PanelHome con /me (N1) › credenciales correctas → /panel con las entradas del rol; JWT solo hacia el backend (712ms)
+  ✓  21 [chromium] › e2e/login.spec.ts:26:7 › Login por la interfaz (ID-01) y PanelHome con /me (N1) › credenciales incorrectas y cuenta inexistente → el mismo mensaje (698ms)
+  ✓  22 [chromium] › e2e/login.spec.ts:39:7 › Login por la interfaz (ID-01) y PanelHome con /me (N1) › /me no disponible en el backend → aviso "No disponible", sin inventar roles (610ms)
+  ✓  23 [chromium] › e2e/login.spec.ts:48:7 › Login por la interfaz (ID-01) y PanelHome con /me (N1) › cerrar sesión desde el Shell → /login (632ms)
+  ✓  24 [chromium] › e2e/p2a.spec.ts:34:7 › P2-A — registro, descubrimiento y narrativa › crear cuenta por la interfaz y entrar con ella (sin organización: sin entradas de organización) (811ms)
+  ✓  25 [chromium] › e2e/p2a.spec.ts:62:7 › P2-A — registro, descubrimiento y narrativa › descubrimiento: aparece la convocatoria pública y nunca la de enlace privado (1.9s)
+  ✓  26 [chromium] › e2e/p2a.spec.ts:80:7 › P2-A — registro, descubrimiento y narrativa › narrativa de la convocatoria: pendiente → Actualizar → disponible, con los hechos aparte (355ms)
+  ✓  16 [chromium] › e2e/golden-path.spec.ts:54:5 › golden path por la interfaz: convocatoria → donaciones (sin y con cuenta) → activo → división → entrega → seguimiento (9.8s)
+  ✓  27 [chromium] › e2e/p2c.spec.ts:27:7 › P2-C — fondos, activos de la organización y verificación › fondos: el administrador solicita y confirma una asignación; el empleado registra el camino A eligiéndolas (2.7s)
+  ✓  28 [chromium] › e2e/p3a.spec.ts:14:7 › P3-A — crear organización, cola de verificación y administradores de plataforma › cuenta nueva → crea su organización (pendiente) → la plataforma la ve en la cola, pide información y la verifica (3.1s)
+  ✓  29 [chromium] › e2e/p3a.spec.ts:57:7 › P3-A — crear organización, cola de verificación y administradores de plataforma › administradores: añadir una cuenta, que ve la plataforma; retirarla; 409 al repetir (2.1s)
+  ✓  30 [chromium] › e2e/p3b.spec.ts:20:7 › P3-B — invitaciones, personas y mis convocatorias › invitar → el enlace del correo (#token) → crear cuenta e iniciar sesión → aceptar; el token nunca en una URL ni en almacenamiento (3.1s)
+  ✓  31 [chromium] › e2e/p3b.spec.ts:80:7 › P3-B — invitaciones, personas y mis convocatorias › personas: asignar a la persona invitada, verla en "Mis convocatorias", cambiar su papel, 409 al quitarla; revocar una invitación (3.5s)
+  ✓  33 [chromium] › e2e/security.spec.ts:4:7 › Security constraints (W-4 d, e) › ninguna petición al origen Next lleva Authorization, pero al API sí (772ms)
+  ✓  34 [chromium] › e2e/security.spec.ts:47:7 › Security constraints (W-4 d, e) › almacenamiento no contiene el token (686ms)
+  ✓  32 [chromium] › e2e/p3c.spec.ts:14:7 › P3-C — configuración de convocatorias con solicitud y aprobación › editar sin aprobación (sin donaciones), solicitar otro cambio y que el representante lo apruebe; la propia no se aprueba (3.0s)
+  ✓  36 [chromium] › e2e/tracking.spec.ts:66:7 › Donante con cuenta → Mis donaciones → seguimiento por formulario › sin sesión: el código escrito en el formulario; un código inválido da un único mensaje (581ms)
+  ✓  35 [chromium] › e2e/tracking.spec.ts:11:7 › Donante con cuenta → Mis donaciones → seguimiento por formulario › el trackingCode nunca aparece en una URL; viaja en Authorization; la sesión no se toca (1.3s)
+  ✓  38 [chromium] › e2e/tracking.spec.ts:80:7 › Donante con cuenta → Mis donaciones → seguimiento por formulario › /tracking lleva noindex (28ms)
+  ✓  37 [chromium] › e2e/tracking.spec.ts:75:7 › Donante con cuenta → Mis donaciones → seguimiento por formulario › /tracking/<código> no existe (404) aunque /tracking esté habilitado (339ms)
+
+  38 passed (50.1s)
+[WebServer] $ next build
+[WebServer] $ next start
+
+Running 6 tests using 2 workers
+
+  ✓  1 [empty-list] › e2e/routing.spec.ts:12:9 › Route Enablement › Route /tracking/123 should 404 when not enabled (519ms)
+  ✓  2 [empty-list] › e2e/routing.spec.ts:12:9 › Route Enablement › Route /c/123 should 404 when not enabled (562ms)
+  ✓  3 [empty-list] › e2e/routing.spec.ts:12:9 › Route Enablement › Route /assets/abc should 404 when not enabled (314ms)
+  ✓  4 [empty-list] › e2e/routing.spec.ts:12:9 › Route Enablement › Route /panel/campaigns should 404 when not enabled (386ms)
+  ✓  5 [empty-list] › e2e/routing.spec.ts:20:9 › Route Enablement › 404 con la lista vacía › 404 para /login, /panel y /panel/platform/x con la lista vacía sin sesión (541ms)
+  ✓  6 [empty-list] › e2e/routing.spec.ts:31:9 › Route Enablement › 404 con la lista vacía › 404 para /login, /panel y /panel/platform/x con la lista vacía con sesión (559ms)
+
+  6 passed (10.6s)
+[WebServer] $ next build
+[WebServer] $ next start
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e/production.spec.ts:4:7 › Production build (Rule 7) › does not expose __TEST_SESSION__ or __TEST_ROUTER__ backdoors (362ms)
+
+  1 passed (9.3s)
+RESULTADO: OK (73 s)
+
+===== RESUMEN =====
+OK       Checkout repository
+OK       Check for .skip or .only in tests
+OK       Setup Node.js 22
+OK       Install pnpm
+OK       Install dependencies
+OK       Typecheck
+OK       Vitest
+OK       Check Server Imports
+OK       Install Playwright Chromium
+OK       Playwright E2E Tests
+CI LOCAL: OK
+
+sha256 (de todo lo anterior a la línea en blanco final; verificar con: head -n -2 <archivo> | sha256sum): 4f31026039a711507577f6a6385fd06595feb0afea2aaf7218abd68c9e165113
