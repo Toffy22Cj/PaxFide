@@ -35,6 +35,11 @@ Se mantiene lo de la segunda pasada:
 - estimación sin cifra durante el recorrido (`NOT_STARTED`);
 - narrativa de convocatoria `UNAVAILABLE` sin clave de LLM.
 
+**Estimación con cifra** (`capturas/31-estimacion-con-cifra.png`): pasado el inicio de la convocatoria (03:53Z), la
+pantalla muestra la cifra real del backend (probabilidad 100 %, final 238 %) con su aviso "fuera del rango de
+entrenamiento", y lo recaudado como hecho, separado de la estimación. La captura se tomó con un guion aparte, con la
+sesión del administrador.
+
 ## Capturas
 
 `capturas/NN-paso.png` (1280 px), con el `trackingCode` tapado. El token de invitación no se muestra nunca en pantalla.
