@@ -12,7 +12,8 @@ Regenerar: `PW_CHROMIUM_PATH=… pnpm exec playwright test -c playwright.captura
 | `convocatoria-publica` | `cerrada`, `contenido`, `no-encontrada`, `solo-especie` |
 | `fondos` | `403`, `cargando`, `listado`, `solicitar-409`, `vacio` |
 | `activos-organizacion` | `listado`, `vacio` |
-| `plataforma` | `409`, `formulario`, `pedir-informacion`, `resultado` (y `panel__plataforma`) |
+| `plataforma` | `409`, `administradores-409`, `cargando`, `cola`, `cola-403`, `cola-vacia`, `pedir-informacion`, `resultado` (y `panel__plataforma`; `formulario` es de antes de la cola: ya no se escribe el identificador) |
+| `organizacion` | `creada-pendiente`, `sin-organizacion`, `validacion` (y `panel__sin-organizacion`) |
 | `convocatorias` | `409-organizacion-sin-verificar`, `ambiguo`, `asignar-403`, `asignar-409`, `cargando`, `creada-con-qr`, `cerrar-confirmacion`, `formulario`, `listado`, `listado-403`, `listado-vacio`, `retirar-responsable`, `validacion` (`listado-no-disponible` es de antes de P2-B: el listado ya existe) |
 | `donar` | `409-convocatoria-cerrada`, `ambiguo`, `confirmada-tracking-code`, `consulta-404`, `formulario`, `intencion-registrada-pasarela-simulada`, `intencion-registrada-transferencia`, `pago-fallido`, `pago-pendiente`, `validacion` |
 | `login` | `401-credenciales`, `error-red`, `formulario`, `sesion-expirada`, `validacion` |

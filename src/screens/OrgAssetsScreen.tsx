@@ -9,12 +9,13 @@ import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { ListOutcome } from '../lib/api/campaignAdmin';
 import { fetchOrganizationAssets, OrgAsset } from '../lib/api/organization';
 import { lifecycleLabel } from '../lib/labels';
+import { formatQuantity } from '../lib/quantity';
 import { PageHeader, uiClasses as ui } from '../components/ui/Layout';
 import { EmptyState, ErrorState, ForbiddenState, LoadingState, UnavailableState } from '../components/States';
 
 /**
  * `/panel/assets` (DD-54): activos de la organización (`ADMINISTRATOR` o `EMPLOYEE`), cada uno con enlace a su
- * página. Cantidades tal cual llegan (D-07).
+ * página. Cantidades sin ceros sobrantes (D-07).
  */
 export function OrgAssetsScreen({ meClient = fetchMe, assetsClient = fetchOrganizationAssets }: {
   meClient?: typeof fetchMe;
@@ -55,7 +56,7 @@ export function OrgAssetsScreen({ meClient = fetchMe, assetsClient = fetchOrgani
                     {linkable ? <Link href={`/assets/${encodeURIComponent(a.assetRef)}`}>{a.assetRef}</Link> : a.assetRef}
                   </td>
                   <td>{lifecycleLabel(a.lifecycleStatus)}</td>
-                  <td>{a.quantity ?? '—'} {a.unitOfMeasure ?? ''}</td>
+                  <td>{a.quantity ? formatQuantity(a.quantity) : '—'} {a.unitOfMeasure ?? ''}</td>
                   <td>{a.currentLocation ?? '—'}</td>
                   <td>{a.currentCustodianRef ?? '—'}</td>
                 </tr>

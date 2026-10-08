@@ -45,3 +45,6 @@ const VERIFICATION_STATUS: Record<string, string> = {
 };
 export const allocationStatusLabel = (v: string) => ALLOCATION_STATUS[v] ?? v;
 export const verificationStatusLabel = (v: string) => VERIFICATION_STATUS[v] ?? v;
+
+const ORGANIZATION_TYPE: Record<string, string> = { FOUNDATION: 'Fundación', COMPANY: 'Empresa' };
+export const organizationTypeLabel = (v: string) => ORGANIZATION_TYPE[v] ?? v;

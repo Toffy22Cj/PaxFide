@@ -59,6 +59,28 @@ const BY_TITLE: Record<string, string> = {
   CampaignNotAvailable: 'La convocatoria no admite este registro.',
   ConcurrentModification: 'Otra operación modificó el recurso al mismo tiempo. Recarga y revisa antes de repetir.',
   InvalidVerificationTransition: 'La organización no está en un estado que permita esta operación.',
+  // Organizaciones, plataforma, miembros e invitaciones (backend `8456ecc`; title = nombre de la regla)
+  AccountAlreadyBelongsToOrganization: 'Tu cuenta ya pertenece a una organización.',
+  PlatformAuthorityAlreadyGranted: 'Esa cuenta ya es administradora de la plataforma.',
+  PlatformAuthorityTargetInactive: 'Esa cuenta no está activa.',
+  PlatformAuthorityNotHeld: 'Esa cuenta no es administradora de la plataforma.',
+  LastPlatformAdministrator: 'Es el último administrador de la plataforma: no se puede retirar.',
+  InvalidMemberRole: 'Elige un papel válido.',
+  InvalidEmailFormat: 'El correo no es válido.',
+  InvitationNotAcceptable: 'Esta invitación no es válida para tu cuenta: puede haber caducado, haberse usado o ser para otro correo.',
+  InvitationNotPending: 'Esa invitación ya no está pendiente.',
+  MemberAlreadyHasRole: 'Esa persona ya tiene ese papel.',
+  ActiveCampaignResponsible: 'Esa persona es responsable de una convocatoria activa: retírala antes de la convocatoria.',
+  RepresentativeTransferRequired: 'No se puede quitar al representante sin transferir antes su papel.',
+  // Configuración de convocatorias (Enmienda 4 de ADR-037)
+  CampaignAlreadyHasDonations: 'La convocatoria ya tiene donaciones: el cambio necesita una solicitud con aprobación.',
+  ConfigurationVersionConflict: 'La configuración cambió mientras la editabas. Vuelve a abrirla y revisa los cambios.',
+  ConfigurationChangeOnClosedCampaign: 'La convocatoria está cerrada: su configuración ya no cambia.',
+  MonetaryTermsChangeNotSupported: 'La meta, la política y la moneda no se pueden cambiar mientras se acepten donaciones en dinero.',
+  MonetaryRemovalNotAllowed: 'La convocatoria ya tiene intenciones de donación en dinero: no se puede dejar de aceptarlas.',
+  ConfigurationChangeRequestAlreadyPending: 'Ya hay una solicitud de cambio pendiente para esta convocatoria.',
+  ConfigurationChangeRequestNotPending: 'Esa solicitud ya no está pendiente.',
+  SelfApprovalNotAllowed: 'No puedes aprobar tu propia solicitud: debe hacerlo otra persona.',
 };
 
 const BY_STATUS: Record<number, string> = {

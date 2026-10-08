@@ -8,12 +8,13 @@ import { DefinitionList, PageHeader } from '../../../components/ui/Layout';
 import { AssetActions } from '../../../components/asset/AssetActions';
 import { fetchMe } from '../../../lib/api/identity';
 import { usePrincipal } from '../../../lib/auth/usePrincipal';
+import { formatQuantity } from '../../../lib/quantity';
 
 type State = 'LOADING' | 'SUCCESS' | 'FORBIDDEN' | 'NOT_FOUND' | 'ERROR';
 
 /**
  * `AssetPage` (`/assets/:assetRef`, `diseno-ux` §5.3): `PhysicalAssetOperationalReadModel` con sus 7 campos y
- * ninguno más; referencias opacas tal cual; `quantity` sin transformar; estado sin color. Acciones: ver
+ * ninguno más; referencias opacas tal cual; `quantity` sin ceros sobrantes (D-07, solo la forma); estado sin color. Acciones: ver
  * `AssetActions`. Tras un comando se vuelve a leer sin desmontar la pantalla.
  */
 export default function AssetPage({ params, fetchClient = fetchAsset, meClient = fetchMe }: {
@@ -53,7 +54,7 @@ export default function AssetPage({ params, fetchClient = fetchAsset, meClient =
       {isReadOnly && <StatusNotice variant="info" text="Este activo ya fue entregado. Solo lectura." />}
       <DefinitionList items={[
         { label: 'Estado', value: lifecycleLabel(data.lifecycleStatus), testId: 'field-lifecycleStatus' },
-        { label: 'Cantidad', value: String(data.quantity), testId: 'field-quantity' },
+        { label: 'Cantidad', value: formatQuantity(data.quantity), testId: 'field-quantity' },
         { label: 'Unidad de medida', value: data.unitOfMeasure, testId: 'field-unitOfMeasure' },
         { label: 'Ubicación actual', value: orNone(data.currentLocation), testId: 'field-currentLocation' },
         { label: 'Custodio actual', value: orNone(data.currentCustodianRef), testId: 'field-currentCustodianRef' },

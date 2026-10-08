@@ -12,6 +12,7 @@ import { TextField } from '../components/ui/Field';
 import { Button } from '../components/ui/Button';
 import { ErrorState, LoadingState, StatusNotice } from '../components/States';
 import { LocalDate } from '../components/LocalDate';
+import { formatQuantity } from '../lib/quantity';
 
 type Clients = {
   tracking?: typeof fetchTracking;
@@ -143,7 +144,7 @@ function AssetItem({ index, item, trackingCode, clients }: {
     <li className={ui.surface} style={{ marginBottom: 0 }}>
       <DefinitionList items={[
         { label: 'Bien', value: item.assetType ?? `Bien ${index}` },
-        { label: 'Cantidad', value: [item.quantity, item.unitOfMeasure].filter(Boolean).join(' ') || '—' },
+        { label: 'Cantidad', value: [formatQuantity(item.quantity), item.unitOfMeasure].filter(Boolean).join(' ') || '—' },
         { label: 'Estado', value: lifecycleLabel(item.lifecycleStatus) },
         { label: 'Zona', value: item.locationZone ?? '—' },
         { label: 'Custodio', value: custodianLabel(item.custodianCategory) },

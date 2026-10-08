@@ -50,6 +50,7 @@ export function classifyRoute(pathname: string): RouteCategory {
     if (parts.length === 2 && b === 'prediction') return when('/panel/prediction', 'AUTHENTICATED');
     if (parts.length === 2 && b === 'funds') return when('/panel/funds', 'AUTHENTICATED');
     if (parts.length === 2 && b === 'assets') return when('/panel/assets', 'AUTHENTICATED');
+    if (parts.length === 2 && b === 'organization') return when('/panel/organization', 'AUTHENTICATED');
     // Verificación de organizaciones (Autorización (2) §2.2; DW-41): solo `/panel/platform`; cualquier subruta, no existe
     if (parts.length === 2 && b === 'platform') return when('/panel/platform', 'AUTHENTICATED');
     return 'NOT_APPROVED';
