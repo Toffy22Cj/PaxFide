@@ -207,7 +207,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     await a.getByRole('button', { name: 'Crear convocatoria' }).last().click();
     const res = await created;
     expect(res.status()).toBe(201);
-    s.publicCode = (await res.json()).publicCode;
+    ({ publicCode: s.publicCode, campaignRef: s.campaignRef } = await res.json());
     await expect(a.getByText('Convocatoria creada')).toBeVisible();
     await expect(a.getByTestId('org-campaign').filter({ hasText: title })).toBeVisible();
   }, () => s.admin);
@@ -267,16 +267,18 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     const a = s.admin as Page;
     await a.getByRole('link', { name: 'Panel' }).click();
     await a.getByRole('link', { name: 'Fondos de mi organización' }).click();
-    const fund = a.getByTestId('fund').filter({ hasNotText: 'Disponible0 COP' }).first();
+    // El fondo de la convocatoria de este ensayo (con la base reutilizada hay fondos de pasadas anteriores)
+    const fund = a.getByTestId('fund').filter({ hasText: s.campaignRef }).filter({ hasNotText: 'Disponible0 COP' }).first();
     await expect(fund).toBeVisible();
     await fund.getByRole('button', { name: 'Solicitar asignación' }).click();
     await a.getByRole('dialog').getByLabel(/^Importe/).fill('10000');
     await a.getByRole('dialog').getByRole('button', { name: 'Solicitar asignación' }).click();
     await expect(a.getByText('Asignación solicitada.')).toBeVisible();
-    await fund.getByRole('button', { name: 'Confirmar asignación' }).click();
+    await fund.getByTestId('allocation').filter({ hasText: 'Solicitada' }).first().getByRole('button', { name: 'Confirmar asignación' }).click();
     await a.getByRole('dialog').getByRole('button', { name: 'Confirmar asignación' }).click();
     await expect(a.getByText('Asignación confirmada.')).toBeVisible();
-    await expect(fund.getByTestId('allocation')).toContainText('Confirmada');
+    await expect(fund.getByTestId('allocation').filter({ hasText: 'Confirmada' }).first()).toBeVisible();
+    s.fundId = String(await fund.getByRole('heading').first().textContent()).replace(/^Fondo\s+/, '').trim();
   }, () => s.admin);
 
   await paso('registrar-activo-camino-A', 'UI', async () => {
@@ -284,7 +286,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     s.employee = e;
     await e.getByRole('button', { name: 'Registrar activo' }).click();
     await e.getByLabel('Compra con fondos de una donación').check();
-    await e.getByLabel('Fondo', { exact: true }).selectOption({ index: 1 });
+    await e.getByLabel('Fondo', { exact: true }).selectOption(s.fundId);
     await e.getByLabel('Asignación de fondos', { exact: true }).selectOption({ index: 1 });
     await e.getByLabel('Tipo de bien').fill('BLANKET');
     await e.getByLabel('Cantidad').fill('10');
@@ -293,6 +295,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     await e.getByLabel('Ubicación actual').fill('bodega-1');
     await e.getByRole('button', { name: 'Registrar' }).click();
     await expect(e).toHaveURL(/\/assets\//, { timeout: 15000 });
+    s.assetRef = decodeURIComponent(e.url().split('/assets/')[1]);
   }, () => s.employee);
 
   // 4B y 5. Logística, división y entrega
@@ -324,8 +327,9 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     const e = s.employee as Page;
     await e.getByRole('link', { name: 'Panel' }).click();
     await e.getByRole('link', { name: 'Activos de mi organización' }).click();
-    await expect(e.getByTestId('org-asset')).toHaveCount(2);
-    await expect(e.getByTestId('org-asset').filter({ hasText: 'Entregado' })).toHaveCount(2);
+    // El activo de esta pasada (con la base reutilizada hay activos de pasadas anteriores)
+    await expect(e.getByTestId('org-asset').filter({ hasText: s.assetRef })).toContainText('Entregado');
+    await expect(e.getByTestId('org-asset').filter({ hasText: s.assetRef })).toContainText('6 UNITS');
   }, () => s.employee);
 
   // 6/7. Seguimiento por formulario (el código nunca en la URL)
@@ -399,7 +403,6 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     await a.getByRole('dialog').getByRole('button', { name: 'Solicitar' }).click();
     await expect(a.getByText('Solicitud de cambio enviada.')).toBeVisible();
     await expect(a.getByTestId('change-request').filter({ hasText: 'Pendiente' }).getByRole('button', { name: 'Aprobar' })).toHaveCount(0);
-    s.campaignRef = (await a.getByLabel('Convocatoria').inputValue());
   }, () => s.admin);
 
   await paso('configuracion-aprobacion', 'UI', async () => {
