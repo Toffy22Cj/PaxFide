@@ -25,6 +25,8 @@ export function classifyRoute(pathname: string): RouteCategory {
   if (parts.length === 1 && a === 'login') return when('/login', 'AUTH');
   if (parts.length === 1 && a === 'register') return when('/register', 'AUTH');
   if (parts.length === 1 && a === 'campaigns') return when('/campaigns', 'PUBLIC');
+  // Aceptar invitación (DW-48): pública para poder leer y borrar el token del fragmento antes de pedir sesión
+  if (parts.length === 1 && a === 'invitaciones') return when('/invitaciones', 'PUBLIC');
 
   if (parts.length === 2 && a === 'c') {
     return isValidParam(b) ? when('/c/:publicCode', 'PUBLIC') : 'NOT_APPROVED';
@@ -51,6 +53,8 @@ export function classifyRoute(pathname: string): RouteCategory {
     if (parts.length === 2 && b === 'funds') return when('/panel/funds', 'AUTHENTICATED');
     if (parts.length === 2 && b === 'assets') return when('/panel/assets', 'AUTHENTICATED');
     if (parts.length === 2 && b === 'organization') return when('/panel/organization', 'AUTHENTICATED');
+    if (parts.length === 2 && b === 'members') return when('/panel/members', 'AUTHENTICATED');
+    if (parts.length === 2 && b === 'my-campaigns') return when('/panel/my-campaigns', 'AUTHENTICATED');
     // Verificación de organizaciones (Autorización (2) §2.2; DW-41): solo `/panel/platform`; cualquier subruta, no existe
     if (parts.length === 2 && b === 'platform') return when('/panel/platform', 'AUTHENTICATED');
     return 'NOT_APPROVED';

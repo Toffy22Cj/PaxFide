@@ -296,6 +296,76 @@ test('mi organización', async ({ page }) => {
   await shot(page, 'organizacion', 'creada-pendiente');
 });
 
+test('personas de la organización', async ({ page }) => {
+  await login(page, 'admin@demo.test', 'demo-admin');
+  await shot(page, 'panel', 'con-entradas-administrador-p3');
+  await page.route('**/api/v1/organizations/*/invitations', hang());
+  await go(page, '/panel/members');
+  await expect(page.getByTestId('member').first()).toBeVisible();
+  await shot(page, 'personas', 'invitaciones-cargando');
+  await page.unroute('**/api/v1/organizations/*/invitations');
+  await go(page, '/panel'); await go(page, '/panel/members');
+  await page.getByRole('button', { name: 'Invitar' }).click();
+  await page.getByRole('dialog').getByLabel('Correo electrónico').fill(`captura-${test.info().project.name}@demo.test`);
+  await page.getByRole('dialog').getByLabel('Papel').selectOption('EMPLOYEE');
+  await shot(page, 'personas', 'invitar');
+  await page.getByRole('dialog').getByRole('button', { name: 'Enviar invitación' }).click();
+  await expect(page.getByText('Invitación enviada.')).toBeVisible();
+  await shot(page, 'personas', 'listado-con-invitacion');
+  await page.route('**/api/v1/organizations/*/members/*/remove', problem(409, 'ActiveCampaignResponsible'));
+  await page.getByTestId('member').filter({ hasText: 'acc-employee-2' }).getByRole('button', { name: 'Quitar de la organización' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Quitar' }).click();
+  await expect(page.getByRole('dialog').getByRole('alert')).toBeVisible();
+  await shot(page, 'personas', 'quitar-409');
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+  await page.route('**/api/v1/organizations/*/members', problem(403, 'Forbidden'));
+  await go(page, '/panel'); await go(page, '/panel/members');
+  await expect(page.getByText('No tienes acceso a este recurso.')).toBeVisible();
+  await shot(page, 'personas', 'miembros-403');
+});
+
+test('invitación', async ({ page, request, browser }) => {
+  const email = `invitacion-captura-${Date.now()}-${test.info().project.name}@demo.test`;
+  const admin = await (await browser.newContext({ viewport: page.viewportSize() ?? undefined })).newPage();
+  await login(admin, 'admin@demo.test', 'demo-admin');
+  await go(admin, '/panel/members');
+  await admin.getByRole('button', { name: 'Invitar' }).click();
+  await admin.getByRole('dialog').getByLabel('Correo electrónico').fill(email);
+  await admin.getByRole('dialog').getByLabel('Papel').selectOption('EMPLOYEE');
+  await admin.getByRole('dialog').getByRole('button', { name: 'Enviar invitación' }).click();
+  await expect(admin.getByText('Invitación enviada.')).toBeVisible();
+  const { link } = await (await request.get(`${API}/__test/invitations/last?email=${encodeURIComponent(email)}`)).json();
+  await request.post(`${API}/api/v1/auth/register`, { data: { email, password: 'clave-demo-larga' } });
+
+  await page.goto('/invitaciones');
+  await expect(page.getByText(/No hay ninguna invitación/)).toBeVisible();
+  await shot(page, 'invitacion', 'sin-token');
+  await page.goto(link);
+  await expect(page.getByText(/inicia sesión con la cuenta del correo/)).toBeVisible();
+  await shot(page, 'invitacion', 'sin-sesion');
+  await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+  await page.getByLabel('Correo electrónico').fill(email);
+  await page.getByLabel('Contraseña').fill('clave-demo-larga');
+  await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+  await expect(page.getByRole('button', { name: 'Aceptar invitación' })).toBeVisible();
+  await shot(page, 'invitacion', 'con-sesion');
+  await page.route('**/api/v1/invitations/accept', problem(403, 'InvitationNotAcceptable'));
+  await page.getByRole('button', { name: 'Aceptar invitación' }).click();
+  await expect(page.getByText(/no es válida para tu cuenta/)).toBeVisible();
+  await shot(page, 'invitacion', 'no-valida');
+});
+
+test('mis convocatorias', async ({ page }) => {
+  await login(page, 'admin@demo.test', 'demo-admin');
+  await go(page, '/panel/my-campaigns');
+  await expect(page.getByTestId('my-campaign').first()).toBeVisible();
+  await shot(page, 'mis-convocatorias', 'listado');
+  await page.route('**/api/v1/me/campaigns', json(200, { items: [] }));
+  await go(page, '/panel'); await go(page, '/panel/my-campaigns');
+  await expect(page.getByText('No eres responsable de ninguna convocatoria.')).toBeVisible();
+  await shot(page, 'mis-convocatorias', 'vacio');
+});
+
 test('convocatoria pública', async ({ page, request }) => {
   const code = await newCampaign(request);
   await page.goto(`/c/${code}`);

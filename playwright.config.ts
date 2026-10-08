@@ -60,7 +60,14 @@ export default defineConfig({
           '/panel/organization',
           'action:create-organization',
           'action:platform-grant-admin',
-          'action:platform-revoke-admin'
+          'action:platform-revoke-admin',
+          '/panel/members',
+          '/panel/my-campaigns',
+          '/invitaciones',
+          'action:member-invite',
+          'action:invitation-revoke',
+          'action:member-change-role',
+          'action:member-remove'
         ])
       }
     },

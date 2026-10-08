@@ -40,6 +40,13 @@ export function panelEntries(principal: Principal | null): PanelEntry[] {
   if (principal?.platformAuthority && isSurfaceEnabled('/panel/platform')) {
     entries.push({ id: 'platform', label: 'Plataforma: verificación y administradores', href: '/panel/platform' });
   }
+  if ((roles.includes('ADMINISTRATOR') || roles.includes('REPRESENTATIVE')) && isSurfaceEnabled('/panel/members')) {
+    entries.push({ id: 'members', label: 'Personas de mi organización', href: '/panel/members' });
+  }
+  // Cualquier miembro puede ser responsable (EMPLOYEE o ADMINISTRATOR); la lista dice si lo es
+  if ((roles.includes('EMPLOYEE') || roles.includes('ADMINISTRATOR')) && isSurfaceEnabled('/panel/my-campaigns')) {
+    entries.push({ id: 'my-campaigns', label: 'Mis convocatorias', href: '/panel/my-campaigns' });
+  }
   // Con `/me` leído: sin organización, para crearla; con organización, para ver la cuenta en ella (R9)
   if (principal && isSurfaceEnabled('/panel/organization')) {
     entries.push(principal.organizationId
