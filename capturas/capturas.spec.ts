@@ -513,7 +513,7 @@ test('seguimiento', async ({ page, request }) => {
       verification: { result: 'INCONCLUSIVE', reason: 'NOT_ANCHORED', reasonText: 'El lote aún no está anclado en la cadena' } },
   ], unanchoredEvents: 0, checkedAt: '2026-10-08T11:00:00Z' }));
   await page.getByRole('button', { name: 'Volver a comprobar' }).click();
-  await expect(page.getByText('No coincide')).toBeVisible();
+  await expect(page.getByText('No coincide', { exact: true })).toBeVisible();
   await shot(page, 'seguimiento', 'integridad-no-coincide');
 });
 

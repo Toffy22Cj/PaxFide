@@ -352,6 +352,20 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     }
     return 'relato individual: no llegó en 30 s';
   }, () => s.tracker);
+  // S-22: integridad a petición, con el mismo código en Authorization. Solo se registran resultados y estados
+  await paso('integridad', 'UI', async () => {
+    const t = s.tracker as Page;
+    await t.getByRole('button', { name: 'Comprobar integridad' }).click();
+    const box = t.getByTestId('integrity');
+    await expect(box.or(t.getByRole('alert'))).toBeVisible({ timeout: 30000 });
+    await expect(box).toBeVisible();
+    const groups = box.getByTestId('integrity-batch');
+    const n = await groups.count();
+    const results: string[] = [];
+    for (let i = 0; i < n; i++) results.push(`${await groups.nth(i).getAttribute('data-result')}`);
+    const pending = (await box.textContent())?.match(/Hay (\d+) eventos? de tu donación que todavía no/)?.[1] ?? '0';
+    return `${n} grupo(s): ${results.join(', ') || '—'}; eventos sin anclar: ${pending}`;
+  }, () => s.tracker);
 
   // Panel: listado, estimación y narrativa
   await paso('estimacion', 'UI', async () => {
@@ -362,7 +376,25 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     await a.getByRole('button', { name: 'Ver estimación' }).click();
     await expect(a.getByText('ESTIMACIÓN — modelo entrenado con datos sintéticos').first()).toBeVisible();
     const figure = await a.getByTestId('prediction-estimate').isVisible();
-    return figure ? 'con cifra' : `sin cifra: ${(await a.locator('main').textContent())?.match(/Sin cifra para esta convocatoria(.{0,120})/)?.[1] ?? ''}`;
+    const notice = a.getByRole('status').filter({ hasText: 'Sin cifra para esta convocatoria' });
+    return figure ? 'con cifra' : `sin cifra: ${((await notice.textContent()) ?? '').replace('Sin cifra para esta convocatoria', '').trim()}`;
+  }, () => s.admin);
+  // S-17: evolución por cortes (la convocatoria del ensayo acaba de empezar: los cortes son futuros y salen vacíos)
+  await paso('estimacion-historial', 'UI', async () => {
+    const a = s.admin as Page;
+    const section = a.getByTestId('history-section');
+    await expect(section).toBeVisible();
+    await expect(section.getByTestId('history-table').or(section.getByRole('status')).or(section.getByRole('alert')).first()).toBeVisible({ timeout: 15000 });
+    if (await section.getByTestId('history-table').isVisible()) {
+      const cuts: string[] = [];
+      for (const c of [15, 25, 50]) {
+        const g = section.getByTestId(`history-cut-${c}`);
+        if (await g.count()) cuts.push(`${c} %: ${(await g.getAttribute('data-available')) === 'true' ? 'con cifra' : 'sin cifra'}`);
+      }
+      const reasons = [...new Set(((await section.getByTestId('history-table').textContent()) ?? '').match(/Sin cifra: [^%]*?(?=\d+ % del tiempo|$)/g) ?? [])];
+      return `${cuts.join('; ')} — ${reasons.join(' | ')}`;
+    }
+    return `sin estimaciones por corte: ${(await section.textContent())?.slice(0, 160)}`;
   }, () => s.admin);
   await paso('narrativa-convocatoria', 'UI', async () => {
     const p = s.pub as Page;

@@ -1,0 +1,177 @@
+[
+  {
+    "id": "login-administrador",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "verificar-organizacion",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "verificada desde la cola"
+  },
+  {
+    "id": "cerrar-ensayos-anteriores",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "cerradas: 0"
+  },
+  {
+    "id": "crear-convocatoria",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "asignar-empleado",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "donar-sin-cuenta",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "pago-sin-cuenta (proveedor simulado)",
+    "via": "HTTP",
+    "resultado": "OK",
+    "nota": "el test hace de proveedor de pago (DW-30)"
+  },
+  {
+    "id": "codigo-seguimiento-sin-cuenta",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "donar-con-cuenta",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "pago-con-cuenta (proveedor simulado)",
+    "via": "HTTP",
+    "resultado": "OK",
+    "nota": "el test hace de proveedor de pago (DW-30)"
+  },
+  {
+    "id": "historial-donante",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "convocatoria-publica-recaudado",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "recaudado mostrado: 100.000 COP (enviado: 60.000 + 40.000 COP; D-01)"
+  },
+  {
+    "id": "fondo-y-asignacion",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "registrar-activo-camino-A",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "despachar-recibir",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "dividir",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "entregar-padre-e-hijo",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "activos-organizacion",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "seguimiento",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "relato individual: plantilla (FALLBACK_TEMPLATE)"
+  },
+  {
+    "id": "integridad",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "3 grupo(s): MATCH, MATCH, INCONCLUSIVE; eventos sin anclar: 0"
+  },
+  {
+    "id": "estimacion",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "sin cifra: La convocatoria aún no ha empezado"
+  },
+  {
+    "id": "estimacion-historial",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "15 %: sin cifra; 25 %: sin cifra; 50 %: sin cifra — Sin cifra: Este corte aún no ha llegado"
+  },
+  {
+    "id": "narrativa-convocatoria",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "UNAVAILABLE sin clave de LLM, con sus hechos (lo esperado según el runbook)"
+  },
+  {
+    "id": "mis-convocatorias",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "configuracion-solicitud",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "configuracion-aprobacion",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "aprobada por el representante; la página pública ofrece la transferencia"
+  },
+  {
+    "id": "invitar",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "correo-de-invitacion (Mailpit)",
+    "via": "HTTP",
+    "resultado": "OK",
+    "nota": "enlace del correo a la web (:3000), token en el fragmento"
+  },
+  {
+    "id": "aceptar-invitacion",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "token: fuera de la barra, de todas las URL y del almacenamiento"
+  },
+  {
+    "id": "personas",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "4 miembros, también la invitada (por cuenta y papeles: el contrato no trae correo)"
+  },
+  {
+    "id": "crear-organizacion",
+    "via": "UI",
+    "resultado": "OK"
+  },
+  {
+    "id": "cola-pedir-informacion",
+    "via": "UI",
+    "resultado": "OK",
+    "nota": "cola con la organización nueva; 1 administrador(es) de plataforma listados"
+  }
+]

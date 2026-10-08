@@ -93,3 +93,17 @@ Siguen abiertas: D-05 (el ejemplo de `demo.env` apunta a `:5173`, también el en
 solo se repite sobre base vacía), D-08 (H-DEMO-2), D-10/S-19, S-18, S-20 y S-21. Evidencia:
 `PaxFide/Documentos/evidencia-web/ensayo-conjunto-2026-10-08-p3/`.
 
+
+### Ensayo conjunto tras P4-B (2026-10-08, backend `d169dda`)
+
+**32/32 pasos OK, 121 llamadas**, base vacía. Mismos errores esperados (el 409 provocado y el 403 de S-20).
+
+Nuevo por la interfaz contra el backend real:
+- integridad en el seguimiento: grupos anclados en Ganache con `MATCH` y uno enviado y aún sin confirmar con
+  `INCONCLUSIVE`/`NOT_ANCHORED`;
+- evolución por cortes: con la convocatoria recién creada, los tres cortes llegan como `FUTURE_CUT` y se dibujan vacíos.
+
+Sin novedades para el backend. Los cortes con cifra no se pudieron ver en vivo porque la demo no tiene convocatorias con
+cortes pasados. Si el backend quiere que se vean en la demo, una convocatoria antigua en la semilla bastaría (no es una
+solicitud: solo una sugerencia para la demo). Siguen abiertas D-09, D-10/S-19, S-18, S-20, S-21 y S-23. Evidencia:
+`PaxFide/Documentos/evidencia-web/ensayo-conjunto-2026-10-08-p4b/`.
