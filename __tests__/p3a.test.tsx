@@ -148,7 +148,7 @@ describe('/panel/platform — administradores', () => {
     expect(await within(dialog).findByText('Es el último administrador de la plataforma: no se puede retirar.')).toBeInTheDocument();
     expect(fetchMock.mock.calls[1][0]).toBe('http://api.paxfide.test/api/v1/platform/administrators/acc-p/revoke');
     expect(fetchMock.mock.calls[1][1].body).toBeUndefined();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Retirar' }));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
 
