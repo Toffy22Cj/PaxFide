@@ -5,7 +5,7 @@ import { useCommand, CommandRequest } from '../../lib/commands/useCommand';
 import { Modal } from '../ui/Modal';
 import { TextField, SelectField, TextArea } from '../ui/Field';
 import { Button } from '../ui/Button';
-import { Actions } from '../ui/Layout';
+import { Actions, uiClasses as ui } from '../ui/Layout';
 import { CommandFeedback } from '../CommandFeedback';
 
 export interface FieldSpec {
@@ -72,7 +72,7 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
   // Cerrar con una operación ambigua abierta equivale a "Cerrar" del ambiguo: no se envía nada más
   return (
     <Modal title={title} onCancel={onClose}>
-      {description && <p>{description}</p>}
+      {description && <div className={ui.modalText}>{description}</div>}
       <form onSubmit={submit} noValidate>
         {fields.map((f) => (f.options
           ? <SelectField key={f.name} label={f.label} hint={f.hint} value={values[f.name]} options={f.options}

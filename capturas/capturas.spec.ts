@@ -366,6 +366,35 @@ test('mis convocatorias', async ({ page }) => {
   await shot(page, 'mis-convocatorias', 'vacio');
 });
 
+test('configuración de convocatorias', async ({ page }) => {
+  await login(page, 'admin@demo.test', 'demo-admin');
+  await go(page, '/panel/configuration');
+  await expect(page.getByLabel('Convocatoria')).toBeVisible();
+  await shot(page, 'configuracion', 'eleccion');
+  await page.getByLabel('Convocatoria').selectOption({ label: 'Mercados para adultos mayores' });
+  await page.getByRole('button', { name: 'Ver configuración' }).click();
+  await expect(page.getByTestId('configuration-version')).toBeVisible();
+  await shot(page, 'configuracion', 'actual-y-formulario');
+  await page.getByLabel('Transferencia bancaria').uncheck();
+  await page.route('**/configuration', problem(409, 'CampaignAlreadyHasDonations'));
+  await page.getByRole('button', { name: 'Guardar sin aprobación' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.getByRole('dialog').getByRole('alert')).toBeVisible();
+  await shot(page, 'configuracion', 'guardar-409-con-donaciones');
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+  await page.route('**/configuration-change-requests', (route) => (route.request().method() === 'GET'
+    ? json(200, { items: [
+      { requestId: 'r1', status: 'PENDING', baseConfigurationVersion: 1, requestedBy: 'acc-otro', requestedAt: '2026-10-08T01:00:00Z',
+        proposedConfiguration: { acceptedDonationTypes: ['MONETARY'], acceptedPaymentMethods: ['GATEWAY'], currency: 'COP', targetAmount: '500000000', targetPolicy: 'FLEXIBLE' } },
+      { requestId: 'r0', status: 'APPROVED', baseConfigurationVersion: 1, requestedBy: 'acc-admin', requestedAt: '2026-10-07T01:00:00Z', resultingConfigurationVersion: 2,
+        proposedConfiguration: { acceptedDonationTypes: ['MONETARY'], acceptedPaymentMethods: ['GATEWAY', 'BANK_TRANSFER'], currency: 'COP', targetAmount: '500000000', targetPolicy: 'FLEXIBLE' } },
+    ] })(route)
+    : route.continue()));
+  await page.getByRole('button', { name: 'Ver configuración' }).click();
+  await expect(page.getByTestId('change-request').first()).toBeVisible();
+  await shot(page, 'configuracion', 'solicitudes');
+});
+
 test('convocatoria pública', async ({ page, request }) => {
   const code = await newCampaign(request);
   await page.goto(`/c/${code}`);

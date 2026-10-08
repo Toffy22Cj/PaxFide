@@ -738,6 +738,81 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Configuración (Enmienda 4 de ADR-037; DD-73): versión, edición directa sin donaciones, solicitudes con aprobación ajena
+  const cfgMatch = p.match(/^\/campaigns\/([^/]+)\/(configuration|configuration-change-requests)(?:\/([^/]+)\/(approve|reject))?$/);
+  if (cfgMatch) {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const c = campaignByRef(decodeURIComponent(cfgMatch[1]));
+    const manager = actor.roles.includes('ADMINISTRATOR') || actor.roles.includes('REPRESENTATIVE');
+    if (!c || c.organizationRef !== actor.organizationId || !manager) { problem(res, 403, 'Forbidden'); return; }
+    c.configurationVersion = c.configurationVersion || 1;
+    c.changeRequests = c.changeRequests || [];
+    const config = () => ({ acceptedDonationTypes: [...(c.acceptedDonationTypes || [])].sort(), acceptedPaymentMethods: [...(c.acceptedPaymentMethods || [])].sort(),
+      currency: c.currency, targetAmount: c.targetAmount, targetPolicy: c.targetPolicy, onTargetReached: c.onTargetReached });
+    const monetaryTerms = (x) => JSON.stringify([x.currency, x.targetAmount, x.targetPolicy, x.onTargetReached || undefined]);
+    const hasIntents = () => [...intents.values()].some((i) => i.publicCode === c.publicCode);
+    const validate = (b) => {
+      const k = b && b.configuration;
+      if (!b || !Number.isInteger(b.expectedConfigurationVersion) || b.expectedConfigurationVersion < 1 || !k
+        || !Array.isArray(k.acceptedDonationTypes) || k.acceptedDonationTypes.length === 0) { problem(res, 400, 'InvalidRequestField'); return null; }
+      if (c.status === 'CLOSED') { problem(res, 409, 'ConfigurationChangeOnClosedCampaign'); return null; }
+      if (b.expectedConfigurationVersion !== c.configurationVersion) { problem(res, 409, 'ConfigurationVersionConflict'); return null; }
+      const had = (c.acceptedDonationTypes || []).includes('MONETARY');
+      const has = k.acceptedDonationTypes.includes('MONETARY');
+      if (had && has && monetaryTerms(k) !== monetaryTerms(config())) { problem(res, 409, 'MonetaryTermsChangeNotSupported'); return null; }
+      if (had && !has && hasIntents()) { problem(res, 409, 'MonetaryRemovalNotAllowed'); return null; }
+      return k;
+    };
+    const apply = (k) => {
+      Object.assign(c, { acceptedDonationTypes: k.acceptedDonationTypes, acceptedPaymentMethods: k.acceptedPaymentMethods || [],
+        currency: k.currency, targetAmount: k.targetAmount, targetPolicy: k.targetPolicy, onTargetReached: k.onTargetReached });
+      c.configurationVersion += 1;
+      return c.configurationVersion;
+    };
+    if (cfgMatch[2] === 'configuration' && req.method === 'POST') {
+      if (!actor.roles.includes('ADMINISTRATOR')) { problem(res, 403, 'Forbidden'); return; }
+      const b = await readBody(req);
+      if (hasIntents()) { problem(res, 409, 'CampaignAlreadyHasDonations'); return; }
+      const k = validate(b);
+      if (!k) return;
+      send(res, 200, { campaignRef: c.campaignRef, configurationVersion: apply(k) });
+      return;
+    }
+    if (cfgMatch[2] === 'configuration-change-requests' && !cfgMatch[3] && req.method === 'GET') {
+      send(res, 200, { items: c.changeRequests.slice(-50) }, { 'Cache-Control': 'no-store' });
+      return;
+    }
+    if (cfgMatch[2] === 'configuration-change-requests' && !cfgMatch[3] && req.method === 'POST') {
+      if (!actor.roles.includes('ADMINISTRATOR')) { problem(res, 403, 'Forbidden'); return; }
+      const b = await readBody(req);
+      if (c.changeRequests.some((r) => r.status === 'PENDING')) { problem(res, 409, 'ConfigurationChangeRequestAlreadyPending'); return; }
+      const k = validate(b);
+      if (!k) return;
+      const requestId = 'req-' + crypto.randomUUID();
+      c.changeRequests.push({ requestId, status: 'PENDING', baseConfigurationVersion: c.configurationVersion,
+        proposedConfiguration: { ...k, acceptedDonationTypes: [...k.acceptedDonationTypes].sort(), acceptedPaymentMethods: [...(k.acceptedPaymentMethods || [])].sort() },
+        requestedBy: actor.accountId, requestedAt: new Date().toISOString() });
+      send(res, 201, { requestId, status: 'PENDING', baseConfigurationVersion: c.configurationVersion });
+      return;
+    }
+    if (cfgMatch[3] && req.method === 'POST') {
+      const r = c.changeRequests.find((x) => x.requestId === decodeURIComponent(cfgMatch[3]));
+      if (!r) { problem(res, 403, 'Forbidden'); return; }
+      if (r.status !== 'PENDING') { problem(res, 409, 'ConfigurationChangeRequestNotPending'); return; }
+      if (cfgMatch[4] === 'approve') {
+        if (r.requestedBy === actor.accountId) { problem(res, 403, 'SelfApprovalNotAllowed'); return; }
+        if (r.baseConfigurationVersion !== c.configurationVersion) { problem(res, 409, 'ConfigurationVersionConflict'); return; }
+        const v = apply(r.proposedConfiguration);
+        Object.assign(r, { status: 'APPROVED', decidedBy: actor.accountId, decidedAt: new Date().toISOString(), resultingConfigurationVersion: v });
+        send(res, 200, { requestId: r.requestId, status: 'APPROVED', configurationVersion: v });
+        return;
+      }
+      Object.assign(r, { status: 'REJECTED', decidedBy: actor.accountId, decidedAt: new Date().toISOString() });
+      send(res, 200, { requestId: r.requestId, status: 'REJECTED' });
+      return;
+    }
+  }
+
   // CV-03, retirar responsable (DD-50) y cerrar: mismas reglas de acceso que CV-02
   const adminMatch = p.match(/^\/campaigns\/([^/]+)\/(administrators|close|responsibles\/([^/]+)\/remove)$/);
   if (adminMatch && req.method === 'POST') {
