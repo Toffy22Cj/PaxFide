@@ -95,6 +95,8 @@ addCampaign('01JDEMOPUBLICC0DEINKIND01', {
 
 const intents = new Map();
 const verifiedOrganizations = new Set(['org-1']);
+/** Invitaciones (ADR-049): id → {organizationId, email, role, token, status, createdAt, expiresAt}. */
+const invitations = new Map();
 /** Estado de verificación de las organizaciones del doble (plataforma, DD-48). */
 const organizationStatus = new Map([['org-1', 'VERIFIED'], ['org-2', 'PENDING_VERIFICATION'], ['org-3', 'PENDING_VERIFICATION']]);
 /** Ficha de las organizaciones del doble (cola de verificación, DD-69): nombre, tipo, petición de información y orden. */
@@ -116,6 +118,8 @@ const oneOf = (v, xs) => v === undefined || v === null || xs.includes(v);
 const assets = new Map();
 const narrativeCalls = new Map();
 const splits = new Map();
+
+const campaignByRef = (ref) => [...campaigns.values()].find((c) => c.campaignRef === ref);
 
 function newAsset(a) {
   const assetRef = a.assetRef || crypto.randomUUID();
@@ -219,6 +223,14 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   // Datos de prueba: crea una convocatoria pública abierta y devuelve su publicCode
+  // El test hace de buzón de correo (como Mailpit en la demo real): el enlace de la última invitación a un correo
+  if (path === '/__test/invitations/last' && req.method === 'GET') {
+    const email = (url.searchParams.get('email') || '').toLowerCase();
+    const inv = [...invitations.values()].filter((i) => i.email === email).pop();
+    send(res, inv ? 200 : 404, inv ? { link: `/invitaciones#token=${inv.token}` } : { ok: false });
+    return;
+  }
+
   if (path === '/__test/campaigns' && req.method === 'POST') {
     const body = (await readBody(req)) || {};
     const code = '01JT' + crypto.randomBytes(16).toString('hex').toUpperCase().slice(0, 22);
@@ -424,6 +436,106 @@ const server = http.createServer(async (req, res) => {
       };
     });
     send(res, 200, { items });
+    return;
+  }
+
+  // Invitaciones (§3.3, ADR-049): ADMINISTRATOR o REPRESENTATIVE
+  const invMatch = p.match(/^\/organizations\/([^/]+)\/invitations(?:\/([^/]+)\/revoke)?$/);
+  if (invMatch) {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(invMatch[1]);
+    if (actor.organizationId !== orgId || !actor.roles.some((r) => r === 'ADMINISTRATOR' || r === 'REPRESENTATIVE')) { problem(res, 403, 'Forbidden'); return; }
+    if (req.method === 'GET' && !invMatch[2]) {
+      const now = Date.now();
+      const items = [...invitations.entries()].filter(([, i]) => i.organizationId === orgId && i.status === 'PENDING' && Date.parse(i.expiresAt) > now)
+        .map(([id, i]) => ({ invitationId: id, emailMasked: i.email[0] + '***' + i.email.slice(i.email.indexOf('@')), role: i.role,
+          createdAt: i.createdAt, expiresAt: i.expiresAt, delivery: 'SENT' }));
+      send(res, 200, { items }, { 'Cache-Control': 'no-store' });
+      return;
+    }
+    if (req.method === 'POST' && invMatch[2]) {
+      const inv = invitations.get(decodeURIComponent(invMatch[2]));
+      if (!inv || inv.organizationId !== orgId) { problem(res, 403, 'Forbidden'); return; }
+      if (inv.status !== 'PENDING') { problem(res, 409, 'InvitationNotPending'); return; }
+      inv.status = 'REVOKED';
+      send(res, 200, { invitationId: decodeURIComponent(invMatch[2]), status: 'REVOKED' });
+      return;
+    }
+    if (req.method === 'POST') {
+      const b = await readBody(req);
+      if (!b || !['ADMINISTRATOR', 'EMPLOYEE'].includes(b.role)) { problem(res, 400, 'InvalidMemberRole'); return; }
+      if (typeof b.email !== 'string' || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(b.email)) { problem(res, 400, 'InvalidEmailFormat'); return; }
+      const invitationId = 'inv-' + crypto.randomUUID();
+      const createdAt = new Date().toISOString();
+      const expiresAt = new Date(Date.now() + 7 * 86400000).toISOString();
+      invitations.set(invitationId, { organizationId: orgId, email: b.email.toLowerCase(), role: b.role,
+        token: crypto.randomBytes(24).toString('base64url'), status: 'PENDING', createdAt, expiresAt });
+      send(res, 202, { invitationId, role: b.role, expiresAt });
+      return;
+    }
+  }
+
+  // Cambiar papel y quitar miembro (DD-66): ADMINISTRATOR o REPRESENTATIVE
+  const memberMatch = p.match(/^\/organizations\/([^/]+)\/members\/([^/]+)\/(role|remove)$/);
+  if (memberMatch && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(memberMatch[1]);
+    if (actor.organizationId !== orgId || !actor.roles.some((r) => r === 'ADMINISTRATOR' || r === 'REPRESENTATIVE')) { problem(res, 403, 'Forbidden'); return; }
+    const target = Object.values(accounts).find((a) => a.accountId === decodeURIComponent(memberMatch[2]) && a.organizationId === orgId);
+    if (!target) { problem(res, 403, 'Forbidden'); return; }
+    const responsible = [...assignments.entries()].some(([k, v]) => k.endsWith(':' + target.accountId)
+      && campaignByRef(k.slice(0, k.length - target.accountId.length - 1))?.status === 'OPEN' && v);
+    if (memberMatch[3] === 'remove') {
+      if (target.roles.includes('REPRESENTATIVE')) { problem(res, 409, 'RepresentativeTransferRequired'); return; }
+      if (responsible) { problem(res, 409, 'ActiveCampaignResponsible'); return; }
+      delete target.organizationId;
+      target.roles = [];
+      send(res, 200, { accountId: target.accountId, removed: true });
+      return;
+    }
+    const b = await readBody(req);
+    if (!b || !['ADMINISTRATOR', 'EMPLOYEE'].includes(b.role)) { problem(res, 400, 'InvalidMemberRole'); return; }
+    if (target.roles.includes('REPRESENTATIVE') && target !== actor) { problem(res, 403, 'Forbidden'); return; }
+    if (b.role === 'ADMINISTRATOR') {
+      if (target.roles.includes('ADMINISTRATOR')) { problem(res, 409, 'MemberAlreadyHasRole'); return; }
+      target.roles = [...target.roles, 'ADMINISTRATOR'];
+    } else {
+      if (target.roles.includes('EMPLOYEE') && !target.roles.includes('ADMINISTRATOR')) { problem(res, 409, 'MemberAlreadyHasRole'); return; }
+      target.roles = [...new Set([...target.roles.filter((r) => r !== 'ADMINISTRATOR'), 'EMPLOYEE'])];
+    }
+    send(res, 200, { accountId: target.accountId, roles: [...target.roles].sort() });
+    return;
+  }
+
+  // Aceptar invitación (ADR-049 D4): token en el CUERPO; en la URL, el mismo 403
+  if (p === '/invitations/accept' && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    if (url.search.includes('token')) { problem(res, 403, 'InvitationNotAcceptable'); return; }
+    const b = await readBody(req);
+    const inv = b && typeof b.token === 'string' ? [...invitations.values()].find((i) => i.token === b.token) : null;
+    const email = Object.keys(accounts).find((e) => accounts[e] === actor);
+    if (!inv || inv.status !== 'PENDING' || Date.parse(inv.expiresAt) <= Date.now() || (email || '').toLowerCase() !== inv.email) {
+      problem(res, 403, 'InvitationNotAcceptable'); return;
+    }
+    if (actor.organizationId) { problem(res, 409, 'AccountAlreadyBelongsToOrganization'); return; }
+    inv.status = 'ACCEPTED';
+    actor.organizationId = inv.organizationId;
+    actor.roles = [inv.role];
+    send(res, 200, { organizationId: inv.organizationId, roles: [inv.role] });
+    return;
+  }
+
+  // Mis convocatorias (§3.4; DD-72): asignaciones activas de quien llama, también de convocatorias cerradas
+  if (p === '/me/campaigns' && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const items = [...assignments.entries()].filter(([k]) => k.endsWith(':' + actor.accountId)).map(([k, v]) => {
+      const c = campaignByRef(k.slice(0, k.length - actor.accountId.length - 1));
+      return c && c.organizationRef === actor.organizationId ? {
+        campaignRef: c.campaignRef, publicCode: c.publicCode, title: c.title, status: c.status, actingRole: v.actingRole,
+        assignedAt: v.assignedAt || '2026-10-01T00:00:00Z',
+      } : null;
+    }).filter(Boolean);
+    send(res, 200, { items }, { 'Cache-Control': 'no-store' });
     return;
   }
 
@@ -656,7 +768,7 @@ const server = http.createServer(async (req, res) => {
       }
       const r = claim(res, commandId, 'DESIGNATE_ADMINISTRATOR', () => {
         const assignmentId = crypto.randomUUID();
-        assignments.set(campaignRef + ':' + b.administratorRef, { assignmentId, actingRole: 'ADMINISTRATOR' });
+        assignments.set(campaignRef + ':' + b.administratorRef, { assignmentId, actingRole: 'ADMINISTRATOR', assignedAt: new Date().toISOString() });
         return { assignmentId };
       });
       if (r) send(res, 201, r.value);
@@ -715,7 +827,7 @@ const server = http.createServer(async (req, res) => {
     }
     const r = claim(res, commandId, 'ASSIGN_EMPLOYEE', () => {
       const assignmentId = crypto.randomUUID();
-      assignments.set(campaignRef + ':' + b.employeeRef, { assignmentId, actingRole: 'EMPLOYEE' });
+      assignments.set(campaignRef + ':' + b.employeeRef, { assignmentId, actingRole: 'EMPLOYEE', assignedAt: new Date().toISOString() });
       return { assignmentId };
     });
     if (!r) return;

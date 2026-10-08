@@ -48,3 +48,8 @@ export const verificationStatusLabel = (v: string) => VERIFICATION_STATUS[v] ?? 
 
 const ORGANIZATION_TYPE: Record<string, string> = { FOUNDATION: 'Fundación', COMPANY: 'Empresa' };
 export const organizationTypeLabel = (v: string) => ORGANIZATION_TYPE[v] ?? v;
+
+const DELIVERY: Record<string, string> = { SENT: 'Enviado', FAILED: 'No se pudo enviar', PENDING: 'Pendiente de envío' };
+const MEMBER_STATUS: Record<string, string> = { ACTIVE: 'Activa', INACTIVE: 'Inactiva' };
+export const deliveryLabel = (v?: string) => (v ? DELIVERY[v] ?? v : '—');
+export const memberStatusLabel = (v?: string) => (v ? MEMBER_STATUS[v] ?? v : '—');
