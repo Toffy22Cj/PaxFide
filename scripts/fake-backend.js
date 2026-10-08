@@ -17,7 +17,8 @@ const accounts = {
   'empleado@demo.test': { password: 'demo-empleado', accountId: 'acc-employee', organizationId: 'org-1', roles: ['EMPLOYEE'] },
   'empleado2@demo.test': { password: 'demo-empleado2', accountId: 'acc-employee-2', organizationId: 'org-1', roles: ['EMPLOYEE'] },
   'empleado3@demo.test': { password: 'demo-empleado3', accountId: 'acc-employee-3', organizationId: 'org-1', roles: ['EMPLOYEE'] },
-  'plataforma@demo.test': { password: 'demo-plataforma', accountId: 'acc-platform', roles: [], platformAuthority: 'PLATFORM_ADMIN' },
+  'plataforma@demo.test': { password: 'demo-plataforma', accountId: 'acc-platform', roles: [], platformAuthority: 'ADMINISTRATOR' },
+  'plataforma2@demo.test': { password: 'demo-plataforma2', accountId: 'acc-platform-2', roles: [] },
   'representante@demo.test': { password: 'demo-representante', accountId: 'acc-rep', organizationId: 'org-1', roles: ['REPRESENTATIVE'] },
   'admin-sin-verificar@demo.test': { password: 'demo-admin2', accountId: 'acc-admin-2', organizationId: 'org-2', roles: ['ADMINISTRATOR'] },
   'donante@demo.test': { password: 'demo-donante', accountId: 'acc-donor', roles: [] },
@@ -96,6 +97,12 @@ const intents = new Map();
 const verifiedOrganizations = new Set(['org-1']);
 /** Estado de verificación de las organizaciones del doble (plataforma, DD-48). */
 const organizationStatus = new Map([['org-1', 'VERIFIED'], ['org-2', 'PENDING_VERIFICATION'], ['org-3', 'PENDING_VERIFICATION']]);
+/** Ficha de las organizaciones del doble (cola de verificación, DD-69): nombre, tipo, petición de información y orden. */
+const organizations = new Map([
+  ['org-1', { name: 'Fundación Demo', type: 'FOUNDATION' }],
+  ['org-2', { name: 'Fundación Sin Verificar', type: 'FOUNDATION' }],
+  ['org-3', { name: 'Empresa Pendiente', type: 'COMPANY' }],
+]);
 /** Asignaciones por fondo (camino A): fundId → [{allocationId, amount, status}]. */
 const fundAllocations = new Map();
 const assignments = new Map([['camp-demo-1:acc-admin', { assignmentId: 'asg-demo-1', actingRole: 'ADMINISTRATOR' }]]);
@@ -124,6 +131,8 @@ function canOperate(actor, backup) {
   return actor.roles.includes('EMPLOYEE') || (backup && actor.roles.includes('REPRESENTATIVE'));
 }
 const QTY = /^[0-9]{1,15}(\.[0-9]{1,4})?$/;
+/** Cantidades con escala 4, como el backend real (D-07): `"6"` → `"6.0000"`. */
+const scale4 = (q) => (q === undefined || q === null ? q : Number(q).toFixed(4));
 const text = (v) => typeof v === 'string' && v.trim() !== '' && v.length <= 256;
 
 function intentByTrackingCode(req) {
@@ -473,7 +482,7 @@ const server = http.createServer(async (req, res) => {
     if (actor.organizationId !== orgId || !actor.roles.some((r) => r === 'ADMINISTRATOR' || r === 'EMPLOYEE')) { problem(res, 403, 'Forbidden'); return; }
     const items = [...assets.values()].filter((a) => a.organizationRef === orgId).slice(0, 200).map((a) => ({
       assetRef: a.assetRef, lifecycleStatus: a.lifecycleStatus, currentCustodianRef: a.currentCustodianRef,
-      currentLocation: a.currentLocation, quantity: a.quantity, unitOfMeasure: a.unitOfMeasure, campaignRef: a.campaignRef,
+      currentLocation: a.currentLocation, quantity: scale4(a.quantity), unitOfMeasure: a.unitOfMeasure, campaignRef: a.campaignRef,
     }));
     send(res, 200, { items });
     return;
@@ -514,6 +523,87 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Cola de verificación (DD-69): 20 por página, por orden de creación, cursor opaco; filtro opcional por estado
+  if (p === '/platform/organizations' && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    if (!actor.platformAuthority) { problem(res, 403, 'Forbidden'); return; }
+    const status = url.searchParams.get('status');
+    if (status && !['PENDING_VERIFICATION', 'NEEDS_MORE_INFORMATION'].includes(status)) { problem(res, 400, 'InvalidRequestField'); return; }
+    // Orden de creación = orden de alta en `organizations`; el cursor es la última de la página anterior
+    const all = [...organizations.keys()];
+    const inQueue = (id) => {
+      const st = organizationStatus.get(id);
+      return status ? st === status : st === 'PENDING_VERIFICATION' || st === 'NEEDS_MORE_INFORMATION';
+    };
+    const cursor = url.searchParams.get('cursor');
+    let from = 0;
+    if (cursor) {
+      const pos = all.indexOf(Buffer.from(cursor, 'base64url').toString());
+      if (pos < 0) { problem(res, 400, 'InvalidRequestField'); return; }
+      from = pos + 1;
+    }
+    const rest = all.slice(from).filter(inQueue);
+    const page = rest.slice(0, 20);
+    const items = page.map((id) => {
+      const o = organizations.get(id) || { type: 'FOUNDATION' };
+      const item = { organizationId: id, type: o.type, verificationStatus: organizationStatus.get(id) };
+      if (o.name) item.name = o.name;
+      if (o.informationRequest) item.informationRequest = o.informationRequest;
+      return item;
+    });
+    const out = { items };
+    if (rest.length > 20) out.nextCursor = Buffer.from(page[page.length - 1]).toString('base64url');
+    send(res, 200, out, { 'Cache-Control': 'no-store' });
+    return;
+  }
+
+  // Administradores de plataforma (§3.2; DD-70): nunca sin administradores
+  if (p === '/platform/administrators' && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    if (!actor.platformAuthority) { problem(res, 403, 'Forbidden'); return; }
+    const items = Object.values(accounts).filter((a) => a.platformAuthority).map((a) => ({ accountId: a.accountId, status: 'ACTIVE' }));
+    send(res, 200, { items }, { 'Cache-Control': 'no-store' });
+    return;
+  }
+  const platAdminMatch = p.match(/^\/platform\/administrators(?:\/([^/]+)\/revoke)?$/);
+  if (platAdminMatch && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    if (!actor.platformAuthority) { problem(res, 403, 'Forbidden'); return; }
+    if (platAdminMatch[1]) {
+      const target = Object.values(accounts).find((a) => a.accountId === decodeURIComponent(platAdminMatch[1]));
+      if (!target) { problem(res, 404, 'NotFound'); return; }
+      if (!target.platformAuthority) { problem(res, 409, 'PlatformAuthorityNotHeld'); return; }
+      if (Object.values(accounts).filter((a) => a.platformAuthority).length === 1) { problem(res, 409, 'LastPlatformAdministrator'); return; }
+      delete target.platformAuthority;
+      send(res, 200, { accountId: target.accountId });
+      return;
+    }
+    const b = await readBody(req);
+    if (!b || typeof b.accountId !== 'string' || !b.accountId.trim()) { problem(res, 400, 'InvalidRequestField'); return; }
+    const target = Object.values(accounts).find((a) => a.accountId === b.accountId);
+    if (!target) { problem(res, 404, 'NotFound'); return; }
+    if (target.platformAuthority) { problem(res, 409, 'PlatformAuthorityAlreadyGranted'); return; }
+    target.platformAuthority = 'ADMINISTRATOR';
+    send(res, 201, { accountId: target.accountId, platformAuthority: 'ADMINISTRATOR' });
+    return;
+  }
+
+  // Crear organización (R9; DD-68): cuenta sin organización → REPRESENTATIVE, PENDING_VERIFICATION
+  if (p === '/organizations' && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const b = await readBody(req);
+    if (!b || !['FOUNDATION', 'COMPANY'].includes(b.type)) { problem(res, 400, 'InvalidRequestField'); return; }
+    if (typeof b.name !== 'string' || !b.name.trim() || b.name.length > 200) { problem(res, 400, 'InvalidRequestField'); return; }
+    if (actor.organizationId) { problem(res, 409, 'AccountAlreadyBelongsToOrganization'); return; }
+    const organizationId = 'org-' + crypto.randomUUID();
+    organizations.set(organizationId, { name: b.name.trim(), type: b.type });
+    organizationStatus.set(organizationId, 'PENDING_VERIFICATION');
+    actor.organizationId = organizationId;
+    actor.roles = ['REPRESENTATIVE'];
+    send(res, 201, { organizationId, verificationStatus: 'PENDING_VERIFICATION' });
+    return;
+  }
+
   // Plataforma (DD-48): verify / reject / request-information; 404 inexistente; 409 si ya está resuelta
   const platformMatch = p.match(/^\/platform\/organizations\/([^/]+)\/(verify|reject|request-information)$/);
   if (platformMatch && req.method === 'POST') {
@@ -527,9 +617,10 @@ const server = http.createServer(async (req, res) => {
     }
     const current = organizationStatus.get(orgId);
     if (!current) { problem(res, 404, 'NotFound'); return; }
-    if (current === 'VERIFIED' || current === 'REJECTED') { problem(res, 409, 'OrganizationVerificationAlreadyDecided'); return; }
+    if (current === 'VERIFIED' || current === 'REJECTED') { problem(res, 409, 'InvalidVerificationTransition'); return; }
     const next = { verify: 'VERIFIED', reject: 'REJECTED', 'request-information': 'NEEDS_MORE_INFORMATION' }[decision];
     organizationStatus.set(orgId, next);
+    if (decision === 'request-information' && organizations.has(orgId)) organizations.get(orgId).informationRequest = b.message;
     if (next === 'VERIFIED') verifiedOrganizations.add(orgId);
     send(res, 200, { organizationId: orgId, verificationStatus: next });
     return;
@@ -647,7 +738,7 @@ const server = http.createServer(async (req, res) => {
         campaignRef: c.campaignRef,
         logistics: items.map((a) => ({
           assetRef: a.assetRef, lifecycleStatus: a.lifecycleStatus, assetType: a.assetType, unitOfMeasure: a.unitOfMeasure,
-          quantity: a.quantity, locationZone: 'Zona centro', custodianCategory: 'LOCAL_ALLY',
+          quantity: scale4(a.quantity), locationZone: 'Zona centro', custodianCategory: 'LOCAL_ALLY',
         })),
         status: items.length ? 'EN_PROCESO' : 'ACTIVA',
       });
@@ -755,7 +846,7 @@ const server = http.createServer(async (req, res) => {
 
     if (!action && !childRef && req.method === 'GET') {
       if (!allowed) { problem(res, 403, 'Forbidden'); return; }
-      const out = { assetRef: asset.assetRef, lifecycleStatus: asset.lifecycleStatus, quantity: asset.quantity, unitOfMeasure: asset.unitOfMeasure };
+      const out = { assetRef: asset.assetRef, lifecycleStatus: asset.lifecycleStatus, quantity: scale4(asset.quantity), unitOfMeasure: asset.unitOfMeasure };
       if (asset.currentCustodianRef) out.currentCustodianRef = asset.currentCustodianRef;
       if (asset.currentLocation) out.currentLocation = asset.currentLocation;
       if (asset.campaignRef) out.campaignRef = asset.campaignRef;

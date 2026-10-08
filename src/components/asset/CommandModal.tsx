@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useCommand, CommandRequest } from '../../lib/commands/useCommand';
 import { Modal } from '../ui/Modal';
 import { TextField, SelectField, TextArea } from '../ui/Field';
@@ -35,16 +35,18 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
   /** Reglas entre campos (p. ej. "con reemplazo, el papel es obligatorio"): devuelve errores por campo. */
   validate?: (payload: Record<string, string>) => Record<string, string | undefined>;
   builder: (payload: unknown) => CommandRequest;
-  onSuccess: (data: TRes | null, location: string | null) => void;
+  /** `payload`: lo que se envió (los campos ya validados). */
+  onSuccess: (data: TRes | null, location: string | null, payload: Record<string, string>) => void;
   onClose: () => void;
 }) {
   const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(fields.map((f) => [f.name, ''])));
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const command = useCommand<TRes>(builder);
+  const sent = useRef<Record<string, string>>({});
   const sending = command.state === 'SENDING';
 
   useEffect(() => {
-    if (command.state === 'SUCCESS') onSuccess(command.data, command.location);
+    if (command.state === 'SUCCESS') onSuccess(command.data, command.location, sent.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [command.state]);
 
@@ -63,6 +65,7 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
     Object.assign(nextErrors, validate ? validate(payload) : {});
     setErrors(nextErrors);
     if (Object.values(nextErrors).some(Boolean)) return;
+    sent.current = payload;
     void command.execute(payload);
   };
 

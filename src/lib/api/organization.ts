@@ -92,3 +92,72 @@ export const platformDecisionRequest = (organizationId: string, decision: Platfo
   body: decision === 'request-information' ? payload : undefined,
   auth: 'required' as const,
 });
+
+/**
+ * Cola de verificación (`GET /platform/organizations?status=&cursor=`, §3.1; DD-69): 20 por página, por orden de
+ * creación, cursor opaco. Sin `status`, las dos (`PENDING_VERIFICATION` y `NEEDS_MORE_INFORMATION`). Sin miembros ni
+ * emails.
+ */
+export type QueueStatus = 'PENDING_VERIFICATION' | 'NEEDS_MORE_INFORMATION';
+
+export interface QueueItem {
+  organizationId: string;
+  name?: string;
+  type: string;
+  verificationStatus: string;
+  informationRequest?: string;
+}
+
+export type QueueOutcome =
+  | { kind: 'ok'; items: QueueItem[]; nextCursor?: string }
+  | { kind: 'forbidden' }
+  | { kind: 'unauthorized' }
+  | { kind: 'error' };
+
+export async function fetchVerificationQueue(opts: { status?: QueueStatus; cursor?: string } = {}): Promise<QueueOutcome> {
+  const q = new URLSearchParams();
+  if (opts.status) q.set('status', opts.status);
+  if (opts.cursor) q.set('cursor', opts.cursor);
+  const qs = q.toString();
+  const r = await apiRequest<{ items?: unknown; nextCursor?: unknown }>({ path: `/platform/organizations${qs ? `?${qs}` : ''}`, auth: 'required' });
+  if (r.kind === 'ok' && Array.isArray(r.data?.items)) {
+    const items = r.data!.items
+      .filter((o: any) => o && typeof o.organizationId === 'string')
+      .map((o: any) => ({
+        organizationId: o.organizationId, name: opt(o.name), type: String(o.type), verificationStatus: String(o.verificationStatus),
+        informationRequest: opt(o.informationRequest),
+      }));
+    return { kind: 'ok', items, nextCursor: opt(r.data!.nextCursor) };
+  }
+  if (r.kind === 'error' && r.status === 403) return { kind: 'forbidden' };
+  if (r.kind === 'error' && r.status === 401) return { kind: 'unauthorized' };
+  return { kind: 'error' };
+}
+
+/** Administradores de plataforma (§3.2; DD-70): listar (sin email), conceder por `accountId` y revocar. */
+export interface PlatformAdmin {
+  accountId: string;
+  status?: string;
+}
+
+export async function fetchPlatformAdmins(): Promise<ListOutcome<PlatformAdmin>> {
+  const r = await apiRequest<{ items?: unknown }>({ path: '/platform/administrators', auth: 'required' });
+  return listOutcome(r, (a) => (a && typeof a.accountId === 'string' ? { accountId: a.accountId, status: opt(a.status) } : null));
+}
+
+export const grantPlatformAdminRequest = (payload: unknown) => ({
+  path: '/platform/administrators', body: payload, auth: 'required' as const,
+});
+
+export const revokePlatformAdminRequest = (accountId: string) => () => ({
+  path: `/platform/administrators/${segment(accountId)}/revoke`, body: undefined, auth: 'required' as const,
+});
+
+/**
+ * Crear organización (`POST /organizations`, R9; DD-68): cualquier cuenta activa sin organización; `{type, name}`
+ * (1–200) → `201 {organizationId, verificationStatus: "PENDING_VERIFICATION"}`. Quien la crea queda como
+ * `REPRESENTATIVE`; la sesión lo ve en el siguiente `/me`.
+ */
+export const createOrganizationRequest = (payload: unknown) => ({
+  path: '/organizations', body: payload, auth: 'required' as const,
+});

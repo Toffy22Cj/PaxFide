@@ -233,25 +233,67 @@ test('activos de la organización', async ({ page }) => {
   await shot(page, 'activos-organizacion', 'vacio');
 });
 
-test('verificación de organizaciones', async ({ page }) => {
+test('plataforma', async ({ page }) => {
   await login(page, 'plataforma@demo.test', 'demo-plataforma');
   await shot(page, 'panel', 'plataforma');
+  await page.route('**/api/v1/platform/organizations*', hang());
   await go(page, '/panel/platform');
-  await expect(page.getByLabel('Identificador de la organización')).toBeVisible();
-  await shot(page, 'plataforma', 'formulario');
-  await page.getByLabel('Identificador de la organización').fill('org-3');
-  await page.getByRole('button', { name: 'Pedir más información' }).click();
+  await shot(page, 'plataforma', 'cargando');
+  await page.unroute('**/api/v1/platform/organizations*');
+  await page.route('**/api/v1/platform/organizations*', json(200, { items: [] }));
+  await go(page, '/panel'); await go(page, '/panel/platform');
+  await expect(page.getByText('No hay organizaciones pendientes.')).toBeVisible();
+  await shot(page, 'plataforma', 'cola-vacia');
+  await page.unroute('**/api/v1/platform/organizations*');
+  await page.route('**/api/v1/platform/organizations*', problem(403, 'Forbidden'));
+  await go(page, '/panel'); await go(page, '/panel/platform');
+  await expect(page.getByText('No tienes acceso a este recurso.').first()).toBeVisible();
+  await shot(page, 'plataforma', 'cola-403');
+  await page.unroute('**/api/v1/platform/organizations*');
+  await go(page, '/panel'); await go(page, '/panel/platform');
+  const row = page.getByTestId('queue-item').first();
+  await expect(row).toBeVisible();
+  await shot(page, 'plataforma', 'cola');
+  await row.getByRole('button', { name: 'Pedir más información' }).click();
   await page.getByRole('dialog').getByLabel('Mensaje para la organización').fill('Falta el certificado de existencia.');
   await shot(page, 'plataforma', 'pedir-informacion');
-  await page.route('**/api/v1/platform/organizations/*/request-information', json(200, { organizationId: 'org-3', verificationStatus: 'NEEDS_MORE_INFORMATION' }));
   await page.getByRole('dialog').getByRole('button', { name: 'Pedir más información' }).click();
   await expect(page.getByText('Decisión registrada')).toBeVisible();
   await shot(page, 'plataforma', 'resultado');
-  await page.route('**/api/v1/platform/organizations/*/verify', problem(409, 'OrganizationVerificationAlreadyDecided'));
-  await page.getByRole('button', { name: 'Verificar organización' }).click();
+  await page.route('**/api/v1/platform/organizations/*/verify', problem(409, 'InvalidVerificationTransition'));
+  await page.getByTestId('queue-item').first().getByRole('button', { name: 'Verificar' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Verificar organización' }).click();
   await expect(page.getByRole('dialog').getByRole('alert')).toBeVisible();
   await shot(page, 'plataforma', '409');
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+  await page.getByRole('button', { name: 'Añadir administrador' }).click();
+  await page.getByRole('dialog').getByLabel('Cuenta (identificador)').fill('acc-platform');
+  await page.getByRole('dialog').getByRole('button', { name: 'Añadir administrador' }).click();
+  await expect(page.getByRole('dialog').getByRole('alert')).toBeVisible();
+  await shot(page, 'plataforma', 'administradores-409');
+});
+
+test('mi organización', async ({ page }) => {
+  const email = `capt-${Date.now()}-${test.info().project.name}@demo.test`;
+  await page.goto('/register');
+  await page.getByLabel('Correo electrónico').fill(email);
+  await page.getByLabel('Contraseña', { exact: true }).fill('clave-demo-larga');
+  await page.getByLabel('Repite la contraseña').fill('clave-demo-larga');
+  await page.getByRole('button', { name: 'Crear cuenta' }).click();
+  await expect(page.getByText('Cuenta creada')).toBeVisible();
+  await login(page, email, 'clave-demo-larga');
+  await shot(page, 'panel', 'sin-organizacion');
+  await go(page, '/panel/organization');
+  await expect(page.getByRole('button', { name: 'Crear organización' })).toBeVisible();
+  await shot(page, 'organizacion', 'sin-organizacion');
+  await page.getByRole('button', { name: 'Crear organización' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Crear organización' }).click();
+  await shot(page, 'organizacion', 'validacion');
+  await page.getByRole('dialog').getByLabel('Tipo').selectOption('FOUNDATION');
+  await page.getByRole('dialog').getByLabel('Nombre').fill('Fundación de las capturas');
+  await page.getByRole('dialog').getByRole('button', { name: 'Crear organización' }).click();
+  await expect(page.getByTestId('organization-status')).toBeVisible();
+  await shot(page, 'organizacion', 'creada-pendiente');
 });
 
 test('convocatoria pública', async ({ page, request }) => {

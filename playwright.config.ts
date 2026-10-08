@@ -56,7 +56,11 @@ export default defineConfig({
           'action:confirm-allocation',
           'action:platform-verify',
           'action:platform-reject',
-          'action:platform-request-information'
+          'action:platform-request-information',
+          '/panel/organization',
+          'action:create-organization',
+          'action:platform-grant-admin',
+          'action:platform-revoke-admin'
         ])
       }
     },

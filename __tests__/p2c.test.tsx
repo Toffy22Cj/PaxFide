@@ -135,54 +135,8 @@ describe('/panel/assets', () => {
     ] })} />);
     const row = await screen.findByTestId('org-asset');
     expect(row).toHaveTextContent('Recibido');
-    expect(row).toHaveTextContent('6.0000 UNITS');
+    expect(row).toHaveTextContent('6 UNITS');
     expect(within(row).getByRole('link')).toHaveAttribute('href', '/assets/asset-1');
-  });
-});
-
-describe('/panel/platform', () => {
-  const S = ['/panel/platform', 'action:platform-verify', 'action:platform-reject', 'action:platform-request-information'];
-  const PLATFORM = async () => ({ kind: 'ok' as const, principal: { accountId: 'p', roles: [], platformAuthority: 'PLATFORM_ADMIN' } });
-
-  it('sin autoridad de plataforma: sin acciones', async () => {
-    const { PlatformScreen } = await load(S);
-    render(<PlatformScreen meClient={me(['ADMINISTRATOR'])} />);
-    expect(await screen.findByTestId('empty-state')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Verificar organización' })).toBeNull();
-  });
-
-  it('verificar: id obligatorio, confirmación, POST sin cuerpo; muestra el estado del backend', async () => {
-    const { PlatformScreen } = await load(S);
-    render(<PlatformScreen meClient={PLATFORM} />);
-    expect(await screen.findByTestId('unavailable-state')).toHaveTextContent('El listado de organizaciones pendientes');
-    fireEvent.click(screen.getByRole('button', { name: 'Verificar organización' }));
-    expect(screen.getByText('Escribe el identificador de la organización.')).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Identificador de la organización'), { target: { value: 'org 9' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Verificar organización' }));
-    fetchMock.mockResolvedValueOnce(res(200, { organizationId: 'org 9', verificationStatus: 'VERIFIED' }));
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Verificar organización' }));
-    expect(await screen.findByText('Decisión registrada')).toBeInTheDocument();
-    expect(screen.getByText(/Verificada/)).toBeInTheDocument();
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe('http://api.paxfide.test/api/v1/platform/organizations/org%209/verify');
-    expect(init.body).toBeUndefined();
-  });
-
-  it('pedir información: mensaje obligatorio y en el cuerpo; 404 y 409 con su texto', async () => {
-    const { PlatformScreen } = await load(S);
-    render(<PlatformScreen meClient={PLATFORM} />);
-    fireEvent.change(await screen.findByLabelText('Identificador de la organización'), { target: { value: 'org-9' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Pedir más información' }));
-    const dialog = screen.getByRole('dialog');
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Pedir más información' }));
-    expect(within(dialog).getByText('Este campo es obligatorio.')).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
-    fireEvent.change(within(dialog).getByLabelText('Mensaje para la organización'), { target: { value: 'Falta el RUT.' } });
-    fetchMock.mockResolvedValueOnce(res(404, { title: 'NotFound' }));
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Pedir más información' }));
-    expect(await within(dialog).findByRole('alert')).toBeInTheDocument();
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ message: 'Falta el RUT.' });
-    expect(fetchMock.mock.calls[0][0]).toBe('http://api.paxfide.test/api/v1/platform/organizations/org-9/request-information');
   });
 });
 

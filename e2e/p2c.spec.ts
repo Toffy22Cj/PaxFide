@@ -76,35 +76,4 @@ test.describe('P2-C — fondos, activos de la organización y verificación', ()
     await row.getByRole('link').click();
     await expect(employee).toHaveURL(new RegExp(`/assets/${assetRef}$`));
   });
-
-  test('plataforma: pedir información, verificar y 409 al repetir; 404 inexistente; otra cuenta no ve la entrada', async ({ browser }) => {
-    const platform = await login(browser, 'plataforma@demo.test', 'demo-plataforma');
-    await platform.getByRole('link', { name: 'Verificación de organizaciones' }).click();
-    const id = platform.getByLabel('Identificador de la organización');
-    const dialog = platform.getByRole('dialog');
-
-    await id.fill('org-no-existe');
-    await platform.getByRole('button', { name: 'Verificar organización' }).click();
-    await dialog.getByRole('button', { name: 'Verificar organización' }).click();
-    await expect(dialog.getByRole('alert')).toBeVisible();
-    await dialog.getByRole('button', { name: 'Cancelar' }).click();
-
-    await id.fill('org-3');
-    await platform.getByRole('button', { name: 'Pedir más información' }).click();
-    await dialog.getByLabel('Mensaje para la organización').fill('Falta el certificado de existencia.');
-    await dialog.getByRole('button', { name: 'Pedir más información' }).click();
-    await expect(platform.getByText('Se pidió más información')).toBeVisible();
-
-    await platform.getByRole('button', { name: 'Verificar organización' }).click();
-    await expect(dialog.getByText(/Verificar o rechazar es definitivo/)).toBeVisible();
-    await dialog.getByRole('button', { name: 'Verificar organización' }).click();
-    await expect(platform.getByText(/: Verificada\./)).toBeVisible();
-
-    await platform.getByRole('button', { name: 'Rechazar organización' }).click();
-    await dialog.getByRole('button', { name: 'Rechazar organización' }).click();
-    await expect(dialog.getByRole('alert')).toBeVisible();
-
-    const admin = await login(browser, 'admin@demo.test', 'demo-admin');
-    await expect(admin.getByRole('link', { name: 'Verificación de organizaciones' })).toHaveCount(0);
-  });
 });

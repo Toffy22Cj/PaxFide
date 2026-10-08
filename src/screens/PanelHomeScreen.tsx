@@ -38,7 +38,13 @@ export function panelEntries(principal: Principal | null): PanelEntry[] {
     entries.push({ id: 'assets', label: 'Activos de mi organización', href: '/panel/assets' });
   }
   if (principal?.platformAuthority && isSurfaceEnabled('/panel/platform')) {
-    entries.push({ id: 'platform', label: 'Verificación de organizaciones', href: '/panel/platform' });
+    entries.push({ id: 'platform', label: 'Plataforma: verificación y administradores', href: '/panel/platform' });
+  }
+  // Con `/me` leído: sin organización, para crearla; con organización, para ver la cuenta en ella (R9)
+  if (principal && isSurfaceEnabled('/panel/organization')) {
+    entries.push(principal.organizationId
+      ? { id: 'organization', label: 'Mi organización', href: '/panel/organization' }
+      : { id: 'organization', label: 'Crear organización', href: '/panel/organization' });
   }
   if (isSurfaceEnabled('/account/donations')) {
     entries.push({ id: 'donations', label: 'Mis donaciones', href: '/account/donations' });
