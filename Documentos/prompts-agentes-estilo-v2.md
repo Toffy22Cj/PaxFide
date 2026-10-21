@@ -1,6 +1,6 @@
 # Prompts para agentes — Estilo v2 de `paxfide-web` (Fase 7)
 
-**Estado: BORRADOR — espera la aprobación de Carlos.** Ningún agente recibe estos prompts hasta que se cumplan las precondiciones de §1.
+**Estado: APROBADO — Carlos, 2026-10-21. VS-0 cerrada en el PR #29.** Ningún agente recibe estos prompts hasta que se cumplan las precondiciones de §1.
 **Fecha:** 2026-10-21 (UTC).
 **Sigue el formato de:** `Promt-maestro-front-fase2.md` (contexto maestro + un bloque de tarea por sesión). Lo complementa; no lo sustituye en lo que este documento no toca.
 **Insumos visuales:** `paxfide-landing.html`, `paxfide-home.html`, `paxfide-panel.html`, `paxfide-linea-tiempo.html`, `paxfide-movimiento.html` (versiones del 2026-10-20). Son **referencia visual**, no contrato: ver §2.
@@ -26,7 +26,7 @@
 | P-4 | **Q-R1**: rutas de la landing y el home (§1.2) | Decidida — Carlos, 2026-10-21: `/` y `/home`; `/home` es el destino por defecto tras iniciar sesión |
 | P-5 | Huecos de campos **G-1 a G-8** (§3.4) | Decidida — Carlos, 2026-10-21: los datos son **necesarios**. El front implementa sin ellos y los añade cuando el backend los entregue; el contrato de backend está por definir |
 | P-6 | **T-1**: cómo se muestra el `trackingCode` en la línea de tiempo (§3.5) | Decidida — Carlos, 2026-10-21: enmascarado + "Ver código" + "Copiar" |
-| P-7 | Archivos `woff2` de Bricolage Grotesque y JetBrains Mono, con su licencia OFL, disponibles para el agente (los descarga Carlos o un agente con red al sitio oficial de cada fuente) | Pendiente |
+| P-7 | Archivos `woff2` de Bricolage Grotesque y JetBrains Mono, con su licencia OFL, disponibles para el agente (los descarga Carlos o un agente con red al sitio oficial de cada fuente) | Cumplida — archivos y licencias OFL en el repo; DF7-04 ratificada |
 
 ### 1.1 Canvas en el fondo animado
 
@@ -312,6 +312,7 @@ Cada bloque se pega después del contexto maestro de §4.
 ```
 TAREA VS-0 — Tokens v2, tema oscuro y fuentes autoalojadas.
 Rama: feat/web-tokens-v2 desde develop.
+Hecha en claude/paxfide-v2-fase7-prompts-kq6k53 (PR #29), con la corrección 1.
 Rige: sistema-visual-paxfide-web-enmienda-1.md §4, §5, §6, §7 (solo lo
 APROBADO); sistema-visual-paxfide-web.md §2–§5.
 
