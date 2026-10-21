@@ -1,0 +1,450 @@
+# VS-0 corrección 1 — tests rojos primero (2026-10-21)
+# __tests__/design-tokens.test.ts ajustado a sistema-visual-paxfide-web-enmienda-1.md (con FE-1), contra src/app/globals.css de f9630af (sin cambiar)
+# HEAD 2a3bda7; src/app/globals.css idéntico a f9630af (git diff --quiet f9630af -- src/app/globals.css)
+$ pnpm vitest run __tests__/design-tokens.test.ts
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.2 /home/user/PaxFide
+
+ ❯ __tests__/design-tokens.test.ts (98 tests | 11 failed) 58ms
+   ❯ Archivo de tokens (enmienda §4–§7) (18)
+     × cada token de la tabla tiene en globals.css exactamente el valor aprobado 9ms
+     × los tokens de la revisión 1 retirados ya no existen 2ms
+     × radios de §7.1: control 12, botón 999, tarjeta 18, superficie 24 (opción (a) de Carlos) 1ms
+     × sombras de §7.1 en claro y en oscuro (mismos desplazamientos, negro .30/.40/.45; Carlos, 2026-10-21) 2ms
+     × movimiento de §7.2: cuatro curvas y tres duraciones; ease-back ya no existe 1ms
+     × escala tipográfica de §6 (solo tokens), y los de v1 se quedan 3ms
+     × el oscuro apunta a los tokens de §4.2 (no a valores de marca sueltos) 1ms
+     × oscuro: el foco alrededor del botón primario cumple 3:1 (§4.3, 4,19) 1ms
+     × cada par semántico en oscuro resuelve a colores de la tabla y cumple su umbral 1ms
+     × la superficie translúcida usa la opacidad mínima de R-F1, literal (sin token para #10261D) 1ms
+   ❯ CSS Files Strict Mode (2)
+     × fails if any CSS file uses a hex color not in the tokens 2ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (enmienda §4–§7) > cada token de la tabla tiene en globals.css exactamente el valor aprobado
+AssertionError: --brand-green-700: expected '#46824C' to be '#297A62' // Object.is equality
+
+Expected: "#297A62"
+Received: "#46824C"
+
+ ❯ __tests__/design-tokens.test.ts:287:99
+    285|   it('cada token de la tabla tiene en globals.css exactamente el valor…
+    286|     const r = root();
+    287|     for (const [name, hex] of Object.entries(tokens)) expect(r[name]?.…
+       |                                                                                                   ^
+    288|   });
+    289|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (enmienda §4–§7) > los tokens de la revisión 1 retirados ya no existen
+AssertionError: --dark-green-300: expected ':root {\n  --font-family-sans: system…' not to match /--dark-green-300\b/
+
+- Expected:
+/--dark-green-300\b/
+
++ Received:
+":root {
+  --font-family-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  
+  /* Medidos del logo */
+  --brand-green-900: #1B5141;
+  --brand-green-800: #20604C;
+  --brand-green-500: #4E9155;
+  --brand-blue-500: #3688B0;
+  --brand-yellow-400: #F3B544;
+  --brand-neutral-700: #405656;
+  --white: #FFFFFF;
+
+  /* Derivados */
+  --brand-blue-700: #327DA2;
+  --brand-blue-800: #255E79;
+  --brand-yellow-900: #785008;
+  --brand-yellow-50: #FDF4E2;
+  --brand-green-50: #EEF6EF;
+  --brand-blue-50: #EBF5F9;
+
+  /* Semánticos */
+  --danger-700: #B42318;
+  --danger-50: #FEF3F2;
+
+  /* v2 (decisiones-delegadas-web-fase7.md DF7-02): degradado (E3) y suelo de marca (E1) */
+  --brand-green-700: #46824C;
+  --brand-ground: #EEF4EA;
+
+  /* v2: paleta oscura (DF7-03). Solo la capa semántica los usa; ningún componente los nombra directamente */
+  --dark-ground: #07130E;
+  --dark-bg: #0D1F18;
+  --dark-surface: #132C22;
+  --dark-surface-raised: #1A3D2F;
+  --dark-field: #0F261D;
+  --dark-text-secondary: #BBCAC1;
+  --dark-border-control: #739797;
+  --dark-divider: #2B502F;
+  --dark-green-300: #69AE70;
+  --dark-blue-300: #A2CDE2;
+  --dark-green-950: #172B19;
+  --dark-blue-950: #102733;
+  --dark-yellow-950: #3A2604;
+  --dark-danger-950: #360B07;
+  --dark-danger-300: #EB766D;
+
+  /* Neutros y overlay (W-7) */
+  --neutral-50: #F8FAFA;
+  --neutral-100: #F0F4F4;
+  --neutral-200: #E2E9E9;
+  --neutral-400: #739797;
+  --overlay: color-mix(in srgb, var(--brand-green-900) 50%, transparent);
+
+  /* Espaciado */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* Radio (radius-surface se conserva en 8px: lo usan las pantallas existentes, DF7-06) */
+  --radius-control: 6px;
+  --radius-surface: 8px;
+  --radius-card: 20px;
+  --radius-button: 999px;
+
+  /* Sombra */
+  --shadow-modal: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-card-light: 0 1px 2px color-mix(in srgb, var(--brand-green-900) 6%, transparent), 0 4px 16px color-mix(in srgb, var(--brand-green-900) 6%, transparent);
+  --shadow-hover-light: 0 12px 32px color-mix(in srgb, var(--brand-green-900) 10%, transparent);
+  --shadow-float-light: 0 24px 60px color-mix(in srgb, var(--brand-green-900) 14%, transparent);
+  --shadow-card-dark: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-hover-dark: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-float-dark: 0 24px 60px rgba(0, 0, 0, 0.55);
+
+  /* Movimiento (DF7-07): tres duraciones y cuatro curvas; ninguna animación usa valores sueltos */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 450ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --ease-back: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* Fuentes: --font-display y --font-mono las define next/font/local en <html> (src/app/fonts.ts); el cuerpo sigue en system-ui */
+  --font-body: var(--font-family-sans);
+
+  /* Tipografía */
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --weight-regular: 400;
+  --weight-semibold: 600;
+  --control-height: 40px;
+  --width-login: 400px;
+  --width-detail: 720px;
+  --gutter-mobile: 16px;
+}
+
+/*
+ * Capa semántica (DF7-08). Los componentes nuevos usan SOLO estos nombres; claro por defecto, oscuro con
+ * prefers-color-scheme salvo data-theme=\"light\", y oscuro forzado con data-theme=\"dark\".
+ * Las pantallas existentes siguen con los tokens de marca hasta su pasada de estilo (VS-8), por eso aquí no se
+ * cambia color-scheme ni el fondo de body (DF7-09).
+ */
+:root {
+  --color-bg: var(--neutral-50);
+  --color-ground: var(--brand-ground);
+  --color-surface: var(--white);
+  --color-surface-raised: var(--white);
+  --color-surface-translucent: color-mix(in srgb, var(--white) 88%, transparent);
+  --color-field: var(--white);
+  --color-text: var(--brand-green-900);
+  --color-text-secondary: var(--brand-neutral-700);
+  --color-border-control: var(--neutral-400);
+  --color-divider: var(--neutral-200);
+  --color-action: var(--brand-green-900);
+  --color-on-action: var(--white);
+  --color-gradient-from: var(--brand-green-900);
+  --color-gradient-to: var(--brand-green-700);
+  --color-link: var(--brand-blue-800);
+  --color-focus: var(--brand-green-900);
+  --color-success-bg: var(--brand-green-50);
+  --color-success-text: var(--brand-green-900);
+  --color-success-icon: var(--brand-green-800);
+  --color-danger-bg: var(--danger-50);
+  --color-danger-text: var(--danger-700);
+  --color-ambiguous-bg: var(--brand-yellow-50);
+  --color-ambiguous-text: var(--brand-green-900);
+  --color-ambiguous-title: var(--brand-yellow-900);
+  --color-info-bg: var(--brand-blue-50);
+  --color-info-text: var(--brand-blue-800);
+  --shadow-card: var(--shadow-card-light);
+  --shadow-hover: var(--shadow-hover-light);
+  --shadow-float: var(--shadow-float-light);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme=\"light\"]) {
+    --color-bg: var(--dark-bg);
+    --color-ground: var(--dark-ground);
+    --color-surface: var(--dark-surface);
+    --color-surface-raised: var(--dark-surface-raised);
+    --color-surface-translucent: color-mix(in srgb, var(--dark-surface) 86%, transparent);
+    --color-field: var(--dark-field);
+    --color-text: var(--brand-green-50);
+    --color-text-secondary: var(--dark-text-secondary);
+    --color-border-control: var(--dark-border-control);
+    --color-divider: var(--dark-divider);
+    --color-action: var(--brand-green-800);
+    --color-on-action: var(--white);
+    --color-gradient-from: var(--brand-green-900);
+    --color-gradient-to: var(--brand-green-700);
+    --color-link: var(--dark-blue-300);
+    --color-focus: var(--dark-green-300);
+    --color-success-bg: var(--dark-green-950);
+    --color-success-text: var(--brand-green-50);
+    --color-success-icon: var(--dark-green-300);
+    --color-danger-bg: var(--dark-danger-950);
+    --color-danger-text: var(--dark-danger-300);
+    --color-ambiguous-bg: var(--dark-yellow-950);
+    --color-ambiguous-text: var(--brand-green-50);
+    --color-ambiguous-title: var(--brand-yellow-400);
+    --color-info-bg: var(--dark-blue-950);
+    --color-info-text: var(--dark-blue-300);
+    --shadow-card: var(--shadow-card-dark);
+    --shadow-hover: var(--shadow-hover-dark);
+    --shadow-float: var(--shadow-float-dark);
+  }
+}
+
+:root[data-theme=\"dark\"] {
+  --color-bg: var(--dark-bg);
+  --color-ground: var(--dark-ground);
+  --color-surface: var(--dark-surface);
+  --color-surface-raised: var(--dark-surface-raised);
+  --color-surface-translucent: color-mix(in srgb, var(--dark-surface) 86%, transparent);
+  --color-field: var(--dark-field);
+  --color-text: var(--brand-green-50);
+  --color-text-secondary: var(--dark-text-secondary);
+  --color-border-control: var(--dark-border-control);
+  --color-divider: var(--dark-divider);
+  --color-action: var(--brand-green-800);
+  --color-on-action: var(--white);
+  --color-gradient-from: var(--brand-green-900);
+  --color-gradient-to: var(--brand-green-700);
+  --color-link: var(--dark-blue-300);
+  --color-focus: var(--dark-green-300);
+  --color-success-bg: var(--dark-green-950);
+  --color-success-text: var(--brand-green-50);
+  --color-success-icon: var(--dark-green-300);
+  --color-danger-bg: var(--dark-danger-950);
+  --color-danger-text: var(--dark-danger-300);
+  --color-ambiguous-bg: var(--dark-yellow-950);
+  --color-ambiguous-text: var(--brand-green-50);
+  --color-ambiguous-title: var(--brand-yellow-400);
+  --color-info-bg: var(--dark-blue-950);
+  --color-info-text: var(--dark-blue-300);
+  --shadow-card: var(--shadow-card-dark);
+  --shadow-hover: var(--shadow-hover-dark);
+  --shadow-float: var(--shadow-float-dark);
+}
+
+*:focus-visible {
+  outline: 2px solid var(--brand-green-900);
+  outline-offset: 2px;
+}
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--font-family-sans);
+  margin: 0;
+  background: var(--neutral-50);
+  color: var(--brand-green-900);
+  font-size: var(--text-md);
+  line-height: 1.5;
+}
+
+/* Sobre neutral-50 los enlaces van en brand-blue-800 (diseno-ux §3.2) */
+a { color: var(--brand-blue-800); }
+
+*, *::before, *::after { box-sizing: border-box; }
+"
+
+ ❯ __tests__/design-tokens.test.ts:291:68
+    289|
+    290|   it('los tokens de la revisión 1 retirados ya no existen', () => {
+    291|     for (const name of RETIRED) expect(tokensCss, `--${name}`).not.toM…
+       |                                                                    ^
+    292|   });
+    293|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (enmienda §4–§7) > radios de §7.1: control 12, botón 999, tarjeta 18, superficie 24 (opción (a) de Carlos)
+AssertionError: expected '6px' to be '12px' // Object.is equality
+
+Expected: "12px"
+Received: "6px"
+
+ ❯ __tests__/design-tokens.test.ts:296:33
+    294|   it('radios de §7.1: control 12, botón 999, tarjeta 18, superficie 24…
+    295|     const r = root();
+    296|     expect(r['radius-control']).toBe('12px');
+       |                                 ^
+    297|     expect(r['radius-button']).toBe('999px');
+    298|     expect(r['radius-card']).toBe('18px');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (enmienda §4–§7) > sombras de §7.1 en claro y en oscuro (mismos desplazamientos, negro .30/.40/.45; Carlos, 2026-10-21)
+AssertionError: expected '0 1px 2px color-mix(in srgb, var(--br…' to be '0 12px 32px rgba(27, 81, 65, 0.08)' // Object.is equality
+
+Expected: "0 12px 32px rgba(27, 81, 65, 0.08)"
+Received: "0 1px 2px color-mix(in srgb, var(--brand-green-900) 6%, transparent), 0 4px 16px color-mix(in srgb, var(--brand-green-900) 6%, transparent)"
+
+ ❯ __tests__/design-tokens.test.ts:304:36
+    302|   it('sombras de §7.1 en claro y en oscuro (mismos desplazamientos, ne…
+    303|     const r = root();
+    304|     expect(r['shadow-card-light']).toBe('0 12px 32px rgba(27, 81, 65, …
+       |                                    ^
+    305|     expect(r['shadow-hover-light']).toBe('0 20px 42px rgba(29, 92, 66,…
+    306|     expect(r['shadow-float-light']).toBe('0 24px 60px rgba(27, 81, 65,…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (enmienda §4–§7) > movimiento de §7.2: cuatro curvas y tres duraciones; ease-back ya no existe
+AssertionError: expected 'cubic-bezier(0.215, 0.61, 0.355, 1)' to be 'cubic-bezier(0.22, 1, 0.36, 1)' // Object.is equality
+
+Expected: "cubic-bezier(0.22, 1, 0.36, 1)"
+Received: "cubic-bezier(0.215, 0.61, 0.355, 1)"
+
+ ❯ __tests__/design-tokens.test.ts:315:27
+    313|     const r = root();
+    314|     expect([r['duration-fast'], r['duration-normal'], r['duration-slow…
+    315|     expect(r['ease-out']).toBe('cubic-bezier(0.22, 1, 0.36, 1)');
+       |                           ^
+    316|     expect(r['ease-spring']).toBe('cubic-bezier(0.175, 0.885, 0.32, 1.…
+    317|     expect(r['ease-standard']).toBe('cubic-bezier(0.4, 0, 0.2, 1)');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (enmienda §4–§7) > escala tipográfica de §6 (solo tokens), y los de v1 se quedan
+AssertionError: expected [ undefined, undefined, …(3) ] to deeply equal [ Array(5) ]
+
+- Expected
++ Received
+
+  [
+-   "48px",
+-   "34px",
+-   "26px",
+-   "21px",
+-   "18px",
++   undefined,
++   undefined,
++   undefined,
++   undefined,
++   undefined,
+  ]
+
+ ❯ __tests__/design-tokens.test.ts:324:69
+    322|   it('escala tipográfica de §6 (solo tokens), y los de v1 se quedan', …
+    323|     const r = root();
+    324|     expect([1, 2, 3, 4, 5].map((n) => r[`font-size-display-${n}`])).to…
+       |                                                                     ^
+    325|     expect([1, 2, 3, 4].map((n) => r[`font-size-body-${n}`])).toEqual(…
+    326|     expect([1, 2, 3, 4].map((n) => r[`font-size-mono-${n}`])).toEqual(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (enmienda §4–§7) > el oscuro apunta a los tokens de §4.2 (no a valores de marca sueltos)
+AssertionError: expected 'var(--brand-green-50)' to be 'var(--dark-text)' // Object.is equality
+
+Expected: "var(--dark-text)"
+Received: "var(--brand-green-50)"
+
+ ❯ __tests__/design-tokens.test.ts:349:29
+    347|     const d = darkForced();
+    348|     expect(d['color-bg']).toBe('var(--dark-bg)');
+    349|     expect(d['color-text']).toBe('var(--dark-text)');
+       |                             ^
+    350|     expect(d['color-action']).toBe('var(--dark-action)');
+    351|     expect(d['color-on-action']).toBe('var(--dark-on-action)');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (enmienda §4–§7) > oscuro: el foco alrededor del botón primario cumple 3:1 (§4.3, 4,19)
+TypeError: Cannot read properties of null (reading 'replace')
+ ❯ hexToRgb __tests__/design-tokens.test.ts:10:17
+      8| // Helper functions for WCAG 2.x relative luminance and contrast
+      9| function hexToRgb(hex: string): [number, number, number] {
+     10|   const h = hex.replace('#', '');
+       |                 ^
+     11|   return [
+     12|     parseInt(h.substring(0, 2), 16),
+ ❯ luminance __tests__/design-tokens.test.ts:19:15
+ ❯ contrast __tests__/design-tokens.test.ts:28:16
+ ❯ __tests__/design-tokens.test.ts:383:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (enmienda §4–§7) > cada par semántico en oscuro resuelve a colores de la tabla y cumple su umbral
+AssertionError: oscuro: --color-link = var(--dark-blue-300): expected null not to be null
+ ❯ __tests__/design-tokens.test.ts:392:56
+    390|         const a = solid(set[fg]);
+    391|         const b = solid(set[bg]);
+    392|         expect(a, `${name}: --${fg} = ${set[fg]}`).not.toBeNull();
+       |                                                        ^
+    393|         expect(b, `${name}: --${bg} = ${set[bg]}`).not.toBeNull();
+    394|         expect(contrast(a!, b!), `${name}: ${fg} sobre ${bg}`).toBeGre…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (enmienda §4–§7) > la superficie translúcida usa la opacidad mínima de R-F1, literal (sin token para #10261D)
+AssertionError: expected 'color-mix(in srgb, var(--white) 88%, …' to be 'rgba(255, 255, 255, 0.88)' // Object.is equality
+
+Expected: "rgba(255, 255, 255, 0.88)"
+Received: "color-mix(in srgb, var(--white) 88%, transparent)"
+
+ ❯ __tests__/design-tokens.test.ts:420:50
+    418|
+    419|   it('la superficie translúcida usa la opacidad mínima de R-F1, litera…
+    420|     expect(light()['color-surface-translucent']).toBe('rgba(255, 255, …
+       |                                                  ^
+    421|     expect(darkForced()['color-surface-translucent']).toBe('rgba(16, 3…
+    422|     expect(tokensCss).not.toMatch(/#10261D/i);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+ FAIL  __tests__/design-tokens.test.ts > CSS Files Strict Mode > fails if any CSS file uses a hex color not in the tokens
+AssertionError: File /home/user/PaxFide/src/app/globals.css contains unauthorized hex color #46824C. Please use CSS variables from tokens.: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/design-tokens.test.ts:507:11
+    505|           allowedHexes.includes(hex),
+    506|           `File ${file} contains unauthorized hex color ${hex}. Please…
+    507|         ).toBe(true);
+       |           ^
+    508|       });
+    509|     });
+ ❯ __tests__/design-tokens.test.ts:497:15
+ ❯ __tests__/design-tokens.test.ts:492:14
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  11 failed | 87 passed (98)
+   Start at  16:53:47
+   Duration  1.27s (environment 69%, transform 12%, setup 12%, tests 6%, import 1%)
+

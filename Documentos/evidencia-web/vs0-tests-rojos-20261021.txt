@@ -1,0 +1,31 @@
+# VS-0 — tests rojos primero (2026-10-21)
+# __tests__/design-tokens.test.ts y __tests__/theme.test.ts contra src/app/globals.css de origin/develop (41272c4) y sin src/lib/theme
+$ pnpm vitest run __tests__/design-tokens.test.ts __tests__/theme.test.ts
+     × cada token de la tabla tiene en globals.css exactamente el valor aprobado 11ms
+     × define radios, sombras claras y oscuras, tres duraciones y cuatro curvas 1ms
+     × la capa semántica está completa en claro, en oscuro por sistema y en oscuro forzado 1ms
+     × oscuro por sistema y oscuro forzado tienen los mismos valores 1ms
+     × el oscuro por sistema va dentro de prefers-color-scheme y respeta data-theme="light" 1ms
+     × la capa semántica solo apunta a tokens (ningún hexadecimal) 1ms
+     × cada par semántico en claro resuelve a colores de la tabla y cumple su umbral 1ms
+     × cada par semántico en oscuro resuelve a colores de la tabla y cumple su umbral 0ms
+     × el foco nunca es amarillo, ni en claro ni en oscuro 1ms
+     × en oscuro no se pone texto blanco sobre brand-green-500 como acción 1ms
+     × dark-border-control nunca es un color de texto en la capa semántica 1ms
+     × la superficie translúcida usa como mínimo la opacidad de R-F1 1ms
+ FAIL  __tests__/theme.test.ts [ __tests__/theme.test.ts ]
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (DF7-02, DF7-03, DF7-07, DF7-08) > cada token de la tabla tiene en globals.css exactamente el valor aprobado
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (DF7-02, DF7-03, DF7-07, DF7-08) > define radios, sombras claras y oscuras, tres duraciones y cuatro curvas
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (DF7-02, DF7-03, DF7-07, DF7-08) > la capa semántica está completa en claro, en oscuro por sistema y en oscuro forzado
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (DF7-02, DF7-03, DF7-07, DF7-08) > oscuro por sistema y oscuro forzado tienen los mismos valores
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (DF7-02, DF7-03, DF7-07, DF7-08) > el oscuro por sistema va dentro de prefers-color-scheme y respeta data-theme="light"
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (DF7-02, DF7-03, DF7-07, DF7-08) > la capa semántica solo apunta a tokens (ningún hexadecimal)
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (DF7-02, DF7-03, DF7-07, DF7-08) > cada par semántico en claro resuelve a colores de la tabla y cumple su umbral
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (DF7-02, DF7-03, DF7-07, DF7-08) > cada par semántico en oscuro resuelve a colores de la tabla y cumple su umbral
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (DF7-02, DF7-03, DF7-07, DF7-08) > el foco nunca es amarillo, ni en claro ni en oscuro
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (DF7-02, DF7-03, DF7-07, DF7-08) > en oscuro no se pone texto blanco sobre brand-green-500 como acción
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (DF7-02, DF7-03, DF7-07, DF7-08) > dark-border-control nunca es un color de texto en la capa semántica
+ FAIL  __tests__/design-tokens.test.ts > Archivo de tokens (DF7-02, DF7-03, DF7-07, DF7-08) > la superficie translúcida usa como mínimo la opacidad de R-F1
+ Test Files  2 failed (2)
+      Tests  12 failed | 75 passed (87)
