@@ -23,9 +23,9 @@
 | P-1 | `sistema-visual-paxfide-web-enmienda-1.md` (revisión 2) **APROBADA** | Cumplida — Carlos, 2026-10-21 |
 | P-2 | Canvas de la ciudad animada: resuelto en la revisión 2 de la enmienda (R-F4 admite `<canvas>` 2D nativo; se aprueba con E7). Ver §1.1 | Dentro de P-1 |
 | P-3 | Ciudad detrás del panel: resuelto. El prototipo ya la oculta en la parte administrativa (enmienda §3.1, R2-5) | Resuelta |
-| P-4 | Decidir **Q-R1**: en qué rutas viven la landing y el home (§1.2). Cambia el árbol de rutas de `front-fase2.md` §7 | Abierta |
-| P-5 | Decidir los huecos de campos **G-1 a G-8** de §3.4: se omiten en este corte o se piden al backend | Abierta |
-| P-6 | Decidir **T-1**: la línea de tiempo muestra el `trackingCode` en la cabecera (`TRK-2026-8841`) | Abierta |
+| P-4 | **Q-R1**: rutas de la landing y el home (§1.2) | Decidida — Carlos, 2026-10-21: `/` y `/home`; `/home` es el destino por defecto tras iniciar sesión |
+| P-5 | Huecos de campos **G-1 a G-8** (§3.4) | Decidida — Carlos, 2026-10-21: los datos son **necesarios**. El front implementa sin ellos y los añade cuando el backend los entregue; el contrato de backend está por definir |
+| P-6 | **T-1**: cómo se muestra el `trackingCode` en la línea de tiempo (§3.5) | Decidida — Carlos, 2026-10-21: enmascarado + "Ver código" + "Copiar" |
 | P-7 | Archivos `woff2` de Bricolage Grotesque y JetBrains Mono, con su licencia OFL, disponibles para el agente (los descarga Carlos o un agente con red al sitio oficial de cada fuente) | Pendiente |
 
 ### 1.1 Canvas en el fondo animado
@@ -34,16 +34,19 @@ La ciudad animada de home es un `<canvas>` 2D. Es una API nativa del navegador, 
 
 ### 1.2 Q-R1 — Rutas
 
-Hoy `/` es un "Hello world", no está en las superficies habilitadas, y el área de la organización vive en `/panel/**`. Lo que se propone:
+Hoy `/` es un "Hello world", no está en las superficies habilitadas, y el área de la organización vive en `/panel/**`. Tras iniciar sesión, `RouteGuard.tsx` manda a todos a `/panel` (`router.replace(dest || '/panel')`). **Decisión de Carlos (2026-10-21):**
 
-| Prototipo | Ruta propuesta | Guard |
+| Prototipo | Ruta | Guard |
 |---|---|---|
 | Landing | `/` | Pública |
-| Home del donante (inicio tras iniciar sesión) | **[Abierto]** `/inicio` o `/account` | JWT |
+| Home (inicio de cualquier cuenta tras iniciar sesión) | `/home` | JWT |
 | Panel de la organización | `/panel` (ya existe) | JWT + rol (sin cambio) |
 | Línea de tiempo | `/tracking` (ya existe) | `trackingCode` en memoria (sin cambio) |
 
-Añadir `/` y la ruta del home a `enabled-surfaces*.json` y a `front-fase2.md` §7 es parte de la decisión. Ningún agente añade rutas por su cuenta.
+- El destino por defecto tras iniciar sesión pasa de `/panel` a `/home` (si hay un destino guardado, manda ese, como hoy).
+- La landing se ve igual con o sin sesión; con sesión, la cabecera ofrece "Ir a mi inicio".
+- Desde `/home` se llega a `/panel` solo si `GET /me` trae rol en una organización.
+- VS-4 añade `/` y VS-5 añade `/home` a `enabled-surfaces*.json` y a `front-fase2.md` §7, cada una en su PR. Ninguna otra ruta.
 
 ---
 
@@ -73,7 +76,7 @@ Fuente: `Documentos/referencia-api-v1.md` del backend (implementado en `develop`
 
 | Dato en el prototipo | Contrato | Regla |
 |---|---|---|
-| `TRK-2026-8841` en la cabecera | `trackingCode` (credencial) | **T-1** (P-6). Recomendación: no mostrarlo; como mucho los 4 últimos caracteres |
+| `TRK-2026-8841` en la cabecera | `trackingCode` (credencial) | Según **T-1** (§3.5): enmascarado por defecto, con "Ver código" y "Copiar" |
 | `$300.000 COP` | `financialSnapshot.originalAmount` + `currency` (`long`, unidades mínimas, EF3) | ✅ con `money.ts` |
 | Convocatoria · ciudad · organización (`sub`) | Solo `campaignRef?` | ⛔ **G-1**: el seguimiento no trae título, ciudad ni organización |
 | Píldora "En distribución · 2 lotes" | `status: ACTIVA\|EN_PROCESO` + `logistics.length` | ✅ / 🔁; el texto sale del archivo de textos, no del prototipo |
@@ -123,21 +126,39 @@ Fuente: `Documentos/referencia-api-v1.md` del backend (implementado en `develop`
 | Landing: "Seguimiento demostrativo" | — | Ilustración con datos ficticios **rotulada "Ejemplo"**, sin llamar a la API ni usar categorías fuera del enumerado |
 | "Escanear QR" | Decisión pendiente (lector QR en web = dependencia nueva) | ⛔ hasta que Carlos decida |
 
-### 3.4 Huecos que Carlos decide (P-5)
+### 3.4 Huecos de campos (P-5)
 
-| # | Hueco | Recomendación para este corte |
+**Decisión de Carlos (2026-10-21): los nueve son necesarios.** Hasta que el backend los entregue, el front implementa la pantalla **sin** ese dato (lo que dice la columna) y no lo inventa; cuando el endpoint exista, una tarea nueva lo añade. Cómo los entrega el backend se define aparte (contrato pendiente).
+
+| # | Hueco | Mientras no exista |
 |---|---|---|
-| G-1 | Título y organización de la convocatoria en el seguimiento | Omitir. Pedir al backend `campaignTitle?` y `organizationName?` en `GET /donations/tracking` |
-| G-2 | Fecha del pago en el seguimiento | Omitir |
-| G-3 | Hash y sello por paso | Omitir. La insignia es de toda la donación (P4) |
-| G-4 | Relación padre-hijo de lotes en el seguimiento | Lista plana (ya registrado como pendiente) |
-| G-4b | `assetType` en `GET /organizations/{id}/physical-assets` | Pedir al backend (cambio aditivo) |
-| G-5 | `endDate` en `GET /organizations/{id}/campaigns` | Pedir al backend (aditivo) |
-| G-6 | Recaudado por mes | Omitir |
-| G-7 | Integridad por organización | Omitir |
-| G-8 | Actividad reciente | Omitir |
+| G-1 | Título, ciudad y organización de la convocatoria en el seguimiento | Cabecera con monto y estado, sin nombre de la convocatoria |
+| G-2 | Fecha del pago en el seguimiento | "Pago confirmado" con el monto, sin fecha |
+| G-3 | Hash y sello por paso | Una insignia de integridad para toda la donación (P4) |
+| G-4 | Relación padre-hijo de lotes en el seguimiento | Lotes en lista plana |
+| G-4b | Tipo de lote en la tabla del panel | Tabla con cantidad, estado y ubicación |
+| G-5 | Fecha de cierre y "cierra pronto" en el panel | Estado y porcentaje, sin fecha |
+| G-6 | Recaudado por mes | "Recaudado" total por moneda |
+| G-7 | Integridad por organización | La tarjeta no aparece |
+| G-8 | Actividad reciente | El bloque no aparece |
 
 Las peticiones al backend van a `solicitudes-backend.md` y siguen su propio proceso (ficha o enmienda de ADR-041). **El front no espera por ellas:** implementa sin el dato y lo añade cuando exista.
+
+### 3.5 T-1 — El código de seguimiento en pantalla (Carlos, 2026-10-21)
+
+El `trackingCode` es la credencial del seguimiento (`Authorization: Bearer <trackingCode>`): quien lo tiene ve la donación. Decisión de Carlos: **(b) y (c) juntas**.
+
+| # | Regla | Origen |
+|---|---|---|
+| T1-1 | Por defecto se muestran solo los **4 últimos caracteres**: `···8841`. | Carlos (b) |
+| T1-2 | Botón **"Ver código"** que muestra el código completo, y botón **"Copiar"**. | Carlos (c) |
+| T1-3 | "Copiar" funciona **sin revelar** el código: copia desde memoria al portapapeles y anuncia "Código copiado" (`aria-live`). | Carlos, 2026-10-21 |
+| T1-4 | Revelado temporal: se vuelve a ocultar al pulsar "Ocultar", a los **30 s**, al cambiar de pestaña (`visibilitychange`) o al salir de la pantalla. | Carlos, 2026-10-21 |
+| T1-5 | Mientras está oculto, el código completo **no está en el DOM** (ni en `title`, `aria-label`, `data-*` ni texto con CSS que lo tape). Solo vive en la memoria de la sesión (D2). | Carlos, 2026-10-21 |
+| T1-6 | Junto al botón, un aviso corto: "Este código abre tu seguimiento. No lo compartas en capturas." | Carlos, 2026-10-21 |
+| T1-7 | Nunca en la URL, el almacenamiento del navegador, los logs, la analítica ni el comprobante (reglas vigentes). | ADR-041 §2.7, D2 |
+
+Tests: el DOM no contiene el código completo antes de "Ver código" ni después de ocultarlo (aserción negativa); el temporizador de 30 s y `visibilitychange` lo ocultan; "Copiar" escribe el código completo en el portapapeles sin revelarlo; el código no aparece en la URL ni en `localStorage`/`sessionStorage`.
 
 ---
 
@@ -423,12 +444,13 @@ DETENTE si: una regla de R-F1 a R-F7 no se puede cumplir con el diseño del prot
 
 ```
 TAREA VS-4 — Landing pública.
-Rama: feat/web-landing. Depende de VS-0 a VS-3 y de Q-R1.
-Rige: Q-R1; referencia-api-v1.md §5 (GET /public/campaigns);
+Rama: feat/web-landing. Depende de VS-0 a VS-3.
+Rige: §1.2 (Q-R1); referencia-api-v1.md §5 (GET /public/campaigns);
 prompts-agentes-estilo-v2.md §3.3. Referencia visual: paxfide-landing.html.
 
 Alcance:
-- Ruta y superficie según Q-R1.
+- Ruta `/` y su superficie (§1.2). Con sesión, la cabecera ofrece "Ir a
+  mi inicio" (`/home`).
 - Bloque de convocatorias abiertas con GET /public/campaigns: solo los
   campos de §3.3; organizationName, targetAmount y clearedAmount son
   opcionales (faltan o llegan null: mismo tratamiento).
@@ -449,11 +471,14 @@ fuentes externas (Playwright).
 
 ```
 TAREA VS-5 — Home del donante.
-Rama: feat/web-donor-home. Depende de VS-0 a VS-3 y de Q-R1.
-Rige: Q-R1; GET /me (ficha N1); GET /account/donations; §3.3 de este
+Rama: feat/web-donor-home. Depende de VS-0 a VS-3.
+Rige: §1.2 (Q-R1); GET /me (ficha N1); GET /account/donations; §3.3 de este
 documento. Referencia visual: paxfide-home.html.
 
 Alcance:
+- Ruta `/home` y su superficie (§1.2). Destino por defecto tras iniciar
+  sesión: `/home` en lugar de `/panel` (RouteGuard), con test de que un
+  destino guardado sigue teniendo prioridad.
 - Saludo SIN nombre (GET /account/profile no está implementado).
 - Accesos a las superficies habilitadas según GET /me.
 - Resumen de "Mis donaciones" con GET /account/donations (intentId,
@@ -502,12 +527,12 @@ en pendientes en amarillo con icono y texto.
 TAREA VS-7 — Línea de tiempo del seguimiento.
 Rama: feat/web-tracking-timeline. Depende de VS-0, VS-1 y VS-3.
 Rige: referencia-api-v1.md §8; ficha-p4-integridad-en-seguimiento.md;
-§3.1 de este documento (con T-1, G-1 a G-4). Referencia visual:
+§3.1 y §3.5 de este documento (G-1 a G-4 y T-1). Referencia visual:
 paxfide-linea-tiempo.html.
 
 Alcance:
 - Cabecera: importe (originalAmount + currency) y estado. El trackingCode
-  según T-1.
+  según §3.5 (T1-1 a T1-7).
 - Un carril por activo de logistics[] (lista plana), con assetType,
   quantity y unitOfMeasure etiquetados.
 - Pasos desde GET …/assets/{assetRef}/history: eventType, timestamp,
