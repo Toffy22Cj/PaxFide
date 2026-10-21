@@ -1,0 +1,72 @@
+/* Ref: sistema-visual-paxfide-web-enmienda-1.md §8 (E4). Los estilos de cada posición viven aquí; la posición la pone
+   el contenedor (Shell) en data-nav-position="auto|bottom|side". Solo tokens semánticos. */
+.nav {
+  position: fixed;
+  z-index: 20;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.items { list-style: none; margin: 0; padding: 0; display: flex; gap: var(--space-1); }
+.item {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-width: 64px; min-height: 56px; padding: var(--space-1);
+  border-radius: var(--radius-card);
+  color: var(--color-text-secondary);
+  font-family: var(--font-body); font-size: var(--font-size-body-4); font-weight: var(--weight-semibold);
+  line-height: 1.15; text-align: center; text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.pill {
+  display: flex; align-items: center; justify-content: center; width: 52px; height: 30px;
+  border-radius: var(--radius-button);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.item:hover .pill { background: var(--color-bg); }
+.item[aria-current="page"] { color: var(--color-text); }
+.item[aria-current="page"] .pill { background: var(--color-action); color: var(--color-on-action); }
+.item:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.label { display: block; }
+
+/* Barra inferior (< 768 px) */
+[data-nav-position="bottom"] .nav {
+  left: 0; right: 0; bottom: 0;
+  border-top: 1px solid var(--color-divider);
+  padding: var(--space-1) var(--space-2) calc(var(--space-1) + env(safe-area-inset-bottom, 0px));
+}
+[data-nav-position="bottom"] .items { justify-content: space-around; max-width: 640px; margin: 0 auto; overflow-x: auto; scrollbar-width: none; }
+[data-nav-position="bottom"] .items > li { flex: 1 0 auto; display: flex; justify-content: center; }
+[data-nav-position="bottom"] .label { white-space: nowrap; }
+
+/* Barra lateral (≥ 768 px) */
+[data-nav-position="side"] .nav {
+  top: var(--nav-inset-top); bottom: 0; left: 0; width: var(--nav-width-side);
+  border-right: 1px solid var(--color-divider);
+  padding: var(--space-3) var(--space-2) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+}
+[data-nav-position="side"] .items { flex-direction: column; align-items: center; }
+
+/* Antes de hidratar (auto): la misma decisión por media query, para que la primera pintura ya sea correcta */
+@media (max-width: 767.98px) {
+  [data-nav-position="auto"] .nav {
+    left: 0; right: 0; bottom: 0;
+    border-top: 1px solid var(--color-divider);
+    padding: var(--space-1) var(--space-2) calc(var(--space-1) + env(safe-area-inset-bottom, 0px));
+  }
+  [data-nav-position="auto"] .items { justify-content: space-around; max-width: 640px; margin: 0 auto; overflow-x: auto; scrollbar-width: none; }
+  [data-nav-position="auto"] .items > li { flex: 1 0 auto; display: flex; justify-content: center; }
+  [data-nav-position="auto"] .label { white-space: nowrap; }
+}
+@media (min-width: 768px) {
+  [data-nav-position="auto"] .nav {
+    top: var(--nav-inset-top); bottom: 0; left: 0; width: var(--nav-width-side);
+    border-right: 1px solid var(--color-divider);
+    padding: var(--space-3) var(--space-2) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+  }
+  [data-nav-position="auto"] .items { flex-direction: column; align-items: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item, .pill { transition: none; }
+}

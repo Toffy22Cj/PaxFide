@@ -99,7 +99,7 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
     await expect(emp.getByText('Invitación aceptada')).toBeVisible();
 
     // El administrador la ve como miembro y la asigna a una convocatoria
-    await admin.getByRole('link', { name: 'Panel' }).click();
+    await admin.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await admin.getByRole('link', { name: 'Convocatorias de mi organización' }).click();
     const row = admin.getByTestId('org-campaign').filter({ hasText: 'camp-demo-1' });
     await row.getByRole('button', { name: 'Asignar empleado' }).click();
@@ -111,7 +111,7 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
     await emp.getByRole('link', { name: 'Mis convocatorias' }).click();
     await expect(emp.getByTestId('my-campaign').filter({ hasText: 'Mercados para adultos mayores' })).toContainText('Empleado');
 
-    await admin.getByRole('link', { name: 'Panel' }).click();
+    await admin.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await admin.getByRole('link', { name: 'Personas de mi organización' }).click();
     const member = admin.getByTestId('member').filter({ hasText: accountId });
     await expect(member).toContainText('Empleado');

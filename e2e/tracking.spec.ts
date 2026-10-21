@@ -36,8 +36,7 @@ test.describe('Donante con cuenta → Mis donaciones → seguimiento por formula
     await page.getByRole('button', { name: 'Consultar estado del pago' }).click();
     await expect(page.getByTestId('tracking-code')).toBeVisible();
 
-    await page.getByRole('link', { name: 'Panel' }).click();
-    await page.getByRole('link', { name: 'Mis donaciones' }).click();
+    await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Donaciones' }).click();
     await expect(page).toHaveURL(/\/account\/donations$/);
     const item = page.getByTestId('account-donation').filter({ hasText: 'Convocatoria seguimiento' });
     await expect(item).toContainText('30.000 COP');

@@ -1,8 +1,41 @@
-.header { background: var(--white); border-bottom: 1px solid var(--neutral-200); }
-.bar { max-width: 1120px; margin: 0 auto; padding: 0 var(--gutter-mobile); min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
-.brand { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--brand-green-900); font-weight: var(--weight-semibold); font-size: var(--text-lg); text-decoration: none; }
-.nav { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
-.navLink { color: var(--brand-blue-800); font-size: var(--text-sm); }
-.logout { min-height: var(--control-height); padding: 0 var(--space-4); border-radius: var(--radius-control); font: inherit; font-weight: var(--weight-semibold); cursor: pointer; background: var(--white); color: var(--brand-green-900); border: 1px solid var(--neutral-400); }
-.main { max-width: var(--width-detail); margin: 0 auto; padding: var(--space-8) var(--gutter-mobile) var(--space-12); }
+/* Ref: sistema-visual-paxfide-web-enmienda-1.md §8 (el contenedor pone data-nav-position y --nav-inset-*; el contenido
+   solo usa esas variables). Cabecera y contenedor: solo tokens semánticos (respuesta de Carlos al plan de VS-2, D). */
+.app {
+  --nav-inset-top: 56px;
+  --nav-width-side: 108px;
+  --nav-height-bottom: 66px;
+  --nav-inset-bottom: 0px;
+  --nav-inset-left: 0px;
+}
+.app[data-has-nav="true"][data-nav-position="bottom"] { --nav-inset-bottom: calc(var(--nav-height-bottom) + env(safe-area-inset-bottom, 0px)); }
+.app[data-has-nav="true"][data-nav-position="side"] { --nav-inset-left: var(--nav-width-side); }
+@media (max-width: 767.98px) {
+  .app[data-has-nav="true"][data-nav-position="auto"] { --nav-inset-bottom: calc(var(--nav-height-bottom) + env(safe-area-inset-bottom, 0px)); }
+}
+@media (min-width: 768px) {
+  .app[data-has-nav="true"][data-nav-position="auto"] { --nav-inset-left: var(--nav-width-side); }
+}
+
+.header {
+  position: sticky; top: 0; z-index: 30;
+  height: var(--nav-inset-top);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-divider);
+}
+.bar { max-width: 1120px; height: 100%; margin: 0 auto; padding: 0 var(--gutter-mobile); display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.brand { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-text); font-weight: var(--weight-semibold); font-size: var(--text-lg); text-decoration: none; }
+.actions { display: flex; align-items: center; gap: var(--space-3); }
+.logout {
+  min-height: 44px; padding: 0 var(--space-4);
+  border-radius: var(--radius-control);
+  font: inherit; font-weight: var(--weight-semibold); cursor: pointer;
+  background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control);
+}
+.logout:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.main {
+  max-width: var(--width-detail); margin: 0 auto;
+  padding: var(--space-8) var(--gutter-mobile) calc(var(--space-12) + var(--nav-inset-bottom));
+}
+.app[data-has-nav="true"] .main { margin-left: max(var(--nav-inset-left), calc((100% - var(--width-detail)) / 2)); }
+.app[data-has-nav="true"] .main.wide { margin-left: max(var(--nav-inset-left), calc((100% - 1120px) / 2)); }
 .wide { max-width: 1120px; }
