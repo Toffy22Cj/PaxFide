@@ -1,6 +1,6 @@
 # Fuentes autoalojadas
 
-Ref: prompts-agentes-estilo-v2.md §4 (fuentes autoalojadas) y VS-0; decisiones-delegadas-web-fase7.md DF7-04 y DF7-05.
+Ref: sistema-visual-paxfide-web-enmienda-1.md §6 (autoalojadas, subconjunto latino, presupuesto ≤ 150 KB, E6); decisiones-delegadas-web-fase7.md DF7-04 (origen) y DF7-12 (sin preload).
 
 Nunca se cargan desde Google Fonts ni desde otro CDN: los archivos de esta carpeta los sirve la propia aplicación
 (`next/font/local` en `src/app/fonts.ts`).

@@ -5,8 +5,6 @@
 **Sigue el formato de:** `Promt-maestro-front-fase2.md` (contexto maestro + un bloque de tarea por sesión). Lo complementa; no lo sustituye en lo que este documento no toca.
 **Insumos visuales:** `paxfide-landing.html`, `paxfide-home.html`, `paxfide-panel.html`, `paxfide-linea-tiempo.html`, `paxfide-movimiento.html` (versiones del 2026-10-20). Son **referencia visual**, no contrato: ver §2.
 
-> Nota de VS-0 (2026-10-21): este documento lo aportó Carlos en la sesión de VS-0 y se añade al repositorio tal cual. `sistema-visual-paxfide-web-enmienda-1.md` todavía no está en `develop`; ver `decisiones-delegadas-web-fase7.md` §0.
-
 ---
 
 ## 0. Cómo usar este documento

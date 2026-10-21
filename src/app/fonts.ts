@@ -1,9 +1,10 @@
-// Ref: prompts-agentes-estilo-v2.md §4 (fuentes autoalojadas) y VS-0; decisiones-delegadas-web-fase7.md DF7-04, DF7-05.
+// Ref: sistema-visual-paxfide-web-enmienda-1.md §6 (fuentes, E6); prompts-agentes-estilo-v2.md VS-0;
+// decisiones-delegadas-web-fase7.md DF7-04 (origen de los woff2) y DF7-12 (sin preload).
 import localFont from 'next/font/local';
 
 /**
  * Fuente de titulares. Autoalojada (nunca Google Fonts ni otro CDN), subconjunto latino, `font-display: swap`.
- * Sin preload mientras ninguna pantalla la use (DF7-05): se activa en la primera tarea que la ponga en pantalla.
+ * Sin preload mientras ninguna pantalla la use (DF7-12): se activa en la primera tarea que la ponga en pantalla.
  */
 export const fontDisplay = localFont({
   src: './fonts/bricolage-grotesque-latin.woff2',
