@@ -22,6 +22,27 @@
   --danger-700: #B42318;
   --danger-50: #FEF3F2;
 
+  /* v2 (decisiones-delegadas-web-fase7.md DF7-02): degradado (E3) y suelo de marca (E1) */
+  --brand-green-700: #46824C;
+  --brand-ground: #EEF4EA;
+
+  /* v2: paleta oscura (DF7-03). Solo la capa semántica los usa; ningún componente los nombra directamente */
+  --dark-ground: #07130E;
+  --dark-bg: #0D1F18;
+  --dark-surface: #132C22;
+  --dark-surface-raised: #1A3D2F;
+  --dark-field: #0F261D;
+  --dark-text-secondary: #BBCAC1;
+  --dark-border-control: #739797;
+  --dark-divider: #2B502F;
+  --dark-green-300: #69AE70;
+  --dark-blue-300: #A2CDE2;
+  --dark-green-950: #172B19;
+  --dark-blue-950: #102733;
+  --dark-yellow-950: #3A2604;
+  --dark-danger-950: #360B07;
+  --dark-danger-300: #EB766D;
+
   /* Neutros y overlay (W-7) */
   --neutral-50: #F8FAFA;
   --neutral-100: #F0F4F4;
@@ -38,12 +59,32 @@
   --space-8: 32px;
   --space-12: 48px;
 
-  /* Radio */
+  /* Radio (radius-surface se conserva en 8px: lo usan las pantallas existentes, DF7-06) */
   --radius-control: 6px;
   --radius-surface: 8px;
+  --radius-card: 20px;
+  --radius-button: 999px;
 
   /* Sombra */
   --shadow-modal: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-card-light: 0 1px 2px color-mix(in srgb, var(--brand-green-900) 6%, transparent), 0 4px 16px color-mix(in srgb, var(--brand-green-900) 6%, transparent);
+  --shadow-hover-light: 0 12px 32px color-mix(in srgb, var(--brand-green-900) 10%, transparent);
+  --shadow-float-light: 0 24px 60px color-mix(in srgb, var(--brand-green-900) 14%, transparent);
+  --shadow-card-dark: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-hover-dark: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-float-dark: 0 24px 60px rgba(0, 0, 0, 0.55);
+
+  /* Movimiento (DF7-07): tres duraciones y cuatro curvas; ninguna animación usa valores sueltos */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 450ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --ease-back: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* Fuentes: --font-display y --font-mono las define next/font/local en <html> (src/app/fonts.ts); el cuerpo sigue en system-ui */
+  --font-body: var(--font-family-sans);
 
   /* Tipografía */
   --text-sm: 14px;
@@ -56,6 +97,110 @@
   --width-login: 400px;
   --width-detail: 720px;
   --gutter-mobile: 16px;
+}
+
+/*
+ * Capa semántica (DF7-08). Los componentes nuevos usan SOLO estos nombres; claro por defecto, oscuro con
+ * prefers-color-scheme salvo data-theme="light", y oscuro forzado con data-theme="dark".
+ * Las pantallas existentes siguen con los tokens de marca hasta su pasada de estilo (VS-8), por eso aquí no se
+ * cambia color-scheme ni el fondo de body (DF7-09).
+ */
+:root {
+  --color-bg: var(--neutral-50);
+  --color-ground: var(--brand-ground);
+  --color-surface: var(--white);
+  --color-surface-raised: var(--white);
+  --color-surface-translucent: color-mix(in srgb, var(--white) 88%, transparent);
+  --color-field: var(--white);
+  --color-text: var(--brand-green-900);
+  --color-text-secondary: var(--brand-neutral-700);
+  --color-border-control: var(--neutral-400);
+  --color-divider: var(--neutral-200);
+  --color-action: var(--brand-green-900);
+  --color-on-action: var(--white);
+  --color-gradient-from: var(--brand-green-900);
+  --color-gradient-to: var(--brand-green-700);
+  --color-link: var(--brand-blue-800);
+  --color-focus: var(--brand-green-900);
+  --color-success-bg: var(--brand-green-50);
+  --color-success-text: var(--brand-green-900);
+  --color-success-icon: var(--brand-green-800);
+  --color-danger-bg: var(--danger-50);
+  --color-danger-text: var(--danger-700);
+  --color-ambiguous-bg: var(--brand-yellow-50);
+  --color-ambiguous-text: var(--brand-green-900);
+  --color-ambiguous-title: var(--brand-yellow-900);
+  --color-info-bg: var(--brand-blue-50);
+  --color-info-text: var(--brand-blue-800);
+  --shadow-card: var(--shadow-card-light);
+  --shadow-hover: var(--shadow-hover-light);
+  --shadow-float: var(--shadow-float-light);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: var(--dark-bg);
+    --color-ground: var(--dark-ground);
+    --color-surface: var(--dark-surface);
+    --color-surface-raised: var(--dark-surface-raised);
+    --color-surface-translucent: color-mix(in srgb, var(--dark-surface) 86%, transparent);
+    --color-field: var(--dark-field);
+    --color-text: var(--brand-green-50);
+    --color-text-secondary: var(--dark-text-secondary);
+    --color-border-control: var(--dark-border-control);
+    --color-divider: var(--dark-divider);
+    --color-action: var(--brand-green-800);
+    --color-on-action: var(--white);
+    --color-gradient-from: var(--brand-green-900);
+    --color-gradient-to: var(--brand-green-700);
+    --color-link: var(--dark-blue-300);
+    --color-focus: var(--dark-green-300);
+    --color-success-bg: var(--dark-green-950);
+    --color-success-text: var(--brand-green-50);
+    --color-success-icon: var(--dark-green-300);
+    --color-danger-bg: var(--dark-danger-950);
+    --color-danger-text: var(--dark-danger-300);
+    --color-ambiguous-bg: var(--dark-yellow-950);
+    --color-ambiguous-text: var(--brand-green-50);
+    --color-ambiguous-title: var(--brand-yellow-400);
+    --color-info-bg: var(--dark-blue-950);
+    --color-info-text: var(--dark-blue-300);
+    --shadow-card: var(--shadow-card-dark);
+    --shadow-hover: var(--shadow-hover-dark);
+    --shadow-float: var(--shadow-float-dark);
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-bg: var(--dark-bg);
+  --color-ground: var(--dark-ground);
+  --color-surface: var(--dark-surface);
+  --color-surface-raised: var(--dark-surface-raised);
+  --color-surface-translucent: color-mix(in srgb, var(--dark-surface) 86%, transparent);
+  --color-field: var(--dark-field);
+  --color-text: var(--brand-green-50);
+  --color-text-secondary: var(--dark-text-secondary);
+  --color-border-control: var(--dark-border-control);
+  --color-divider: var(--dark-divider);
+  --color-action: var(--brand-green-800);
+  --color-on-action: var(--white);
+  --color-gradient-from: var(--brand-green-900);
+  --color-gradient-to: var(--brand-green-700);
+  --color-link: var(--dark-blue-300);
+  --color-focus: var(--dark-green-300);
+  --color-success-bg: var(--dark-green-950);
+  --color-success-text: var(--brand-green-50);
+  --color-success-icon: var(--dark-green-300);
+  --color-danger-bg: var(--dark-danger-950);
+  --color-danger-text: var(--dark-danger-300);
+  --color-ambiguous-bg: var(--dark-yellow-950);
+  --color-ambiguous-text: var(--brand-green-50);
+  --color-ambiguous-title: var(--brand-yellow-400);
+  --color-info-bg: var(--dark-blue-950);
+  --color-info-text: var(--dark-blue-300);
+  --shadow-card: var(--shadow-card-dark);
+  --shadow-hover: var(--shadow-hover-dark);
+  --shadow-float: var(--shadow-float-dark);
 }
 
 *:focus-visible {
