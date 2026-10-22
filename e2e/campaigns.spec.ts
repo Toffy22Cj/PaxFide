@@ -108,7 +108,7 @@ test.describe('Panel de convocatorias (CV-01, CV-02)', () => {
     await expect(history.getByTestId('history-warnings')).toContainText('la tasa de fallos es 0');
 
     // Cerrar: confirmación; después, sin acciones
-    await page.getByRole('link', { name: 'Panel' }).click();
+    await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await page.getByRole('link', { name: 'Convocatorias de mi organización' }).click();
     await row.getByRole('button', { name: 'Cerrar convocatoria' }).click();
     await expect(dialog.getByText(/Cerrar es definitivo/)).toBeVisible();

@@ -69,7 +69,7 @@ test.describe('P2-C — fondos, activos de la organización y verificación', ()
     const assetRef = decodeURIComponent(employee.url().split('/assets/')[1]);
 
     // Activos de la organización: aparece, con enlace a su página
-    await employee.getByRole('link', { name: 'Panel' }).click();
+    await employee.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await employee.getByRole('link', { name: 'Activos de mi organización' }).click();
     const row = employee.getByTestId('org-asset').filter({ hasText: assetRef });
     await expect(row).toContainText('Bodega P2-C');

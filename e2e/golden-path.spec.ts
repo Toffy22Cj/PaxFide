@@ -95,8 +95,7 @@ test('golden path por la interfaz: convocatoria → donaciones (sin y con cuenta
   await request.post(`${API}/__test/payments`, { data: { intentId: donorIntent } });
   await donor.getByRole('button', { name: 'Consultar estado del pago' }).click();
   await expect(donor.getByTestId('tracking-code')).toBeVisible();
-  await donor.getByRole('link', { name: 'Panel' }).click();
-  await donor.getByRole('link', { name: 'Mis donaciones' }).click();
+  await donor.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Donaciones' }).click();
   await expect(donor.getByTestId('account-donation').filter({ hasText: 'Mercados golden path' })).toContainText('Confirmada');
 
   // La convocatoria refleja lo recaudado (hecho verificable)

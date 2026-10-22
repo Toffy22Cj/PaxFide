@@ -29,7 +29,7 @@ export default defineConfig({
           'action:designate-administrator', 'action:remove-responsible', 'action:close-campaign', '/panel/prediction',
           '/panel/funds', '/panel/assets', '/panel/platform', 'action:request-allocation', 'action:confirm-allocation',
           'action:platform-verify', 'action:platform-reject', 'action:platform-request-information',
-          '/panel/organization', 'action:create-organization', '/register',
+          '/panel/organization', 'action:create-organization', '/register', '/campaigns',
           '/panel/members', '/panel/my-campaigns', '/invitaciones', 'action:member-invite', 'action:invitation-revoke',
           'action:member-change-role', 'action:member-remove',
           '/panel/configuration', 'action:configuration-edit', 'action:configuration-request', 'action:configuration-approve', 'action:configuration-reject', 'action:platform-grant-admin', 'action:platform-revoke-admin',

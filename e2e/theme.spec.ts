@@ -1,5 +1,5 @@
 // Ref: prompts-agentes-estilo-v2.md VS-0; sistema-visual-paxfide-web-enmienda-1.md §4.1 (tema) y §6 (fuentes, E6);
-// decisiones-delegadas-web-fase7.md DF7-12 (sin preload) y DF7-10.
+// decisiones-delegadas-web-fase7.md DF7-12 (sin preload), DF7-10 y DF7-17 (claro forzado hasta VS-8).
 import { test, expect, type Page } from '@playwright/test';
 
 /** Presupuesto de fuentes en la primera carga (enmienda §6, E6: ≤ 150 KB): las dos familias completas, en bytes. */
@@ -8,10 +8,11 @@ const FONT_BUDGET_BYTES = 150_000;
 const cssVar = (page: Page, name: string) =>
   page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim().toUpperCase(), name);
 
-test.describe('Tema (VS-0)', () => {
-  test('sistema oscuro → tokens semánticos oscuros', async ({ page }) => {
-    await page.emulateMedia({ colorScheme: 'dark' });
+test.describe('Tema (VS-0, con el claro forzado de DF7-17)', () => {
+  test('la capa semántica oscura: con data-theme="dark" puesto a mano, tokens oscuros', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
     await page.goto('/login');
+    await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
     expect(await cssVar(page, '--color-bg')).toBe('#0E1B16');
     expect(await cssVar(page, '--color-text')).toBe('#EEF6EF');
     expect(await cssVar(page, '--color-focus')).toBe('#8CD39A');
@@ -33,13 +34,21 @@ test.describe('Tema (VS-0)', () => {
     expect(await cssVar(page, '--color-bg')).toBe('#0E1B16');
   });
 
-  test('una preferencia guardada se aplica antes de hidratar; un valor no válido se ignora', async ({ page }) => {
+  test('DF7-17: con el sistema en oscuro, el tema sigue claro y la barra se ve clara', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.goto('/login');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    expect(await cssVar(page, '--color-bg')).toBe('#F8FAFA');
+    const navBg = await page.getByRole('navigation', { name: 'Principal' }).evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(navBg).toBe('rgb(255, 255, 255)');
+    const headerBg = await page.getByRole('banner').evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(headerBg).toBe('rgb(255, 255, 255)');
+  });
+
+  test('DF7-17: una preferencia oscura guardada no cambia el claro forzado', async ({ page }) => {
     await page.addInitScript(() => window.localStorage.setItem('paxfide.theme', 'dark'));
     await page.goto('/login');
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    await page.addInitScript(() => window.localStorage.setItem('paxfide.theme', 'sepia'));
-    await page.goto('/login');
-    await expect(page.locator('html')).not.toHaveAttribute('data-theme', /.*/);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   });
 
   test('las pantallas existentes no cambian con el sistema en oscuro (DF7-09)', async ({ page }) => {
