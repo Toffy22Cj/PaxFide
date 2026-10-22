@@ -159,6 +159,7 @@ function publicView(c) {
 
 /** Fallos forzados por los tests: el siguiente POST cuya ruta empiece por `prefix` falla con `mode`. */
 const failures = [];
+const delays = [];
 
 function readBody(req) {
   return new Promise((resolve) => {
@@ -180,7 +181,7 @@ function accountOf(req) {
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept, Command-Id, Intent-Token');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept, Command-Id, Intent-Token, x-test-delay-ms');
   res.setHeader('Access-Control-Expose-Headers', 'Location');
 
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
@@ -196,7 +197,15 @@ const server = http.createServer(async (req, res) => {
     send(res, 200, { ok: true });
     return;
   }
+  if (path === '/__test/delay' && req.method === 'POST') {
+
+    const body = await readBody(req);
+    delays.push({ prefix: body.prefix, ms: Number(body.ms) });
+    send(res, 200, { ok: true });
+    return;
+  }
   // Hace de proveedor de pago: confirma (o falla) la intención y aplica los fondos, como el webhook firmado real
+
   if (path === '/__test/payments' && req.method === 'POST') {
     const body = await readBody(req);
     const intent = intents.get(body.intentId);
@@ -246,6 +255,17 @@ const server = http.createServer(async (req, res) => {
 
   if (!path.startsWith(BASE)) { send(res, 404); return; }
   const p = path.slice(BASE.length);
+
+  const testDelay = Number(req.headers['x-test-delay-ms'] || 0);
+  if (testDelay > 0) {
+    await new Promise((r) => setTimeout(r, testDelay));
+  }
+
+  const dIdx = delays.findIndex((d) => p.startsWith(d.prefix));
+  if (dIdx >= 0) {
+    const d = delays.splice(dIdx, 1)[0];
+    await new Promise((r) => setTimeout(r, d.ms));
+  }
 
   if (req.method === 'POST') {
     const i = failures.findIndex((f) => p.startsWith(f.prefix));

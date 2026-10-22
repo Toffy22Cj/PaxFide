@@ -588,4 +588,20 @@ describe('Hexadecimales y tokens dark-* solo en el archivo de tokens', () => {
       expect(fs.readFileSync(file, 'utf-8'), rel).not.toMatch(/fonts\.googleapis|fonts\.gstatic|next\/font\/google|@import\s+url\(\s*['"]?https?:/);
     }
   });
+
+  it('Loaders.module.css y cualquier *.module.css nuevo no contienen duraciones en ms o s sueltas fuera de tokens', () => {
+    const moduleCssFiles = files.filter((f) => f.endsWith('.module.css'));
+    expect(moduleCssFiles.length).toBeGreaterThan(0);
+    for (const file of moduleCssFiles) {
+      const rel = path.relative(SRC, file).split(path.sep).join('/');
+      const content = fs.readFileSync(file, 'utf-8');
+      const stripped = content.replace(/\/\*[\s\S]*?\*\//g, '');
+      const rawDurations = stripped.match(/\b\d+(?:\.\d+)?(ms|s)\b/g) || [];
+      expect(
+        rawDurations,
+        `${rel} contiene duraciones sueltas (${rawDurations.join(', ')}): deben usar var(--duration-*) o calc(... var(--duration-*))`,
+      ).toEqual([]);
+    }
+  });
 });
+

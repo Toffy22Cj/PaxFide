@@ -21,16 +21,18 @@ describe('LoginScreen (§5.2)', () => {
     expect(client).not.toHaveBeenCalled();
   });
 
-  it('enviando: botón deshabilitado con "…"', async () => {
+  it('enviando: botón deshabilitado con puntos de marca (VS-1)', async () => {
     let resolve: (v: any) => void = () => {};
     const client = vi.fn(() => new Promise<any>((r) => { resolve = r; }));
     render(<LoginScreen loginClient={client} />);
     fill('a@b.co', 'x');
-    const btn = screen.getByRole('button', { name: /Iniciar sesión…/ });
+    const btn = screen.getByRole('button', { name: /Iniciar sesión/ });
     expect(btn).toBeDisabled();
+    expect(btn).toHaveAttribute('aria-busy', 'true');
     resolve({ kind: 'invalid-credentials' });
     await screen.findByText('Correo o contraseña incorrectos.');
   });
+
 
   it('401: un único mensaje, sin sugerir "cuenta inactiva"', async () => {
     render(<LoginScreen loginClient={async () => ({ kind: 'invalid-credentials' })} />);
