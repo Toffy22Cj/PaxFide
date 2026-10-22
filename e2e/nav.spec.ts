@@ -13,6 +13,27 @@ async function login(page: Page, email: string, password: string) {
 const nav = (page: Page) => page.getByRole('navigation', { name: 'Principal' });
 const navLabels = (page: Page) => nav(page).getByRole('link').allTextContents();
 
+/** Ninguna entrada se sale de la pantalla ni se solapa con otra (revisión de Carlos de la entrega de VS-2). */
+async function expectEntriesInside(page: Page, width: number) {
+  const boxes = await nav(page).getByRole('link').evaluateAll((els) => els.map((el) => {
+    const r = el.getBoundingClientRect();
+    return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+  }));
+  expect(boxes.length).toBeGreaterThan(0);
+  const height = page.viewportSize()!.height;
+  for (const b of boxes) {
+    expect(b.left).toBeGreaterThanOrEqual(0);
+    expect(b.right).toBeLessThanOrEqual(width);
+    expect(b.top).toBeGreaterThanOrEqual(0);
+    expect(b.bottom).toBeLessThanOrEqual(height);
+  }
+  for (let i = 1; i < boxes.length; i++) {
+    const [p, c] = [boxes[i - 1], boxes[i]];
+    expect(c.left >= p.right - 0.5 || c.top >= p.bottom - 0.5, `entradas ${i - 1} y ${i} solapadas`).toBe(true);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+}
+
 /** Orden en que el tabulador recorre las entradas de la barra (desde la cabecera). */
 async function tabOrder(page: Page): Promise<string[]> {
   await page.locator('body').click({ position: { x: 1, y: 1 } });
@@ -64,13 +85,29 @@ for (const width of [390, 1280]) {
 
     test('ADMINISTRATOR: entradas, aria-current y orden de foco igual al visual', async ({ page }) => {
       await login(page, 'admin@demo.test', 'demo-admin');
-      expect(await navLabels(page)).toEqual(['Explorar', 'Donaciones', 'Seguimiento', 'Organización', 'Convocatorias', 'Lotes']);
+      const expected = width >= 768
+        ? ['Explorar', 'Donaciones', 'Seguimiento', 'Organización', 'Convocatorias', 'Lotes']
+        : ['Explorar', 'Donaciones', 'Seguimiento', 'Organización']; // DF7-20
+      expect(await navLabels(page)).toEqual(expected);
       await expect(nav(page).getByRole('link', { name: 'Organización' })).toHaveAttribute('aria-current', 'page');
-      expect(await tabOrder(page)).toEqual(await navLabels(page));
-      await nav(page).getByRole('link', { name: 'Convocatorias' }).click();
-      await expect(page).toHaveURL(/\/panel\/campaigns$/);
-      await expect(nav(page).getByRole('link', { name: 'Convocatorias' })).toHaveAttribute('aria-current', 'page');
-      await expect(nav(page).getByRole('link', { name: 'Organización' })).not.toHaveAttribute('aria-current', /.*/);
+      expect(await tabOrder(page)).toEqual(expected);
+      if (width >= 768) {
+        await nav(page).getByRole('link', { name: 'Convocatorias' }).click();
+        await expect(page).toHaveURL(/\/panel\/campaigns$/);
+        await expect(nav(page).getByRole('link', { name: 'Convocatorias' })).toHaveAttribute('aria-current', 'page');
+        await expect(nav(page).getByRole('link', { name: 'Organización' })).not.toHaveAttribute('aria-current', /.*/);
+      } else {
+        // DF7-20: en pantalla estrecha, Convocatorias y Lotes no están en la página; se abren desde el panel
+        await expect(page.locator('[data-testid="nav-convocatorias"], [data-testid="nav-lotes"]')).toHaveCount(0);
+        await page.getByRole('main').getByRole('link', { name: 'Convocatorias de mi organización' }).click();
+        await expect(page).toHaveURL(/\/panel\/campaigns$/);
+        await expect(nav(page).getByRole('link', { name: 'Organización' })).toHaveAttribute('aria-current', 'page');
+      }
+    });
+
+    test('cada entrada queda entera dentro de la pantalla y sin solaparse', async ({ page }) => {
+      await login(page, 'admin@demo.test', 'demo-admin');
+      await expectEntriesInside(page, width);
     });
 
     test('cuenta sin organización: no ve "Organización" (B)', async ({ page }) => {
@@ -78,21 +115,6 @@ for (const width of [390, 1280]) {
       const labels = await navLabels(page);
       expect(labels).toEqual(['Explorar', 'Donaciones', 'Seguimiento']);
       expect(labels).not.toContain('Organización');
-    });
-
-    test('todas las entradas caben o se alcanzan desplazando la barra, y la activa queda a la vista', async ({ page }) => {
-      await login(page, 'admin@demo.test', 'demo-admin');
-      await nav(page).getByRole('link', { name: 'Lotes' }).click();
-      await expect(page).toHaveURL(/\/panel\/assets$/);
-      const lotes = nav(page).getByRole('link', { name: 'Lotes' });
-      await expect(lotes).toHaveAttribute('aria-current', 'page');
-      await expect(lotes).toBeInViewport({ ratio: 0.99 });
-      // La página no se desplaza en horizontal por culpa de la barra
-      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
-      for (const link of await nav(page).getByRole('link').all()) {
-        await link.scrollIntoViewIfNeeded();
-        await expect(link).toBeInViewport({ ratio: 0.99 });
-      }
     });
 
     test('la barra no tapa el contenido', async ({ page }) => {
@@ -108,6 +130,22 @@ for (const width of [390, 1280]) {
     });
   });
 }
+
+test('DF7-20: con 5 entradas (Inicio, en VS-5) la barra inferior cabe a 390 px', async ({ page }) => {
+  // /home aún no está habilitada: se añade una entrada "Inicio" con la misma marca y estilos que las demás, solo
+  // para medir que 5 entradas caben (la lógica de la barra ya lo limita a 5, ver nav-entries.test.ts)
+  await page.setViewportSize({ width: 390, height: 860 });
+  await login(page, 'admin@demo.test', 'demo-admin');
+  await nav(page).evaluate((navEl) => {
+    const list = navEl.querySelector('ul')!;
+    const clone = list.firstElementChild!.cloneNode(true) as HTMLElement;
+    clone.querySelector('a')!.removeAttribute('aria-current');
+    clone.querySelector('span:last-child')!.textContent = 'Inicio';
+    list.insertBefore(clone, list.firstElementChild);
+  });
+  expect(await navLabels(page)).toEqual(['Inicio', 'Explorar', 'Donaciones', 'Seguimiento', 'Organización']);
+  await expectEntriesInside(page, 390);
+});
 
 test('al redimensionar, la barra cambia de posición (bottom ↔ side)', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 860 });

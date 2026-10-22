@@ -74,7 +74,7 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
   const wide = pathname.startsWith('/panel/prediction');
   const principal = useNavPrincipal(state, pathname, me);
   const position = useNavPosition();
-  const entries = navEntriesFor({ authenticated: state === 'AUTHENTICATED', principal }, isSurfaceEnabled);
+  const entries = navEntriesFor({ authenticated: state === 'AUTHENTICATED', principal }, isSurfaceEnabled, position);
 
   return (
     <div className={s.app} data-nav-position={position} data-has-nav={entries.length > 0 ? 'true' : 'false'}>

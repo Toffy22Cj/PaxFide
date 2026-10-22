@@ -44,6 +44,16 @@ describe('Shell (VS-2)', () => {
     expect(screen.queryByLabelText('Tema')).toBeNull();
   });
 
+  it('a 390 (bottom), Convocatorias y Lotes no están en la página (DF7-20)', async () => {
+    window.matchMedia = matchMediaFor(390);
+    act(() => { session.login('tok'); session.setLastPrincipal(admin); });
+    const { container } = render(<Shell me={async () => ({ kind: 'ok', principal: admin })}>x</Shell>);
+    await waitFor(() => expect(container.firstElementChild).toHaveAttribute('data-nav-position', 'bottom'));
+    expect(within(nav()).getAllByRole('link').map((a) => a.textContent)).toEqual(['Explorar', 'Donaciones', 'Seguimiento', 'Organización']);
+    expect(container.querySelector('[data-testid="nav-convocatorias"]')).toBeNull();
+    expect(container.querySelector('[data-testid="nav-lotes"]')).toBeNull();
+  });
+
   it('data-nav-position por ancho: side a 1280, bottom a 390', async () => {
     const { container, unmount } = render(<Shell me={async () => ({ kind: 'error' })}>x</Shell>);
     await waitFor(() => expect(container.firstElementChild).toHaveAttribute('data-nav-position', 'side'));

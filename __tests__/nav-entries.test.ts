@@ -1,6 +1,6 @@
 // Ref: prompts-agentes-estilo-v2.md VS-2; respuesta de Carlos al plan de VS-2 (B, C); ADR-046 D5; enmienda §8 (E4).
 import { describe, it, expect } from 'vitest';
-import { activeEntry, navEntriesFor, positionForWidth, routeFor, type NavIcon } from '../src/lib/nav/navEntries';
+import { activeEntry, navEntriesFor, positionForWidth, routeFor, MAX_BOTTOM_ENTRIES, type NavIcon } from '../src/lib/nav/navEntries';
 import { nextNavPrincipal } from '../src/lib/nav/navPrincipal';
 import type { Principal } from '../src/lib/api/identity';
 
@@ -69,6 +69,56 @@ describe('navEntriesFor — entradas según sesión, rol y superficies', () => {
 
   it('etiquetas y rutas de la respuesta B', () => {
     expect(routeFor('organizacion')).toEqual({ label: 'Organización', href: '/panel' });
+  });
+});
+
+describe('barra inferior: máximo 5 entradas (DF7-20)', () => {
+  const bottom = (ctx: Parameters<typeof navEntriesFor>[0], en = allEnabled) => navEntriesFor(ctx, en, 'bottom').map((e) => e.id);
+
+  it('ADMINISTRATOR por debajo de 768 px: Explorar, Donaciones, Seguimiento y Organización; sin Convocatorias ni Lotes', () => {
+    const today = (x: string) => allEnabled(x) && x !== '/home';
+    const r = bottom({ authenticated: true, principal: admin }, today);
+    expect(r).toEqual(['explorar', 'donaciones', 'seguimiento', 'organizacion']);
+    expect(r).not.toContain('convocatorias');
+    expect(r).not.toContain('lotes');
+  });
+
+  it('con Inicio (VS-5), el ADMINISTRATOR queda justo en 5', () => {
+    expect(bottom({ authenticated: true, principal: admin })).toEqual(['inicio', 'explorar', 'donaciones', 'seguimiento', 'organizacion']);
+  });
+
+  it('antes de hidratar (auto) se usa el conjunto de la barra inferior', () => {
+    expect(navEntriesFor({ authenticated: true, principal: admin }, allEnabled, 'auto').map((e) => e.id))
+      .toEqual(bottom({ authenticated: true, principal: admin }));
+  });
+
+  it('ninguna combinación de rol y superficies supera 5 en la barra inferior', () => {
+    const routes = [...new Set((['inicio', 'explorar', 'donaciones', 'seguimiento', 'organizacion', 'convocatorias', 'lotes',
+      'perfil', 'ajustes', 'qr'] as NavIcon[]).map((id) => routeFor(id).href).filter((h): h is string => h !== null))];
+    const roleSets: Principal['roles'][] = [[], ['ADMINISTRATOR'], ['EMPLOYEE'], ['REPRESENTATIVE'],
+      ['ADMINISTRATOR', 'EMPLOYEE'], ['ADMINISTRATOR', 'REPRESENTATIVE'], ['EMPLOYEE', 'REPRESENTATIVE'],
+      ['ADMINISTRATOR', 'EMPLOYEE', 'REPRESENTATIVE']];
+    const principals: (Principal | null)[] = [null];
+    for (const roles of roleSets) {
+      for (const platformAuthority of [undefined, 'PLATFORM_ADMINISTRATOR']) {
+        const p: Principal = { accountId: 'x', roles };
+        if (roles.length > 0) p.organizationId = 'org';
+        if (platformAuthority) p.platformAuthority = platformAuthority;
+        principals.push(p);
+      }
+    }
+    let checked = 0;
+    for (let mask = 0; mask < 1 << routes.length; mask++) {
+      const enabled = new Set(routes.filter((_, i) => mask & (1 << i)));
+      for (const authenticated of [false, true]) {
+        for (const principal of principals) {
+          const n = navEntriesFor({ authenticated, principal }, (x) => enabled.has(x), 'bottom').length;
+          expect(n, `${[...enabled].join(',')} ${authenticated} ${JSON.stringify(principal)}`).toBeLessThanOrEqual(MAX_BOTTOM_ENTRIES);
+          checked++;
+        }
+      }
+    }
+    expect(checked).toBe((1 << routes.length) * 2 * principals.length);
   });
 });
 

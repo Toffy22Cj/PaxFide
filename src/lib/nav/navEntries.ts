@@ -74,11 +74,49 @@ function visibleTo(id: NavIcon, ctx: NavContext): boolean {
   }
 }
 
-export function navEntriesFor(ctx: NavContext, isEnabled: (surface: string) => boolean): NavEntry[] {
+/** Máximo de entradas en la barra inferior (DF7-20, Carlos 2026-10-22). Con Inicio (VS-5), el ADMINISTRATOR queda en 5. */
+export const MAX_BOTTOM_ENTRIES = 5;
+
+/**
+ * Entradas que solo están en la barra lateral: en la inferior se abren desde el panel (DF7-20). La regla vive aquí,
+ * no en CSS, para que en pantalla estrecha esas entradas no estén en la página.
+ */
+function inBottomBar(id: NavIcon): boolean {
+  switch (id) {
+    case 'convocatorias':
+    case 'lotes':
+      return false;
+    case 'inicio':
+    case 'explorar':
+    case 'donaciones':
+    case 'seguimiento':
+    case 'organizacion':
+    case 'perfil':
+    case 'ajustes':
+    case 'qr':
+      return true;
+    default: {
+      const unreachable: never = id;
+      throw new Error(`Entrada de navegación desconocida: ${String(unreachable)}`);
+    }
+  }
+}
+
+/**
+ * Entradas de la barra para una posición. Antes de hidratar (`auto`) se usa el conjunto de la barra inferior: es el
+ * que cabe en cualquier ancho, y la lateral solo añade entradas al final.
+ */
+export function navEntriesFor(
+  ctx: NavContext,
+  isEnabled: (surface: string) => boolean,
+  position: NavPosition | 'auto' = 'side',
+): NavEntry[] {
+  const narrow = position !== 'side';
   const out: NavEntry[] = [];
   for (const id of ORDER) {
     const { label, href } = routeFor(id);
     if (href === null || !isEnabled(href) || !visibleTo(id, ctx)) continue;
+    if (narrow && !inBottomBar(id)) continue;
     out.push({ id, label, href });
   }
   return out;

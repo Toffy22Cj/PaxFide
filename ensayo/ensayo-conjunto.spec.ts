@@ -240,7 +240,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   await paso('donar-con-cuenta', 'UI', async () => {
     const d = await login(browser, 'donante');
     s.donor = d;
-    await d.getByRole('link', { name: 'Convocatorias' }).first().click();
+    await d.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Explorar' }).click(); // DF7-18: la barra sustituye al enlace de la cabecera
     await d.getByRole('link', { name: title }).click();
     s.donorRedirect = await donate(d, '40000');
   }, () => s.donor);
@@ -248,8 +248,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   await paso('historial-donante', 'UI', async () => {
     const d = s.donor as Page;
     await waitTrackingCode(d);
-    await d.getByRole('link', { name: 'Panel' }).click();
-    await d.getByRole('link', { name: 'Mis donaciones' }).click();
+    await d.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Donaciones' }).click(); // DF7-18: el donante no tiene organización
     await expect(d.getByTestId('account-donation').filter({ hasText: title })).toBeVisible();
   }, () => s.donor);
 
@@ -265,7 +264,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   // 4. Camino A por la interfaz: el administrador solicita y confirma una asignación; el empleado la elige al registrar
   await paso('fondo-y-asignacion', 'UI', async () => {
     const a = s.admin as Page;
-    await a.getByRole('link', { name: 'Panel' }).click();
+    await a.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await a.getByRole('link', { name: 'Fondos de mi organización' }).click();
     // El fondo de la convocatoria de este ensayo (con la base reutilizada hay fondos de pasadas anteriores)
     const fund = a.getByTestId('fund').filter({ hasText: s.campaignRef }).filter({ hasNotText: 'Disponible0 COP' }).first();
@@ -325,7 +324,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
 
   await paso('activos-organizacion', 'UI', async () => {
     const e = s.employee as Page;
-    await e.getByRole('link', { name: 'Panel' }).click();
+    await e.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await e.getByRole('link', { name: 'Activos de mi organización' }).click();
     // El activo de esta pasada (con la base reutilizada hay activos de pasadas anteriores)
     await expect(e.getByTestId('org-asset').filter({ hasText: s.assetRef })).toContainText('Entregado');
@@ -370,7 +369,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   // Panel: listado, estimación y narrativa
   await paso('estimacion', 'UI', async () => {
     const a = s.admin as Page;
-    await a.getByRole('link', { name: 'Panel' }).click();
+    await a.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await a.getByRole('link', { name: 'Estimación de convocatorias' }).click();
     await a.getByLabel('Convocatoria').selectOption({ label: title });
     await a.getByRole('button', { name: 'Ver estimación' }).click();
@@ -413,7 +412,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   // P3 — mis convocatorias (empleado de la semilla, responsable de la convocatoria del ensayo)
   await paso('mis-convocatorias', 'UI', async () => {
     const e = s.employee as Page;
-    await e.getByRole('link', { name: 'Panel' }).click();
+    await e.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await e.getByRole('link', { name: 'Mis convocatorias' }).click();
     await expect(e.getByTestId('my-campaign').filter({ hasText: title })).toContainText('Empleado');
   }, () => s.employee);
@@ -421,7 +420,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   // P3 — configuración: con donaciones, guardar sin aprobación da 409; la solicitud la aprueba el representante
   await paso('configuracion-solicitud', 'UI', async () => {
     const a = s.admin as Page;
-    await a.getByRole('link', { name: 'Panel' }).click();
+    await a.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await a.getByRole('link', { name: 'Configuración de convocatorias' }).click();
     await a.getByLabel('Convocatoria').selectOption({ label: title });
     await a.getByRole('button', { name: 'Ver configuración' }).click();
@@ -459,7 +458,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   const invited = `invitada-${Date.now()}@demo.paxfide.local`;
   await paso('invitar', 'UI', async () => {
     const a = s.admin as Page;
-    await a.getByRole('link', { name: 'Panel' }).click();
+    await a.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await a.getByRole('link', { name: 'Personas de mi organización' }).click();
     await a.getByRole('button', { name: 'Invitar' }).click();
     await a.getByRole('dialog').getByLabel('Correo electrónico').fill(invited);
@@ -519,7 +518,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   await paso('personas', 'UI', async () => {
     const a = s.admin as Page;
     // Navegación de cliente: recargar cerraría la sesión (JWT solo en memoria)
-    await a.getByRole('link', { name: 'Panel' }).click();
+    await a.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await a.getByRole('link', { name: 'Personas de mi organización' }).click();
     await expect(a.getByTestId('member').filter({ hasText: 'Empleado' }).first()).toBeVisible();
     const count = await a.getByTestId('member').count();
@@ -553,7 +552,10 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
 
   await paso('cola-pedir-informacion', 'UI', async () => {
     const q = s.platform as Page;
-    await q.getByRole('link', { name: 'Panel' }).click();
+    // La cuenta de plataforma no tiene organización (DF7-18, B): no hay entrada de la barra hacia /panel. Sigue en
+    // /panel/platform desde el paso 1; se vuelve al panel por el historial (navegación de cliente, la sesión sigue)
+    await q.goBack();
+    await expect(q).toHaveURL(/\/panel$/);
     await q.getByRole('link', { name: 'Plataforma: verificación y administradores' }).click();
     const row = q.getByTestId('queue-item').filter({ hasText: orgName });
     await expect(row).toContainText('Pendiente de verificación');
