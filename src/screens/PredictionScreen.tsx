@@ -6,7 +6,7 @@ import { fetchPrediction, fetchPredictionHistory, PredictionHistoryOutcome, Pred
 import { AdminCampaign, fetchOrganizationCampaigns, ListOutcome } from '../lib/api/campaignAdmin';
 import { percentOf } from '../lib/money';
 import { usePrincipal } from '../lib/auth/usePrincipal';
-import { PageHeader } from '../components/ui/Layout';
+import { PageHeader, Surface, uiClasses as ui } from '../components/ui/Layout';
 import { TextField, SelectField } from '../components/ui/Field';
 import { Button } from '../components/ui/Button';
 import { EmptyState, ErrorState, ForbiddenState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
@@ -78,15 +78,17 @@ export function PredictionScreen({ meClient = fetchMe, client = fetchPrediction,
       {allowed && campaigns?.kind === 'ok' && items.length === 0 && <EmptyState text="Tu organización todavía no tiene convocatorias." />}
       {allowed && campaigns !== null && (campaigns.kind !== 'ok' || items.length > 0) && (
         <>
-          <form onSubmit={consult} noValidate>
-            {campaigns.kind === 'ok'
-              ? <SelectField label="Convocatoria" value={selected} onChange={(e) => setCampaignRef(e.target.value)}
-                  options={items.map((c) => ({ value: c.campaignRef, label: c.title }))} />
-              : <TextField label="Referencia de la convocatoria" value={campaignRef} autoComplete="off"
-                  hint="Tu cuenta no puede ver el listado de convocatorias; escribe la referencia."
-                  onChange={(e) => setCampaignRef(e.target.value)} />}
-            <Button type="submit" sending={result === 'loading'}>Ver estimación</Button>
-          </form>
+          <Surface>
+            <form onSubmit={consult} noValidate>
+              {campaigns.kind === 'ok'
+                ? <SelectField label="Convocatoria" value={selected} onChange={(e) => setCampaignRef(e.target.value)}
+                    options={items.map((c) => ({ value: c.campaignRef, label: c.title }))} />
+                : <TextField label="Referencia de la convocatoria" value={campaignRef} autoComplete="off"
+                    hint="Tu cuenta no puede ver el listado de convocatorias; escribe la referencia."
+                    onChange={(e) => setCampaignRef(e.target.value)} />}
+              <Button type="submit" sending={result === 'loading'}>Ver estimación</Button>
+            </form>
+          </Surface>
           <div style={{ marginTop: 24 }}>
             {result === 'loading' && <LoadingState />}
             {result !== null && result !== 'loading' && result.kind === 'forbidden' && <ForbiddenState />}
@@ -107,9 +109,9 @@ export function PredictionScreen({ meClient = fetchMe, client = fetchPrediction,
                     {result.view.warnings.map((w) => <li key={w}>{w}</li>)}
                   </ul>
                 )}
-                <h2 style={{ fontSize: 'var(--text-lg)' }}>Probabilidad y final estimado</h2>
+                <h2 className={ui.sectionTitle}>Probabilidad y final estimado</h2>
                 <BasicPredictionChart view={result.view} />
-                <h2 style={{ fontSize: 'var(--text-lg)' }}>Hoy frente al final estimado</h2>
+                <h2 className={ui.sectionTitle}>Hoy frente al final estimado</h2>
                 <AdvancedPredictionChart view={result.view} observedFraction={observed === null ? undefined : observed / 100} />
                 <HistorySection history={history} />
               </section>
@@ -130,7 +132,7 @@ function HistorySection({ history }: { history: PredictionHistoryOutcome | 'load
   if (history === null) return null;
   return (
     <section aria-labelledby="history-title" data-testid="history-section">
-      <h2 id="history-title" style={{ fontSize: 'var(--text-lg)' }}>Evolución en los cortes de entrenamiento</h2>
+      <h2 id="history-title" className={ui.sectionTitle}>Evolución en los cortes de entrenamiento</h2>
       {history === 'loading' && <LoadingState />}
       {history !== 'loading' && history.kind === 'forbidden' && <ForbiddenState />}
       {history !== 'loading' && history.kind === 'error' && <ErrorState text="No pudimos cargar la evolución de la estimación. Inténtalo de nuevo." />}
