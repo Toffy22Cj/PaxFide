@@ -1,7 +1,8 @@
+// Ref: Documentos/plan-fase7-pantallas.md §5 B-1; Documentos/sistema-visual-paxfide-web.md §3.4.
 import React from 'react';
 
 /** Conjunto cerrado de 5 iconos SVG propios (§3.4): 20 px, `currentColor`, siempre con texto al lado. */
-type IconName = 'info' | 'warning' | 'error' | 'success' | 'close';
+export type IconName = 'info' | 'warning' | 'error' | 'success' | 'close';
 
 const PATHS: Record<IconName, React.ReactNode> = {
   info: (<><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" /><path d="M10 9v5M10 6.2v.1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></>),
@@ -11,9 +12,9 @@ const PATHS: Record<IconName, React.ReactNode> = {
   close: (<path d="m5 5 10 10M15 5 5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />),
 };
 
-export function Icon({ name }: { name: IconName }) {
+export function Icon({ name, className }: { name: IconName; className?: string }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false" style={{ flex: 'none' }}>
+    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false" className={className} style={{ flex: 'none' }}>
       {PATHS[name]}
     </svg>
   );
