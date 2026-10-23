@@ -122,4 +122,21 @@ describe('Shell (VS-2)', () => {
       expect(svg).toHaveAttribute('focusable', 'false');
     });
   });
+
+  it('D-P13: en / ni cabecera ni barra de la app; en /campaigns, las dos', async () => {
+    pathname = '/';
+    const { container, unmount } = render(<Shell me={async () => ({ kind: 'error' })}><p>landing</p></Shell>);
+    expect(screen.queryByRole('banner')).toBeNull();
+    expect(screen.queryByRole('navigation', { name: 'Principal' })).toBeNull();
+    expect(container.firstElementChild).toHaveAttribute('data-has-nav', 'false');
+    // La landing abre su propio <main> tras su cabecera: la estructura no pone otro
+    expect(screen.queryByRole('main')).toBeNull();
+    expect(container).toHaveTextContent('landing');
+    unmount();
+    pathname = '/campaigns';
+    render(<Shell me={async () => ({ kind: 'error' })}><p>x</p></Shell>);
+    expect(screen.getByRole('banner')).toBeInTheDocument();
+    expect(nav()).toBeInTheDocument();
+  });
 });
+

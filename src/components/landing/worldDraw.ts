@@ -3,8 +3,8 @@
 // Fuera, por D-P3, D-P5 y R-F1: las etiquetas con texto del mapa (y con ellas los nombres de lugares y las cifras de
 // ejemplo), el ciclo día/noche que seguía al scroll (R-F5: el fondo no comunica nada) y la cámara movible.
 import {
-  HZ, STOPS, TH, TW, cameraFor, clamp01, cloudAt, ease, lerp, road, smooth, stopProgress,
-  type WorldCamera, type WorldScene,
+  HZ, STOPS, TH, TW, cameraFor, clamp01, cloudAt, ease, lerp, rectFade, road, smooth, stopProgress,
+  type ScreenRect, type WorldCamera, type WorldScene,
 } from './worldScene';
 import { worldPalette, type WorldPalette } from './worldPalette';
 
@@ -22,6 +22,7 @@ export class WorldRenderer {
   private night = 0;
   private T = 0;
   private v = 0;
+  private avoid: readonly ScreenRect[] = [];
 
   constructor(private readonly canvas: HTMLCanvasElement, private readonly scene: WorldScene) {
     this.ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
@@ -32,9 +33,13 @@ export class WorldRenderer {
     this.canvas.width = Math.round(width * dpr); this.canvas.height = Math.round(height * dpr);
   }
 
-  /** Un fotograma: `view` es la vista del recorrido (0–5), `night` la mezcla día/noche y `t` el tiempo del mundo. */
-  draw(view: number, night: number, t: number, drift: boolean): void {
+  /**
+   * Un fotograma: `view` es la vista del recorrido (0–5), `night` la mezcla día/noche, `t` el tiempo del mundo y `drift`
+   * si hay bucle (vaivén y nubes). `avoid` son los bloques de contenido en pantalla.
+   */
+  draw(view: number, night: number, t: number, drift: boolean, avoid: readonly ScreenRect[] = []): void {
     const ctx = this.ctx;
+    this.avoid = avoid;
     this.v = view; this.night = night; this.T = t; this.P = worldPalette(night);
     this.cam = cameraFor(view, this.W, this.H, t, drift);
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -48,7 +53,9 @@ export class WorldRenderer {
     this.collectScenes(items);
     items.sort((a, b) => a[0] - b[0]);
     for (const [, fn] of items) fn();
-    this.drawClouds();
+    // En el fotograma quieto (pausa o "reducir movimiento") no hay nubes: el contenido se desplaza sin repintar el
+    // mundo y una nube podría quedar tras un bloque (R-F1). Con bucle, se apartan de los bloques en cada fotograma.
+    if (drift) this.drawClouds();
   }
 
   // ---------------------------------------------------------------- proyección y primitivas
@@ -594,7 +601,9 @@ export class WorldRenderer {
         const [op, oq] = this.p(o.x, o.y, o.z);
         f = Math.min(f, clamp01((Math.hypot(cp - op, cq - oq) - o.r * k) / Math.max(1, cRad * 0.85)));
       }
-      return f;
+      // R-F1: ni la nube ni su sombra se traslucen por los bloques de contenido
+      const [sp, sq] = this.p(cx + cz * 0.26, cy + cz * 0.26, 0);
+      return Math.min(f, rectFade(cp, cq, cRad, this.avoid), rectFade(sp, sq, cRad, this.avoid));
     };
     const placed = this.scene.clouds.map((c) => { const [cx, cy] = cloudAt(c, this.T); return { c, cx, cy, f: fade(cx, cy, c.z, c.s) }; })
       .filter((o) => o.f > 0.005);

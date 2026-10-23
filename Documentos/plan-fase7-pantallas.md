@@ -65,6 +65,7 @@ Cualquier otra elección menor (nombres internos, partición en componentes) se 
 | D-P10 | Las tarjetas de convocatoria muestran el logo de la organización (`organizationLogoUrl?`) y la insignia "Verificada" (`organizationVerified`). Sin logo, inicial de la organización sobre `brand-green-50`. `coverImageUrl` no se usa (Tarea 3 de ADR-051 sin hacer) | Campos ya en el backend |
 | D-P11 | En "Tus donaciones" se muestran `createdAt`, `organizationName`, `paymentMethod` y el enlace a `/c/:publicCode` solo si llega `publicCode` | Enmienda 5 de ADR-037 ya en el backend |
 | D-P12 | El cierre del tema oscuro (retirar DF7-17, montar `ThemeSelect`, capturas en oscuro) es una tarea aparte, C-1, cuando A y B estén mergeadas | Sin pantallas a medias en oscuro |
+| D-P13 | **(Carlos, 2026-10-23)** En `/` el Shell se monta sin cabecera de la app y sin barra de navegación (ni lateral ni inferior). La landing usa solo su propia cabecera, que incluye el botón "Pausar animación / Reanudar animación" (R-F2, misma preferencia guardada). En el resto de rutas nada cambia. La regla vive en una función pura junto a `hasAnimatedBackground` (`hasAppChrome(pathname)`), con test unitario y E2E: en `/` no existe `<nav aria-label="Principal">` (aserción negativa) y en `/campaigns` sí | Es una página para quien todavía no usa la app: sus enlaces son anclas de la página y accesos a Ingresar y Donar; dos navegaciones apiladas repetían "Seguimiento" y le daban aspecto de panel |
 
 ---
 

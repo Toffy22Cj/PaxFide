@@ -13,7 +13,7 @@ const apiRequest = vi.fn();
 vi.mock('../src/lib/api/http', () => ({ apiRequest: (...a: unknown[]) => apiRequest(...a) }));
 
 import * as session from '../src/lib/auth/session';
-import { LandingScreen, LANDING_CAMPAIGNS } from '../src/screens/LandingScreen';
+import { LandingScreen, LANDING_CAMPAIGNS, litWords, nearestSection } from '../src/screens/LandingScreen';
 import { CampaignCard, organizationInitial } from '../src/components/campaign/CampaignCard';
 import { fetchDiscovery } from '../src/lib/api/publicCampaigns';
 
@@ -210,3 +210,44 @@ describe('Landing (A-2) — recorrido, ejemplo y cabecera (D-P5)', () => {
     expect(screen.getByRole('link', { name: 'Registrar mi organización' })).toHaveAttribute('href', '/register');
   });
 });
+
+describe('Landing (D-P13) — su propia cabecera, puntos del recorrido y manifiesto', () => {
+  it('una sola cabecera: la marca lleva a /, anclas de la página y accesos; nada de la barra de la app', async () => {
+    render(<LandingScreen client={ok([])} />);
+    await screen.findByTestId('empty-state');
+    expect(screen.getAllByRole('banner')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'PaxFide, inicio' })).toHaveAttribute('href', '/');
+    const nav = screen.getByRole('navigation', { name: 'Secciones de la página de inicio' });
+    expect(within(nav).getAllByRole('link').map((a) => a.getAttribute('href')))
+      .toEqual(['#parada-1', '#parada-4', '#convocatorias', '#seguir', '/login', '/tracking', '/campaigns']);
+    expect(screen.queryByRole('navigation', { name: 'Principal' })).toBeNull();
+  });
+
+  it('menú en estrecho: el botón abre y cierra las secciones (aria-expanded)', async () => {
+    render(<LandingScreen client={ok([])} />);
+    const toggle = screen.getByRole('button', { name: 'Abrir menú de navegación' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(toggle);
+    expect(screen.getByRole('button', { name: 'Cerrar menú de navegación' })).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(screen.getByRole('link', { name: 'Verificación' }));
+    expect(screen.getByRole('button', { name: 'Abrir menú de navegación' })).toHaveAttribute('aria-expanded', 'false');
+    await screen.findByTestId('empty-state');
+  });
+
+  it('puntos: uno por vista y el de convocatorias; el más cercano al centro es el actual', async () => {
+    render(<LandingScreen client={ok([])} />);
+    await screen.findByTestId('empty-state');
+    const dots = within(screen.getByRole('navigation', { name: 'Paradas del recorrido' })).getAllByRole('link');
+    expect(dots).toHaveLength(7);
+    expect(dots[0]).toHaveAttribute('aria-current', 'step');
+    expect(nearestSection([100, 500, 900], 480)).toBe(1);
+    expect(nearestSection([100, 500, 900], 5000)).toBe(2);
+  });
+
+  it('manifiesto: se enciende con el scroll; todas las palabras al llegar', () => {
+    expect(litWords(1000, 800, 20)).toBe(0);
+    expect(litWords(0, 800, 20)).toBe(20);
+    expect(litWords(800 * 0.78 - 800 * 0.45 / 2, 800, 20)).toBe(10);
+  });
+});
+
