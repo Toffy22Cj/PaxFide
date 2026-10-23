@@ -1,16 +1,18 @@
-// Ref: Documentos/prompts-agentes-estilo-v2.md VS-1; Documentos/plan-vs1-movimiento.md §1–§2.
+// Ref: Documentos/plan-fase7-pantallas.md §5 B-1; Documentos/sistema-visual-paxfide-web-enmienda-1.md §7.1.
 import React from 'react';
 import s from './ui.module.css';
 import { BrandDots } from '../loaders/BrandDots';
 
-type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'secondary';
+export type ButtonVariant = 'primary' | 'secondary' | 'emphasis';
+
+export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant;
   block?: boolean;
   /** "Enviando" conserva el texto visible y añade puntos de marca (06); deshabilitar es protección de UX, no idempotencia (ADR-041 §2.6). */
   sending?: boolean;
 };
 
-export function Button({ variant = 'primary', block, sending, children, disabled, className, type, ...rest }: Props) {
+export function Button({ variant = 'primary', block, sending, children, disabled, className, type, ...rest }: ButtonProps) {
   return (
     <button
       type={type ?? 'button'}
@@ -24,4 +26,3 @@ export function Button({ variant = 'primary', block, sending, children, disabled
     </button>
   );
 }
-

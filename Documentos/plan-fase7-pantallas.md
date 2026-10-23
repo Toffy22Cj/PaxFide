@@ -1,6 +1,4 @@
 # Plan de la Fase 7 — Pantallas del estilo v2 (dos pistas en paralelo)
-
-**Estado: APROBADO — Carlos, 2026-10-23.**
 **Fecha:** 2026-10-23 (UTC).
 **Cubre:** VS-3 a VS-8 de `prompts-agentes-estilo-v2.md` §6, más el cierre del tema oscuro.
 **Base verificada:** `paxfide-web` `develop` en `a845243` (VS-0 y VS-2 dentro; VS-1 en su PR). Backend `develop` en `0b3dc3e`.

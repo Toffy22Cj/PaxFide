@@ -1,0 +1,399 @@
+<title>PaxFide Movimiento</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: catálogo en dos bloques (cargas, transiciones) con tarjetas de vista previa + ficha técnica para traducir a Flutter. */
+:root{
+  --g900:#1B5141;--g800:#20604C;--g500:#4E9155;--g50:#EEF6EF;
+  --b800:#255E79;--b700:#327DA2;--b500:#3688B0;--b50:#EBF5F9;
+  --y900:#785008;--y400:#F3B544;--y50:#FDF4E2;
+  --n700:#405656;--n400:#739797;--n200:#E2E9E9;--n50:#F8FAFA;
+  --bg:#F3F7F1;--card:#FFFFFF;--fg:var(--g900);--muted:var(--n700);--line:#DDE6E0;--stage:#EEF4EA;--sk:#E6EDE8;--sk2:#F4F8F5;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  /* Tokens de movimiento (los mismos nombres sirven en Flutter) */
+  --slow:1;
+  --d-fast:150ms;--d-normal:300ms;--d-slow:450ms;
+  --e-std:cubic-bezier(.4,0,.2,1);      /* Curves.fastOutSlowIn */
+  --e-out:cubic-bezier(.215,.61,.355,1);/* Curves.easeOutCubic */
+  --e-inout:cubic-bezier(.645,.045,.355,1);/* Curves.easeInOutCubic */
+  --e-back:cubic-bezier(.175,.885,.32,1.275);/* Curves.easeOutBack */
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0D1F18;--card:#132C22;--fg:#EEF6EF;--muted:rgba(238,246,239,.72);--line:rgba(255,255,255,.12);--stage:#0F261D;--sk:#1E3A2F;--sk2:#28493C;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0D1F18;--card:#132C22;--fg:#EEF6EF;--muted:rgba(238,246,239,.72);--line:rgba(255,255,255,.12);--stage:#0F261D;--sk:#1E3A2F;--sk2:#28493C;color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;padding-block:36px 64px}
+header.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:26px}
+.kicker{font:600 11.5px var(--f-mono);letter-spacing:.1em;color:var(--y900)}
+:root[data-theme="dark"] .kicker{color:var(--y400)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .kicker{color:var(--y400)}}
+h1{margin:6px 0 6px;font:800 clamp(30px,4vw,46px)/1.04 var(--f-display);letter-spacing:-.03em;text-wrap:balance}
+.lede{margin:0;color:var(--muted);max-width:62ch;line-height:1.55}
+.ctrls{display:flex;gap:8px;flex-wrap:wrap}
+.tg{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;padding:8px 14px;font:600 13px var(--f-body);cursor:pointer}
+.tg[aria-pressed="true"]{background:var(--g900);color:#fff;border-color:var(--g900)}
+.tg:focus-visible,.play:focus-visible{outline:2px solid var(--g500);outline-offset:2px}
+
+.tokens{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin:0 0 34px}
+.tok{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.tok b{display:block;font:600 12px var(--f-mono)}
+.tok span{font-size:12.5px;color:var(--muted)}
+.tok code{font:500 11.5px var(--f-mono);color:var(--b700)}
+
+h2.sec{font:700 24px var(--f-display);letter-spacing:-.02em;margin:8px 0 4px}
+p.sec{margin:0 0 16px;color:var(--muted);font-size:14.5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:40px}
+.grid.tr{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden;display:flex;flex-direction:column}
+.prev{height:150px;background:var(--stage);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.info{padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:1}
+.info h3{margin:0;font:700 16px var(--f-display)}
+.info .use{margin:0;font-size:13px;color:var(--muted);line-height:1.45}
+.spec{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px;margin:2px 0 0;padding-top:8px;border-top:1px dashed var(--line)}
+.spec dt{font:600 11px var(--f-mono);color:var(--muted)}
+.spec dd{margin:0;font:500 11.5px var(--f-mono);color:var(--fg);overflow-wrap:anywhere}
+.num{font:600 11px var(--f-mono);color:var(--n400)}
+
+/* duración ajustable para estudiar */
+.lo *{animation-duration:calc(var(--ad,1s) * var(--slow))!important}
+
+/* ===== 1 · Cubos encadenados ===== */
+.chain{display:flex;align-items:center;gap:6px}
+.chain svg{width:30px;height:34px;animation:hop var(--ad) var(--e-std) infinite;--ad:1.2s}
+.chain svg:nth-of-type(2){animation-delay:calc(.15s * var(--slow))}
+.chain svg:nth-of-type(3){animation-delay:calc(.3s * var(--slow))}
+.chain i{width:12px;height:3px;border-radius:2px;background:var(--b500);opacity:.35;animation:link var(--ad) linear infinite;--ad:1.2s}
+.chain i:nth-of-type(2){animation-delay:calc(.15s * var(--slow))}
+@keyframes hop{0%,60%,100%{transform:translateY(0)}25%{transform:translateY(-12px)}40%{transform:translateY(0) scaleY(.9)}}
+@keyframes link{0%,100%{opacity:.25}35%{opacity:1}}
+
+/* ===== 2 · Caja que se sella ===== */
+.seal svg{width:96px;height:96px;overflow:visible}
+.seal .lid{animation:lid var(--ad) var(--e-inout) infinite;--ad:2.4s;transform-box:fill-box;transform-origin:center}
+.seal .lock{animation:lock var(--ad) var(--e-back) infinite;--ad:2.4s;transform-box:fill-box;transform-origin:center}
+@keyframes lid{0%,10%{transform:translateY(-16px);opacity:.0}30%,85%{transform:translateY(0);opacity:1}100%{transform:translateY(0);opacity:0}}
+@keyframes lock{0%,35%{transform:scale(0)}50%,85%{transform:scale(1)}100%{transform:scale(0)}}
+
+/* ===== 3 · Camión en ruta ===== */
+.road{position:relative;width:200px;height:60px}
+.road .ln{position:absolute;left:0;right:0;bottom:12px;height:3px;background:repeating-linear-gradient(90deg,var(--n400) 0 10px,transparent 10px 20px);animation:roadmv var(--ad) linear infinite;--ad:.6s}
+.road svg{position:absolute;left:62px;bottom:14px;width:70px;animation:bump var(--ad) ease-in-out infinite;--ad:.3s}
+@keyframes roadmv{to{background-position:-20px 0}}
+@keyframes bump{50%{transform:translateY(-2px)}}
+
+/* ===== 4 · Huella que se escribe ===== */
+.hash{font:600 18px var(--f-mono);letter-spacing:.04em;color:var(--fg);text-align:center}
+.hash small{display:block;font:500 11px var(--f-mono);color:var(--muted);letter-spacing:.06em;margin-top:6px}
+.hash .ok{color:var(--g500)}
+
+/* ===== 5 · Corazón con anillo ===== */
+.hr{position:relative;width:76px;height:76px}
+.hr svg.ring{width:76px;height:76px;animation:rot var(--ad) linear infinite;--ad:1.1s}
+.hr svg.heart{position:absolute;inset:22px;width:32px;height:32px;animation:beat var(--ad) var(--e-std) infinite;--ad:1.1s}
+@keyframes rot{to{transform:rotate(360deg)}}
+@keyframes beat{0%,100%{transform:scale(1)}20%{transform:scale(1.18)}40%{transform:scale(.96)}60%{transform:scale(1.08)}}
+
+/* ===== 6 · Puntos de marca (en botón) ===== */
+.btnload{display:inline-flex;align-items:center;gap:10px;height:46px;padding:0 22px;border-radius:999px;background:var(--g900);color:#fff;font:700 14px var(--f-body)}
+.dots{display:inline-flex;gap:5px}
+.dots i{width:7px;height:7px;border-radius:50%;animation:dot var(--ad) var(--e-std) infinite;--ad:.9s}
+.dots i:nth-child(1){background:#8CD39A}.dots i:nth-child(2){background:#8CC3DE;animation-delay:calc(.12s * var(--slow))}.dots i:nth-child(3){background:var(--y400);animation-delay:calc(.24s * var(--slow))}
+@keyframes dot{0%,80%,100%{transform:translateY(0);opacity:.55}40%{transform:translateY(-6px);opacity:1}}
+
+/* ===== 7 · Esqueleto ===== */
+.skc{width:190px;background:var(--card);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:7px;border:1px solid var(--line)}
+.sk{border-radius:7px;background:linear-gradient(90deg,var(--sk) 0%,var(--sk2) 45%,var(--sk) 90%);background-size:250% 100%;animation:shim var(--ad) ease-in-out infinite;--ad:1.4s}
+@keyframes shim{from{background-position:100% 0}to{background-position:-50% 0}}
+
+/* ===== 8 · Barra superior ===== */
+.brw{width:210px;height:110px;border-radius:12px;background:var(--card);border:1px solid var(--line);overflow:hidden;position:relative}
+.brw .bar{position:absolute;left:0;right:0;top:0;height:3px;background:var(--g50);overflow:hidden}
+.brw .bar::before{content:"";position:absolute;top:0;bottom:0;width:40%;background:linear-gradient(90deg,var(--g500),var(--b500),var(--y400));border-radius:3px;animation:ind calc(1.5s * var(--slow)) var(--e-inout) infinite}
+@keyframes ind{0%{left:-40%;width:30%}50%{width:55%}100%{left:100%;width:30%}}
+.brw .chrome{height:18px;border-bottom:1px solid var(--line);display:flex;gap:4px;align-items:center;padding-left:8px;margin-top:3px}
+.brw .chrome i{width:6px;height:6px;border-radius:50%;background:var(--n200)}
+
+/* ===== 9 · Árbol de Merkle ===== */
+.mk svg{width:150px;height:110px}
+.mk .lf,.mk .md,.mk .rt,.mk .ed{--ad:2.8s;animation-iteration-count:infinite;animation-timing-function:var(--e-back);transform-box:fill-box;transform-origin:center}
+.mk .lf{animation-name:mkL}.mk .md{animation-name:mkM}.mk .rt{animation-name:mkR}.mk .ed{animation-name:mkE;animation-timing-function:ease}
+.mk .lf:nth-of-type(2){animation-delay:calc(.08s * var(--slow))}.mk .lf:nth-of-type(3){animation-delay:calc(.16s * var(--slow))}.mk .lf:nth-of-type(4){animation-delay:calc(.24s * var(--slow))}
+@keyframes mkL{0%{transform:scale(0)}12%,88%{transform:scale(1)}100%{transform:scale(0)}}
+@keyframes mkM{0%,25%{transform:scale(0)}38%,88%{transform:scale(1)}100%{transform:scale(0)}}
+@keyframes mkR{0%,48%{transform:scale(0)}60%,88%{transform:scale(1)}100%{transform:scale(0)}}
+@keyframes mkE{0%,22%{opacity:0}35%,88%{opacity:1}100%{opacity:0}}
+
+/* ===== 10 · Anillo con porcentaje ===== */
+.pr{position:relative;width:84px;height:84px}
+.pr svg{width:84px;height:84px;transform:rotate(-90deg)}
+.pr span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 16px var(--f-mono)}
+
+/* ===== Transiciones ===== */
+.tprev{height:330px;background:var(--stage);display:flex;align-items:center;justify-content:center;gap:12px}
+.phone{position:relative;width:170px;height:300px;border-radius:26px;background:#0b120f;padding:6px;box-shadow:0 14px 30px rgba(0,0,0,.18)}
+.screen{position:relative;width:100%;height:100%;border-radius:21px;overflow:hidden;background:#F8FAF8}
+.scr{position:absolute;inset:0;padding:22px 12px 10px;font-family:var(--f-body);color:var(--g900);background:#F8FAF8}
+.scr.b{opacity:0}
+.hd{display:flex;align-items:center;gap:6px;font:800 13px var(--f-display);margin-bottom:10px}
+.ln2{height:7px;border-radius:4px;background:#DCE6E0;margin:5px 0}
+.it{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid #E2E9E9;border-radius:12px;padding:7px;margin-bottom:7px}
+.it .th{width:30px;height:30px;border-radius:9px;background:#F3B544;flex:none;display:flex;align-items:center;justify-content:center}
+.it .tx{flex:1}
+.hero-card{background:linear-gradient(135deg,#255E79,#327DA2);border-radius:14px;height:70px;margin-bottom:8px;color:#fff;font:700 11px var(--f-body);padding:9px;box-sizing:border-box}
+.b .bh{height:110px;margin:-22px -12px 10px;background:linear-gradient(135deg,#1B5141,#4E9155);display:flex;align-items:center;justify-content:center}
+.b .bh .big{width:58px;height:58px;border-radius:16px;background:#F3B544;display:flex;align-items:center;justify-content:center}
+.b h4{margin:0 0 6px;font:800 14px var(--f-display)}
+.dim{position:absolute;inset:0;background:#0b1f18;opacity:0;pointer-events:none}
+.ctl{display:flex;flex-direction:column;gap:8px}
+.play{border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:12px;padding:8px 12px;font:600 12.5px var(--f-body);cursor:pointer;min-width:84px}
+.play.p{background:var(--g900);color:#fff;border-color:var(--g900)}
+.fx{position:absolute;pointer-events:none;opacity:0}
+
+/* motor de transiciones: data-run="f" (ida) o "r" (vuelta) */
+.stage[data-run] .a,.stage[data-run] .b,.stage[data-run] .dim,.stage[data-run] .fx{animation-duration:calc(var(--dur) * var(--slow));animation-timing-function:var(--ease);animation-fill-mode:both}
+.stage[data-run="r"] .a,.stage[data-run="r"] .b,.stage[data-run="r"] .dim,.stage[data-run="r"] .fx{animation-direction:reverse}
+
+/* 1 Deslizar (push) */
+.t-push{--dur:350ms;--ease:var(--e-out)}
+.t-push[data-run] .a{animation-name:pushA}.t-push[data-run] .b{animation-name:pushB}.t-push[data-run] .dim{animation-name:dimIn}
+@keyframes pushA{from{transform:none}to{transform:translateX(-30%)}}
+@keyframes pushB{from{transform:translateX(100%);opacity:1;box-shadow:-10px 0 24px rgba(0,0,0,.15)}to{transform:none;opacity:1;box-shadow:-10px 0 24px rgba(0,0,0,0)}}
+@keyframes dimIn{from{opacity:0}to{opacity:.18}}
+/* 2 Fundido intermedio */
+.t-fade{--dur:300ms;--ease:var(--e-std)}
+.t-fade[data-run] .a{animation-name:fthA}.t-fade[data-run] .b{animation-name:fthB}
+@keyframes fthA{0%{opacity:1}35%,100%{opacity:0}}
+@keyframes fthB{0%,35%{opacity:0;transform:scale(.92)}100%{opacity:1;transform:none}}
+/* 3 Eje Z */
+.t-z{--dur:300ms;--ease:var(--e-std)}
+.t-z[data-run] .a{animation-name:zA}.t-z[data-run] .b{animation-name:zB}
+@keyframes zA{0%{opacity:1;transform:none}100%{opacity:0;transform:scale(1.1)}}
+@keyframes zB{0%{opacity:0;transform:scale(.8)}100%{opacity:1;transform:none}}
+/* 4 Tarjeta que se expande */
+.t-cont{--dur:450ms;--ease:var(--e-std)}
+.t-cont .fx.morph{left:12px;top:56px;width:134px;height:70px;border-radius:14px;background:linear-gradient(135deg,#255E79,#327DA2)}
+.t-cont[data-run] .fx.morph{animation-name:morph}.t-cont[data-run] .b{animation-name:contB}
+@keyframes morph{0%{opacity:1;left:12px;top:56px;width:134px;height:70px;border-radius:14px}100%{opacity:1;left:0;top:0;width:158px;height:288px;border-radius:0}}
+@keyframes contB{0%,55%{opacity:0}100%{opacity:1}}
+/* 5 Héroe (la caja vuela) */
+.t-hero{--dur:420ms;--ease:var(--e-inout)}
+.t-hero .fx.fly{left:19px;top:93px;width:30px;height:30px;border-radius:9px;background:#F3B544;z-index:5;display:flex;align-items:center;justify-content:center}
+.t-hero .fx.fly svg{width:55%;height:55%}
+.t-hero[data-run] .fx.fly{animation-name:fly}.t-hero[data-run] .b{animation-name:heroB}.t-hero[data-run] .a{animation-name:heroA}
+@keyframes fly{0%{opacity:1;left:19px;top:93px;width:30px;height:30px;border-radius:9px}100%{opacity:1;left:50px;top:26px;width:58px;height:58px;border-radius:16px}}
+@keyframes heroB{0%{opacity:0}60%,100%{opacity:1}}
+@keyframes heroA{0%{opacity:1}50%,100%{opacity:0}}
+.t-hero .b .big{visibility:hidden}
+/* 6 Cortina de marca */
+.t-wipe{--dur:800ms;--ease:var(--e-inout)}
+.t-wipe .fx.curtain{inset:0;background:#1B5141;display:flex;align-items:center;justify-content:center;color:#fff;font:800 18px var(--f-display);z-index:6}
+.t-wipe[data-run] .fx.curtain{animation-name:curtain}.t-wipe[data-run] .b{animation-name:wipeB}
+@keyframes curtain{0%{opacity:1;transform:translateX(-100%)}45%,55%{opacity:1;transform:none}100%{opacity:1;transform:translateX(100%)}}
+@keyframes wipeB{0%,50%{opacity:0}50.1%,100%{opacity:1}}
+/* 7 Revelado circular */
+.t-circ{--dur:500ms;--ease:var(--e-inout)}
+.t-circ .b.ok{background:#1B5141;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px}
+.t-circ[data-run] .b{animation-name:circ}
+@keyframes circ{0%{opacity:1;clip-path:circle(0% at 50% 88%)}100%{opacity:1;clip-path:circle(150% at 50% 88%)}}
+.donbtn{position:absolute;left:12px;right:12px;bottom:12px;height:34px;border-radius:999px;background:#1B5141;color:#fff;font:700 12px var(--f-body);display:flex;align-items:center;justify-content:center}
+/* 8 Hoja inferior */
+.t-sheet{--dur:350ms;--ease:var(--e-out)}
+.t-sheet .b.sh{top:auto;height:62%;border-radius:20px 20px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.18)}
+.t-sheet .b.sh::before{content:"";display:block;width:34px;height:4px;border-radius:2px;background:#C9D4CE;margin:-12px auto 12px}
+.t-sheet[data-run] .b{animation-name:sheetB}.t-sheet[data-run] .a{animation-name:sheetA}.t-sheet[data-run] .dim{animation-name:dimSheet}
+@keyframes sheetB{from{opacity:1;transform:translateY(100%)}to{opacity:1;transform:none}}
+@keyframes sheetA{from{transform:none;border-radius:0}to{transform:scale(.94);border-radius:16px}}
+@keyframes dimSheet{from{opacity:0}to{opacity:.35}}
+
+@media (prefers-reduced-motion:reduce){
+  .lo *{animation-play-state:paused!important}
+  .stage[data-run] *{animation-duration:1ms!important}
+}
+footer{margin-top:10px;font-size:12.5px;color:var(--muted);line-height:1.55;max-width:80ch}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="kicker">PAXFIDE · SISTEMA DE MOVIMIENTO</div>
+      <h1>Cargas y transiciones</h1>
+      <p class="lede">Diez animaciones de carga y ocho transiciones de pantalla con los colores de marca. Cada una trae su duración, su curva y el equivalente en Flutter.</p>
+    </div>
+    <div class="ctrls">
+      <button class="tg" id="slow" type="button" aria-pressed="false">Cámara lenta ×4</button>
+      <button class="tg" id="theme" type="button" aria-pressed="false">Modo noche</button>
+    </div>
+  </header>
+
+  <div class="tokens" aria-label="Tokens de movimiento">
+    <div class="tok"><b>rápido · 150 ms</b><span>Botones, chips, cambios de color.</span></div>
+    <div class="tok"><b>normal · 300 ms</b><span>La mayoría de transiciones.</span></div>
+    <div class="tok"><b>lento · 450 ms</b><span>Elementos que cambian de tamaño o vuelan.</span></div>
+    <div class="tok"><b>estándar</b><span><code>cubic-bezier(.4,0,.2,1)</code> · <code>Curves.fastOutSlowIn</code></span></div>
+    <div class="tok"><b>salida</b><span><code>cubic-bezier(.215,.61,.355,1)</code> · <code>Curves.easeOutCubic</code></span></div>
+    <div class="tok"><b>ida y vuelta</b><span><code>cubic-bezier(.645,.045,.355,1)</code> · <code>Curves.easeInOutCubic</code></span></div>
+    <div class="tok"><b>rebote</b><span><code>cubic-bezier(.175,.885,.32,1.275)</code> · <code>Curves.easeOutBack</code></span></div>
+  </div>
+
+  <h2 class="sec">Animaciones de carga</h2>
+  <p class="sec">Se repiten mientras algo carga. Usa la que dice qué está pasando: no es lo mismo cargar una lista que verificar una huella.</p>
+  <div class="grid lo" id="loaders">
+
+    <article class="card"><div class="prev"><div class="chain" role="img" aria-label="Cargando">
+      <svg viewBox="0 0 30 34"><polygon points="15,2 28,9 15,16 2,9" fill="#8CC3DE"/><polygon points="2,9 15,16 15,32 2,25" fill="#255E79"/><polygon points="28,9 15,16 15,32 28,25" fill="#327DA2"/></svg><i></i>
+      <svg viewBox="0 0 30 34"><polygon points="15,2 28,9 15,16 2,9" fill="#8CC3DE"/><polygon points="2,9 15,16 15,32 2,25" fill="#255E79"/><polygon points="28,9 15,16 15,32 28,25" fill="#327DA2"/></svg><i></i>
+      <svg viewBox="0 0 30 34"><polygon points="15,2 28,9 15,16 2,9" fill="#8CC491"/><polygon points="2,9 15,16 15,32 2,25" fill="#20604C"/><polygon points="28,9 15,16 15,32 28,25" fill="#4E9155"/></svg>
+    </div></div><div class="info"><span class="num">01</span><h3>Cubos encadenados</h3><p class="use">Carga general de la app y pantalla de inicio. Los cubos saltan en cadena: es la idea de la blockchain sin decir "blockchain".</p>
+      <dl class="spec"><dt>Duración</dt><dd>1200 ms en bucle · desfase 150 ms</dd><dt>Curva</dt><dd>fastOutSlowIn</dd><dt>Flutter</dt><dd>AnimationController.repeat() + Interval por cubo; Transform.translate</dd></dl></div></article>
+
+    <article class="card"><div class="prev seal"><svg viewBox="0 0 96 96" role="img" aria-label="Sellando">
+      <polygon points="48,30 80,46 48,62 16,46" fill="#F8CF7E"/><polygon points="16,46 48,62 48,92 16,76" fill="#D9962C"/><polygon points="80,46 48,62 48,92 80,76" fill="#F3B544"/>
+      <path d="M30 80c-4-2.6-5.4-5-4.5-7 .8-1.6 2.8-1.4 4.5.7 1.7-1.3 3.7-.7 4.4 1.1.7 1.9-.8 4-4.4 5.2z" fill="#1B5141"/>
+      <g class="lid"><polygon points="48,22 82,40 48,58 14,40" fill="#F8CF7E" stroke="#D9962C" stroke-width="1.5"/><polygon points="30,31 66,49 72,46 36,28" fill="#E8B04F"/></g>
+      <g class="lock"><circle cx="76" cy="26" r="13" fill="#1B5141" stroke="#fff" stroke-width="3"/><path d="M71.5 26v-3a4.5 4.5 0 0 1 9 0v3" fill="none" stroke="#fff" stroke-width="2.2"/><rect x="69.5" y="25" width="13" height="9" rx="2" fill="#F3B544"/></g>
+    </svg></div><div class="info"><span class="num">02</span><h3>Caja que se sella</h3><p class="use">Mientras se registra un lote o se espera el anclaje. La tapa baja y aparece el candado.</p>
+      <dl class="spec"><dt>Duración</dt><dd>2400 ms en bucle</dd><dt>Curva</dt><dd>tapa easeInOutCubic · candado easeOutBack</dd><dt>Flutter</dt><dd>CustomPainter de la caja + SlideTransition (tapa) + ScaleTransition (candado)</dd></dl></div></article>
+
+    <article class="card"><div class="prev"><div class="road" role="img" aria-label="En camino"><span class="ln"></span>
+      <svg viewBox="0 0 66 42"><rect x="2" y="8" width="38" height="22" rx="3" fill="#F3B544"/><rect x="2" y="8" width="38" height="5" rx="2" fill="#D9962C"/><path d="M15 24.5c-3-2-4.2-3.7-3.5-5.2.6-1.2 2-1.1 3.5.4 1.4-1 2.8-.6 3.3.8.6 1.5-.5 2.9-3.3 4z" fill="#1B5141"/><path d="M40 14h12l9 9v7H40z" fill="#20604C"/><path d="M43 16h8l6 6h-14z" fill="#CDE7EE"/><rect x="0" y="29" width="63" height="3" rx="1.5" fill="#1B5141"/><circle cx="14" cy="34" r="6" fill="#22302B"/><circle cx="51" cy="34" r="6" fill="#22302B"/><circle cx="14" cy="34" r="2" fill="#B8C4BE"/><circle cx="51" cy="34" r="2" fill="#B8C4BE"/></svg>
+    </div></div><div class="info"><span class="num">03</span><h3>Camión en ruta</h3><p class="use">Al cargar el seguimiento de una donación. El camión queda quieto y la carretera es la que se mueve.</p>
+      <dl class="spec"><dt>Duración</dt><dd>carretera 600 ms lineal · rebote 300 ms</dd><dt>Curva</dt><dd>linear / easeInOut</dd><dt>Flutter</dt><dd>Mismo SVG del camión de la línea de tiempo; CustomPainter con offset del discontinuo</dd></dl></div></article>
+
+    <article class="card"><div class="prev"><div class="hash" role="status" aria-label="Verificando huella"><span id="hashTxt">0x9f3a…c21e</span><small id="hashLbl">VERIFICANDO HUELLA</small></div></div>
+      <div class="info"><span class="num">04</span><h3>Huella que se escribe</h3><p class="use">Al verificar la integridad. Los caracteres giran y se fijan de izquierda a derecha, y al final sale "coincide".</p>
+      <dl class="spec"><dt>Duración</dt><dd>~1600 ms + 900 ms de pausa · 1 carácter cada 70 ms</dd><dt>Curva</dt><dd>por pasos (sin curva)</dd><dt>Flutter</dt><dd>Timer.periodic + setState del texto; fuente monoespaciada para que no salte</dd></dl></div></article>
+
+    <article class="card"><div class="prev"><div class="hr" role="img" aria-label="Procesando donación">
+      <svg class="ring" viewBox="0 0 76 76"><circle cx="38" cy="38" r="32" fill="none" stroke="var(--g50)" stroke-width="6"/><circle cx="38" cy="38" r="32" fill="none" stroke="#4E9155" stroke-width="6" stroke-linecap="round" stroke-dasharray="60 141"/></svg>
+      <svg class="heart" viewBox="0 0 24 24"><path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z" fill="#F3B544"/></svg>
+    </div></div><div class="info"><span class="num">05</span><h3>Corazón con anillo</h3><p class="use">Mientras se procesa un pago o una donación. El latido le da calidez a una espera que genera ansiedad.</p>
+      <dl class="spec"><dt>Duración</dt><dd>1100 ms en bucle</dd><dt>Curva</dt><dd>anillo lineal · latido fastOutSlowIn</dd><dt>Flutter</dt><dd>RotationTransition + ScaleTransition con TweenSequence (1 → 1.18 → .96 → 1.08 → 1)</dd></dl></div></article>
+
+    <article class="card"><div class="prev"><span class="btnload" role="status">Enviando<span class="dots"><i></i><i></i><i></i></span></span></div>
+      <div class="info"><span class="num">06</span><h3>Puntos de marca</h3><p class="use">Dentro de botones mientras se envía algo. Sustituye al spinner gris y deja el botón deshabilitado.</p>
+      <dl class="spec"><dt>Duración</dt><dd>900 ms en bucle · desfase 120 ms</dd><dt>Curva</dt><dd>fastOutSlowIn</dd><dt>Flutter</dt><dd>3 AnimatedBuilder con Interval desfasados; verde, azul y amarillo de la marca</dd></dl></div></article>
+
+    <article class="card"><div class="prev"><div class="skc" role="status" aria-label="Cargando contenido">
+      <div class="sk" style="height:62px"></div><div class="sk" style="height:10px;width:70%"></div><div class="sk" style="height:10px;width:45%"></div><div class="sk" style="height:8px;border-radius:99px"></div>
+    </div></div><div class="info"><span class="num">07</span><h3>Esqueleto</h3><p class="use">Cuando ya sabes la forma de lo que llega (tarjetas de convocatoria, listas). Se ve mejor que un spinner en el centro.</p>
+      <dl class="spec"><dt>Duración</dt><dd>1400 ms en bucle</dd><dt>Curva</dt><dd>easeInOut</dd><dt>Flutter</dt><dd>ShaderMask con LinearGradient que se desplaza (sin paquete shimmer)</dd></dl></div></article>
+
+    <article class="card"><div class="prev"><div class="brw" role="status" aria-label="Cargando página"><div class="bar"></div><div class="chrome"><i></i><i></i><i></i></div>
+      <div style="padding:10px;display:flex;flex-direction:column;gap:6px"><div class="sk" style="height:8px;width:60%"></div><div class="sk" style="height:8px;width:85%"></div><div class="sk" style="height:8px;width:40%"></div></div>
+    </div></div><div class="info"><span class="num">08</span><h3>Barra superior</h3><p class="use">Al cambiar de página en la web, o arriba en la app mientras refresca sin bloquear la pantalla.</p>
+      <dl class="spec"><dt>Duración</dt><dd>1500 ms en bucle</dd><dt>Curva</dt><dd>easeInOutCubic</dd><dt>Flutter</dt><dd>LinearProgressIndicator indeterminado con color de marca, o barra propia con gradiente</dd></dl></div></article>
+
+    <article class="card"><div class="prev mk"><svg viewBox="0 0 150 110" role="img" aria-label="Construyendo prueba">
+      <g class="ed" stroke="#327DA2" stroke-width="2" fill="none"><path d="M24 86 L48 56 M58 86 L48 56 M92 86 L102 56 M126 86 L102 56 M48 56 L75 24 M102 56 L75 24"/></g>
+      <rect class="lf" x="14" y="78" width="20" height="20" rx="4" fill="#327DA2"/><rect class="lf" x="48" y="78" width="20" height="20" rx="4" fill="#327DA2"/><rect class="lf" x="82" y="78" width="20" height="20" rx="4" fill="#327DA2"/><rect class="lf" x="116" y="78" width="20" height="20" rx="4" fill="#327DA2"/>
+      <rect class="md" x="37" y="45" width="22" height="22" rx="5" fill="#255E79"/><rect class="md" x="91" y="45" width="22" height="22" rx="5" fill="#255E79"/>
+      <rect class="rt" x="61" y="10" width="28" height="28" rx="7" fill="#F3B544"/>
+    </svg></div><div class="info"><span class="num">09</span><h3>Árbol de Merkle</h3><p class="use">En la pantalla de verificación o de anclaje. Hojas, después las ramas y al final la raíz dorada.</p>
+      <dl class="spec"><dt>Duración</dt><dd>2800 ms en bucle · hojas 0–12 %, ramas 25–38 %, raíz 48–60 %</dd><dt>Curva</dt><dd>easeOutBack</dd><dt>Flutter</dt><dd>Un controller con Interval por nivel; ScaleTransition</dd></dl></div></article>
+
+    <article class="card"><div class="prev"><div class="pr" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="prog" aria-valuenow="0">
+      <svg viewBox="0 0 84 84"><circle cx="42" cy="42" r="36" fill="none" stroke="var(--g50)" stroke-width="7"/><circle id="progC" cx="42" cy="42" r="36" fill="none" stroke="#4E9155" stroke-width="7" stroke-linecap="round" stroke-dasharray="226.2" stroke-dashoffset="226.2"/></svg><span id="progT">0%</span>
+    </div></div><div class="info"><span class="num">10</span><h3>Anillo con porcentaje</h3><p class="use">Cuando sí sabes cuánto falta, como subir la foto de una convocatoria. Al llegar a 100 % el anillo cambia a amarillo un instante.</p>
+      <dl class="spec"><dt>Duración</dt><dd>según el progreso real</dd><dt>Curva</dt><dd>cada salto con easeOutCubic</dd><dt>Flutter</dt><dd>CircularProgressIndicator(value:) o CustomPainter + TweenAnimationBuilder</dd></dl></div></article>
+  </div>
+
+  <h2 class="sec">Transiciones de pantalla</h2>
+  <p class="sec">Pulsa <b>Ida</b> y <b>Vuelta</b>. La vuelta es la misma animación al revés, así cada una se programa una sola vez.</p>
+  <div class="grid tr" id="trans"></div>
+
+  <footer>Todo está hecho con CSS y JavaScript sin librerías, para que la traducción a Flutter sea uno a uno. En Flutter, las transiciones 2, 3 y 4 existen ya hechas en el paquete <code>animations</code> (FadeThroughTransition, SharedAxisTransition, OpenContainer), pero es una dependencia nueva y necesita ADR; también se pueden hacer a mano con PageRouteBuilder. Respeta "reducir movimiento": en ese caso las cargas se detienen y las transiciones son instantáneas.</footer>
+</div>
+
+<script>
+(function(){
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const root=document.documentElement;
+let slow=1;
+document.getElementById('slow').onclick=e=>{slow=slow===1?4:1;root.style.setProperty('--slow',slow);e.currentTarget.setAttribute('aria-pressed',String(slow>1));};
+document.getElementById('theme').onclick=e=>{const d=root.dataset.theme!=='dark';root.dataset.theme=d?'dark':'light';e.currentTarget.setAttribute('aria-pressed',String(d));};
+
+/* 04 · Huella que se escribe */
+const hashEl=document.getElementById('hashTxt'),hashLbl=document.getElementById('hashLbl');
+const target='0x9f3a7c…e4c21e',pool='0123456789abcdef';
+function runHash(){
+  if(reduced){hashEl.textContent=target;hashLbl.textContent='COINCIDE ✓';return;}
+  let fixed=0;hashLbl.textContent='VERIFICANDO HUELLA';hashLbl.className='';
+  const t=setInterval(()=>{
+    let s='';for(let i=0;i<target.length;i++){const c=target[i];s+=i<fixed||c==='…'||c==='x'?c:pool[Math.floor(Math.random()*16)];}
+    hashEl.textContent=s;
+    if(Math.random()<.55)fixed++;
+    if(fixed>target.length){clearInterval(t);hashEl.textContent=target;hashLbl.textContent='COINCIDE ✓';hashLbl.className='ok';setTimeout(runHash,900*slow);}
+  },70*slow);
+}
+runHash();
+
+/* 10 · Anillo con porcentaje (progreso simulado) */
+const prog=document.getElementById('prog'),progC=document.getElementById('progC'),progT=document.getElementById('progT');
+let p=0;const C=226.2;
+progC.style.transition='stroke-dashoffset .35s cubic-bezier(.215,.61,.355,1), stroke .3s';
+function tick(){
+  p=Math.min(100,p+Math.round(4+Math.random()*14));
+  progC.style.strokeDashoffset=String(C*(1-p/100));progT.textContent=p+'%';prog.setAttribute('aria-valuenow',p);
+  if(p>=100){progC.style.stroke='#F3B544';setTimeout(()=>{p=0;progC.style.transition='none';progC.style.strokeDashoffset=String(C);progC.style.stroke='#4E9155';progT.textContent='0%';
+    requestAnimationFrame(()=>{progC.style.transition='stroke-dashoffset .35s cubic-bezier(.215,.61,.355,1), stroke .3s';setTimeout(tick,400*slow);});},1100*slow);return;}
+  setTimeout(tick,(380+Math.random()*300)*slow);
+}
+if(!reduced)tick();else{progC.style.strokeDashoffset='0';progT.textContent='100%';}
+
+/* ===== Transiciones ===== */
+const boxIcon='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1B5141" stroke-width="2.2"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg>';
+const bigBox='<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1B5141" stroke-width="2"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg>';
+const listA=(withHero)=>`<div class="scr a"><div class="hd">Pax<span style="color:#327DA2">Fide</span><span style="color:#F3B544">.</span></div>
+  ${withHero?'<div class="hero-card">Agua para La Guajira<br><span style="opacity:.8;font-weight:500">68% de la meta</span></div>':''}
+  <div class="it"><div class="th">${boxIcon}</div><div class="tx"><div class="ln2" style="width:80%"></div><div class="ln2" style="width:50%"></div></div></div>
+  <div class="it"><div class="th" style="background:#8CC3DE">${boxIcon}</div><div class="tx"><div class="ln2" style="width:70%"></div><div class="ln2" style="width:40%"></div></div></div>
+  <div class="it"><div class="th" style="background:#8CC491">${boxIcon}</div><div class="tx"><div class="ln2" style="width:75%"></div><div class="ln2" style="width:55%"></div></div></div></div>`;
+const detailB=`<div class="scr b"><div class="bh"><div class="big">${bigBox}</div></div><h4>120 kits de higiene</h4>
+  <div class="ln2" style="width:90%"></div><div class="ln2" style="width:75%"></div><div class="ln2" style="width:60%"></div>
+  <div style="margin-top:10px;height:26px;border-radius:999px;background:#1B5141"></div></div>`;
+const T=[
+ {id:'push',name:'Deslizar',use:'Navegación normal hacia adelante: de una lista a su detalle. La pantalla de atrás se corre un 30 % y se oscurece.',
+  dur:'350 ms',curve:'easeOutCubic',fl:'CupertinoPageRoute, o PageRouteBuilder + SlideTransition (entrante 1→0, saliente 0→-0.3)',
+  html:()=>listA()+'<div class="dim"></div>'+detailB},
+ {id:'fade',name:'Fundido intermedio',use:'Cambiar entre pestañas de la barra inferior (Inicio, Explorar, Perfil), donde no hay "adelante" ni "atrás".',
+  dur:'300 ms (sale en 0–35 %, entra en 35–100 %)',curve:'fastOutSlowIn',fl:'FadeThroughTransition (paquete animations) o FadeTransition + ScaleTransition .92→1 con Interval',
+  html:()=>listA()+detailB},
+ {id:'z',name:'Eje Z',use:'Pasos de un mismo flujo: los pasos del registro o el login seguido del inicio.',
+  dur:'300 ms',curve:'fastOutSlowIn',fl:'SharedAxisTransition(scaled) o FadeTransition + ScaleTransition (saliente 1→1.1, entrante .8→1)',
+  html:()=>listA()+detailB},
+ {id:'cont',name:'Tarjeta que se expande',use:'Abrir una convocatoria desde su tarjeta: la tarjeta crece hasta ser la pantalla.',
+  dur:'450 ms',curve:'fastOutSlowIn',fl:'OpenContainer (paquete animations) o Hero sobre la tarjeta con RectTween y radio animado',
+  html:()=>listA(true)+'<div class="fx morph"></div>'+detailB},
+ {id:'hero',name:'Héroe: la caja vuela',use:'De la lista de donaciones al seguimiento: el icono de la caja viaja y se convierte en la cabecera.',
+  dur:'420 ms',curve:'easeInOutCubic',fl:'Hero(tag: assetId) en el icono de la lista y en la cabecera del detalle',
+  html:()=>listA()+`<div class="fx fly">${boxIcon}</div>`+detailB},
+ {id:'wipe',name:'Cortina de marca',use:'Solo en momentos clave, como del login al inicio. Una cortina verde con el logo cruza la pantalla.',
+  dur:'800 ms (cubre 0–45 %, pausa, descubre 55–100 %)',curve:'easeInOutCubic',fl:'Overlay con SlideTransition del panel + cambio de ruta a mitad (AnimationStatus en 50 %)',
+  html:()=>listA()+'<div class="fx curtain">Pax<span style="color:#8CD39A">Fide</span><span style="color:#F3B544">.</span></div>'+detailB},
+ {id:'circ',name:'Revelado circular',use:'Confirmación de una donación: un círculo verde crece desde el botón "Donar" y muestra el agradecimiento.',
+  dur:'500 ms',curve:'easeInOutCubic',fl:'ClipPath con CircleBorder/Path animado (centro = posición del botón) o paquete circular_reveal',
+  html:()=>listA()+'<div class="donbtn">Donar $50.000</div><div class="scr b ok"><div style="font-size:30px">💚</div><b style="font:800 15px var(--f-display)">¡Gracias, Ana!</b><span style="font-size:11px;opacity:.85;padding:0 10px">Te enviamos el código para seguir tu donación.</span></div>'},
+ {id:'sheet',name:'Hoja inferior',use:'Acciones rápidas sin salir de la pantalla: elegir monto, filtrar, compartir. La pantalla de atrás se encoge.',
+  dur:'350 ms',curve:'easeOutCubic',fl:'showModalBottomSheet con transitionAnimationController; para encoger el fondo, AnimatedScale al .94',
+  html:()=>listA()+'<div class="dim"></div><div class="scr b sh"><h4>Elige un monto</h4><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px"><div class="it" style="justify-content:center;font:600 11px var(--f-mono)">$20k</div><div class="it" style="justify-content:center;font:600 11px var(--f-mono);border-color:#1B5141">$50k</div><div class="it" style="justify-content:center;font:600 11px var(--f-mono)">$100k</div><div class="it" style="justify-content:center;font:600 11px var(--f-mono)">Otro</div></div></div>'}
+];
+const grid=document.getElementById('trans');
+grid.innerHTML=T.map((t,i)=>`<article class="card"><div class="tprev">
+  <div class="phone"><div class="screen stage t-${t.id}" id="stg-${t.id}">${t.html()}</div></div>
+  <div class="ctl"><button class="play p" type="button" data-t="${t.id}" data-dir="f">Ida →</button><button class="play" type="button" data-t="${t.id}" data-dir="r">← Vuelta</button></div>
+ </div><div class="info"><span class="num">${String(i+1).padStart(2,'0')}</span><h3>${t.name}</h3><p class="use">${t.use}</p>
+  <dl class="spec"><dt>Duración</dt><dd>${t.dur}</dd><dt>Curva</dt><dd>${t.curve}</dd><dt>Flutter</dt><dd>${t.fl}</dd></dl></div></article>`).join('');
+grid.addEventListener('click',e=>{
+  const b=e.target.closest('.play');if(!b)return;
+  const st=document.getElementById('stg-'+b.dataset.t);
+  if(b.dataset.dir==='r'&&!st.dataset.run)return; // solo hay vuelta después de una ida
+  st.removeAttribute('data-run');void st.offsetWidth; // reinicia las animaciones
+  st.dataset.run=b.dataset.dir;
+  if(b.dataset.dir==='r'){const end=()=>{st.removeAttribute('data-run');};setTimeout(end,1200*slow);}
+});
+})();
+</script>
