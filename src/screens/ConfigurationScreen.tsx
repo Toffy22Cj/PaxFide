@@ -190,16 +190,18 @@ export function ConfigurationScreen({
       {state.status === 'ready' && !enabled && <EmptyState text="No hay opciones disponibles para tu cuenta en este panel." />}
       {enabled && campaigns === null && <LoadingState />}
       {enabled && campaigns !== null && (
-        <form onSubmit={choose} noValidate>
-          {campaigns.kind === 'ok'
-            ? (items.length === 0
-              ? <EmptyState text="Tu organización no tiene convocatorias abiertas." />
-              : <SelectField label="Convocatoria" value={refInput || items[0].campaignRef} onChange={(e) => setRefInput(e.target.value)}
-                  options={items.map((c) => ({ value: c.campaignRef, label: c.title }))} />)
-            : <TextField label="Referencia de la convocatoria" value={refInput} autoComplete="off" onChange={(e) => setRefInput(e.target.value)}
-                hint="Tu cuenta no puede ver el listado de convocatorias: escribe la referencia (la del correo o la que te dio un administrador)." />}
-          {(campaigns.kind !== 'ok' || items.length > 0) && <Button type="submit">Ver configuración</Button>}
-        </form>
+        <Surface>
+          <form onSubmit={choose} noValidate>
+            {campaigns.kind === 'ok'
+              ? (items.length === 0
+                ? <EmptyState text="Tu organización no tiene convocatorias abiertas." />
+                : <SelectField label="Convocatoria" value={refInput || items[0].campaignRef} onChange={(e) => setRefInput(e.target.value)}
+                    options={items.map((c) => ({ value: c.campaignRef, label: c.title }))} />)
+              : <TextField label="Referencia de la convocatoria" value={refInput} autoComplete="off" onChange={(e) => setRefInput(e.target.value)}
+                  hint="Tu cuenta no puede ver el listado de convocatorias: escribe la referencia (la del correo o la que te dio un administrador)." />}
+            {(campaigns.kind !== 'ok' || items.length > 0) && <Button type="submit">Ver configuración</Button>}
+          </form>
+        </Surface>
       )}
       {done && <StatusNotice variant="success" text={done} />}
       {loaded === 'loading' && <LoadingState />}
