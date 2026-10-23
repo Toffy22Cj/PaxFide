@@ -17,7 +17,7 @@ test.describe('Donante con cuenta → Mis donaciones → seguimiento por formula
     await page.getByLabel('Correo electrónico').fill('donante@demo.test');
     await page.getByLabel('Contraseña').fill('demo-donante');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-    await expect(page).toHaveURL(/\/panel$/);
+    await expect(page).toHaveURL(/\/home$/);
 
     // Navegación de cliente: recargar perdería la sesión (JWT solo en memoria)
     await page.waitForFunction(() => !!(window as any).__TEST_ROUTER__);

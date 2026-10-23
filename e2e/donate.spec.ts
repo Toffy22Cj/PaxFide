@@ -130,7 +130,7 @@ test.describe('A3 — aviso antes de salir con una donación sin confirmar', () 
     await page.getByLabel('Correo electrónico').fill('donante@demo.test');
     await page.getByLabel('Contraseña').fill('demo-donante');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-    await expect(page).toHaveURL(/\/panel$/);
+    await expect(page).toHaveURL(/\/home$/);
     await page.waitForFunction(() => !!(window as any).__TEST_ROUTER__);
     await page.evaluate((c) => (window as any).__TEST_ROUTER__.push(`/c/${c}`), code);
     await page.getByLabel('Monto (COP)').fill('10000');

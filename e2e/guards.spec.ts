@@ -3,7 +3,8 @@ import { test, expect } from '@playwright/test';
 test.describe('Session Guards (T-4)', () => {
   test('logout → atrás ⇒ sin contenido autenticado (bfcache invariant)', async ({ page }) => {
     // 1. Ir a login y loguearse en una sola pestaña
-    await page.goto('/login');
+    // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+    await page.goto('/panel');
     await page.waitForFunction(() => !!(window as any).__TEST_SESSION__);
     await page.evaluate(() => (window as any).__TEST_SESSION__.login('fake-jwt-token'));
     await expect(page).toHaveURL(/\/panel/);
@@ -29,14 +30,16 @@ test.describe('Session Guards (T-4)', () => {
   test('logout en la pestaña A ⇒ la pestaña B pasa a LOGGED_OUT', async ({ context }) => {
     // Pestaña A: login
     const pageA = await context.newPage();
-    await pageA.goto('/login');
+    // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+    await pageA.goto('/panel');
     await pageA.waitForFunction(() => !!(window as any).__TEST_SESSION__);
     await pageA.evaluate(() => (window as any).__TEST_SESSION__.login('fake-jwt-token'));
     await expect(pageA).toHaveURL(/\/panel/);
 
     // Pestaña B: ir a login y establecer su propia sesión
     const pageB = await context.newPage();
-    await pageB.goto('/login');
+    // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+    await pageB.goto('/panel');
     await pageB.waitForFunction(() => !!(window as any).__TEST_SESSION__);
     await pageB.evaluate(() => (window as any).__TEST_SESSION__.login('fake-jwt-token'));
     await expect(pageB).toHaveURL(/\/panel/);
@@ -52,7 +55,8 @@ test.describe('Session Guards (T-4)', () => {
 
   test('superficie deshabilitada ⇒ 404 también con sesión', async ({ page }) => {
     // 1. Login
-    await page.goto('/login');
+    // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+    await page.goto('/panel');
     await page.waitForFunction(() => !!(window as any).__TEST_SESSION__);
     await page.evaluate(() => (window as any).__TEST_SESSION__.login('fake-jwt-token'));
     await expect(page).toHaveURL(/\/panel/);

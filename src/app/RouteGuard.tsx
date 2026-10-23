@@ -4,8 +4,14 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSyncExternalStore } from 'react';
 import { classifyRoute } from '../lib/routing/classifier';
+import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import * as session from '../lib/auth/session';
 import NotFound from './not-found';
+
+/** Destino por defecto tras iniciar sesión sin destino guardado (A-3). */
+export function defaultDestination(): string {
+  return isSurfaceEnabled('/home') ? '/home' : '/panel';
+}
 
 export default function RouteGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -34,8 +40,10 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
       session.setPostLoginDestination(pathname);
       router.replace('/login');
     } else if (sessionState === 'AUTHENTICATED' && category === 'AUTH') {
+      // A-3 (plan-fase7-pantallas.md): tras iniciar sesión, el destino guardado; si no hay, el inicio del donante
+      // (`/home`) cuando está habilitado y, si no, el panel como hasta ahora
       const dest = session.consumePostLoginDestination();
-      router.replace(dest || '/panel');
+      router.replace(dest || defaultDestination());
     }
   }, [sessionState, category, pathname, router]);
 

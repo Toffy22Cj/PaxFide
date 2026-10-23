@@ -28,6 +28,7 @@ export default defineConfig({
       env: {
         NEXT_PUBLIC_E2E_SURFACES: JSON.stringify([
           '/',
+          '/home',
           '/login',
           '/panel',
           '/panel/campaigns',

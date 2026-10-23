@@ -28,7 +28,7 @@ for (const width of [390, 1280]) {
     await page.getByLabel('Correo electrónico').fill('donante@demo.test');
     await page.getByLabel('Contraseña').fill('demo-donante');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-    await expect(page).toHaveURL(/\/panel$/);
+    await expect(page).toHaveURL(/\/home$/);
     await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Donaciones' }).click();
     await expect(page).toHaveURL(/\/account\/donations$/);
     await shot(page, 'account-donations', width);

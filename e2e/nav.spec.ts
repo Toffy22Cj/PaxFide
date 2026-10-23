@@ -3,7 +3,8 @@
 import { test, expect, type Page } from '@playwright/test';
 
 async function login(page: Page, email: string, password: string) {
-  await page.goto('/login');
+  // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+  await page.goto('/panel');
   await page.getByLabel('Correo electrónico').fill(email);
   await page.getByLabel('Contraseña').fill(password);
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
@@ -86,8 +87,8 @@ for (const width of [390, 1280]) {
     test('ADMINISTRATOR: entradas, aria-current y orden de foco igual al visual', async ({ page }) => {
       await login(page, 'admin@demo.test', 'demo-admin');
       const expected = width >= 768
-        ? ['Explorar', 'Donaciones', 'Seguimiento', 'Organización', 'Convocatorias', 'Lotes']
-        : ['Explorar', 'Donaciones', 'Seguimiento', 'Organización']; // DF7-20
+        ? ['Inicio', 'Explorar', 'Donaciones', 'Seguimiento', 'Organización', 'Convocatorias', 'Lotes']
+        : ['Inicio', 'Explorar', 'Donaciones', 'Seguimiento', 'Organización']; // DF7-20: con Inicio (A-3), justo 5
       expect(await navLabels(page)).toEqual(expected);
       await expect(nav(page).getByRole('link', { name: 'Organización' })).toHaveAttribute('aria-current', 'page');
       expect(await tabOrder(page)).toEqual(expected);
@@ -113,7 +114,7 @@ for (const width of [390, 1280]) {
     test('cuenta sin organización: no ve "Organización" (B)', async ({ page }) => {
       await login(page, 'donante@demo.test', 'demo-donante');
       const labels = await navLabels(page);
-      expect(labels).toEqual(['Explorar', 'Donaciones', 'Seguimiento']);
+      expect(labels).toEqual(['Inicio', 'Explorar', 'Donaciones', 'Seguimiento']);
       expect(labels).not.toContain('Organización');
     });
 
@@ -131,18 +132,9 @@ for (const width of [390, 1280]) {
   });
 }
 
-test('DF7-20: con 5 entradas (Inicio, en VS-5) la barra inferior cabe a 390 px', async ({ page }) => {
-  // /home aún no está habilitada: se añade una entrada "Inicio" con la misma marca y estilos que las demás, solo
-  // para medir que 5 entradas caben (la lógica de la barra ya lo limita a 5, ver nav-entries.test.ts)
+test('DF7-20: con Inicio (A-3) el ADMINISTRATOR tiene exactamente 5 entradas a 390 px y caben', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 860 });
   await login(page, 'admin@demo.test', 'demo-admin');
-  await nav(page).evaluate((navEl) => {
-    const list = navEl.querySelector('ul')!;
-    const clone = list.firstElementChild!.cloneNode(true) as HTMLElement;
-    clone.querySelector('a')!.removeAttribute('aria-current');
-    clone.querySelector('span:last-child')!.textContent = 'Inicio';
-    list.insertBefore(clone, list.firstElementChild);
-  });
   expect(await navLabels(page)).toEqual(['Inicio', 'Explorar', 'Donaciones', 'Seguimiento', 'Organización']);
   await expectEntriesInside(page, 390);
 });
@@ -158,8 +150,7 @@ test('al redimensionar, la barra cambia de posición (bottom ↔ side)', async (
   await expect(shell).toHaveAttribute('data-nav-position', 'side');
 });
 
-test('una superficie deshabilitada no aparece en la barra (D5): Inicio (/home) no está en la lista', async ({ page }) => {
+test('las entradas sin ruta aprobada no aparecen en la barra (D5): Perfil, Ajustes y QR', async ({ page }) => {
   await login(page, 'admin@demo.test', 'demo-admin');
-  await expect(nav(page).getByRole('link', { name: 'Inicio' })).toHaveCount(0);
   for (const name of ['Perfil', 'Ajustes', 'QR']) await expect(nav(page).getByRole('link', { name })).toHaveCount(0);
 });

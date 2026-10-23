@@ -26,6 +26,8 @@ export function classifyRoute(pathname: string): RouteCategory {
   if (parts.length === 1 && a === 'login') return when('/login', 'AUTH');
   if (parts.length === 1 && a === 'register') return when('/register', 'AUTH');
   if (parts.length === 1 && a === 'campaigns') return when('/campaigns', 'PUBLIC');
+  // Inicio del donante (plan-fase7-pantallas.md A-3): con sesión
+  if (parts.length === 1 && a === 'home') return when('/home', 'AUTHENTICATED');
   // Aceptar invitación (DW-48): pública para poder leer y borrar el token del fragmento antes de pedir sesión
   if (parts.length === 1 && a === 'invitaciones') return when('/invitaciones', 'PUBLIC');
 

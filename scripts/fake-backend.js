@@ -221,6 +221,7 @@ const server = http.createServer(async (req, res) => {
       if (intent.status === 'PENDING') intent.status = 'FAILED';
     } else if (intent.status === 'PENDING') {
       intent.status = 'CONFIRMED';
+      intent.confirmedAt = new Date().toISOString();
       if (!body.withoutApplying) {
         intent.trackingCode = 'TRK.' + crypto.randomBytes(24).toString('base64url');
         intent.fundId = 'fund-' + crypto.randomUUID();
@@ -393,6 +394,7 @@ const server = http.createServer(async (req, res) => {
       intents.set(intentId, {
         intentId, publicCode: c.publicCode, campaignTitle: c.title, amount: body.amount, currency: body.currency,
         paymentMethod: body.paymentMethod, status: 'PENDING', donorAccount: actor ? actor.accountId : null,
+        createdAt: new Date().toISOString(), organizationName: c.organizationName,
         redirect: body.paymentMethod === 'GATEWAY' ? '/demo/checkout/sim_' + crypto.randomUUID() : null,
       });
       return intentId;
@@ -1030,8 +1032,16 @@ const server = http.createServer(async (req, res) => {
     const items = [...intents.values()].filter((i) => i.donorAccount === actor.accountId).map((i) => {
       const out = { intentId: i.intentId, campaignTitle: i.campaignTitle, amount: i.amount, currency: i.currency, status: i.status };
       if (i.status === 'CONFIRMED' && i.trackingCode) out.trackingCode = i.trackingCode;
+      // Nota del 2026-10-22 (referencia-api-v1.md §1, Enmienda 5 de ADR-037): fechas, organización, medio y publicCode
+      // solo si la convocatoria es PUBLIC al leer
+      out.paymentMethod = i.paymentMethod;
+      if (i.createdAt) out.createdAt = i.createdAt;
+      if (i.confirmedAt && (i.status === 'CONFIRMED' || i.status === 'FUNDING_REJECTED')) out.confirmedAt = i.confirmedAt;
+      if (i.organizationName) out.organizationName = i.organizationName;
+      const c = campaigns.get(i.publicCode);
+      if (c && (c.visibility || 'PUBLIC') === 'PUBLIC') out.publicCode = i.publicCode;
       return out;
-    });
+    }).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
     send(res, 200, { items });
     return;
   }

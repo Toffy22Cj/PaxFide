@@ -1,7 +1,8 @@
 import { test, expect, Page, Request } from '@playwright/test';
 
 async function login(page: Page) {
-  await page.goto('/login');
+  // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+  await page.goto('/panel');
   await page.getByLabel('Correo electrónico').fill('empleado@demo.test');
   await page.getByLabel('Contraseña').fill('demo-empleado');
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();

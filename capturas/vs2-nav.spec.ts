@@ -9,7 +9,8 @@ for (const width of [390, 1280]) {
   test(`vs2 claro ${width}`, async ({ page }) => {
     if (test.info().project.name !== '1280') return; // una sola pasada: el ancho lo fija el test
     await page.setViewportSize({ width, height: 860 });
-    await page.goto('/login');
+    // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+    await page.goto('/panel');
     await page.getByLabel('Correo electrónico').waitFor();
     await page.screenshot({ path: path.join(OUT, `vs2-login__claro__${width}.png`), fullPage: true });
     await page.getByLabel('Correo electrónico').fill('admin@demo.test');
