@@ -95,9 +95,9 @@ Fuente: `Documentos/referencia-api-v1.md` del backend (implementado en `develop`
 
 | Dato en el prototipo | Contrato | Regla |
 |---|---|---|
-| Nombre de la organización | `GET /organizations/{id}` → `name?` (solo `ADMINISTRATOR` o `REPRESENTATIVE`) | ✅; para `EMPLOYEE`, sin nombre |
+| Nombre de la organización | `GET /organizations/{id}` → `name?`, `logoUrl?` (solo `ADMINISTRATOR` o `REPRESENTATIVE`) | ✅ (logo y DF7-22 inicial); para `EMPLOYEE`, sin nombre ni logo |
 | KPI "Convocatorias abiertas" | `GET /organizations/{id}/campaigns` (solo `ADMINISTRATOR`) | 🔁 contar `status = OPEN` |
-| KPI "1 cierra en 2 días", campaña "cierra pronto", columna "end" | La lista de la organización no trae `endDate` | ⛔ **G-5** |
+| KPI "1 cierra en 2 días", campaña "cierra pronto", columna "end" | `GET /organizations/{id}/campaigns` → `endDate?` | ✅ (G-5 resuelto, D-P9: "Cierra pronto" dentro de los 7 días calculado en cliente) |
 | KPI "Recaudado en octubre" | `clearedAmount` acumulado, sin fechas | 🔁 "Recaudado" total por moneda; ⛔ por mes (**G-6**) |
 | KPI "Lotes por despachar" | `GET /organizations/{id}/physical-assets` → `lifecycleStatus` | 🔁 contar los que pueden despacharse; ⛔ "desde hace más de 3 días" (sin fechas) |
 | KPI "Integridad · 2 pasos esperan anclaje" | No hay integridad por organización | ⛔ **G-7**: se omite el KPI |
@@ -105,9 +105,9 @@ Fuente: `Documentos/referencia-api-v1.md` del backend (implementado en `develop`
 | Pendiente "Registrar la compra… $1.200.000 por aplicar" | `GET /organizations/{id}/funds` → `availableAmount` | ✅ |
 | Pendiente "No tiene empleado asignado" | `assignedEmployeeCount = 0` | ✅ |
 | `feed` (actividad reciente) | No hay endpoint de actividad | ⛔ **G-8**: se omite el bloque |
-| Tabla de convocatorias: título, estado, %, recaudado, meta | `title`, `status`, `clearedAmount?`, `targetAmount?` | ✅ / 🔁 el % solo si hay meta |
+| Tabla de convocatorias: título, estado, %, recaudado, meta | `title`, `status`, `clearedAmount?`, `targetAmount?`, `endDate?` | ✅ / 🔁 el % solo si hay meta |
 | Tabla de lotes: `L-0142` | `assetRef` (opaco) | Como lo muestra hoy `/panel/assets`; ⛔ códigos legibles inventados |
-| Tabla de lotes: "Kits de higiene" | La lista de la organización **no** trae `assetType` | ⛔ (entra en **G-4b**, ver §3.4) |
+| Tabla de lotes: "Kits de higiene" | `GET /organizations/{id}/physical-assets` → `assetType?` | ✅ (G-4b resuelto) |
 | Tabla de lotes: cantidad, estado, ubicación | `quantity`, `unitOfMeasure`, `lifecycleStatus`, `currentLocation?` | ✅ (`currentLocation` falta en `DISPATCHED`) |
 | Tabla de lotes: fecha y hora | Sin timestamps | ⛔ |
 

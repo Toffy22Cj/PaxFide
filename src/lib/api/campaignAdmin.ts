@@ -34,6 +34,8 @@ export interface AdminCampaign {
   targetAmount?: string;
   targetPolicy?: string;
   clearedAmount?: string;
+  startDate?: string;
+  endDate?: string;
   responsibles: { accountId: string; actingRole: string }[];
   assignedEmployeeCount: number;
 }
@@ -54,6 +56,7 @@ export async function fetchOrganizationCampaigns(organizationId: string): Promis
   return listOutcome(r, (i) => (i && typeof i.campaignRef === 'string' && typeof i.publicCode === 'string' && typeof i.title === 'string' ? {
     campaignRef: i.campaignRef, publicCode: i.publicCode, title: i.title, status: String(i.status), visibility: opt(i.visibility),
     currency: opt(i.currency), targetAmount: opt(i.targetAmount), targetPolicy: opt(i.targetPolicy), clearedAmount: opt(i.clearedAmount),
+    startDate: opt(i.startDate), endDate: opt(i.endDate),
     responsibles: Array.isArray(i.responsibles)
       ? i.responsibles.filter((x: any) => x && typeof x.accountId === 'string').map((x: any) => ({ accountId: x.accountId, actingRole: String(x.actingRole) }))
       : [],
