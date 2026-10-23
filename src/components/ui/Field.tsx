@@ -1,4 +1,5 @@
 'use client';
+// Ref: Documentos/plan-fase7-pantallas.md §5 B-1; Documentos/sistema-visual-paxfide-web-enmienda-1.md §7.1.
 
 import React, { useId, useState } from 'react';
 import s from './ui.module.css';
@@ -11,7 +12,7 @@ interface BaseProps {
 
 type InputProps = BaseProps & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'id'>;
 
-/** Etiqueta visible siempre; error debajo, en `danger-700`, enlazado con `aria-describedby` (§4). */
+/** Etiqueta visible siempre; error debajo, en `--color-danger-text`, enlazado con `aria-describedby` (§4). */
 export function TextField({ label, error, hint, ...rest }: InputProps) {
   const id = useId();
   const describedBy = [hint ? `${id}-hint` : '', error ? `${id}-error` : ''].filter(Boolean).join(' ') || undefined;
