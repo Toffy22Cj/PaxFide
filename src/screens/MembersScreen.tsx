@@ -78,7 +78,7 @@ export function MembersScreen({ meClient = fetchMe, membersClient = fetchMembers
                   // Los papeles del representante solo los cambia él (DD-66); quitarlo exige transferir (409)
                   const roleActions = !rep || x.accountId === selfId;
                   return (
-                    <li key={x.accountId} data-testid="member">
+                    <li key={x.accountId} data-testid="member" style={{ borderBottom: '1px solid var(--color-divider)', paddingBottom: 'var(--space-3)' }}>
                       <p><span className={ui.mono}>{x.accountId}</span>{x.accountId === selfId ? ' (tú)' : ''} ·{' '}
                         {x.roles.map(roleLabel).join(', ') || 'sin papel'} · {memberStatusLabel(x.status)}</p>
                       <Actions>
