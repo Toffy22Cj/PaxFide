@@ -3,7 +3,7 @@
 // Ref: prompts-agentes-estilo-v2.md VS-2; sistema-visual-paxfide-web-enmienda-1.md §8 (data-nav-position y
 // --nav-inset-*); respuesta de Carlos al plan de VS-2 (2026-10-21: B, C, D, E y GET /me en cada ruta); ADR-046 D5;
 // plan-fase7-pantallas.md A-1 (fondo animado en las rutas de D-P2, control de pausa en la cabecera, R-F1 y R-F2) y A-2
-// (en `/` el mundo de la landing en lugar de la ciudad; la misma pausa para los dos).
+// (en `/` el mundo de la landing en lugar de la ciudad; la misma pausa para los dos) y D-P13 (en `/`, sin cabecera ni barra).
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 import * as session from '../../lib/auth/session';
@@ -13,20 +13,11 @@ import { navEntriesFor, positionForWidth, NAV_BREAKPOINT_PX, type NavPosition } 
 import { nextNavPrincipal } from '../../lib/nav/navPrincipal';
 import { AppNav } from '../nav/AppNav';
 import { CityBackground } from '../background/CityBackground';
-import { togglePausedPreference, usePausedPreference, useReducedMotion } from '../background/usePausedPreference';
-import { backgroundFor } from '../../lib/routing/backgroundRoutes';
+import { usePausedPreference } from '../background/usePausedPreference';
+import { PauseButton } from '../background/PauseButton';
+import { BrandMark } from './BrandMark';
+import { backgroundFor, hasAppChrome } from '../../lib/routing/backgroundRoutes';
 import s from './Shell.module.css';
-
-/** Marca: SVG propio con los colores de marca (sustituto ligero del raster, `sistema-visual` §6). */
-function Mark() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" focusable="false">
-      <circle cx="20" cy="8" r="4" fill="var(--brand-yellow-400)" />
-      <path d="M4 18c3-1 6-1 9 1l5 3c1 .6 2.4.3 3-.7.5-.9.2-2-.7-2.6L15 15" fill="none" stroke="var(--brand-green-800)" strokeWidth="2.2" strokeLinecap="round" />
-      <path d="M14 13.5c-1.8-1.6-3.8-.4-3.8 1.4 0 1.9 2.4 3.4 3.8 4.4 1.4-1 3.8-2.5 3.8-4.4 0-1.8-2-3-3.8-1.4z" fill="var(--brand-green-500)" />
-    </svg>
-  );
-}
 
 /**
  * Principal para la barra: se pinta con el último conocido (sin parpadeo) y se vuelve a pedir `GET /me` en cada
@@ -68,22 +59,6 @@ function useNavPosition(): NavPosition | 'auto' {
   return position;
 }
 
-/** Pausa de la ilustración (R-F2): se recuerda en el navegador. Con "reducir movimiento" no hay nada que pausar (R-F3). */
-function useAnimationPause(): { paused: boolean; toggle: () => void; canPause: boolean } {
-  const paused = usePausedPreference();
-  const reduced = useReducedMotion();
-  return { paused, toggle: () => togglePausedPreference(paused), canPause: reduced === false };
-}
-
-function PauseIcon({ paused }: { paused: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
-      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
-      {paused ? <path d="M8 5.5v13l10-6.5z" /> : <path d="M9 5v14M15 5v14" />}
-    </svg>
-  );
-}
-
 /**
  * Estructura de la aplicación (VS-2): cabecera fina con la marca y "Cerrar sesión" en todos los anchos (respuesta E)
  * y barra de navegación inferior (< 768 px) o lateral (≥ 768 px). Las entradas salen de las superficies habilitadas y
@@ -95,36 +70,36 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
   const wide = pathname.startsWith('/panel/prediction');
   const principal = useNavPrincipal(state, pathname, me);
   const position = useNavPosition();
-  const entries = navEntriesFor({ authenticated: state === 'AUTHENTICATED', principal }, isSurfaceEnabled, position);
+  // D-P13: en `/` ni cabecera ni barra de la app; la landing pone la suya
+  const chrome = hasAppChrome(pathname);
+  const entries = chrome ? navEntriesFor({ authenticated: state === 'AUTHENTICATED', principal }, isSurfaceEnabled, position) : [];
   const background = backgroundFor(pathname);
   const city = background === 'city';
-  const pause = useAnimationPause();
-  const pauseLabel = pause.paused ? 'Reanudar animación' : 'Pausar animación';
+  const paused = usePausedPreference();
 
   return (
     <div className={s.app} data-nav-position={position} data-has-nav={entries.length > 0 ? 'true' : 'false'}>
-      {city && <CityBackground paused={pause.paused} />}
-      <header className={s.header}>
-        <div className={s.bar}>
-          <span className={s.brand}><Mark />PaxFide</span>
-          <div className={s.actions}>
-            {/* Aquí va el selector de tema en VS-8, al retirar el tema claro forzado (DF7-17). */}
-            {background && pause.canPause && (
-              <button type="button" className={s.pause} onClick={pause.toggle} aria-pressed={pause.paused}
-                aria-label={pauseLabel} data-testid="city-pause">
-                <PauseIcon paused={pause.paused} /><span className={s.pauseText}>{pauseLabel}</span>
-              </button>
-            )}
-            {state === 'AUTHENTICATED' && (
-              <button type="button" className={s.logout} data-testid="logout-btn" onClick={() => session.logout()}>
-                Cerrar sesión
-              </button>
-            )}
+      {city && <CityBackground paused={paused} />}
+      {chrome && (
+        <header className={s.header}>
+          <div className={s.bar}>
+            <span className={s.brand}><BrandMark />PaxFide</span>
+            <div className={s.actions}>
+              {/* Aquí va el selector de tema en VS-8, al retirar el tema claro forzado (DF7-17). */}
+              {background && <PauseButton className={s.pause} textClassName={s.pauseText} />}
+              {state === 'AUTHENTICATED' && (
+                <button type="button" className={s.logout} data-testid="logout-btn" onClick={() => session.logout()}>
+                  Cerrar sesión
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      </header>
-      <AppNav entries={entries} pathname={pathname} />
-      <main className={[s.main, wide ? s.wide : '', city ? s.onCity : '', background === 'world' ? s.onWorld : ''].join(' ')}>{children}</main>
+        </header>
+      )}
+      {chrome && <AppNav entries={entries} pathname={pathname} />}
+      {chrome
+        ? <main className={[s.main, wide ? s.wide : '', city ? s.onCity : ''].join(' ')}>{children}</main>
+        : <div className={[s.main, s.onWorld].join(' ')}>{children}</div>}
     </div>
   );
 }

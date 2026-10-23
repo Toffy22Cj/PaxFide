@@ -89,7 +89,8 @@ for (const width of [390, 1280]) {
       const expected = width >= 768
         ? ['Inicio', 'Explorar', 'Donaciones', 'Seguimiento', 'Organización', 'Convocatorias', 'Lotes']
         : ['Inicio', 'Explorar', 'Donaciones', 'Seguimiento', 'Organización']; // DF7-20: con Inicio (A-3), justo 5
-      expect(await navLabels(page)).toEqual(expected);
+      // Espera a GET /me: las entradas de organización llegan con él
+      await expect(nav(page).getByRole('link')).toHaveText(expected);
       await expect(nav(page).getByRole('link', { name: 'Organización' })).toHaveAttribute('aria-current', 'page');
       expect(await tabOrder(page)).toEqual(expected);
       if (width >= 768) {
@@ -113,8 +114,8 @@ for (const width of [390, 1280]) {
 
     test('cuenta sin organización: no ve "Organización" (B)', async ({ page }) => {
       await login(page, 'donante@demo.test', 'demo-donante');
+      await expect(nav(page).getByRole('link')).toHaveText(['Inicio', 'Explorar', 'Donaciones', 'Seguimiento']);
       const labels = await navLabels(page);
-      expect(labels).toEqual(['Inicio', 'Explorar', 'Donaciones', 'Seguimiento']);
       expect(labels).not.toContain('Organización');
     });
 
@@ -135,7 +136,7 @@ for (const width of [390, 1280]) {
 test('DF7-20: con Inicio (A-3) el ADMINISTRATOR tiene exactamente 5 entradas a 390 px y caben', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 860 });
   await login(page, 'admin@demo.test', 'demo-admin');
-  expect(await navLabels(page)).toEqual(['Inicio', 'Explorar', 'Donaciones', 'Seguimiento', 'Organización']);
+  await expect(nav(page).getByRole('link')).toHaveText(['Inicio', 'Explorar', 'Donaciones', 'Seguimiento', 'Organización']);
   await expectEntriesInside(page, 390);
 });
 

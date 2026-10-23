@@ -91,8 +91,8 @@ test.describe('Tokens de movimiento y reducción de movimiento (VS-1 / B-1)', ()
     // 2. Emular reducción de movimiento
     await page.emulateMedia({ reducedMotion: 'reduce' });
 
-    // 3. Navegar a /campaigns
-    await page.goto('/campaigns');
+    // 3. Navegar a la landing: su bloque de convocatorias carga con LoadingState (/campaigns usa el esqueleto desde A-5)
+    await page.goto('/');
 
     // 4. Verificar que LoadingState está visible
     const loader = page.locator('[data-testid="loading-state"]');
@@ -115,8 +115,8 @@ test.describe('Tokens de movimiento y reducción de movimiento (VS-1 / B-1)', ()
     // 2. Emular sin reducción de movimiento
     await page.emulateMedia({ reducedMotion: 'no-preference' });
 
-    // 3. Navegar a /campaigns
-    await page.goto('/campaigns');
+    // 3. Navegar a la landing: su bloque de convocatorias carga con LoadingState (/campaigns usa el esqueleto desde A-5)
+    await page.goto('/');
 
     // 4. Verificar que LoadingState está visible
     const loader = page.locator('[data-testid="loading-state"]');

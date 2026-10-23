@@ -142,6 +142,8 @@ test.describe('Landing (VS-4)', () => {
       await page.goto('/');
       await expect(page.getByTestId('landing-campaigns')).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+      // En estrecho, las secciones y los accesos van en el menú de la cabecera
+      if (width < 1100) await page.getByRole('button', { name: 'Abrir menú de navegación' }).click();
       for (const name of ['Ingresar', 'Seguir una donación', 'Donar']) {
         const b = (await page.getByRole('navigation', { name: 'Secciones de la página de inicio' }).getByRole('link', { name, exact: true }).boundingBox())!;
         expect(b.height, name).toBeGreaterThanOrEqual(44);
@@ -149,4 +151,80 @@ test.describe('Landing (VS-4)', () => {
       }
     });
   }
+
+  test('D-P13: en / una sola cabecera, la de la landing, con la pausa; sin la barra de la app; en /campaigns, la de siempre', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('banner')).toHaveCount(1);
+    const header = page.getByRole('banner');
+    await expect(header.getByRole('link', { name: 'PaxFide, inicio' })).toHaveAttribute('href', '/');
+    await expect(header.getByTestId('city-pause')).toHaveAccessibleName('Pausar animación');
+    await expect(page.getByRole('navigation', { name: 'Principal' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Seguimiento', exact: true })).toHaveCount(1);
+    await page.goto('/campaigns');
+    await expect(page.getByRole('navigation', { name: 'Principal' })).toHaveCount(1);
+    await expect(page.getByTestId('city-pause')).toHaveCount(1);
+  });
+
+  test('a 390 px: menú desplegable con las secciones; un ancla lleva a su sección y cierra el menú', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 860 });
+    await page.goto('/');
+    const nav = page.getByRole('navigation', { name: 'Secciones de la página de inicio' });
+    await expect(nav).toBeHidden();
+    await expect(page.getByRole('banner').getByTestId('city-pause')).toBeVisible();
+    await page.getByRole('button', { name: 'Abrir menú de navegación' }).click();
+    await expect(nav).toBeVisible();
+    await nav.getByRole('link', { name: 'Verificación' }).click();
+    await expect(nav).toBeHidden();
+    await expect(page).toHaveURL(/#parada-4$/);
+  });
+
+  test('R-F1: el canvas está detrás de cada bloque (nada del mundo por encima del contenido)', async ({ page }) => {
+    await page.goto('/');
+    const card = page.locator('#parada-1 article');
+    const b = (await card.boundingBox())!;
+    for (const [x, y] of [[b.x + 30, b.y + 30], [b.x + b.width - 30, b.y + b.height - 30], [b.x + b.width / 2, b.y + b.height / 2]]) {
+      // El primer elemento en ese punto es la tarjeta (el canvas no recibe eventos y está debajo)
+      const inCard = await page.evaluate(([px, py]) => !!document.elementFromPoint(px, py)?.closest('#parada-1 article'), [x, y]);
+      expect(inCard).toBe(true);
+    }
+    // Orden de apilado: el mundo (fijo, z-index 0) por debajo del contenido (z-index 1) y de la cabecera (20)
+    const z = await page.evaluate(() => ({
+      world: getComputedStyle(document.querySelector('[data-testid="world-background"]')!).zIndex,
+      content: getComputedStyle(document.getElementById('contenido')!).zIndex,
+      header: getComputedStyle(document.querySelector('header')!).zIndex,
+    }));
+    expect(z).toEqual({ world: '0', content: '1', header: '20' });
+  });
+
+  test('R-F3: con "reducir movimiento", cada parada es un fotograma quieto: a mitad de camino, ninguna vista intermedia ni transición', async ({ page }) => {
+    await countRaf(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    await expect(world(page)).toHaveAttribute('data-loop', 'still');
+    const r0 = await rafCalls(page);
+    for (const id of ['#parada-2', '#parada-3']) {
+      // A mitad entre dos paradas la vista sigue en una parada entera
+      await page.evaluate((sel) => {
+        const el = document.querySelector(sel) as HTMLElement;
+        window.scrollTo(0, el.offsetTop - window.innerHeight * 0.1);
+      }, id);
+      await idle(page, 300);
+      expect(Number.isInteger(await view(page))).toBe(true);
+    }
+    expect(await rafCalls(page)).toBe(r0);
+    // Sin transiciones en las tarjetas ni en el manifiesto, que está encendido entero desde el principio
+    const card = await page.locator('#parada-2 article').evaluate((el) => getComputedStyle(el).transitionDuration);
+    expect(card.split(',').every((d) => parseFloat(d) === 0)).toBe(true);
+    const mani = page.getByTestId('manifesto');
+    const words = await mani.evaluate((el) => (el.textContent ?? '').trim().split(/\s+/).length);
+    await expect(mani).toHaveAttribute('data-lit', String(words));
+  });
+
+  test('sin "reducir movimiento", el manifiesto se enciende al llegar (negativa: arriba está apagado)', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByTestId('manifesto')).toHaveAttribute('data-lit', '0');
+    await page.locator('#recorrido').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await expect.poll(async () => Number(await page.getByTestId('manifesto').getAttribute('data-lit'))).toBeGreaterThan(10);
+  });
 });
+
