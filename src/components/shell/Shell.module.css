@@ -32,6 +32,17 @@
   background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control);
 }
 .logout:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+/* Pausa de la ciudad (R-F2): icono siempre; el texto visible desde 768 px (el nombre accesible es el mismo) */
+.pause {
+  min-height: 44px; min-width: 44px; padding: 0 var(--space-3);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  border-radius: var(--radius-button);
+  font: inherit; font-weight: var(--weight-semibold); cursor: pointer;
+  background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control);
+}
+.pause:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.pauseText { display: none; }
+@media (min-width: 768px) { .pauseText { display: inline; } }
 .main {
   max-width: var(--width-detail); margin: 0 auto;
   padding: var(--space-8) var(--gutter-mobile) calc(var(--space-12) + var(--nav-inset-bottom));
@@ -39,3 +50,13 @@
 .app[data-has-nav="true"] .main { margin-left: max(var(--nav-inset-left), calc((100% - var(--width-detail)) / 2)); }
 .app[data-has-nav="true"] .main.wide { margin-left: max(var(--nav-inset-left), calc((100% - 1120px) / 2)); }
 .wide { max-width: 1120px; }
+/* Rutas con ciudad (R-F1): ningún texto directamente sobre el fondo animado; el contenido va en una superficie
+   translúcida con la opacidad mínima. El canvas está detrás (z-index 0). */
+.main { position: relative; z-index: 1; }
+.onCity {
+  background: var(--color-surface-translucent);
+  border-radius: var(--radius-surface);
+  margin-top: var(--space-4);
+  margin-bottom: calc(var(--space-4) + var(--nav-inset-bottom));
+  padding-bottom: var(--space-8);
+}

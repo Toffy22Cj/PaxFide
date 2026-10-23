@@ -562,15 +562,35 @@ describe('Hexadecimales y tokens dark-* solo en el archivo de tokens', () => {
     'components/QrCode.tsx': ['#FFFFFF', '#1B5141'],
     'components/prediction/PredictionCharts.tsx': ['#FFFFFF'],
   };
+  /**
+   * Paletas de ilustración (plan-fase7-pantallas.md D-P1): la ciudad y el mundo de la landing son ilustraciones sin
+   * texto encima (R-F1); sus colores viven en UN archivo por ilustración. Ningún otro archivo de la ilustración lleva
+   * hexadecimales (lo comprueba el test de arriba, que no los exime).
+   */
+  const ILLUSTRATION_PALETTES = new Set(['components/background/cityPalette.ts']);
 
   it('solo globals.css declara hexadecimales (más las excepciones anteriores listadas)', () => {
     for (const file of files) {
       const rel = path.relative(SRC, file).split(path.sep).join('/');
-      if (rel === 'app/globals.css') continue;
+      if (rel === 'app/globals.css' || ILLUSTRATION_PALETTES.has(rel)) continue;
       const found = (fs.readFileSync(file, 'utf-8').match(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g) || []).map((h) => h.toUpperCase());
       const allowed = LEGACY_HEX[rel] ?? [];
       const unexpected = found.filter((h) => !allowed.includes(h));
       expect(unexpected, `${rel} contiene hexadecimales: usa los tokens de globals.css`).toEqual([]);
+    }
+  });
+
+  it('D-P1: cada paleta de ilustración existe y su ilustración no tiene colores fuera de ella', () => {
+    for (const rel of ILLUSTRATION_PALETTES) {
+      expect(fs.existsSync(path.join(SRC, rel)), rel).toBe(true);
+      const dir = path.dirname(path.join(SRC, rel));
+      for (const f of fs.readdirSync(dir).filter((x) => /\.(ts|tsx|css)$/.test(x))) {
+        const r = path.relative(SRC, path.join(dir, f)).split(path.sep).join('/');
+        if (r === rel) continue;
+        const txt = fs.readFileSync(path.join(dir, f), 'utf-8');
+        expect(txt.match(/#[0-9a-fA-F]{3,6}\b/g) ?? [], `${r}: hexadecimales fuera de la paleta`).toEqual([]);
+        expect(txt.match(/rgba?\(\s*\d/g) ?? [], `${r}: colores rgb fuera de la paleta`).toEqual([]);
+      }
     }
   });
 

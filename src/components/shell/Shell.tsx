@@ -1,7 +1,8 @@
 'use client';
 
 // Ref: prompts-agentes-estilo-v2.md VS-2; sistema-visual-paxfide-web-enmienda-1.md §8 (data-nav-position y
-// --nav-inset-*); respuesta de Carlos al plan de VS-2 (2026-10-21: B, C, D, E y GET /me en cada ruta); ADR-046 D5.
+// --nav-inset-*); respuesta de Carlos al plan de VS-2 (2026-10-21: B, C, D, E y GET /me en cada ruta); ADR-046 D5;
+// plan-fase7-pantallas.md A-1 (fondo animado en las rutas de D-P2, control de pausa en la cabecera, R-F1 y R-F2).
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 import * as session from '../../lib/auth/session';
@@ -10,6 +11,9 @@ import { fetchMe, parsePrincipal, type Principal } from '../../lib/api/identity'
 import { navEntriesFor, positionForWidth, NAV_BREAKPOINT_PX, type NavPosition } from '../../lib/nav/navEntries';
 import { nextNavPrincipal } from '../../lib/nav/navPrincipal';
 import { AppNav } from '../nav/AppNav';
+import { CityBackground } from '../background/CityBackground';
+import { readPaused, writePaused } from '../background/animationPreference';
+import { hasAnimatedBackground } from '../../lib/routing/backgroundRoutes';
 import s from './Shell.module.css';
 
 /** Marca: SVG propio con los colores de marca (sustituto ligero del raster, `sistema-visual` §6). */
@@ -63,6 +67,33 @@ function useNavPosition(): NavPosition | 'auto' {
   return position;
 }
 
+const getStorage = () => window.localStorage;
+
+/** Pausa de la ciudad (R-F2): se recuerda en el navegador. Con "reducir movimiento" no hay nada que pausar (R-F3). */
+function useCityPause(): { paused: boolean; toggle: () => void; canPause: boolean } {
+  const [paused, setPaused] = useState(false);
+  const [canPause, setCanPause] = useState(false);
+  useEffect(() => {
+    setPaused(readPaused(getStorage));
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setCanPause(!mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+  const toggle = () => setPaused((p) => { writePaused(getStorage, !p); return !p; });
+  return { paused, toggle, canPause };
+}
+
+function PauseIcon({ paused }: { paused: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      {paused ? <path d="M8 5.5v13l10-6.5z" /> : <path d="M9 5v14M15 5v14" />}
+    </svg>
+  );
+}
+
 /**
  * Estructura de la aplicación (VS-2): cabecera fina con la marca y "Cerrar sesión" en todos los anchos (respuesta E)
  * y barra de navegación inferior (< 768 px) o lateral (≥ 768 px). Las entradas salen de las superficies habilitadas y
@@ -75,14 +106,24 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
   const principal = useNavPrincipal(state, pathname, me);
   const position = useNavPosition();
   const entries = navEntriesFor({ authenticated: state === 'AUTHENTICATED', principal }, isSurfaceEnabled, position);
+  const city = hasAnimatedBackground(pathname);
+  const pause = useCityPause();
+  const pauseLabel = pause.paused ? 'Reanudar animación' : 'Pausar animación';
 
   return (
     <div className={s.app} data-nav-position={position} data-has-nav={entries.length > 0 ? 'true' : 'false'}>
+      {city && <CityBackground paused={pause.paused} />}
       <header className={s.header}>
         <div className={s.bar}>
           <span className={s.brand}><Mark />PaxFide</span>
           <div className={s.actions}>
             {/* Aquí va el selector de tema en VS-8, al retirar el tema claro forzado (DF7-17). */}
+            {city && pause.canPause && (
+              <button type="button" className={s.pause} onClick={pause.toggle} aria-pressed={pause.paused}
+                aria-label={pauseLabel} data-testid="city-pause">
+                <PauseIcon paused={pause.paused} /><span className={s.pauseText}>{pauseLabel}</span>
+              </button>
+            )}
             {state === 'AUTHENTICATED' && (
               <button type="button" className={s.logout} data-testid="logout-btn" onClick={() => session.logout()}>
                 Cerrar sesión
@@ -92,7 +133,7 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
         </div>
       </header>
       <AppNav entries={entries} pathname={pathname} />
-      <main className={[s.main, wide ? s.wide : ''].join(' ')}>{children}</main>
+      <main className={[s.main, wide ? s.wide : '', city ? s.onCity : ''].join(' ')}>{children}</main>
     </div>
   );
 }
