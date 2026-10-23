@@ -1,10 +1,10 @@
 // Ref: plan-fase7-pantallas.md A-2 (WorldScene con las mismas reglas R-F que la ciudad), D-P1–D-P4; A-1 (pausa).
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-  VIEW_COUNT, cameraFor, clampDpr, cloudAt, createWorldScene, road, stopProgress, viewForScroll, STOPS,
+  VIEW_COUNT, cameraFor, clampDpr, cloudAt, createWorldScene, rectFade, road, stopProgress, viewForScroll, STOPS,
 } from '../src/components/landing/worldScene';
 import { WORLD_DAY, WORLD_NIGHT, worldPalette } from '../src/components/landing/worldPalette';
-import { backgroundFor } from '../src/lib/routing/backgroundRoutes';
+import { backgroundFor, hasAppChrome } from '../src/lib/routing/backgroundRoutes';
 import {
   getPausedSnapshot, resetPausedSnapshot, setPausedPreference, subscribePaused, CITY_PAUSE_KEY,
 } from '../src/components/background/animationPreference';
@@ -79,6 +79,26 @@ describe('Mundo de la landing — escena pura (A-2)', () => {
     expect(Object.keys(WORLD_NIGHT).sort()).toEqual(Object.keys(WORLD_DAY).sort());
     expect(worldPalette(0)).toBe(WORLD_DAY);
     expect(worldPalette(1)).toBe(WORLD_NIGHT);
+  });
+});
+
+describe('R-F1: las nubes se apartan del contenido', () => {
+  const card = { left: 100, top: 100, right: 400, bottom: 300 };
+  it('encima de un bloque, 0; lejos, 1; cerca, entre los dos', () => {
+    expect(rectFade(250, 200, 40, [card])).toBe(0);
+    expect(rectFade(410, 200, 40, [card])).toBe(0); // el borde de la nube toca el bloque
+    expect(rectFade(1000, 1000, 40, [card])).toBe(1);
+    const near = rectFade(400 + 40 + 24 + 20, 200, 40, [card]);
+    expect(near).toBeGreaterThan(0);
+    expect(near).toBeLessThan(1);
+    expect(rectFade(250, 200, 40, [])).toBe(1);
+  });
+});
+
+describe('D-P13: estructura de la app', () => {
+  it('en / no hay cabecera ni barra de la app; en el resto, sí', () => {
+    expect(hasAppChrome('/')).toBe(false);
+    for (const r of ['/home', '/campaigns', '/c/x', '/tracking', '/login', '/panel', '/assets/a']) expect(hasAppChrome(r)).toBe(true);
   });
 });
 

@@ -4,7 +4,7 @@
 // La guía el scroll de la landing: cada bloque marcado con `data-world-view` es una vista del recorrido.
 import React, { useEffect, useRef } from 'react';
 import { WorldRenderer } from './worldDraw';
-import { clampDpr, createWorldScene, viewForScroll } from './worldScene';
+import { clampDpr, createWorldScene, viewForScroll, type ScreenRect } from './worldScene';
 import { loopMode } from '../background/animationPreference';
 import { usePausedPreference } from '../background/usePausedPreference';
 import s from './world.module.css';
@@ -24,6 +24,14 @@ function targetView(): number {
     return r.top + window.scrollY + r.height / 2;
   });
   return viewForScroll(centers, window.scrollY + window.innerHeight / 2);
+}
+
+/** Bloques de contenido a la vista (marcados con `data-world-avoid`): las nubes no se dibujan por detrás (R-F1). */
+function contentRects(): ScreenRect[] {
+  const h = window.innerHeight;
+  return [...document.querySelectorAll<HTMLElement>('[data-world-avoid]')].map((el) => el.getBoundingClientRect())
+    .filter((r) => r.bottom > 0 && r.top < h && r.width > 0)
+    .map((r) => ({ left: r.left, top: r.top, right: r.right, bottom: r.bottom }));
 }
 
 export function WorldScene() {
@@ -48,7 +56,7 @@ export function WorldScene() {
     const current = () => ({ paused: pausedRef.current, reducedMotion: reduceMq.matches, hidden: document.hidden });
 
     const paint = (drift: boolean) => {
-      renderer.draw(view, nightFor(document.documentElement), worldTime, drift);
+      renderer.draw(view, nightFor(document.documentElement), worldTime, drift, contentRects());
       painted = view;
       frames++;
       canvas.setAttribute('data-frames', String(frames));

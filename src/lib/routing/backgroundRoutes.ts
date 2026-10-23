@@ -20,3 +20,11 @@ export function backgroundFor(pathname: string): AnimatedBackground | null {
   if (!hasAnimatedBackground(pathname)) return null;
   return pathname === '/' ? 'world' : 'city';
 }
+
+/**
+ * D-P13 (Carlos, 2026-10-23): en `/` la estructura de la app no pone su cabecera ni su barra de navegación (lateral ni
+ * inferior); la landing usa solo su propia cabecera. En el resto de rutas, la estructura de siempre.
+ */
+export function hasAppChrome(pathname: string): boolean {
+  return pathname !== '/';
+}

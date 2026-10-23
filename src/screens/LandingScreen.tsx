@@ -2,7 +2,8 @@
 // Ref: plan-fase7-pantallas.md A-2 y D-P5; prompts-agentes-estilo-v2.md VS-4 y §3.3; referencia-api-v1.md §5
 // (GET /public/campaigns). Referencia visual: paxfide-landing.html. Textos del recorrido tal cual, sin cifras ni
 // nombres concretos (montos, organizaciones, ciudades). Fuera: búsqueda y filtros (R-1), "Escanear QR", métricas
-// globales, el acceso con Google o billetera y el selector Día / Noche del prototipo.
+// globales, el acceso con Google o billetera y el selector Día / Noche del prototipo. D-P13: en `/` la app no pone su
+// cabecera ni su barra; esta cabecera (la del prototipo) es la única, con el botón de pausa (R-F2).
 import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import * as session from '../lib/auth/session';
@@ -11,6 +12,8 @@ import { fetchDiscovery, type DiscoveryItem } from '../lib/api/publicCampaigns';
 import { custodianLabel, eventLabel, intentStatusLabel } from '../lib/labels';
 import { CampaignCard } from '../components/campaign/CampaignCard';
 import { WorldScene } from '../components/landing/WorldScene';
+import { PauseButton } from '../components/background/PauseButton';
+import { BrandMark } from '../components/shell/BrandMark';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import s from './landing.module.css';
 
@@ -66,24 +69,119 @@ function useSessionState(): session.MachineState {
   return useSyncExternalStore(session.subscribe, session.getState, () => 'RESTORING' as session.MachineState);
 }
 
-function TopBar() {
-  const state = useSessionState();
-  const signedIn = state === 'AUTHENTICATED';
+/** Anclas de la cabecera (prototipo): todas son secciones de esta página. */
+const ANCHORS = [
+  { href: '#parada-1', label: 'Cómo funciona' }, { href: '#parada-4', label: 'Verificación' },
+  { href: '#convocatorias', label: 'Convocatorias' }, { href: '#seguir', label: 'Seguimiento' },
+];
+
+/**
+ * Cabecera de la landing (prototipo `header.nav`): marca → `/`, anclas de la página, pausa de la animación y accesos
+ * a Ingresar, Seguir una donación y Donar. En estrecho, las anclas y los accesos van en un menú que se despliega.
+ */
+function LandingHeader() {
+  const signedIn = useSessionState() === 'AUTHENTICATED';
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
   return (
-    <nav className={s.topbar} aria-label="Secciones de la página de inicio">
-      <ul className={s.anchors}>
-        <li><a href="#parada-1">Cómo funciona</a></li>
-        <li><a href="#parada-4">Verificación</a></li>
-        <li><a href="#convocatorias">Convocatorias</a></li>
-        <li><a href="#seguir">Seguimiento</a></li>
-      </ul>
-      <div className={s.topActions}>
-        {signedIn && isSurfaceEnabled('/home') && <Link className={s.btnPrimary} href="/home">Ir a mi inicio</Link>}
-        {!signedIn && isSurfaceEnabled('/login') && <Link className={s.btnSecondary} href="/login">Ingresar</Link>}
-        {isSurfaceEnabled('/tracking') && <Link className={s.btnSecondary} href="/tracking">Seguir una donación</Link>}
-        {isSurfaceEnabled('/campaigns') && <Link className={s.btnPrimary} href="/campaigns">Donar</Link>}
-      </div>
+    <header className={s.header} data-world-avoid="">
+      <Link className={s.brand} href="/" aria-label="PaxFide, inicio">
+        <BrandMark size={30} /><span aria-hidden="true">Pax<span className={s.brandFide}>Fide</span><span className={s.brandDot}>.</span></span>
+      </Link>
+      <PauseButton className={s.pause} textClassName={s.pauseText} />
+      <button type="button" className={s.menuToggle} aria-expanded={open} aria-controls="landing-menu"
+        aria-label={open ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'} onClick={() => setOpen((o) => !o)}>
+        <span /><span /><span />
+      </button>
+      <nav id="landing-menu" className={open ? `${s.menu} ${s.menuOpen}` : s.menu} aria-label="Secciones de la página de inicio">
+        <ul className={s.anchors}>
+          {ANCHORS.map((a) => <li key={a.href}><a href={a.href} onClick={close}>{a.label}</a></li>)}
+        </ul>
+        <div className={s.acts}>
+          {signedIn && isSurfaceEnabled('/home') && <Link className={s.btnPrimary} href="/home">Ir a mi inicio</Link>}
+          {!signedIn && isSurfaceEnabled('/login') && <Link className={s.btnSecondary} href="/login">Ingresar</Link>}
+          {isSurfaceEnabled('/tracking') && <Link className={s.btnSecondary} href="/tracking">Seguir una donación</Link>}
+          {isSurfaceEnabled('/campaigns') && <Link className={s.btnPrimary} href="/campaigns">Donar</Link>}
+        </div>
+      </nav>
+    </header>
+  );
+}
+
+/** Puntos del recorrido (prototipo `nav.dots`): uno por vista y el de convocatorias. */
+const DOTS = [
+  { id: 'parada-1', label: 'Parada 1: Donas' }, { id: 'parada-2', label: 'Parada 2: Se convierte en ayuda' },
+  { id: 'parada-3', label: 'Parada 3: Viaja y se reparte' }, { id: 'parada-4', label: 'Parada 4: Queda sellado' },
+  { id: 'parada-5', label: 'Parada 5: Llega' }, { id: 'recorrido', label: 'Todo el recorrido' },
+  { id: 'convocatorias', label: 'Convocatorias abiertas' },
+];
+
+/** Índice de la sección cuyo centro está más cerca del centro de la ventana. */
+export function nearestSection(centers: readonly number[], y: number): number {
+  let best = 0;
+  centers.forEach((c, i) => { if (Math.abs(c - y) < Math.abs(centers[best] - y)) best = i; });
+  return best;
+}
+
+function useScroll(fn: () => void) {
+  useEffect(() => {
+    fn();
+    window.addEventListener('scroll', fn, { passive: true });
+    window.addEventListener('resize', fn);
+    return () => { window.removeEventListener('scroll', fn); window.removeEventListener('resize', fn); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+}
+
+function StopDots() {
+  const [active, setActive] = useState(0);
+  useScroll(() => {
+    const centers = DOTS.map((d) => {
+      const r = document.getElementById(d.id)?.getBoundingClientRect();
+      return r ? r.top + r.height / 2 : Number.POSITIVE_INFINITY;
+    });
+    setActive(nearestSection(centers, window.innerHeight / 2));
+  });
+  return (
+    <nav className={s.dots} aria-label="Paradas del recorrido" data-world-avoid="">
+      {DOTS.map((d, i) => (
+        <a key={d.id} href={`#${d.id}`} aria-label={d.label} aria-current={i === active ? 'step' : undefined}
+          className={i === active ? s.dotOn : undefined} />
+      ))}
     </nav>
+  );
+}
+
+const MANIFESTO = 'Cada paso queda registrado. Nadie lo puede cambiar sin que se note. Y tú lo puedes comprobar cuando quieras.';
+const HIGHLIGHT = new Set(['registrado.', 'cambiar', 'comprobar']);
+
+/** Cuántas palabras del manifiesto se encienden según su posición en la ventana (prototipo `readScroll`). */
+export function litWords(top: number, viewport: number, words: number): number {
+  const p = Math.min(1, Math.max(0, (viewport * 0.78 - top) / (viewport * 0.45)));
+  return Math.round(p * words);
+}
+
+/**
+ * "Todo el recorrido": las palabras se encienden al desplazarse. Apagadas van en el color secundario (sigue legible,
+ * R-F1); con "reducir movimiento" están todas encendidas desde el principio.
+ */
+function Manifesto() {
+  const words = MANIFESTO.split(' ');
+  const [lit, setLit] = useState(words.length);
+  useScroll(() => {
+    const el = document.getElementById('manifiesto');
+    if (!el) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { setLit(words.length); return; }
+    setLit(litWords(el.getBoundingClientRect().top, window.innerHeight, words.length));
+  });
+  return (
+    <p id="manifiesto" data-testid="manifesto" data-lit={lit}>
+      {words.map((w, i) => {
+        const cls = i < lit ? s.wordLit : s.word;
+        const word = HIGHLIGHT.has(w) ? <em>{w}</em> : w;
+        return <React.Fragment key={i}><span className={cls}>{word}</span>{i < words.length - 1 ? ' ' : ''}</React.Fragment>;
+      })}
+    </p>
   );
 }
 
@@ -91,7 +189,7 @@ function StopCard({ stop, first }: { stop: Stop; first: boolean }) {
   const Heading = first ? 'h1' : 'h2';
   return (
     <section className={first ? `${s.stop} ${s.stopFirst}` : s.stop} id={stop.id} data-world-view="">
-      <article className={s.card}>
+      <article className={s.card} data-world-avoid="">
         <div className={s.idx}><b>{stop.index}</b><span className={s.ev}>{stop.event}</span></div>
         <Heading className={first ? s.h1 : s.h2}>{stop.title[0]}<em>{stop.title[1]}</em>.</Heading>
         <p className={s.text}>{stop.text}</p>
@@ -106,7 +204,7 @@ function StopCard({ stop, first }: { stop: Stop; first: boolean }) {
             <a className={s.btnSecondary} href="#seguir">Seguir mi donación</a>
           </div>
         )}
-        {first && <p className={s.hint}>Desliza y acompaña su recorrido</p>}
+        {first && <p className={s.hint}><i aria-hidden="true" />Desliza y acompaña su recorrido</p>}
       </article>
     </section>
   );
@@ -157,7 +255,7 @@ function OpenCampaigns({ client }: { client: typeof fetchDiscovery }) {
 
   return (
     <section className={s.campaigns} id="convocatorias" aria-labelledby="convocatorias-titulo">
-      <div className={s.panel}>
+      <div className={s.panel} data-world-avoid="">
         <span className={s.ev}>CONVOCATORIAS</span>
         <h2 id="convocatorias-titulo" className={s.h2}>Convocatorias <em>abiertas</em></h2>
         <p className={s.text}>Explora convocatorias activas con trazabilidad lote a lote.</p>
@@ -181,17 +279,20 @@ export function LandingScreen({ client = fetchDiscovery }: { client?: typeof fet
   return (
     <div className={s.landing}>
       <WorldScene />
-      <TopBar />
+      <LandingHeader />
+      <StopDots />
+      {/* D-P13: en `/` la estructura no pone su <main>; la landing lo abre tras su cabecera */}
+      <main className={s.content} id="contenido">
       {STOPS.map((st, i) => <StopCard key={st.id} stop={st} first={i === 0} />)}
       <section className={s.overview} id="recorrido" data-world-view="">
-        <div className={s.mani}>
+        <div className={s.mani} data-world-avoid="">
           <span className={s.ev}>TODO EL RECORRIDO</span>
-          <p>Cada paso queda <em>registrado.</em> Nadie lo puede <em>cambiar</em> sin que se note. Y tú lo puedes <em>comprobar</em> cuando quieras.</p>
+          <Manifesto />
         </div>
       </section>
 
       <section className={s.cta} id="seguir" aria-labelledby="seguir-titulo">
-        <div className={s.island}>
+        <div className={s.island} data-world-avoid="">
           <div className={s.ctaMain}>
             <span className={s.ev}>SEGUIMIENTO DE DONACIÓN</span>
             <h2 id="seguir-titulo" className={s.h2}>¿Ya donaste? <em>Sigue tu donación.</em></h2>
@@ -217,7 +318,8 @@ export function LandingScreen({ client = fetchDiscovery }: { client?: typeof fet
 
       <OpenCampaigns client={client} />
 
-      <footer className={s.footer}>
+      </main>
+      <footer className={s.footer} data-world-avoid="">
         <p><b>PaxFide</b> · Donaciones que llegan: trazabilidad verificable de donaciones.</p>
       </footer>
     </div>
