@@ -120,6 +120,9 @@ const assets = new Map();
 const narrativeCalls = new Map();
 const splits = new Map();
 
+/** Transiciones sin ubicación: su `locationZone` llega null (referencia-api-v1.md §8, TR-03). */
+const NO_ZONE_EVENTS = new Set(['ASSET_DISPATCHED', 'ASSET_SPLIT', 'ASSET_CUSTODY_TRANSFERRED', 'ASSET_SPLIT_COMPENSATED', 'ASSET_DEPLETED']);
+
 const campaignByRef = (ref) => [...campaigns.values()].find((c) => c.campaignRef === ref);
 
 function newAsset(a) {
@@ -989,9 +992,12 @@ const server = http.createServer(async (req, res) => {
           pendingAllocationAmount: 0, confirmedAllocationAmount: items.length ? Number(intent.amount) : 0, refundedAmount: 0,
         },
         campaignRef: c.campaignRef,
+        // G-1 (nota del 2026-10-21, §8): título y organización de la convocatoria
+        campaignTitle: c.title, ...(c.organizationName ? { organizationName: c.organizationName } : {}),
         logistics: items.map((a) => ({
           assetRef: a.assetRef, lifecycleStatus: a.lifecycleStatus, assetType: a.assetType, unitOfMeasure: a.unitOfMeasure,
-          quantity: scale4(a.quantity), locationZone: 'Zona centro', custodianCategory: 'LOCAL_ALLY',
+          // `locationZone` llega null si el activo no tiene ubicación (despachado)
+          quantity: scale4(a.quantity), locationZone: a.lifecycleStatus === 'DISPATCHED' ? null : 'Zona centro', custodianCategory: 'LOCAL_ALLY',
         })),
         status: items.length ? 'EN_PROCESO' : 'ACTIVA',
       });
@@ -1019,7 +1025,7 @@ const server = http.createServer(async (req, res) => {
     if (hist) {
       const a = assets.get(decodeURIComponent(hist[1]));
       if (!a || a.fundId !== intent.fundId) { send(res, 401, { type: 'about:blank', title: 'Unauthorized', status: 401, detail: 'Invalid or missing token' }); return; }
-      send(res, 200, { history: a.history.map((h) => ({ eventType: h.eventType, timestamp: h.timestamp, locationZone: 'Zona centro', custodianCategory: 'LOCAL_ALLY', status: h.status })) });
+      send(res, 200, { history: a.history.map((h) => ({ eventType: h.eventType, timestamp: h.timestamp, locationZone: NO_ZONE_EVENTS.has(h.eventType) ? null : 'Zona centro', custodianCategory: 'LOCAL_ALLY', status: h.status })) });
       return;
     }
     problem(res, 404, 'NotFound');

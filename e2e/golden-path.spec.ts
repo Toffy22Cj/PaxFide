@@ -141,8 +141,8 @@ test('golden path por la interfaz: convocatoria → donaciones (sin y con cuenta
   await tracker.getByLabel('Código de seguimiento').fill(anonCode);
   await tracker.getByRole('button', { name: 'Ver seguimiento' }).click();
   await expect(tracker.getByTestId('tracking-original')).toHaveText('200.000 COP');
-  await expect(tracker.getByText('Mercado')).toHaveCount(2);
-  await tracker.getByRole('button', { name: 'Ver recorrido' }).first().click();
-  await expect(tracker.getByRole('cell', { name: 'Entregado' }).first()).toBeVisible();
+  // A-4: un carril por bien, con su recorrido al abrir (en estrecho, una pestaña por bien)
+  await expect(tracker.getByTestId('asset-lane')).toHaveCount(2);
+  await expect(tracker.getByTestId('tracking-step').filter({ hasText: 'Entregado' }).first()).toBeVisible();
   expect(tracker.url()).not.toContain(anonCode);
 });
