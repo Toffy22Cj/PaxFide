@@ -352,10 +352,9 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     }
     return 'relato individual: no llegó en 30 s';
   }, () => s.tracker);
-  // S-22: integridad a petición, con el mismo código en Authorization. Solo se registran resultados y estados
+  // S-22: integridad al abrir el seguimiento (A-4), con el mismo código en Authorization. Solo resultados y estados
   await paso('integridad', 'UI', async () => {
     const t = s.tracker as Page;
-    await t.getByRole('button', { name: 'Comprobar integridad' }).click();
     const box = t.getByTestId('integrity');
     await expect(box.or(t.getByRole('alert'))).toBeVisible({ timeout: 30000 });
     await expect(box).toBeVisible();
@@ -363,7 +362,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     const n = await groups.count();
     const results: string[] = [];
     for (let i = 0; i < n; i++) results.push(`${await groups.nth(i).getAttribute('data-result')}`);
-    const pending = (await box.textContent())?.match(/Hay (\d+) eventos? de tu donación que todavía no/)?.[1] ?? '0';
+    const pending = (await box.textContent())?.match(/(\d+) eventos? de tu donación todavía no/)?.[1] ?? '0';
     return `${n} grupo(s): ${results.join(', ') || '—'}; eventos sin anclar: ${pending}`;
   }, () => s.tracker);
 

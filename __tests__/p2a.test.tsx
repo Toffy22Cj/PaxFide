@@ -74,7 +74,7 @@ const ITEM = (n: number) => ({ publicCode: `PC${n}`, title: `Convocatoria ${n}`,
 describe('Descubrimiento público (GET /public/campaigns)', () => {
   it('cargando, error con reintento y vacío', async () => {
     const r1 = render(<DiscoveryScreen client={() => new Promise(() => {})} />);
-    expect(screen.getByText('Cargando…')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Cargando convocatorias' })).toBeInTheDocument();
     r1.unmount();
     const client = vi.fn().mockResolvedValueOnce({ kind: 'error' }).mockResolvedValueOnce({ kind: 'ok', items: [] });
     render(<DiscoveryScreen client={client} />);

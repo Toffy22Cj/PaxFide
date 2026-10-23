@@ -1,0 +1,81 @@
+/* Ref: plan-fase7-pantallas.md A-4; referencia visual paxfide-linea-tiempo.html. La pantalla va sobre la superficie
+   translúcida de la ciudad (R-F1, Shell) y cada bloque es sólido. Solo tokens semánticos y pares de la enmienda. */
+.header, .panel, .lane {
+  background: var(--color-surface); color: var(--color-text);
+  border: 1px solid var(--color-divider); border-radius: var(--radius-card); box-shadow: var(--shadow-card);
+  padding: var(--space-6); min-width: 0;
+}
+.header { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-4); }
+.kicker { margin: 0; font-family: var(--font-mono); font-size: var(--font-size-mono-3); color: var(--color-text-secondary); letter-spacing: 0.04em; }
+.title { margin: 0; font-family: var(--font-display); font-size: var(--font-size-display-3); line-height: 1.15; }
+.sub { margin: 0; font-size: var(--font-size-body-2); color: var(--color-text-secondary); }
+.pill {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: 4px var(--space-3); border-radius: var(--radius-button);
+  background: var(--color-success-bg); color: var(--color-success-text);
+  font-size: var(--font-size-body-4); font-weight: var(--weight-semibold);
+}
+
+.code { display: grid; grid-template-columns: 1fr; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--color-divider); }
+.codeLabel { font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.codeValue { font-family: var(--font-mono); font-size: var(--font-size-mono-1); color: var(--color-text); word-break: break-all; }
+.codeActions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.codeWarning { margin: 0; font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.codeStatus { margin: 0; min-height: 1em; font-size: var(--font-size-body-4); color: var(--color-text); }
+.smallButton {
+  min-height: 44px; padding: 0 var(--space-4); border-radius: var(--radius-button); cursor: pointer;
+  font: inherit; font-weight: var(--weight-semibold); font-size: var(--font-size-body-3);
+  background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control);
+  align-self: flex-start;
+}
+.smallButton:focus-visible, .tab:focus-visible, .details summary:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
+.grid { display: grid; grid-template-columns: 1fr; gap: var(--space-4); margin-bottom: var(--space-4); }
+.panel { display: flex; flex-direction: column; gap: var(--space-3); }
+.panelTitle { margin: 0; font-family: var(--font-display); font-size: var(--font-size-display-5); }
+.hint { margin: 0; font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.loader { display: flex; justify-content: center; padding: var(--space-4) 0; }
+.details summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: var(--weight-semibold); color: var(--color-link); }
+.batches { list-style: none; margin: var(--space-3) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.batch { border-top: 1px solid var(--color-divider); padding-top: var(--space-3); }
+.batchTitle { margin: 0 0 var(--space-2); font-size: var(--font-size-body-2); }
+.dl { display: grid; grid-template-columns: minmax(120px, 40%) 1fr; gap: var(--space-1) var(--space-3); margin: 0; font-size: var(--font-size-body-3); }
+.dl dt { color: var(--color-text-secondary); }
+.dl dd { margin: 0; min-width: 0; }
+.hash { font-family: var(--font-mono); font-size: var(--font-size-mono-3); word-break: break-all; }
+
+/* Carriles: pestañas por activo en pantalla estrecha; todos a la vista desde 900 px */
+.lanesTitle { margin: var(--space-2) 0 var(--space-3); font-family: var(--font-display); font-size: var(--font-size-display-4); }
+.tabs { display: flex; gap: var(--space-2); overflow-x: auto; margin-bottom: var(--space-3); padding-bottom: 2px; }
+.tab {
+  flex: none; min-height: 44px; padding: 0 var(--space-4); border-radius: var(--radius-button); cursor: pointer;
+  font: inherit; font-size: var(--font-size-body-3); font-weight: var(--weight-semibold);
+  background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control);
+}
+.tab[aria-selected="true"] { background: var(--color-action); color: var(--color-on-action); border-color: var(--color-action); }
+.lanes { display: grid; grid-template-columns: 1fr; gap: var(--space-4); margin-bottom: var(--space-4); }
+.lane.laneInactive { display: none; }
+@media (min-width: 900px) {
+  .tabs { display: none; }
+  .lane.laneInactive { display: flex; }
+  .lanes { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+}
+.lane { display: flex; flex-direction: column; gap: var(--space-3); }
+.laneHead { display: flex; flex-direction: column; gap: var(--space-1); }
+.laneTitle { margin: 0; font-size: var(--font-size-body-1); font-weight: var(--weight-semibold); overflow-wrap: anywhere; }
+.laneMeta { margin: 0; font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.step { position: relative; display: flex; gap: var(--space-3); padding-bottom: var(--space-4); }
+.step:not(:last-child)::before {
+  content: ""; position: absolute; left: 7px; top: 18px; bottom: 0; width: 2px; background: var(--color-divider);
+}
+.dot { flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 50%; background: var(--color-surface); border: 3px solid var(--color-success-icon); }
+.step:last-child .dot { background: var(--color-success-icon); }
+.stepBody { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stepTitle { font-size: var(--font-size-body-2); }
+.stepMeta { font-size: var(--font-size-body-4); color: var(--color-text-secondary); overflow-wrap: anywhere; }
+.truck { display: flex; justify-content: flex-start; }
+
+.privacy { margin: 0 0 var(--space-4); font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.close { display: flex; justify-content: flex-start; }
+.narrative { margin-bottom: var(--space-4); }

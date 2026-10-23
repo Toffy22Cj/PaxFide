@@ -94,6 +94,12 @@ describe('Cliente de seguimiento (TR-01 a TR-03)', () => {
 
 describe('TrackingScreen (formulario)', () => {
   const ok = { kind: 'ok' as const, data: parseTracking(TRACKING)! };
+  // A-4: integridad y recorridos se piden al abrir; sin cliente propio, la red falla (estado de error, sin efectos)
+  beforeEach(() => {
+    global.fetch = vi.fn().mockRejectedValue(new TypeError('sin red')) as any;
+    vi.stubEnv('NEXT_PUBLIC_API_BASE_URL', 'http://api.paxfide.test/api/v1');
+  });
+  afterEach(() => vi.unstubAllEnvs());
 
   function submit(code: string) {
     fireEvent.change(screen.getByLabelText('Código de seguimiento'), { target: { value: code } });
@@ -140,29 +146,25 @@ describe('TrackingScreen (formulario)', () => {
     render(<TrackingScreen clients={{ tracking: async () => ok, narrative, history }} />);
     submit('TRK.1');
     expect(await screen.findByTestId('tracking-original')).toHaveTextContent('50.000 COP');
-    // S-22: la integridad se pide a petición; antes de pedirla no hay ningún resultado
-    expect(screen.getByRole('button', { name: 'Comprobar integridad' })).toBeInTheDocument();
-    expect(screen.queryByText(/MATCH|Coincide/)).toBeNull();
     expect(screen.getByTestId('tracking-status')).toHaveTextContent('En proceso');
-    expect(screen.getByText('Mercado')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Mercado' })).toBeInTheDocument();
     expect(await screen.findByText('El relato se está generando.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Actualizar' }));
     expect(await screen.findByTestId('narrative')).toHaveTextContent('Relato');
     expect(screen.getByText('Relato redactado con IA.')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Ver recorrido' }));
+    // A-4: el recorrido de cada bien se pide al abrir, sin botón
     expect(await screen.findByText('Despachado')).toBeInTheDocument();
     expect(history).toHaveBeenCalledWith('TRK.1', 'AS-1');
     // El código no se pinta en la pantalla
     expect(document.body.textContent).not.toContain('TRK.1');
   });
 
-  it('integridad (S-22): a petición, en lenguaje llano, por grupo; 401 → mensaje del código', async () => {
+  it('integridad (S-22): al abrir, resumen de la donación y detalle por grupo; 401 → mensaje del código', async () => {
     const integrity = vi.fn()
       .mockResolvedValueOnce({ kind: 'ok', data: parseIntegrity(INTEGRITY)! })
       .mockResolvedValueOnce({ kind: 'invalid-code' });
     render(<TrackingScreen clients={{ tracking: async () => ok, narrative: async () => ({ kind: 'not-found' }), integrity }} />);
     submit('TRK.2');
-    fireEvent.click(await screen.findByRole('button', { name: 'Comprobar integridad' }));
     const groups = await screen.findAllByTestId('integrity-batch');
     expect(integrity).toHaveBeenCalledWith('TRK.2');
     expect(groups.map((g) => g.getAttribute('data-result'))).toEqual(['MATCH', 'MISMATCH', 'INCONCLUSIVE']);
@@ -172,11 +174,13 @@ describe('TrackingScreen (formulario)', () => {
     expect(groups[0]).toHaveTextContent('0xtx');
     expect(groups[0]).toHaveTextContent('sepolia');
     expect(groups[1]).toHaveTextContent('No coincide');
-    expect(groups[1]).toHaveTextContent('No afecta a los eventos de tu donación.');
     expect(groups[1]).toHaveTextContent('La raíz recalculada desde los eventos no coincide con la anclada');
     expect(groups[2]).toHaveTextContent('No se pudo comprobar');
     expect(groups[2]).toHaveTextContent('El lote aún no está anclado en la cadena');
-    expect(screen.getByText(/Hay 3 eventos de tu donación que todavía no se han anclado/)).toBeInTheDocument();
+    // Un "no coincide" manda en el resumen; el grupo alterado no afecta a esta donación
+    expect(screen.getByTestId('integrity-verdict')).toHaveAttribute('data-variant', 'rejected');
+    expect(screen.getByTestId('integrity-verdict')).toHaveTextContent('Los eventos de tu donación no están afectados.');
+    expect(screen.getByText('3 eventos de tu donación todavía no se han anclado.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Volver a comprobar' }));
     expect(await screen.findByText('El código no es válido o expiró.')).toBeInTheDocument();
     expect(document.body.textContent).not.toContain('TRK.2');

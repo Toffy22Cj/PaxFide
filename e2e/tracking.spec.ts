@@ -51,10 +51,10 @@ test.describe('Donante con cuenta → Mis donaciones → seguimiento por formula
     await expect(page.getByText('El relato se está generando.')).toBeVisible();
     await page.getByRole('button', { name: 'Actualizar' }).click();
     await expect(page.getByTestId('narrative')).toContainText('Tu donación fue recibida');
-    // S-22: integridad a petición, con el mismo código en Authorization
-    await page.getByRole('button', { name: 'Comprobar integridad' }).click();
+    // S-22: integridad al abrir (A-4), con el mismo código en Authorization; un evento sin anclar → pendiente (amarillo)
     await expect(page.getByTestId('integrity-batch')).toContainText('Coincide');
-    await expect(page.getByTestId('integrity')).toContainText('Hay 1 evento de tu donación que todavía no se ha anclado');
+    await expect(page.getByTestId('integrity-verdict')).toHaveAttribute('data-variant', 'ambiguous');
+    await expect(page.getByTestId('integrity')).toContainText('1 evento de tu donación todavía no se ha anclado.');
 
     const trackingRequests = requests.filter((r) => r.url().includes('/donations/tracking'));
     expect(trackingRequests.length).toBeGreaterThanOrEqual(4);
