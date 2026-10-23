@@ -8,7 +8,8 @@ test.describe('Login por la interfaz (ID-01) y PanelHome con /me (N1)', () => {
       if (u.port === '3000' && r.headers()['authorization']) nextRequestsWithAuth.push(u.pathname);
     });
 
-    await page.goto('/login');
+    // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+    await page.goto('/panel');
     await page.getByLabel('Correo electrónico').fill('admin@demo.test');
     await page.getByLabel('Contraseña').fill('demo-admin');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
@@ -37,7 +38,8 @@ test.describe('Login por la interfaz (ID-01) y PanelHome con /me (N1)', () => {
   });
 
   test('/me no disponible en el backend → aviso "No disponible", sin inventar roles', async ({ page }) => {
-    await page.goto('/login');
+    // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+    await page.goto('/panel');
     await page.getByLabel('Correo electrónico').fill('sin-me@demo.test');
     await page.getByLabel('Contraseña').fill('demo-sin-me');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
@@ -46,7 +48,8 @@ test.describe('Login por la interfaz (ID-01) y PanelHome con /me (N1)', () => {
   });
 
   test('cerrar sesión desde el Shell → /login', async ({ page }) => {
-    await page.goto('/login');
+    // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+    await page.goto('/panel');
     await page.getByLabel('Correo electrónico').fill('empleado@demo.test');
     await page.getByLabel('Contraseña').fill('demo-empleado');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();

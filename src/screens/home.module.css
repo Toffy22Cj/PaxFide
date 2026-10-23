@@ -1,0 +1,68 @@
+/* Ref: plan-fase7-pantallas.md A-3; referencia visual paxfide-home.html. El home va sobre la superficie translúcida
+   de la ciudad (R-F1, Shell) y cada tarjeta es sólida. Solo tokens semánticos y pares de la enmienda §4.3–§4.4. */
+.home { display: flex; flex-direction: column; gap: var(--space-6); }
+.head { display: flex; align-items: center; gap: var(--space-3); }
+.avatar {
+  width: 48px; height: 48px; flex: none; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--color-success-bg); color: var(--color-success-text);
+}
+.title { margin: 0; font-family: var(--font-display); font-size: var(--font-size-display-3); line-height: 1.15; color: var(--color-text); }
+.sub { margin: var(--space-1) 0 0; font-size: var(--font-size-body-3); color: var(--color-text-secondary); }
+
+.grid { display: grid; grid-template-columns: 1fr; gap: var(--space-4); }
+@media (min-width: 900px) {
+  .grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .grid > * { grid-column: span 4; }
+  .grid > .hero, .grid > .wide { grid-column: span 8; }
+  .grid > .full { grid-column: 1 / -1; }
+}
+
+.card {
+  display: flex; flex-direction: column; gap: var(--space-3); min-width: 0;
+  background: var(--color-surface); color: var(--color-text);
+  border: 1px solid var(--color-divider); border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card); padding: var(--space-6);
+}
+.cardHead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.cardTitle {
+  display: flex; align-items: center; gap: var(--space-2); margin: 0;
+  font-family: var(--font-display); font-size: var(--font-size-display-5); color: var(--color-text);
+}
+.icon { flex: none; color: var(--color-success-icon); }
+.text { margin: 0; font-size: var(--font-size-body-2); line-height: 1.55; color: var(--color-text-secondary); }
+.note { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.note .icon { width: 16px; height: 16px; }
+.track { display: flex; flex-direction: column; gap: var(--space-2); }
+.tree { width: 100%; max-width: 260px; height: auto; }
+
+.linkAction {
+  display: inline-flex; align-items: center; min-height: 44px;
+  color: var(--color-link); font-weight: var(--weight-semibold); font-size: var(--font-size-body-3);
+}
+.linkAction:focus-visible, .cta:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.cta {
+  align-self: flex-start; display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: var(--space-2) var(--space-4); border-radius: var(--radius-button); text-align: center;
+  background: var(--color-action); color: var(--color-on-action); text-decoration: none;
+  font-weight: var(--weight-semibold); font-size: var(--font-size-body-3);
+}
+
+.donations { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.donation {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-1) var(--space-3);
+  padding: var(--space-3) 0; border-top: 1px solid var(--color-divider);
+}
+.donation:first-child { border-top: 0; }
+.donationMain { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.donationTitle { overflow-wrap: anywhere; }
+.meta, .status { font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.amount { font-family: var(--font-mono); font-size: var(--font-size-mono-2); color: var(--color-text); white-space: nowrap; }
+.rowActions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0 var(--space-4); }
+
+.campaigns {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: var(--space-4);
+}
+.campaigns > li { display: flex; min-width: 0; }
+.campaigns > li > * { flex: 1; }

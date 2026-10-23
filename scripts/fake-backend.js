@@ -82,6 +82,7 @@ addCampaign('01JDEMOPUBLICC0DEMONETARY1', {
   description: 'Recaudamos fondos para entregar mercados a adultos mayores del barrio.', status: 'OPEN',
   startDate: '2026-10-01T00:00:00Z', endDate: '2026-12-31T23:59:59Z', acceptedDonationTypes: ['MONETARY'],
   acceptedPaymentMethods: ['GATEWAY', 'BANK_TRANSFER'], currency: 'COP', targetAmount: '500000000', clearedAmount: '125000000', targetPolicy: 'FLEXIBLE',
+  organizationLogo: true,
 });
 addCampaign('01JDEMOPUBLICC0DECLOSED001', {
   campaignRef: 'camp-demo-2', organizationRef: 'org-1', organizationName: 'Fundación Demo', title: 'Kits escolares 2025',
@@ -154,8 +155,14 @@ function publicView(c) {
     'acceptedPaymentMethods', 'currency', 'targetAmount', 'clearedAmount']) {
     if (c[k] !== undefined && c[k] !== null) out[k] = c[k];
   }
+  // Notas del 2026-10-18 y del 2026-10-21 (referencia-api-v1.md §5): verificación siempre presente; logo solo si hay
+  out.organizationVerified = organizationStatus.get(c.organizationRef) === 'VERIFIED';
+  if (c.organizationLogo) out.organizationLogoUrl = `/api/v1/public/campaigns/${c.publicCode}/organization-logo`;
   return out;
 }
+
+/** Logo de demostración: un PNG de 1×1 (los bytes no importan al front, solo que sea una imagen del backend). */
+const DEMO_LOGO = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 
 /** Fallos forzados por los tests: el siguiente POST cuya ruta empiece por `prefix` falla con `mode`. */
 const failures = [];
@@ -214,6 +221,7 @@ const server = http.createServer(async (req, res) => {
       if (intent.status === 'PENDING') intent.status = 'FAILED';
     } else if (intent.status === 'PENDING') {
       intent.status = 'CONFIRMED';
+      intent.confirmedAt = new Date().toISOString();
       if (!body.withoutApplying) {
         intent.trackingCode = 'TRK.' + crypto.randomBytes(24).toString('base64url');
         intent.fundId = 'fund-' + crypto.randomUUID();
@@ -248,6 +256,7 @@ const server = http.createServer(async (req, res) => {
       title: body.title || 'Convocatoria de prueba', status: 'OPEN', startDate: '2026-10-01T00:00:00Z',
       endDate: '2026-12-31T23:59:59Z', acceptedDonationTypes: ['MONETARY'], acceptedPaymentMethods: ['GATEWAY', 'BANK_TRANSFER'],
       currency: 'COP', targetAmount: '100000000', clearedAmount: '0',
+      ...(body.visibility === 'PRIVATE_LINK' ? { visibility: 'PRIVATE_LINK' } : {}),
     });
     send(res, 200, { publicCode: code });
     return;
@@ -330,6 +339,16 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // GET /public/campaigns/{publicCode}/organization-logo (ADR-051 Tarea 2): bytes del logo o 404, siempre el mismo
+  const logoMatch = p.match(/^\/public\/campaigns\/([^/]+)\/organization-logo$/);
+  if (logoMatch && req.method === 'GET') {
+    const c = campaigns.get(decodeURIComponent(logoMatch[1]));
+    if (!c || !c.organizationLogo) { problem(res, 404, 'NotFound'); return; }
+    res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600' });
+    res.end(DEMO_LOGO);
+    return;
+  }
+
   // GET /public/campaigns/{publicCode}/narrative (PublicCampaignNarrativeController): 202 PENDING la primera vez
   const narrMatch = p.match(/^\/public\/campaigns\/([^/]+)\/narrative$/);
   if (narrMatch && req.method === 'GET') {
@@ -375,6 +394,7 @@ const server = http.createServer(async (req, res) => {
       intents.set(intentId, {
         intentId, publicCode: c.publicCode, campaignTitle: c.title, amount: body.amount, currency: body.currency,
         paymentMethod: body.paymentMethod, status: 'PENDING', donorAccount: actor ? actor.accountId : null,
+        createdAt: new Date().toISOString(), organizationName: c.organizationName,
         redirect: body.paymentMethod === 'GATEWAY' ? '/demo/checkout/sim_' + crypto.randomUUID() : null,
       });
       return intentId;
@@ -1012,8 +1032,16 @@ const server = http.createServer(async (req, res) => {
     const items = [...intents.values()].filter((i) => i.donorAccount === actor.accountId).map((i) => {
       const out = { intentId: i.intentId, campaignTitle: i.campaignTitle, amount: i.amount, currency: i.currency, status: i.status };
       if (i.status === 'CONFIRMED' && i.trackingCode) out.trackingCode = i.trackingCode;
+      // Nota del 2026-10-22 (referencia-api-v1.md §1, Enmienda 5 de ADR-037): fechas, organización, medio y publicCode
+      // solo si la convocatoria es PUBLIC al leer
+      out.paymentMethod = i.paymentMethod;
+      if (i.createdAt) out.createdAt = i.createdAt;
+      if (i.confirmedAt && (i.status === 'CONFIRMED' || i.status === 'FUNDING_REJECTED')) out.confirmedAt = i.confirmedAt;
+      if (i.organizationName) out.organizationName = i.organizationName;
+      const c = campaigns.get(i.publicCode);
+      if (c && (c.visibility || 'PUBLIC') === 'PUBLIC') out.publicCode = i.publicCode;
       return out;
-    });
+    }).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
     send(res, 200, { items });
     return;
   }

@@ -23,6 +23,8 @@ export default defineConfig({
       reuseExistingServer: false,
       env: {
         NEXT_PUBLIC_E2E_SURFACES: JSON.stringify([
+          '/',
+          '/home',
           '/login', '/panel', '/panel/campaigns', '/assets/:assetRef', '/c/:publicCode', '/tracking', '/account/donations',
           'action:donate', 'action:create-campaign', 'action:assign-employee', 'action:register-asset', 'action:split',
           'action:dispatch', 'action:receive', 'action:deliver',

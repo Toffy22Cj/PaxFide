@@ -14,7 +14,8 @@ const API = 'http://localhost:3002';
 
 async function login(browser: Browser, email: string, password: string): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
-  await page.goto('/login');
+  // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+  await page.goto('/panel');
   await page.getByLabel('Correo electrónico').fill(email);
   await page.getByLabel('Contraseña').fill(password);
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();

@@ -18,13 +18,16 @@ function when(surface: string, category: RouteCategory): RouteCategory {
 export function classifyRoute(pathname: string): RouteCategory {
   if (!pathname.startsWith('/')) return 'NOT_APPROVED';
   const parts = pathname.split('/').filter(Boolean);
-  if (parts.length === 0) return 'NOT_APPROVED';
+  // Landing pública (plan-fase7-pantallas.md A-2): solo `/` exacto
+  if (parts.length === 0) return pathname === '/' ? when('/', 'PUBLIC') : 'NOT_APPROVED';
 
   const [a, b] = parts;
 
   if (parts.length === 1 && a === 'login') return when('/login', 'AUTH');
   if (parts.length === 1 && a === 'register') return when('/register', 'AUTH');
   if (parts.length === 1 && a === 'campaigns') return when('/campaigns', 'PUBLIC');
+  // Inicio del donante (plan-fase7-pantallas.md A-3): con sesión
+  if (parts.length === 1 && a === 'home') return when('/home', 'AUTHENTICATED');
   // Aceptar invitación (DW-48): pública para poder leer y borrar el token del fragmento antes de pedir sesión
   if (parts.length === 1 && a === 'invitaciones') return when('/invitaciones', 'PUBLIC');
 

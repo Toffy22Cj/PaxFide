@@ -120,9 +120,10 @@ Fuente: `Documentos/referencia-api-v1.md` del backend (implementado en `develop`
 | Pantallas de entrada (bienvenida, aceptación de términos) | ADR-050 D2 + endpoint de versiones de términos (R-5, sin definir) | ⏳ fuera de este corte |
 | Barra en 4 posiciones guardada en `localStorage` | Enmienda §8: fija por ancho en este corte | ⛔ el selector; la estructura `data-nav-position` sí |
 | Último código de seguimiento | Solo en memoria (el prototipo ya lo hace bien) | ✅ nunca en almacenamiento del navegador |
-| Landing: convocatorias abiertas | `GET /public/campaigns` → `{publicCode, title, organizationName?, status, startDate, endDate, acceptedDonationTypes, currency?, targetAmount?, clearedAmount?}` | ✅ |
+| Landing: convocatorias abiertas | `GET /public/campaigns` → `{publicCode, title, organizationName?, status, startDate, endDate, acceptedDonationTypes, currency?, targetAmount?, clearedAmount?, organizationVerified}` | ✅ (`organizationVerified` desde A-2, plan §3: insignia "Verificada") |
 | Landing: búsqueda, filtros y orden | Ficha R-1 (congelada) | ⏳ hasta que R-1 esté en `develop` |
-| Landing / tarjetas: foto de portada, logo | `coverImageUrl?`, `organizationLogoUrl?` (ADR-051) | ⏳ ilustración de marca en su lugar |
+| Landing / tarjetas: logo | `organizationLogoUrl?` (ADR-051 Tarea 2) | ✅ desde A-2 (plan §3, D-P10); sin logo, inicial de la organización (DF7-22) |
+| Landing / tarjetas: foto de portada | `coverImageUrl?` (ADR-051 Tarea 3) | ⏳ sin foto (D-P10) |
 | Landing: "Seguimiento demostrativo" | — | Ilustración con datos ficticios **rotulada "Ejemplo"**, sin llamar a la API ni usar categorías fuera del enumerado |
 | "Escanear QR" | Decisión pendiente (lector QR en web = dependencia nueva) | ⛔ hasta que Carlos decida |
 

@@ -15,7 +15,8 @@ test.describe('Security constraints (W-4 d, e)', () => {
       }
     });
 
-    await page.goto('/login');
+    // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+    await page.goto('/panel');
     await page.waitForFunction(() => !!(window as any).__TEST_SESSION__);
     await page.evaluate(() => (window as any).__TEST_SESSION__.login('fake-jwt-token-for-security'));
     await expect(page).toHaveURL(/\/panel/);
@@ -45,7 +46,8 @@ test.describe('Security constraints (W-4 d, e)', () => {
   });
 
   test('almacenamiento no contiene el token', async ({ page }) => {
-    await page.goto('/login');
+    // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+    await page.goto('/panel');
     await page.waitForFunction(() => !!(window as any).__TEST_SESSION__);
     await page.evaluate(() => (window as any).__TEST_SESSION__.login('fake-jwt-token-for-security'));
     await expect(page).toHaveURL(/\/panel/);

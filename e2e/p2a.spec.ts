@@ -50,7 +50,8 @@ test.describe('P2-A — registro, descubrimiento y narrativa', () => {
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page.getByText('Ya existe una cuenta con ese correo.')).toBeVisible();
 
-    await page.goto('/login');
+    // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+    await page.goto('/panel');
     await page.getByLabel('Correo electrónico').fill(email);
     await page.getByLabel('Contraseña').fill('clave-demo-larga');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
@@ -61,7 +62,8 @@ test.describe('P2-A — registro, descubrimiento y narrativa', () => {
 
   test('descubrimiento: aparece la convocatoria pública y nunca la de enlace privado', async ({ page, browser }) => {
     const stamp = Date.now();
-    await page.goto('/login');
+    // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+    await page.goto('/panel');
     await page.getByLabel('Correo electrónico').fill('admin@demo.test');
     await page.getByLabel('Contraseña').fill('demo-admin');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
