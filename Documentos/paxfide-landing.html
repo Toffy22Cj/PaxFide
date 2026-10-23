@@ -1,0 +1,4478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>PaxFide · Recorrido y Convocatorias Abiertas</title>
+  <meta name="description" content="Recorrido visual e interactivo de trazabilidad de donaciones de PaxFide: desde el pago hasta la entrega comunitaria, con lotes QR, anclaje criptográfico y convocatorias abiertas.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ccircle cx='24' cy='8' r='3.5' fill='%23F9B829'/%3E%3Cpath d='M24,14 C19,8 12,10 12,17 C12,24 24,30 24,30 C24,30 18,25 17,20 C16,16 20,14 24,17 Z' fill='%233BA756'/%3E%3Cpath d='M24,14 C29,8 36,10 36,17 C36,24 24,30 24,30 C24,30 30,25 31,20 C32,16 28,14 24,17 Z' fill='%232B84B7'/%3E%3Cpolygon points='24,19 28.5,21.5 24,24 19.5,21.5' fill='%23F8CF7E'/%3E%3Cpolygon points='19.5,21.5 24,24 24,29 19.5,26.5' fill='%23D9962C'/%3E%3Cpolygon points='28.5,21.5 24,24 24,29 28.5,26.5' fill='%23F3B544'/%3E%3Cpath d='M12,25 C14,23 18,28 24,32 C30,30 36,25 37,21 C36,26 31,34 24,35 C17,35 12,30 12,25 Z' fill='%231B5141'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@500;600;700&display=swap">
+  <style>
+:root{
+  color-scheme:light;
+  --g900:#1B5141; --g800:#20604C; --g500:#4E9155; --g50:#EEF6EF;
+  --b800:#255E79; --b700:#327DA2; --b50:#EBF5F9;
+  --y900:#785008; --y400:#F3B544; --y50:#FDF4E2;
+  --n700:#405656; --n400:#739797; --n200:#E2E9E9; --n50:#F8FAFA;
+  --ground:#EEF4EA; --white:#FFFFFF;
+  --veil-rgb: 248, 250, 248;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--ground);color:var(--g900);font-family:var(--f-body);font-size:16px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));overflow-x:hidden;
+  transition:background-color .4s ease}
+#world{position:fixed;inset:0;z-index:0;display:block;transform:translate3d(0,0,0);transition:filter .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1);will-change:filter,transform}
+#world.blurred{filter:blur(5px) brightness(1.02) saturate(1.28);transform:scale(1.02)}
+.veil{display:none !important;}
+
+/* nav */
+.nav{position:fixed;z-index:20;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);
+  width:min(1120px,calc(100% - 32px));display:flex;align-items:center;gap:16px;padding:8px 12px 8px 16px;
+  background:rgba(255,255,255,.82);backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
+  border:1px solid rgba(27,81,65,.14);border-radius:999px;box-shadow:0 12px 36px rgba(27,81,65,.12);box-sizing:border-box}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--g900);font:800 21px/1 var(--f-display);letter-spacing:-.02em}
+.brand .brand-logo{display:flex;align-items:center;justify-content:center}
+.brand .g{color:var(--b700)} .brand .d{color:var(--y400)}
+.nav ul{display:flex;gap:22px;list-style:none;margin:0 auto;padding:0}
+.nav ul a{color:var(--n700);text-decoration:none;font-size:14px;font-weight:600}
+.nav ul a:hover{color:var(--g900)}
+.nav .acts{display:flex;align-items:center;gap:8px;margin-left:auto}
+.nav-mobile-acts{display:none}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:999px;font:700 13.5px var(--f-body);text-decoration:none;cursor:pointer;border:0;transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+.btn:hover{transform:translateY(-1px)}
+.btn-p{background:var(--g900);color:#fff;box-shadow:0 6px 16px rgba(27,81,65,.25)}
+.btn-g{background:#fff;color:var(--g900);border:1px solid var(--n400)}
+.btn-y{background:var(--y400);color:var(--g900)}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--g900);outline-offset:2px}
+
+/* Theme Toggle (Día / Noche) */
+.theme-toggle{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:999px;
+  background:rgba(255,255,255,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(27,81,65,.2);color:var(--g900);font:600 12.5px var(--f-mono);cursor:pointer;
+  transition:all .25s var(--ease)}
+.theme-toggle:hover{background:#fff;box-shadow:0 6px 16px rgba(27,81,65,.15);transform:translateY(-1px)}
+.theme-toggle .theme-icon{font-size:15px;line-height:1}
+
+.nav-toggle{display:none;background:transparent;border:0;cursor:pointer;padding:8px;border-radius:8px;flex-direction:column;gap:4px;justify-content:center;align-items:center;margin-left:auto}
+.nav-toggle span{display:block;width:20px;height:2px;background:var(--g900);border-radius:2px;transition:transform .25s var(--ease),opacity .25s}
+.nav-toggle[aria-expanded="true"] span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.nav-toggle[aria-expanded="true"] span:nth-child(2){opacity:0}
+.nav-toggle[aria-expanded="true"] span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+/* Barra en móvil: menú hamburguesa (faltaba esta regla, por eso los enlaces se salían) */
+@media (max-width:900px){
+  .nav{flex-wrap:wrap;border-radius:24px;padding:8px 10px 8px 14px;gap:8px}
+  .nav-toggle{display:flex}
+  .nav .acts{display:none}
+  .nav ul{display:none;width:100%;flex-direction:column;gap:2px;margin:4px 0 2px}
+  .nav ul.open{display:flex}
+  .nav ul li:not(.nav-mobile-acts) a{display:block;padding:10px 6px;font-size:15px}
+  .nav-mobile-acts{display:flex;flex-wrap:wrap;gap:8px;padding-top:10px;margin-top:4px;border-top:1px solid rgba(27,81,65,.12)}
+  body .dots{display:none}
+  .nav ul .nav-mobile-acts .btn-p{color:#fff}
+  .nav ul .nav-mobile-acts .btn-g{color:var(--g900)}
+  .nav-mobile-acts .btn,.nav-mobile-acts .theme-toggle{flex:1 1 140px;justify-content:center}
+}
+
+/* dots */
+.dots{position:fixed;z-index:20;right:max(18px,env(safe-area-inset-right,0px));top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px}
+.dots a{display:block;width:10px;height:10px;border-radius:10px;background:rgba(27,81,65,.25);transition:height .35s var(--ease),background .35s;position:relative}
+.dots a:hover{background:rgba(27,81,65,.55)}
+.dots a.on{height:30px;background:var(--g800)}
+
+/* stops */
+main{position:relative;z-index:5}
+.stop{min-height:150vh;display:flex;align-items:center;max-width:1180px;margin:0 auto;box-sizing:border-box;padding-block:12vh}
+.stop:first-child{min-height:100vh;padding-top:96px}
+.card{width:min(470px,100%);box-sizing:border-box;padding:28px 28px 24px;border-radius:24px;
+  background:rgba(255,255,255,.86);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(27,81,65,.12);box-shadow:0 20px 50px rgba(27,81,65,.12);will-change:opacity;
+  transition:background-color .4s ease, border-color .4s ease}
+.idx{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.idx b{font:500 12px var(--f-mono);color:var(--y900);letter-spacing:.04em}
+.ev{font:500 11.5px var(--f-mono);color:var(--g800);background:var(--g50);padding:5px 9px;border-radius:7px;letter-spacing:.02em}
+.card h1,.card h2{font-family:var(--f-display);font-weight:700;letter-spacing:-.025em;line-height:1.02;margin:0 0 14px;text-wrap:balance;color:var(--g900)}
+.card h1{font-size:clamp(40px,5.2vw,66px)}
+.card h2{font-size:clamp(32px,3.6vw,48px)}
+.card h1 em,.card h2 em{font-style:normal;color:var(--g500)}
+.card p{margin:0;font-size:16.5px;line-height:1.6;color:var(--n700);max-width:58ch}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;padding-top:16px;border-top:1px solid var(--n200)}
+.facts strong{display:block;font:500 13px var(--f-mono);color:var(--g900)}
+.facts span{font-size:13px;color:var(--n700);line-height:1.4}
+.ctas{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.hint{display:flex;align-items:center;gap:8px;margin-top:18px;font-size:13px;color:var(--n700);font-weight:600}
+.hint i{width:18px;height:28px;border:2px solid var(--n400);border-radius:10px;position:relative}
+.hint i::after{content:"";position:absolute;left:50%;top:5px;width:3px;height:6px;border-radius:2px;background:var(--g800);transform:translateX(-50%);animation:wheel 1.6s infinite}
+@keyframes wheel{0%{opacity:0;transform:translate(-50%,0)}30%{opacity:1}100%{opacity:0;transform:translate(-50%,10px)}}
+
+/* overview + manifesto */
+.overview{min-height:170vh;display:flex;align-items:center;justify-content:center;padding-block:10vh}
+.mani{max-width:860px;text-align:center;padding:36px 32px;border-radius:28px;background:rgba(255,255,255,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(27,81,65,.12)}
+.mani .ev{display:inline-block;margin-bottom:18px}
+.mani p{margin:0;font:700 clamp(28px,4.2vw,52px)/1.12 var(--f-display);letter-spacing:-.025em;text-wrap:balance}
+.w{color:rgba(27,81,65,.2);transition:color .25s}
+.w.lit{color:var(--g900)} .w.lit.hl{color:var(--g500)}
+
+/* cta & tracking — isla flotante sobre el mapa (no franja de lado a lado) */
+.cta{
+  position:relative;z-index:6;padding-block:96px 80px;
+  --ct-bg:rgba(255,255,255,.84);--ct-fg:var(--g900);--ct-muted:var(--n700);--ct-line:rgba(27,81,65,.12);
+  --ct-soft:rgba(27,81,65,.05);--ct-field:#fff;--ct-chip:var(--g50);--ct-chip-fg:var(--g800);--ct-accent:var(--g500);
+}
+.cta.night-mode{
+  --ct-bg:rgba(16,42,31,.88);--ct-fg:#fff;--ct-muted:rgba(255,255,255,.76);--ct-line:rgba(255,255,255,.14);
+  --ct-soft:rgba(255,255,255,.06);--ct-field:rgba(255,255,255,.96);--ct-chip:rgba(255,255,255,.1);--ct-chip-fg:#BFE6C4;--ct-accent:#8CD39A;
+}
+.cta-island{
+  max-width:1120px;margin:0 auto;box-sizing:border-box;
+  display:grid;grid-template-columns:minmax(0,1.85fr) minmax(0,1fr);gap:28px;align-items:start;
+  padding:40px;border-radius:28px;color:var(--ct-fg);
+  background:var(--ct-bg);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);
+  border:1px solid var(--ct-line);box-shadow:0 24px 60px rgba(18,38,28,.14);
+}
+.cta-main{min-width:0}
+.cta-ev{display:inline-flex;align-items:center;gap:8px;margin-bottom:16px}
+.cta.night-mode .cta-ev{background:rgba(255,255,255,.1);color:#BFE6C4}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--g500);box-shadow:0 0 0 3px rgba(78,145,85,.22)}
+.cta h2{font:700 clamp(30px,3.6vw,46px)/1.05 var(--f-display);letter-spacing:-.025em;margin:0 0 12px;text-wrap:balance;color:var(--ct-fg)}
+.cta h2 em{font-style:normal;color:var(--ct-accent)}
+.cta p{margin:0;color:var(--ct-muted);line-height:1.6;max-width:56ch}
+
+/* Buscador: input y botón en una sola cápsula */
+.trk{margin-top:24px}
+.trk label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.trk-capsule{
+  display:flex;align-items:center;gap:8px;padding:6px 6px 6px 16px;border-radius:999px;
+  background:var(--ct-field);border:1.5px solid rgba(27,81,65,.22);
+  box-shadow:inset 0 1px 3px rgba(18,38,28,.06),0 8px 22px rgba(18,38,28,.08);
+  transition:border-color .2s,box-shadow .2s;
+}
+.trk-capsule:focus-within{border-color:var(--g900);box-shadow:0 0 0 4px rgba(27,81,65,.14)}
+.trk-capsule svg{flex:none;color:var(--g800)}
+.trk input{flex:1 1 auto;min-width:0;height:44px;border:0;background:transparent;color:var(--g900);padding:0 4px;font:500 15px var(--f-mono);outline:none}
+.trk input::placeholder{color:var(--n400)}
+.trk .btn-y{flex:none;height:46px;padding:0 22px;box-shadow:0 6px 16px rgba(243,181,68,.35)}
+.trk-demo-chips{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+.trk-demo-lbl{font:500 12px var(--f-mono);color:var(--ct-muted)}
+.demo-chip{display:inline-flex;align-items:center;gap:6px;background:var(--ct-chip);border:1px solid var(--ct-line);color:var(--ct-chip-fg);padding:6px 12px;border-radius:999px;font:500 12px var(--f-mono);letter-spacing:.02em;cursor:pointer;transition:transform .2s var(--ease),border-color .2s}
+.demo-chip:hover{transform:translateY(-1px);border-color:var(--ct-chip-fg)}
+.demo-chip span{font-size:13px;line-height:1}
+#trkMsg{margin-top:10px;font-size:13.5px;color:var(--y900);min-height:20px}
+.cta.night-mode #trkMsg{color:var(--y400)}
+
+/* Resultado ilustrativo */
+.trk-result{margin-top:14px;padding:22px;border-radius:20px;background:var(--ct-soft);border:1px solid var(--ct-line);color:var(--ct-fg)}
+.trk-badge{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.trk-badge .ev{background:rgba(243,181,68,.18);color:var(--y900);border:1px solid rgba(243,181,68,.4)}
+.cta.night-mode .trk-badge .ev{color:var(--y400)}
+.trk-badge small{color:var(--ct-muted);font-size:12px}
+.trk-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;padding:12px 14px;background:var(--ct-soft);border:1px solid var(--ct-line);border-radius:12px;font-size:13px;margin-bottom:18px}
+.trk-summary strong{color:var(--ct-muted);font-family:var(--f-mono);font-weight:500}
+.trk-status-tag{display:inline-block;padding:2px 8px;border-radius:6px;background:var(--g50);color:var(--g800);font-size:11.5px;font-family:var(--f-mono)}
+.cta.night-mode .trk-status-tag{background:rgba(78,145,85,.35);color:#A9E6B0}
+.trk-timeline{list-style:none;margin:0;padding:0 0 0 18px;position:relative}
+.trk-timeline::before{content:"";position:absolute;left:6px;top:6px;bottom:12px;width:2px;background:var(--ct-line)}
+.trk-timeline li{position:relative;margin-bottom:18px;padding-left:18px}
+.trk-timeline li:last-child{margin-bottom:0}
+.trk-tl-dot{position:absolute;left:-16px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--g500);box-shadow:0 0 0 3px rgba(78,145,85,.22)}
+.trk-tl-head{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
+.trk-tl-head b{font-family:var(--f-display);font-weight:700}
+.trk-tl-head time{font-family:var(--f-mono);font-size:11.5px;color:var(--ct-muted)}
+.trk-tl-body p{margin:4px 0 6px;font-size:13px;color:var(--ct-muted);line-height:1.4}
+.trk-hash{display:inline-block;font-size:11px;font-family:var(--f-mono);color:var(--ct-muted);background:var(--ct-soft);border:1px solid var(--ct-line);padding:3px 8px;border-radius:5px}
+.trk-hash code{color:var(--b800)}
+.cta.night-mode .trk-hash code{color:var(--y400)}
+.trk-disclaimer{margin-top:14px;padding-top:12px;border-top:1px solid var(--ct-line);font-size:11.5px;color:var(--ct-muted);line-height:1.4}
+
+/* Columna derecha: una sola tarjeta para organizaciones */
+.cta-org{
+  display:flex;flex-direction:column;gap:12px;padding:24px;border-radius:22px;
+  background:var(--ct-soft);border:1px solid var(--ct-line);
+}
+.cta-org-ic{width:46px;height:46px;border-radius:14px;background:var(--g900);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 0 #123A2F}
+.cta-org b{font:700 20px/1.2 var(--f-display);color:var(--ct-fg)}
+.cta-org p{font-size:14px;line-height:1.55}
+.cta-org ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.cta-org li{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;color:var(--ct-muted)}
+.cta-org li::before{content:"✓";flex:none;width:18px;height:18px;border-radius:50%;background:var(--g50);color:var(--g800);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.cta.night-mode .cta-org li::before{background:rgba(255,255,255,.12);color:#BFE6C4}
+.cta-org .btn{align-self:flex-start;margin-top:4px}
+.cta.night-mode .cta-org .btn-g{background:transparent;color:#fff;border-color:rgba(255,255,255,.45)}
+@media (max-width:900px){
+  .cta{padding-block:64px 48px}
+  .cta-island{grid-template-columns:1fr;padding:24px 20px;gap:22px;border-radius:24px}
+  .trk-capsule{padding-left:12px}
+  .trk .btn-y{padding:0 16px}
+}
+@media (max-width:420px){
+  .trk-capsule{flex-wrap:wrap;border-radius:20px;padding:8px}
+  .trk input{flex-basis:calc(100% - 40px)}
+  .trk .btn-y{width:100%;justify-content:center}
+}
+
+/* ========================================================
+   SECCIÓN DE CONVOCATORIAS ABIERTAS (Translucent Blur & Cajas)
+   ======================================================== */
+:root {
+  --pax-emerald-dark: #133c2b;
+  --pax-emerald: #1e5b41;
+  --pax-emerald-light: #40916c;
+  --pax-mint: #e8f5ee;
+  --pax-blue: #2582af;
+  --pax-gold: #e5a93c;
+  --surface-bg: #f2f6f4;
+  --card-bg: rgba(255, 255, 255, 0.94);
+  --text-main: #12261c;
+  --text-secondary: #586f64;
+  --border-soft: #dce6e0;
+  --radius-xl: 24px;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --shadow-card: 0 14px 34px rgba(18, 38, 28, 0.08);
+  --shadow-hover: 0 20px 42px rgba(29, 92, 66, 0.16);
+}
+
+.convocatorias-sec{
+  position:relative;z-index:6;
+  background:rgba(240, 248, 242, 0.30);
+  backdrop-filter:blur(5px) saturate(1.25);
+  -webkit-backdrop-filter:blur(5px) saturate(1.25);
+  border-top:1px solid rgba(27,81,65,.14);
+  margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px))) 0;
+  padding:80px max(16px,env(safe-area-inset-left,0px)) 100px;
+  transition:background-color .4s ease, border-color .4s ease;
+}
+.convocatorias-sec.night-mode{
+  background:rgba(10,24,18,.48);
+  border-top-color:rgba(255,255,255,.14);
+  color:#fff;
+  --card-bg: rgba(16, 42, 31, 0.94);
+  --text-main: #f1f7f4;
+  --text-secondary: #9cb5a8;
+  --border-soft: rgba(82, 183, 136, 0.25);
+  --pax-mint: rgba(64, 145, 108, 0.2);
+  --shadow-card: 0 16px 36px rgba(0, 0, 0, 0.5);
+}
+.convocatorias-in{max-width:1320px;margin:0 auto}
+
+.conv-head{text-align:center;max-width:880px;margin:0 auto 34px}
+.conv-head .ev{display:inline-block;margin-bottom:12px}
+.conv-head h2{font:800 clamp(32px,4vw,52px)/1.06 var(--f-display);letter-spacing:-.025em;margin:0 0 14px;color:var(--g900);text-wrap:balance}
+.convocatorias-sec.night-mode .conv-head h2{color:#fff}
+.conv-head h2 em{font-style:normal;color:var(--g500)}
+.conv-head p{font-size:17px;color:var(--n700);line-height:1.6;margin:0 auto;max-width:68ch}
+.convocatorias-sec.night-mode .conv-head p{color:rgba(255,255,255,.82)}
+
+/* Barra de Herramientas y Filtros */
+.conv-toolbar-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:16px;
+  margin-bottom:38px;
+}
+.conv-view-switcher{
+  display:inline-flex;
+  gap:8px;
+  background:rgba(255,255,255,.85);
+  backdrop-filter:blur(8px);
+  padding:5px;
+  border-radius:999px;
+  border:1px solid rgba(27,81,65,.18);
+  box-shadow:0 4px 14px rgba(0,0,0,.06);
+}
+.convocatorias-sec.night-mode .conv-view-switcher{
+  background:rgba(255,255,255,.1);
+  border-color:rgba(255,255,255,.2);
+}
+.tool-btn{
+  padding:7px 18px;
+  border-radius:999px;
+  border:none;
+  background:transparent;
+  color:var(--text-main);
+  font:600 13px var(--f-mono);
+  cursor:pointer;
+  transition:all .2s ease;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.tool-btn:hover{
+  background:rgba(27,81,65,.08);
+}
+.tool-btn.active{
+  background:var(--pax-emerald);
+  color:#ffffff;
+  box-shadow:0 4px 12px rgba(30,91,65,.25);
+}
+.convocatorias-sec.night-mode .tool-btn{
+  color:rgba(255,255,255,.9);
+}
+.convocatorias-sec.night-mode .tool-btn.active{
+  background:var(--pax-gold);
+  color:var(--g900);
+}
+
+.conv-filters{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.filter-pill{
+  background:rgba(255,255,255,.88);border:1px solid rgba(27,81,65,.18);color:var(--g900);
+  padding:7px 16px;border-radius:999px;font:600 12.5px var(--f-mono);cursor:pointer;
+  transition:all .22s var(--ease);
+}
+.filter-pill:hover,.filter-pill.active{
+  background:var(--g900);color:#fff;border-color:var(--g900);box-shadow:0 6px 18px rgba(27,81,65,.22);
+  transform:translateY(-1px);
+}
+.convocatorias-sec.night-mode .filter-pill{
+  background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff;
+}
+.convocatorias-sec.night-mode .filter-pill:hover,.convocatorias-sec.night-mode .filter-pill.active{
+  background:var(--y400);color:var(--g900);border-color:var(--y400);box-shadow:0 6px 20px rgba(243,181,68,.3);
+}
+
+/* =========================================================
+   GRILLA DE TARJETAS (Soporte Multi-Columna y Vista Móvil 390px)
+   ========================================================= */
+.cards-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(360px,1fr));
+  gap:2.25rem;
+  align-items:start;
+  transition:all .35s ease;
+  max-width:1320px;
+  margin:0 auto;
+}
+.cards-grid.mobile-preview{
+  max-width:410px;
+  grid-template-columns:1fr;
+  margin:0 auto;
+  padding:24px 18px;
+  background:rgba(240, 248, 243, 0.45);
+  backdrop-filter:blur(10px);
+  border-radius:40px;
+  border:4px solid var(--pax-emerald);
+  box-shadow:0 25px 60px rgba(0,0,0,.35);
+}
+.convocatorias-sec.night-mode .cards-grid.mobile-preview{
+  background:rgba(10, 26, 19, 0.65);
+  border-color:var(--pax-gold);
+}
+
+.variant-wrapper{
+  display:flex;
+  flex-direction:column;
+  gap:0.6rem;
+}
+@media (min-width: 900px) {
+  .cards-grid:not(.mobile-preview) .variant-wrapper.wide-span {
+    grid-column: span 2;
+  }
+}
+.variant-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.72rem;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  color:var(--pax-blue);
+  font-weight:700;
+  padding-left:4px;
+}
+.convocatorias-sec.night-mode .variant-label{
+  color:#8CC3DE;
+}
+
+/* =========================================================
+   COMPONENTES COMUNES DE TARJETAS (Cajas.html)
+   ========================================================= */
+.conv-card{
+  background:var(--card-bg);
+  border-radius:var(--radius-xl);
+  border:1px solid var(--border-soft);
+  box-shadow:var(--shadow-card);
+  overflow:hidden;
+  transition:transform .28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow .28s ease, border-color .28s ease;
+  position:relative;
+}
+.conv-card:hover{
+  transform:translateY(-6px);
+  box-shadow:var(--shadow-hover);
+  border-color:var(--pax-emerald-light);
+}
+
+.conv-img-wrap{
+  position:relative;
+  width:100%;
+  height:200px;
+  overflow:hidden;
+  background:#1b4332;
+}
+.conv-img-wrap img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  transition:transform .5s ease;
+}
+.conv-card:hover .conv-img-wrap img{
+  transform:scale(1.05);
+}
+
+.badge-verified{
+  position:absolute;
+  top:12px;
+  left:12px;
+  background:rgba(19, 60, 43, 0.88);
+  backdrop-filter:blur(8px);
+  color:#ffffff;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:0.7rem;
+  font-weight:600;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  border:1px solid rgba(255, 255, 255, 0.2);
+  z-index:2;
+}
+
+.badge-dates{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-size:0.73rem;
+  color:var(--text-secondary);
+  font-weight:500;
+}
+
+.conv-title{
+  font-size:1.15rem;
+  font-weight:800;
+  line-height:1.25;
+  color:var(--text-main);
+  margin-bottom:0.4rem;
+}
+
+.conv-desc{
+  font-size:0.84rem;
+  line-height:1.5;
+  color:var(--text-secondary);
+  margin-bottom:1rem;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
+/* Perfil de Organización */
+.org-profile{
+  display:flex;
+  align-items:center;
+  gap:0.65rem;
+}
+.org-avatar{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  object-fit:cover;
+  border:2px solid var(--pax-emerald-light);
+  flex-shrink:0;
+  background:var(--pax-mint);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+  font-weight:700;
+}
+.org-info{
+  display:flex;
+  flex-direction:column;
+}
+.org-name{
+  font-size:0.8rem;
+  font-weight:700;
+  color:var(--text-main);
+}
+.org-role{
+  font-size:0.68rem;
+  color:var(--pax-emerald-light);
+  font-weight:600;
+}
+
+/* Botones de Acción */
+.conv-actions{
+  display:flex;
+  gap:0.55rem;
+  align-items:center;
+}
+.btn-donate{
+  flex:1;
+  padding:0.68rem 1rem;
+  border-radius:var(--radius-md);
+  border:none;
+  background:linear-gradient(135deg, var(--pax-emerald), var(--pax-emerald-dark));
+  color:#ffffff;
+  font-weight:700;
+  font-size:0.82rem;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  box-shadow:0 4px 12px rgba(30, 91, 65, 0.25);
+  transition:filter .2s ease, transform .2s ease;
+}
+.btn-donate:hover{
+  filter:brightness(1.12);
+  transform:translateY(-1px);
+}
+.convocatorias-sec.night-mode .btn-donate{
+  background:linear-gradient(135deg, var(--pax-emerald-light), var(--pax-emerald));
+}
+.btn-details{
+  padding:0.68rem 0.9rem;
+  border-radius:var(--radius-md);
+  border:1.5px solid var(--border-soft);
+  background:transparent;
+  color:var(--text-main);
+  font-weight:600;
+  font-size:0.8rem;
+  cursor:pointer;
+  transition:background .2s ease, border-color .2s ease;
+}
+.btn-details:hover{
+  background:var(--pax-mint);
+  border-color:var(--pax-emerald-light);
+}
+
+/* Barra de Progreso */
+.progress-block{margin:0.85rem 0}
+.progress-meta{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  font-size:0.78rem;
+  margin-bottom:0.4rem;
+}
+.progress-amounts{
+  font-family:'JetBrains Mono',monospace;
+  font-weight:600;
+  color:var(--text-main);
+  font-size:0.76rem;
+}
+.progress-amounts span{
+  color:var(--text-secondary);
+  font-weight:400;
+}
+.progress-pct-badge{
+  font-family:'JetBrains Mono',monospace;
+  font-weight:700;
+  font-size:0.8rem;
+  color:var(--pax-emerald);
+  background:var(--pax-mint);
+  padding:2px 8px;
+  border-radius:99px;
+}
+.convocatorias-sec.night-mode .progress-pct-badge{
+  color:#8ce99a;
+}
+.progress-track-h{
+  width:100%;
+  height:10px;
+  background:var(--pax-mint);
+  border-radius:999px;
+  overflow:hidden;
+}
+.progress-fill-h{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg, var(--pax-emerald-light), var(--pax-blue));
+  transition:width .6s ease;
+}
+
+/* =========================================================
+   VARIANTES ESPECÍFICAS DE CAJAS.HTML
+   ========================================================= */
+/* V1 Unificada */
+.v1-body{padding:1.25rem}
+.v1-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:0.75rem;
+  margin-top:1rem;
+  padding-top:0.9rem;
+  border-top:1px solid var(--border-soft);
+}
+
+/* V2 Split Island */
+.conv-card.v2-split{
+  background:transparent;
+  border:none;
+  box-shadow:none;
+  display:flex;
+  flex-direction:column;
+  gap:0.65rem;
+}
+.v2-split .conv-img-wrap{
+  border-radius:var(--radius-xl);
+  height:190px;
+  box-shadow:var(--shadow-card);
+  border:2px solid rgba(64, 145, 108, 0.25);
+}
+.v2-island-body{
+  background:var(--card-bg);
+  border-radius:var(--radius-xl);
+  padding:1.25rem;
+  border:1px solid var(--border-soft);
+  box-shadow:var(--shadow-card);
+}
+.v2-grid-2col{
+  display:grid;
+  grid-template-columns:1.2fr 1fr;
+  gap:0.85rem;
+  align-items:center;
+}
+
+/* V3 Termómetro Vertical */
+.v3-body-with-vertical-bar{
+  display:grid;
+  grid-template-columns:1fr 46px;
+  gap:1rem;
+  padding:1.25rem;
+  align-items:stretch;
+}
+.v3-vertical-meter{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:space-between;
+  background:var(--pax-mint);
+  border-radius:999px;
+  padding:6px;
+  border:1px solid var(--border-soft);
+  position:relative;
+  overflow:hidden;
+  min-height:195px;
+}
+.v3-vertical-fill{
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  height:30%;
+  background:linear-gradient(180deg, var(--pax-gold), #d48817);
+  border-radius:999px;
+  z-index:1;
+  transition:height .6s ease;
+}
+.v3-pct-text{
+  position:relative;
+  z-index:2;
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.74rem;
+  font-weight:800;
+  color:var(--text-main);
+  margin-top:auto;
+  margin-bottom:6px;
+  background:rgba(255,255,255,0.88);
+  padding:3px 5px;
+  border-radius:99px;
+}
+
+/* V4 Inmersiva Glassmorphism */
+.conv-card.v4-immersive{
+  height:430px;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  color:#ffffff;
+}
+.v4-bg-img{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  z-index:1;
+  transition:transform .6s ease;
+}
+.conv-card.v4-immersive:hover .v4-bg-img{
+  transform:scale(1.06);
+}
+.v4-gradient-overlay{
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg, rgba(7, 25, 18, 0.15) 0%, rgba(7, 25, 18, 0.85) 55%, rgba(7, 25, 18, 0.98) 100%);
+  z-index:2;
+}
+.v4-glass-content{
+  position:relative;
+  z-index:3;
+  padding:1.35rem;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border-top:1px solid rgba(255, 255, 255, 0.14);
+}
+.v4-glass-content .conv-title,
+.v4-glass-content .org-name,
+.v4-glass-content .progress-amounts{color:#ffffff}
+.v4-glass-content .conv-desc,
+.v4-glass-content .badge-dates,
+.v4-glass-content .progress-amounts span{color:rgba(255, 255, 255, 0.78)}
+
+/* V5 Panorámica Horizontal */
+.conv-card.v5-horizontal{
+  display:grid;
+  grid-template-columns:38% 62%;
+}
+@media (max-width: 640px) {
+  .conv-card.v5-horizontal { grid-template-columns: 1fr; }
+}
+.v5-horizontal .conv-img-wrap{height:100%;min-height:240px}
+.v5-content{
+  padding:1.35rem 1.5rem;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+
+/* V6 Compacta Anillo SVG */
+.v6-compact{padding:1.15rem;display:flex;flex-direction:column;gap:0.9rem}
+.v6-top-row{display:flex;gap:0.9rem;align-items:center}
+.v6-thumb{width:84px;height:84px;border-radius:16px;object-fit:cover;flex-shrink:0;border:1px solid var(--border-soft)}
+.v6-ring-wrap{
+  position:relative;
+  width:58px;
+  height:58px;
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.v6-ring-wrap svg{transform:rotate(-90deg);width:58px;height:58px}
+.v6-ring-pct{
+  position:absolute;
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.72rem;
+  font-weight:800;
+  color:var(--pax-emerald);
+}
+.convocatorias-sec.night-mode .v6-ring-pct{color:#8ce99a}
+
+/* V7 Trazabilidad Kits */
+.v7-kits-strip{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  background:var(--pax-mint);
+  border:1px dashed var(--pax-emerald-light);
+  padding:0.55rem 0.8rem;
+  border-radius:10px;
+  margin-bottom:0.85rem;
+  font-size:0.75rem;
+  font-weight:600;
+}
+
+/* V8 Ticket */
+.v8-ticket{padding:1.25rem;border-left:6px solid var(--pax-emerald)}
+.v8-header-banner{display:flex;align-items:center;gap:0.85rem;margin-bottom:0.85rem}
+.v8-banner-img{width:64px;height:64px;border-radius:14px;object-fit:cover;flex-shrink:0}
+
+/* V10 Milestones */
+.v10-milestones{
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:4px;
+  margin:0.9rem 0 0.4rem;
+}
+.v10-seg{height:10px;border-radius:99px;background:var(--pax-mint);overflow:hidden}
+.v10-seg i{display:block;height:100%;background:linear-gradient(90deg, var(--pax-emerald-light), var(--pax-emerald));border-radius:99px}
+.v10-labels{display:grid;grid-template-columns:repeat(4, 1fr);gap:4px;font-size:0.66rem;color:var(--text-secondary);font-weight:600}
+.v10-labels span{text-align:right}
+.v10-labels span.done{color:var(--pax-emerald)}
+.convocatorias-sec.night-mode .v10-labels span.done{color:#8ce99a}
+.v10-next{
+  display:flex;
+  gap:0.6rem;
+  align-items:center;
+  margin-top:0.85rem;
+  padding:0.65rem 0.8rem;
+  border-radius:12px;
+  background:var(--pax-mint);
+  font-size:0.76rem;
+  color:var(--text-main);
+  line-height:1.4;
+}
+.v10-next b{color:var(--pax-emerald)}
+.convocatorias-sec.night-mode .v10-next b{color:#8ce99a}
+
+/* V11 Steps */
+.v11-steps{display:grid;grid-template-columns:repeat(5, 1fr);position:relative;margin:0.95rem 0 0.35rem}
+.v11-steps::before{content:"";position:absolute;left:10%;right:10%;top:11px;height:3px;background:var(--border-soft);border-radius:3px}
+.v11-steps::after{content:"";position:absolute;left:10%;width:calc(80% * var(--done, 0.5));top:11px;height:3px;background:var(--pax-emerald-light);border-radius:3px}
+.v11-step{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:0.62rem;font-weight:600;color:var(--text-secondary);text-align:center}
+.v11-dot{width:25px;height:25px;border-radius:8px;background:var(--card-bg);border:2px solid var(--border-soft);display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#fff}
+.v11-step.done .v11-dot{background:var(--pax-emerald-light);border-color:var(--pax-emerald-light)}
+.v11-step.now .v11-dot{background:var(--pax-gold);border-color:var(--pax-gold);box-shadow:0 0 0 4px rgba(229, 169, 60, 0.25)}
+.v11-step.done, .v11-step.now{color:var(--text-main)}
+.v11-facts{display:grid;grid-template-columns:repeat(3, 1fr);gap:0.5rem;margin-top:0.8rem}
+.v11-fact{background:var(--pax-mint);border-radius:10px;padding:0.5rem 0.55rem}
+.v11-fact strong{display:block;font-family:'JetBrains Mono',monospace;font-size:0.9rem;color:var(--text-main)}
+.v11-fact span{font-size:0.64rem;color:var(--text-secondary);font-weight:600}
+
+/* V13 Stack */
+.v13-stack{display:flex;flex-direction:column;gap:0.85rem}
+.v13-card{padding:1rem 1.1rem}
+.v13-head{display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.45rem}
+.v13-card.is-closed{opacity:0.82}
+.v13-card.is-closed .progress-fill-h{background:var(--text-secondary)}
+.v13-card.is-goal .progress-fill-h{background:linear-gradient(90deg, var(--pax-gold), #d48817)}
+.v13-card.is-soon .progress-track-h{background:repeating-linear-gradient(90deg, var(--pax-mint) 0 8px, transparent 8px 12px)}
+.v13-note{font-size:0.72rem;color:var(--text-secondary);margin-top:0.5rem}
+
+/* V14 Historias Verticales */
+.v14-rail{display:flex;gap:0.75rem;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:0.5rem;scrollbar-width:thin}
+.v14-story{flex:0 0 210px;height:340px;background:#1b4332;scroll-snap-align:start;border-radius:var(--radius-xl);position:relative;overflow:hidden;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;padding:1rem;box-shadow:var(--shadow-card)}
+.v14-story img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.v14-story::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg, rgba(7, 25, 18, 0) 30%, rgba(7, 25, 18, 0.88) 100%)}
+.v14-story > *:not(img){position:relative;z-index:1}
+.v14-big{font-family:'JetBrains Mono',monospace;font-size:2.3rem;font-weight:700;line-height:1;letter-spacing:-0.04em}
+.v14-big small{font-size:0.9rem;opacity:0.8}
+.v14-name{font-size:0.92rem;font-weight:800;line-height:1.2;margin:0.35rem 0 0.6rem}
+.v14-bar{height:5px;border-radius:99px;background:rgba(255, 255, 255, 0.25);overflow:hidden}
+.v14-bar i{display:block;height:100%;background:var(--pax-gold);border-radius:99px}
+.v14-progress-dots{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:4px;z-index:2}
+.v14-progress-dots span{flex:1;height:3px;border-radius:3px;background:rgba(255, 255, 255, 0.35)}
+.v14-progress-dots span.on{background:#fff}
+
+/* V15 Editorial */
+.v15-type{padding:1.4rem 1.4rem 1.2rem;display:grid;grid-template-columns:1fr auto;gap:0.25rem 1rem}
+.v15-pct{grid-row:span 2;font-family:'JetBrains Mono',monospace;font-size:3.6rem;font-weight:700;line-height:0.9;letter-spacing:-0.06em;color:var(--pax-emerald);text-align:right}
+.convocatorias-sec.night-mode .v15-pct{color:#8ce99a}
+.v15-pct small{display:block;font-family:var(--f-body);font-size:0.68rem;letter-spacing:0;font-weight:600;color:var(--text-secondary);margin-top:6px}
+.v15-title{font-size:1.45rem;font-weight:800;line-height:1.12;letter-spacing:-0.02em;color:var(--text-main)}
+.v15-rule{grid-column:1 / -1;height:1px;background:var(--border-soft);margin:0.85rem 0 0.75rem}
+.v15-meta{grid-column:1 / -1;display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap}
+
+/* V16 Montos Sugeridos */
+.v16-amounts{display:grid;grid-template-columns:repeat(4, 1fr);gap:0.4rem;margin:0.85rem 0 0.7rem}
+.v16-amount{padding:0.55rem 0.2rem;border-radius:10px;border:1.5px solid var(--border-soft);background:transparent;color:var(--text-main);font-family:'JetBrains Mono',monospace;font-size:0.74rem;font-weight:600;cursor:pointer;transition:all .2s ease}
+.v16-amount:hover{border-color:var(--pax-emerald-light)}
+.v16-amount.selected{background:var(--pax-mint);border-color:var(--pax-emerald);color:var(--pax-emerald)}
+.convocatorias-sec.night-mode .v16-amount.selected{color:#8ce99a;border-color:#8ce99a}
+.v16-equiv{font-size:0.72rem;color:var(--text-secondary);margin-bottom:0.8rem}
+.v16-equiv b{color:var(--text-main)}
+
+/* Status pills */
+.status-pill{display:inline-flex;align-items:center;gap:5px;font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:0.02em}
+.status-open{background:var(--pax-mint);color:var(--pax-emerald)}
+.status-goal{background:rgba(229, 169, 60, 0.18);color:#8a5a07}
+.status-closed{background:rgba(88, 111, 100, 0.14);color:var(--text-secondary)}
+.status-soon{background:rgba(37, 130, 175, 0.14);color:var(--pax-blue)}
+.convocatorias-sec.night-mode .status-goal{color:var(--pax-gold)}
+
+/* Portadas ilustradas SVG */
+.illus-cover{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.illus-cover svg{width:46%;max-width:150px;height:auto;position:relative;z-index:1}
+.illus-cover::before{content:"";position:absolute;width:70%;aspect-ratio:1;border-radius:50%;background:rgba(255, 255, 255, 0.14)}
+.cover-food{background:linear-gradient(135deg, #40916c, #1e5b41)}
+.cover-water{background:linear-gradient(135deg, #3a9cc9, #1f6d93)}
+.cover-health{background:linear-gradient(135deg, #e5a93c, #c4801b)}
+.cover-shelter{background:linear-gradient(135deg, #5f7a70, #3c5249)}
+
+
+/* Modal Dialog de Convocatoria */
+.conv-modal{border:0;padding:0;background:transparent;max-width:580px;width:calc(100% - 32px);border-radius:28px;box-shadow:0 30px 70px rgba(0,0,0,.35)}
+.conv-modal::backdrop{background:rgba(12,28,22,.65);backdrop-filter:blur(8px)}
+.modal-box{background:#fff;border-radius:28px;overflow:hidden;position:relative}
+.modal-close{position:absolute;top:16px;right:16px;z-index:10;width:36px;height:36px;border-radius:50%;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.modal-hero{height:180px;background:var(--g900)}
+.modal-body{padding:26px 28px 28px}
+.modal-body .ev{display:inline-block;margin-bottom:10px}
+.modal-body h2{font:700 24px/1.2 var(--f-display);margin:0 0 10px;color:var(--g900)}
+.modal-body p{font-size:15px;line-height:1.6;color:var(--n700);margin:0 0 20px}
+.modal-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px;background:var(--n50);border-radius:14px;border:1px solid var(--n200);margin-bottom:22px;text-align:center}
+.modal-stats strong{display:block;font:500 11px var(--f-mono);color:var(--n700);text-transform:uppercase}
+.modal-stats span{font:700 15px var(--f-display);color:var(--g900)}
+.monto-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0 18px}
+.monto-btn{padding:10px 6px;border-radius:12px;border:1px solid var(--n400);background:#fff;font:600 13px var(--f-mono);cursor:pointer;transition:all .2s}
+.monto-btn.active,.monto-btn:hover{background:var(--g900);color:#fff;border-color:var(--g900)}
+.btn-donate-modal{width:100%;height:48px;font-size:15px}
+#modalSimMsg{margin-top:12px;font-size:13px;color:var(--g800);min-height:18px;text-align:center;font-weight:600}
+
+@media (max-width:900px){
+  .cards-grid{grid-template-columns:1fr}
+  .modal-stats{grid-template-columns:1fr 1fr}
+  .monto-grid{grid-template-columns:1fr 1fr}
+  .convocatorias-sec{padding:60px max(16px,env(safe-area-inset-left,0px)) 50px}
+}
+
+/* ===================================================
+   VISTA DE LOGIN / REGISTRO (SOLO UNA CAJA, FONDO CLARO SIN BLUR)
+   =================================================== */
+.btn-auth{
+  background:rgba(27,81,65,.08);
+  color:var(--g900);
+  border:1px solid rgba(27,81,65,.2);
+  gap:6px;
+  font-weight:700;
+  padding:0 15px;
+  height:38px;
+}
+.btn-auth:hover{
+  background:var(--g900);
+  color:#fff;
+  border-color:var(--g900);
+  box-shadow:0 6px 16px rgba(27,81,65,.2);
+}
+
+/* Estado activo de autenticación */
+body.auth-active{
+  overflow:hidden !important;
+}
+body.auth-active main,
+body.auth-active .dots,
+body.auth-active .nav,
+body.auth-active .cta,
+body.auth-active .convocatorias-sec,
+body.auth-active > footer{
+  display:none !important;
+}
+/* Requisito explícito del usuario: El fondo se ve claro SIN BLUR */
+body.auth-active #world{
+  filter:none !important;
+  transform:none !important;
+}
+body.auth-active #world.blurred{
+  filter:none !important;
+  transform:none !important;
+}
+
+.auth-view{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  box-sizing:border-box;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  opacity:1;
+  filter:none;
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+  will-change:auto;
+}
+body.auth-active .auth-view{
+  display:flex;
+}
+
+/* Barra superior de auth */
+.auth-top-bar{
+  position:fixed;
+  top:calc(16px + env(safe-area-inset-top,0px));
+  left:50%;
+  transform:translateX(-50%);
+  width:min(1120px, calc(100% - 32px));
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  z-index:105;
+  pointer-events:none;
+}
+.auth-top-bar > *{
+  pointer-events:auto;
+}
+
+.auth-back-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  height:42px;
+  padding:0 20px 0 14px;
+  border-radius:999px;
+  background:rgba(255,255,255,.88);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(27,81,65,.18);
+  box-shadow:0 8px 24px rgba(27,81,65,.12);
+  color:var(--g900);
+  font:700 14px var(--f-body);
+  cursor:pointer;
+  transition:all .25s var(--ease);
+}
+.auth-back-btn:hover{
+  background:#fff;
+  border-color:var(--g900);
+  transform:translateX(-4px);
+  box-shadow:0 12px 28px rgba(27,81,65,.2);
+}
+.auth-back-btn svg{
+  transition:transform .25s ease;
+}
+.auth-back-btn:hover svg{
+  transform:translateX(-3px);
+}
+
+.auth-top-brand{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:rgba(255,255,255,.88);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(27,81,65,.14);
+  padding:6px 16px;
+  border-radius:999px;
+  box-shadow:0 8px 24px rgba(27,81,65,.08);
+}
+.auth-brand-text{
+  font:800 18px/1 var(--f-display);
+  color:var(--g900);
+}
+.auth-brand-text b{
+  color:var(--b700);
+}
+
+/* Envoltorio centrado */
+.auth-card-wrap{
+  width:100%;
+  max-width:480px;
+  margin:auto;
+  padding-top:74px;
+  padding-bottom:30px;
+  box-sizing:border-box;
+  display:flex;
+  justify-content:center;
+}
+
+/* CAJA ÚNICA DE LOGIN / REGISTRO */
+.auth-card{
+  width:100%;
+  box-sizing:border-box;
+  padding:34px 32px 30px;
+  border-radius:28px;
+  background:rgba(255,255,255,.95);
+  backdrop-filter:blur(24px) saturate(1.25);
+  -webkit-backdrop-filter:blur(24px) saturate(1.25);
+  border:1px solid rgba(27,81,65,.16);
+  box-shadow:0 24px 64px rgba(18,38,28,.16), 0 4px 16px rgba(0,0,0,.04);
+  color:var(--g900);
+  position:relative;
+  animation:authCardEnter .28s cubic-bezier(.16,1,.3,1);
+}
+@keyframes authCardEnter{
+  0%{opacity:0;transform:scale(.97) translateY(8px);}
+  100%{opacity:1;transform:none;}
+}
+
+/* Cabecera de la caja */
+.auth-badge-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:5px 12px;
+  border-radius:999px;
+  background:rgba(78,145,85,.12);
+  border:1px solid rgba(78,145,85,.25);
+  color:#1B5141;
+  font:700 10.5px var(--f-mono);
+  letter-spacing:.05em;
+  margin-bottom:12px;
+}
+.auth-badge-dot{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#4E9155;
+  box-shadow:0 0 0 2px rgba(78,145,85,.3);
+  animation:badgePulse 2s infinite;
+}
+
+.auth-card-head h2{
+  font:700 clamp(24px, 3.2vw, 30px)/1.1 var(--f-display);
+  letter-spacing:-.025em;
+  margin:0 0 8px;
+  color:var(--g900);
+}
+.auth-card-head p{
+  margin:0 0 20px;
+  font-size:14px;
+  line-height:1.45;
+  color:var(--n700);
+}
+
+/* Pestañas dentro de la misma caja */
+.auth-tabs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  background:rgba(27,81,65,.07);
+  padding:5px;
+  border-radius:14px;
+  margin-bottom:20px;
+}
+.auth-tab-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:10px 12px;
+  border-radius:10px;
+  border:0;
+  background:transparent;
+  color:var(--n700);
+  font:700 13px var(--f-body);
+  cursor:pointer;
+  transition:all .2s ease;
+}
+.auth-tab-btn.active{
+  background:#fff;
+  color:var(--g900);
+  box-shadow:0 4px 12px rgba(27,81,65,.12);
+}
+.auth-tab-btn:hover:not(.active){
+  color:var(--g900);
+}
+
+/* Botones sociales / web3 */
+.auth-social-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:18px;
+}
+.social-auth-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  height:42px;
+  border-radius:12px;
+  border:1px solid rgba(27,81,65,.14);
+  background:rgba(255,255,255,.9);
+  color:var(--g900);
+  font:600 12.5px var(--f-body);
+  cursor:pointer;
+  transition:all .2s var(--ease);
+}
+.social-auth-btn:hover{
+  background:#fff;
+  border-color:var(--g900);
+  transform:translateY(-1px);
+  box-shadow:0 6px 14px rgba(27,81,65,.1);
+}
+
+/* Divisor */
+.auth-divider{
+  display:flex;
+  align-items:center;
+  text-align:center;
+  margin-bottom:18px;
+  color:var(--n500);
+  font-size:11.5px;
+  font-weight:600;
+  letter-spacing:.02em;
+}
+.auth-divider::before,
+.auth-divider::after{
+  content:"";
+  flex:1;
+  border-bottom:1px solid rgba(27,81,65,.12);
+}
+.auth-divider span{
+  padding:0 10px;
+}
+
+/* Formulario e inputs */
+.auth-form{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.auth-field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.auth-field label{
+  font:600 12.5px var(--f-body);
+  color:var(--g900);
+}
+.auth-label-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.auth-forgot-link{
+  font-size:12px;
+  color:var(--g700);
+  text-decoration:none;
+  font-weight:600;
+}
+.auth-forgot-link:hover{
+  text-decoration:underline;
+  color:var(--g900);
+}
+
+.auth-input-wrap{
+  position:relative;
+  display:flex;
+  align-items:center;
+}
+.auth-input-wrap .field-icon{
+  position:absolute;
+  left:14px;
+  color:var(--n500);
+  pointer-events:none;
+}
+.auth-input-wrap input{
+  width:100%;
+  height:44px;
+  padding:0 40px 0 42px;
+  border-radius:12px;
+  border:1px solid rgba(27,81,65,.18);
+  background:rgba(247,250,248,.8);
+  color:var(--g900);
+  font:500 14px var(--f-body);
+  box-sizing:border-box;
+  transition:all .2s ease;
+}
+.auth-input-wrap input:focus{
+  outline:none;
+  border-color:#1B5141;
+  background:#fff;
+  box-shadow:0 0 0 3px rgba(27,81,65,.14);
+}
+.btn-toggle-eye{
+  position:absolute;
+  right:10px;
+  background:transparent;
+  border:0;
+  color:var(--n500);
+  cursor:pointer;
+  padding:6px;
+  border-radius:6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.btn-toggle-eye:hover{
+  color:var(--g900);
+}
+
+/* Selector de rol */
+.auth-role-selector{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.role-pill{
+  cursor:pointer;
+}
+.role-pill input{
+  display:none;
+}
+.role-card{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1.5px solid rgba(27,81,65,.14);
+  background:rgba(255,255,255,.6);
+  transition:all .2s ease;
+}
+.role-card b{
+  font-size:12px;
+  color:var(--g900);
+}
+.role-card small{
+  font-size:11px;
+  color:var(--n700);
+}
+.role-pill input:checked + .role-card{
+  border-color:#1B5141;
+  background:rgba(78,145,85,.1);
+  box-shadow:0 4px 12px rgba(27,81,65,.1);
+}
+
+/* Barra de fuerza */
+.pass-strength-bar{
+  margin-top:4px;
+}
+.strength-meter{
+  height:4px;
+  width:0%;
+  border-radius:4px;
+  background:#E53E3E;
+  transition:width .3s ease, background-color .3s ease;
+}
+.strength-label{
+  font:500 11px var(--f-mono);
+  color:var(--n500);
+  display:block;
+  margin-top:3px;
+}
+
+/* Checkbox */
+.auth-options-row{
+  margin:4px 0 2px;
+}
+.auth-checkbox-label{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  font-size:12.5px;
+  color:var(--n700);
+  cursor:pointer;
+  line-height:1.4;
+}
+.auth-checkbox-label input{
+  margin-top:2px;
+  accent-color:#1B5141;
+}
+.auth-inline-link{
+  color:var(--g800);
+  font-weight:600;
+  text-decoration:underline;
+}
+
+/* Botón principal */
+.auth-submit-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  height:46px;
+  border-radius:14px;
+  border:0;
+  background:var(--g900);
+  color:#fff;
+  font:700 14.5px var(--f-body);
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(27,81,65,.26);
+  transition:all .25s var(--ease);
+  position:relative;
+  overflow:hidden;
+  margin-top:6px;
+}
+.auth-submit-btn:hover{
+  background:#143f33;
+  transform:translateY(-1px);
+  box-shadow:0 12px 28px rgba(27,81,65,.35);
+}
+.auth-submit-btn:active{
+  transform:translateY(0);
+}
+
+/* Feedback toast */
+.auth-feedback-msg{
+  margin-top:14px;
+  padding:12px 14px;
+  border-radius:12px;
+  font-size:13px;
+  line-height:1.4;
+  font-weight:600;
+  text-align:center;
+  animation:feedbackSlide .25s ease-out;
+}
+@keyframes feedbackSlide{
+  from{opacity:0;transform:translateY(-6px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.auth-feedback-msg.success{
+  background:rgba(78,145,85,.16);
+  border:1px solid rgba(78,145,85,.35);
+  color:#154a3a;
+}
+.auth-feedback-msg.info{
+  background:rgba(58,152,204,.14);
+  border:1px solid rgba(58,152,204,.35);
+  color:#1c536f;
+}
+
+/* Pie de la caja */
+.auth-card-foot{
+  margin-top:20px;
+  padding-top:16px;
+  border-top:1px solid rgba(27,81,65,.1);
+  text-align:center;
+}
+.auth-card-foot p{
+  margin:0;
+  font-size:13px;
+  color:var(--n700);
+}
+.auth-switch-btn{
+  background:transparent;
+  border:0;
+  padding:0;
+  font:700 13px var(--f-body);
+  color:var(--g800);
+  cursor:pointer;
+  text-decoration:underline;
+  margin-left:4px;
+}
+.auth-switch-btn:hover{
+  color:var(--g900);
+}
+
+/* MODO NOCHE PARA LA CAJA DE AUTH */
+body.auth-active.night-auth .auth-card{
+  background:rgba(14,34,25,.96);
+  border-color:rgba(82,183,136,.28);
+  box-shadow:0 24px 64px rgba(0,0,0,.5);
+  color:#fff;
+}
+body.auth-active.night-auth .auth-card-head h2{color:#fff}
+body.auth-active.night-auth .auth-card-head p{color:rgba(255,255,255,.75)}
+body.auth-active.night-auth .auth-tabs{background:rgba(255,255,255,.08)}
+body.auth-active.night-auth .auth-tab-btn{color:rgba(255,255,255,.7)}
+body.auth-active.night-auth .auth-tab-btn.active{background:rgba(255,255,255,.18);color:#fff}
+body.auth-active.night-auth .social-auth-btn{
+  background:rgba(255,255,255,.08);
+  border-color:rgba(255,255,255,.18);
+  color:#fff;
+}
+body.auth-active.night-auth .social-auth-btn:hover{background:rgba(255,255,255,.16)}
+body.auth-active.night-auth .auth-field label{color:#fff}
+body.auth-active.night-auth .auth-input-wrap input{
+  background:rgba(255,255,255,.07);
+  border-color:rgba(255,255,255,.18);
+  color:#fff;
+}
+body.auth-active.night-auth .auth-input-wrap input:focus{
+  border-color:#52b788;
+  box-shadow:0 0 0 3px rgba(82,183,136,.2);
+}
+body.auth-active.night-auth .role-card{
+  background:rgba(255,255,255,.06);
+  border-color:rgba(255,255,255,.14);
+}
+body.auth-active.night-auth .role-card b{color:#fff}
+body.auth-active.night-auth .role-card small{color:rgba(255,255,255,.7)}
+body.auth-active.night-auth .role-pill input:checked + .role-card{
+  background:rgba(82,183,136,.18);
+  border-color:#52b788;
+}
+body.auth-active.night-auth .auth-submit-btn{
+  background:#2D8F62;
+  box-shadow:0 8px 24px rgba(45,143,98,.4);
+}
+body.auth-active.night-auth .auth-submit-btn:hover{background:#35a571}
+body.auth-active.night-auth .auth-back-btn,
+body.auth-active.night-auth .auth-top-brand{
+  background:rgba(14,34,25,.88);
+  border-color:rgba(255,255,255,.18);
+  color:#fff;
+}
+body.auth-active.night-auth .auth-brand-text{color:#fff}
+body.auth-active.night-auth .auth-checkbox-label,
+body.auth-active.night-auth .auth-card-foot p{color:rgba(255,255,255,.75)}
+body.auth-active.night-auth .auth-switch-btn{color:#52b788}
+body.auth-active.night-auth .auth-forgot-link{color:#52b788}
+body.auth-active.night-auth .btn-auth{
+  background:rgba(255,255,255,.12);
+  border-color:rgba(255,255,255,.24);
+  color:#fff;
+}
+
+@media(max-width:600px){
+  /* La barra deja de flotar sobre la tarjeta: se queda arriba y la tarjeta pasa por debajo */
+  .auth-view{justify-content:flex-start;padding-top:0}
+  .auth-top-bar{position:sticky;top:0;left:auto;transform:none;width:100%;flex:none;
+    padding:calc(10px + env(safe-area-inset-top,0px)) 0 14px;
+    background:linear-gradient(rgba(238,244,234,.97) 72%,rgba(238,244,234,0))}
+  body.night-auth .auth-top-bar{background:linear-gradient(rgba(10,26,20,.94) 72%,rgba(10,26,20,0))}
+  .auth-card-wrap{padding-top:4px}
+  .auth-card{padding:26px 20px 22px;border-radius:22px}
+  .auth-social-grid{grid-template-columns:1fr}
+  .auth-role-selector{grid-template-columns:1fr}
+  .auth-top-brand{display:none}
+}
+
+</style>
+</head>
+<body>
+
+<canvas id="world" aria-hidden="true"></canvas>
+<div class="veil"></div>
+
+<header class="nav">
+  <a class="brand" href="#parada-1" aria-label="PaxFide, inicio">
+    <div class="brand-logo">
+      <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true">
+        <defs>
+          <linearGradient id="gLeaf" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#4DAE60"/>
+            <stop offset="100%" stop-color="#1B5141"/>
+          </linearGradient>
+          <linearGradient id="gHeartR" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#3A98CC"/>
+            <stop offset="100%" stop-color="#255E79"/>
+          </linearGradient>
+        </defs>
+        <circle cx="24" cy="7.5" r="3.2" fill="#F9B829"/>
+        <path d="M24,2.5 L24,3.8 M20,4.2 L20.9,5.3 M28,4.2 L27.1,5.3" stroke="#F9B829" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M24,14 C19,8.5 12,10.5 12,17.5 C12,24.5 24,30.5 24,30.5 C24,30.5 18,25.5 17,20.5 C16,16.5 20,14.5 24,17.5 Z" fill="url(#gLeaf)"/>
+        <path d="M24,14 C29,8.5 36,10.5 36,17.5 C36,24.5 24,30.5 24,30.5 C24,30.5 30,25.5 31,20.5 C32,16.5 28,14.5 24,17.5 Z" fill="url(#gHeartR)"/>
+        <polygon points="24,19 28.5,21.5 24,24 19.5,21.5" fill="#F8CF7E"/>
+        <polygon points="19.5,21.5 24,24 24,29 19.5,26.5" fill="#D9962C"/>
+        <polygon points="28.5,21.5 24,24 24,29 28.5,26.5" fill="#F3B544"/>
+        <path d="M12,25.5 C14.5,23.5 18,28.5 24,32 C30,30 35.5,25 36.5,21.5 C35.5,26.5 31,34.5 24,35.5 C17,35.5 12,30.5 12,25.5 Z" fill="#1B5141"/>
+      </svg>
+    </div>
+    <span>Pax<span class="g">Fide</span><span class="d">.</span></span>
+  </a>
+
+  <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks" aria-label="Abrir menú de navegación">
+    <span></span><span></span><span></span>
+  </button>
+
+  <ul id="navLinks">
+    <li><a href="#parada-1">Cómo funciona</a></li>
+    <li><a href="#parada-4">Verificación</a></li>
+    <li><a href="#convocatorias">Convocatorias</a></li>
+    <li><a href="#seguir">Seguimiento</a></li>
+    <li class="nav-mobile-acts">
+      <button class="theme-toggle" id="themeToggleMobile" type="button" aria-label="Cambiar ciclo Día / Noche">
+        <span class="theme-icon" id="themeIconMobile">☀️</span>
+        <span class="theme-text" id="themeTextMobile">Día</span>
+      </button>
+      <button class="btn btn-auth" id="btnOpenAuthMobile" type="button">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Ingresar</span>
+      </button>
+      <a class="btn btn-g" href="#seguir">Seguir donación</a>
+      <a class="btn btn-p" href="#convocatorias">Donar</a>
+    </li>
+  </ul>
+
+  <div class="acts">
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Modo de iluminación: Automático (sigue el recorrido). Pulsa para alternar a Noche o Día" title="Ciclo Día / Noche">
+      <span class="theme-icon" id="themeIcon">☀️</span>
+      <span class="theme-text" id="themeText">Día</span>
+    </button>
+    <button class="btn btn-auth" id="btnOpenAuth" type="button" aria-label="Iniciar sesión o registrarse">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Ingresar</span>
+    </button>
+    <a class="btn btn-g" href="#seguir">Seguir donación</a>
+    <a class="btn btn-p" href="#convocatorias">Donar</a>
+  </div>
+</header>
+
+<nav class="dots" aria-label="Paradas del recorrido" id="dots">
+  <a href="#parada-1" aria-label="Parada 1: Donas"></a><a href="#parada-2" aria-label="Parada 2: Se convierte en ayuda"></a>
+  <a href="#parada-3" aria-label="Parada 3: Viaja y se reparte"></a><a href="#parada-4" aria-label="Parada 4: Queda sellado"></a>
+  <a href="#parada-5" aria-label="Parada 5: Llega"></a><a href="#recorrido" aria-label="Todo el recorrido"></a>
+  <a href="#convocatorias" aria-label="Convocatorias abiertas"></a>
+</nav>
+
+
+<!-- ===================================================
+     VISTA DE LOGIN / REGISTRO (SOLO UNA CAJA, FONDO CLARO SIN BLUR)
+     =================================================== -->
+<div id="authView" class="auth-view" aria-hidden="true">
+  <!-- Barra superior con la flechita para volver solicitada -->
+  <div class="auth-top-bar">
+    <button class="auth-back-btn" id="btnBackFromAuth" type="button" aria-label="Volver al recorrido">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 19"></polyline>
+      </svg>
+      <span>Volver al recorrido</span>
+    </button>
+
+    <div class="auth-top-brand">
+      <span class="auth-brand-text">Pax<b>Fide</b>.</span>
+    </div>
+
+    <!-- Toggle de iluminación para la vista de login -->
+    <button class="theme-toggle" id="themeToggleAuth" type="button" aria-label="Cambiar ciclo Día / Noche">
+      <span class="theme-icon" id="themeIconAuth">☀️</span>
+      <span class="theme-text" id="themeTextAuth">Día</span>
+    </button>
+  </div>
+
+  <!-- Contenedor centrado: SOLO UNA CAJA (Login / Registro integrado) -->
+  <div class="auth-card-wrap">
+    <div class="auth-card" id="authBox">
+      <!-- Cabecera de la caja -->
+      <div class="auth-card-head">
+        <div class="auth-badge-pill">
+          <span class="auth-badge-dot"></span>
+          <span>TU CUENTA PAXFIDE</span>
+        </div>
+        <h2 id="authCardTitle">Iniciar Sesión</h2>
+        <p id="authCardSub">Gestiona tus donaciones, verifica lotes en blockchain y apoya convocatorias.</p>
+      </div>
+
+      <!-- Conmutador de pestaña (Tabs dentro de la misma caja) -->
+      <div class="auth-tabs" role="tablist">
+        <button class="auth-tab-btn active" id="tabBtnLogin" type="button" role="tab" aria-selected="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          <span>Iniciar Sesión</span>
+        </button>
+        <button class="auth-tab-btn" id="tabBtnRegister" type="button" role="tab" aria-selected="false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          <span>Crear Cuenta</span>
+        </button>
+      </div>
+
+      <!-- Botones de acceso rápido social / web3 -->
+      <div class="auth-social-grid">
+        <button type="button" class="social-auth-btn" id="btnGoogleAuth" onclick="handleSocialAuth('Google')">
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.36 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.03 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.36 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+          </svg>
+          <span>Google</span>
+        </button>
+        <button type="button" class="social-auth-btn" id="btnWalletAuth" onclick="handleSocialAuth('Billetera Web3')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="3"/>
+            <line x1="2" y1="10" x2="22" y2="10"/>
+            <circle cx="17" cy="14" r="1.5" fill="currentColor"/>
+          </svg>
+          <span>Billetera Web3</span>
+        </button>
+      </div>
+
+      <div class="auth-divider">
+        <span>o continúa con correo electrónico</span>
+      </div>
+
+      <!-- FORMULARIO 1: INICIAR SESIÓN -->
+      <form class="auth-form" id="formLogin" onsubmit="event.preventDefault(); handleAuthSubmit('login');">
+        <div class="auth-field">
+          <label for="loginEmail">Correo electrónico</label>
+          <div class="auth-input-wrap">
+            <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input type="email" id="loginEmail" placeholder="ejemplo@correo.com" required autocomplete="email">
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <div class="auth-label-row">
+            <label for="loginPass">Contraseña</label>
+            <a href="#" class="auth-forgot-link" id="linkForgotPass" onclick="event.preventDefault(); handleForgotPass();">¿Olvidaste tu contraseña?</a>
+          </div>
+          <div class="auth-input-wrap">
+            <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" id="loginPass" placeholder="Tu contraseña" required autocomplete="current-password">
+            <button type="button" class="btn-toggle-eye" aria-label="Mostrar u ocultar contraseña" onclick="togglePassVisibility('loginPass', this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="auth-options-row">
+          <label class="auth-checkbox-label">
+            <input type="checkbox" id="loginRemember" checked>
+            <span>Recordarme en este navegador</span>
+          </label>
+        </div>
+
+        <button type="submit" class="auth-submit-btn">
+          <span>Iniciar Sesión</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </form>
+
+      <!-- FORMULARIO 2: CREAR CUENTA -->
+      <form class="auth-form" id="formRegister" style="display:none;" onsubmit="event.preventDefault(); handleAuthSubmit('register');">
+        <div class="auth-field">
+          <label>¿Cómo participarás en PaxFide?</label>
+          <div class="auth-role-selector">
+            <label class="role-pill">
+              <input type="radio" name="userRole" value="donante" checked>
+              <span class="role-card">
+                <b>💚 Donante</b>
+                <small>Aporta y sigue tus fondos</small>
+              </span>
+            </label>
+            <label class="role-pill">
+              <input type="radio" name="userRole" value="organizacion">
+              <span class="role-card">
+                <b>🏛️ Organización</b>
+                <small>Crea convocatorias trazables</small>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label for="regName">Nombre completo o Organización</label>
+          <div class="auth-input-wrap">
+            <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <input type="text" id="regName" placeholder="Ej. Carlos Mendoza o Fundación Paz" required autocomplete="name">
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label for="regEmail">Correo electrónico</label>
+          <div class="auth-input-wrap">
+            <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input type="email" id="regEmail" placeholder="tu@correo.com" required autocomplete="email">
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label for="regPass">Contraseña segura</label>
+          <div class="auth-input-wrap">
+            <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" id="regPass" placeholder="Mínimo 8 caracteres" required autocomplete="new-password" oninput="checkPassStrength(this.value)">
+            <button type="button" class="btn-toggle-eye" aria-label="Mostrar u ocultar contraseña" onclick="togglePassVisibility('regPass', this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <!-- Barra de fuerza de contraseña -->
+          <div class="pass-strength-bar">
+            <div class="strength-meter" id="strengthMeter"></div>
+            <span class="strength-label" id="strengthLabel">Seguridad de contraseña</span>
+          </div>
+        </div>
+
+        <div class="auth-options-row">
+          <label class="auth-checkbox-label">
+            <input type="checkbox" id="regTerms" required>
+            <span>Acepto los <a href="#" class="auth-inline-link" onclick="event.preventDefault(); showAuthMsg('info', 'Términos:', 'documento pendiente de redacción para el proyecto.');">Términos de Transparencia</a> y la Política de Privacidad.</span>
+          </label>
+        </div>
+
+        <button type="submit" class="auth-submit-btn">
+          <span>Crear cuenta</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+      </form>
+
+      <!-- Mensaje de feedback interactivo -->
+      <div class="auth-feedback-msg" id="authFeedbackMsg" role="alert" style="display:none;"></div>
+
+      <!-- Pie de la caja: toggle de texto -->
+      <div class="auth-card-foot">
+        <p id="authFootSwitch">
+          ¿No tienes una cuenta aún?
+          <button type="button" class="auth-switch-btn" onclick="switchAuthTab('register')">Regístrate gratis</button>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main>
+  <section class="stop" id="parada-1" data-i="0">
+    <article class="card">
+      <div class="idx"><b>01 / 05 · DONAS</b><span class="ev">PAGO CONFIRMADO</span></div>
+      <h1>Tu donación, <em>de principio a fin</em>.</h1>
+      <p>Pagas por la pasarela. Cuando el pago se confirma, se abre el historial de tu donación y recibes un código para seguirla paso a paso.</p>
+      <div class="ctas"><a class="btn btn-p" href="#convocatorias">Donar a una convocatoria</a><a class="btn btn-g" href="#seguir">Seguir mi donación</a></div>
+      <div class="hint"><i></i>Desliza y acompaña su recorrido</div>
+    </article>
+  </section>
+
+  <section class="stop" id="parada-2" data-i="1">
+    <article class="card">
+      <div class="idx"><b>02 / 05 · SE CONVIERTE EN AYUDA</b><span class="ev">FONDOS ASIGNADOS → LOTE REGISTRADO</span></div>
+      <h2>De saldo a <em>cajas reales</em>.</h2>
+      <p>La organización compra los insumos y registra cada lote en la bodega. El dinero asignado y el lote quedan conectados, y cada lote recibe su propio QR.</p>
+      <div class="facts"><div><strong>120 kits</strong><span>registrados como un lote trazable</span></div><div><strong>1 QR</strong><span>por lote, no por cada unidad</span></div></div>
+    </article>
+  </section>
+
+  <section class="stop" id="parada-3" data-i="2">
+    <article class="card">
+      <div class="idx"><b>03 / 05 · VIAJA Y SE REPARTE</b><span class="ev">LOTE DESPACHADO · LOTE DIVIDIDO</span></div>
+      <h2>Sigue la caja, <em>aunque se divida</em>.</h2>
+      <p>Cada despacho y cada recepción se registran al escanear el QR. Si el lote se reparte entre dos destinos, cada parte conserva el vínculo con su origen.</p>
+      <div class="facts"><div><strong>100 → 60 + 40</strong><span>el lote original sigue existiendo</span></div><div><strong>Puntos de control</strong><span>solo paradas oficiales de la ruta</span></div></div>
+    </article>
+  </section>
+
+  <section class="stop" id="parada-4" data-i="3">
+    <article class="card">
+      <div class="idx"><b>04 / 05 · QUEDA SELLADO</b><span class="ev">LOTE SELLADO · REGISTRO PÚBLICO</span></div>
+      <h2>Una huella que <em>no se puede maquillar</em>.</h2>
+      <p>Cada registro lleva una huella digital encadenada a la anterior. Por lotes, esas huellas se resumen en una sola y se anclan en blockchain. Si alguien cambiara un registro, la verificación lo detectaría.</p>
+      <div class="facts"><div><strong>SHA-256</strong><span>huella de cada registro</span></div><div><strong>0 datos personales</strong><span>en la cadena pública</span></div></div>
+    </article>
+  </section>
+
+  <section class="stop" id="parada-5" data-i="4">
+    <article class="card">
+      <div class="idx"><b>05 / 05 · LLEGA</b><span class="ev">ENTREGA CONFIRMADA</span></div>
+      <h2>Entregado, <em>y lo puedes comprobar</em>.</h2>
+      <p>La entrega se registra sin exponer la identidad de quien recibe. Con tu código ves el recorrido completo, desde el pago hasta la comunidad.</p>
+      <div class="facts"><div><strong>Lorica, Córdoba</strong><span>centro comunitario de ejemplo</span></div><div><strong>5 de 5 pasos</strong><span>registrados y verificables</span></div></div>
+    </article>
+  </section>
+
+  <section class="overview" id="recorrido" data-i="5">
+    <div class="mani">
+      <span class="ev">TODO EL RECORRIDO</span>
+      <p id="mani">Cada paso queda registrado. Nadie lo puede cambiar sin que se note. Y tú lo puedes comprobar cuando quieras.</p>
+    </div>
+  </section>
+</main>
+
+<!-- SECCIÓN DE SEGUIMIENTO: isla flotante (65 % donante · 35 % organización) -->
+<section class="cta" id="seguir" aria-labelledby="ctaTitle">
+  <div class="cta-island">
+    <div class="cta-main">
+      <span class="ev cta-ev"><i class="live-dot" aria-hidden="true"></i>SEGUIMIENTO DE DONACIÓN</span>
+      <h2 id="ctaTitle">¿Ya donaste? <em>Sigue tu donación.</em></h2>
+      <p>Escribe el código que recibiste al donar. Verás en qué punto va y cuándo quedó sellada.</p>
+
+      <form class="trk" id="trkForm" autocomplete="off" role="search">
+        <label for="trk">Código de seguimiento</label>
+        <div class="trk-capsule">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM20 20h1M17 20h1M20 17h1"/></svg>
+          <input id="trk" name="trk" placeholder="Código de seguimiento" spellcheck="false" autocapitalize="characters">
+          <button class="btn btn-y" type="submit">Ver recorrido →</button>
+        </div>
+      </form>
+
+      <div class="trk-demo-chips">
+        <span class="trk-demo-lbl">¿No tienes código? Prueba:</span>
+        <button type="button" class="demo-chip" data-code="EJEMPLO-1">EJEMPLO-1 <span aria-hidden="true">↗</span></button>
+        <button type="button" class="demo-chip" data-code="EJEMPLO-2">EJEMPLO-2 <span aria-hidden="true">↗</span></button>
+      </div>
+
+      <div id="trkMsg" role="status"></div>
+
+      <!-- Simulación interactiva de diseño -->
+      <div id="trkResult" class="trk-result" hidden aria-live="polite">
+        <div class="trk-badge">
+          <span class="ev">EJEMPLO ILUSTRATIVO</span>
+          <small>Simulación de diseño con datos ficticios. No es una consulta a la red real.</small>
+        </div>
+        <div class="trk-summary">
+          <div><strong>Lote:</strong> <span id="resLot">Lote ilustrativo #142 (Kits escolares)</span></div>
+          <div><strong>Destino:</strong> <span id="resDest">Lorica, Córdoba</span></div>
+          <div><strong>Estado:</strong> <span class="trk-status-tag" id="resStatus">Entrega completada (5/5)</span></div>
+        </div>
+        <ol class="trk-timeline">
+          <li>
+            <span class="trk-tl-dot"></span>
+            <div class="trk-tl-body">
+              <div class="trk-tl-head"><b>01 · Recepción de fondos</b><time>14:02</time></div>
+              <p>Pago confirmado por la pasarela. Se abre el historial de la donación.</p>
+              <span class="trk-hash">Hash: <code>a3f9…c801 (ejemplo)</code></span>
+            </div>
+          </li>
+          <li>
+            <span class="trk-tl-dot"></span>
+            <div class="trk-tl-body">
+              <div class="trk-tl-head"><b>02 · Registro de lote y QR</b><time>16:45</time></div>
+              <p>Compra de insumos y registro del lote en Bodega Montería.</p>
+              <span class="trk-hash">Hash: <code>b14e…7a20 (ejemplo)</code></span>
+            </div>
+          </li>
+          <li>
+            <span class="trk-tl-dot"></span>
+            <div class="trk-tl-body">
+              <div class="trk-tl-head"><b>03 · Despachado hacia el destino</b><time>09:15</time></div>
+              <p>QR escaneado al salir de la bodega.</p>
+              <span class="trk-hash">Hash: <code>5c22…9f14 (ejemplo)</code></span>
+            </div>
+          </li>
+          <li>
+            <span class="trk-tl-dot"></span>
+            <div class="trk-tl-body">
+              <div class="trk-tl-head"><b>04 · Sello en blockchain (Merkle)</b><time>11:30</time></div>
+              <p>Las huellas del lote se agrupan y la raíz se ancla para verificación pública.</p>
+              <span class="trk-hash">Raíz Merkle: <code>7d2a…40e1 (ejemplo)</code></span>
+            </div>
+          </li>
+          <li id="tlStep5">
+            <span class="trk-tl-dot"></span>
+            <div class="trk-tl-body">
+              <div class="trk-tl-head"><b>05 · Entrega confirmada</b><time>15:20</time></div>
+              <p>Recibido en el centro comunitario, sin exponer datos personales.</p>
+              <span class="trk-hash">Hash: <code>e804…33b9 (ejemplo)</code></span>
+            </div>
+          </li>
+        </ol>
+        <p class="trk-disclaimer">En la plataforma real, el código de seguimiento es una credencial privada: no lo compartas ni lo publiques.</p>
+      </div>
+    </div>
+
+    <aside class="cta-org" aria-labelledby="ctaOrgTitle">
+      <div class="cta-org-ic" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/><path d="M9 21v-6h6v6"/></svg>
+      </div>
+      <b id="ctaOrgTitle">¿Eres una organización?</b>
+      <p>Crea tu cuenta y registra la organización. Un administrador la verifica antes de que publique convocatorias.</p>
+      <ul>
+        <li>Convocatorias con meta y fechas</li>
+        <li>Lotes con QR y recorrido visible</li>
+        <li>Historial que cualquiera puede verificar</li>
+      </ul>
+      <button type="button" class="btn btn-g" id="btnOrgRegister">Registrar mi organización →</button>
+    </aside>
+  </div>
+</section>
+
+<!-- ========================================================
+     SECCIÓN DE CONVOCATORIAS ABIERTAS (Netflix-style & Blur)
+     ======================================================== -->
+<section class="convocatorias-sec" id="convocatorias">
+  <div class="convocatorias-in">
+    <div class="conv-head">
+      <span class="ev">CATÁLOGO OFICIAL DE CONVOCATORIAS</span>
+      <h2>Causas abiertas con <em>trazabilidad garantizada</em></h2>
+      <p>Explora convocatorias activas en Córdoba y el Caribe con trazabilidad lote a lote. Cada donación genera un recibo digital enlazado a kits físicos verificados en blockchain.</p>
+    </div>
+
+    <!-- Controles y Filtros (Conmutador Grilla Web / Móvil + Categorías) -->
+    <div class="conv-toolbar-wrap">
+      <div class="conv-view-switcher" role="group" aria-label="Modo de visualización">
+        <button type="button" class="tool-btn active" id="btnViewWeb">💻 Vista Grilla Web</button>
+        <button type="button" class="tool-btn" id="btnViewMobile">📱 Vista App Móvil (390px)</button>
+      </div>
+
+      <div class="conv-filters" role="tablist">
+        <button type="button" class="filter-pill active" data-cat="all">Todas las causas</button>
+        <button type="button" class="filter-pill" data-cat="nutricion">🌾 Nutrición</button>
+        <button type="button" class="filter-pill" data-cat="agua">💧 Agua limpia</button>
+        <button type="button" class="filter-pill" data-cat="salud">🩺 Salud</button>
+        <button type="button" class="filter-pill" data-cat="emergencia">🚨 Emergencias</button>
+        <button type="button" class="filter-pill" data-cat="educacion">📚 Educación</button>
+        <button type="button" class="filter-pill" data-cat="vivienda">🏠 Hábitat</button>
+      </div>
+    </div>
+
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <g id="pax-box">
+          <polygon points="60,14 104,38 60,62 16,38" fill="#f8cf7e" />
+          <polygon points="16,38 60,62 60,112 16,88" fill="#d9962c" />
+          <polygon points="104,38 60,62 60,112 104,88" fill="#f3b544" />
+          <polygon points="33,29 77,53 87,47.5 43,23.5" fill="#e8b04f" />
+          <path d="M37 86c-7-4.6-9.6-8.8-8-12.3 1.4-2.9 5-2.6 8 1.2 3-2.3 6.5-1.3 7.7 1.9 1.2 3.4-1.5 7-7.7 9.2z" fill="#1e5b41" />
+        </g>
+      </defs>
+    </svg>
+
+    <!-- Grilla de Tarjetas Importadas de cajas.html -->
+    <main class="cards-grid" id="cardsGrid">
+
+
+    <!-- =======================================================
+         VARIANTE 1: UNIFICADA CON BARRA HORIZONTAL (Pág. 3 PDF)
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 01 • Unificada Clásica (Boceto Pág. 3 — 90%)</span>
+      <article class="conv-card">
+        <div class="conv-img-wrap">
+          <img src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=900&q=80"
+            alt="Kits nutricionales infantiles" />
+          <span class="badge-verified">✓ Organización Verificada</span>
+        </div>
+        <div class="v1-body">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.45rem;">
+            <span class="badge-dates">📅 01 Oct 2026 — 30 Nov 2026</span>
+            <span class="progress-pct-badge">90%</span>
+          </div>
+
+          <h2 class="conv-title">Kits de Nutrición Infantil en Bolívar</h2>
+          <p class="conv-desc">
+            Adquisición y entrega trazable de paquetes alimentarios para 450 familias con seguimiento criptográfico por
+            lote.
+          </p>
+
+          <div class="progress-block">
+            <div class="progress-meta">
+              <div class="progress-amounts">$18.000.000 <span>de $20.000.000 COP</span></div>
+            </div>
+            <div class="progress-track-h">
+              <div class="progress-fill-h" style="width: 90%;"></div>
+            </div>
+          </div>
+
+          <div class="v1-footer">
+            <div class="org-profile">
+              <img class="org-avatar"
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80"
+                alt="Avatar Fundación" />
+              <div class="org-info">
+                <span class="org-name">Fundación Caribe Unido</span>
+                <span class="org-role">NIT Verificado • Activa</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="conv-actions" style="margin-top: 0.95rem;">
+            <button class="btn-donate">💚 Donar ahora</button>
+            <button class="btn-details">Ver detalles</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- =======================================================
+         VARIANTE 2: MODULAR SEPARADA / ISLA (Pág. 2 PDF)
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 02 • Imagen + Isla Flotante (Boceto Pág. 2 — 90%)</span>
+      <article class="conv-card v2-split">
+        <div class="conv-img-wrap">
+          <img src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=900&q=80"
+            alt="Reforestación comunitaria" />
+          <span class="badge-verified">🌱 Impacto Ambiental</span>
+        </div>
+
+        <div class="v2-island-body">
+          <div class="v2-grid-2col">
+            <div>
+              <h2 class="conv-title" style="font-size:1.05rem;">Agua Limpia y Filtros Verificables</h2>
+              <p class="conv-desc" style="margin-bottom:0.5rem;">
+                Instalación de filtros cerámicos numerados con código QR único por hogar beneficiario.
+              </p>
+              <span class="badge-dates">📅 15 Oct — 20 Dic 2026</span>
+            </div>
+
+            <div
+              style="display:flex; flex-direction:column; gap:0.55rem; border-left:1px solid var(--border-soft); padding-left:0.75rem;">
+              <div class="org-profile">
+                <img class="org-avatar"
+                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80"
+                  alt="Perfil organización" />
+                <div class="org-info">
+                  <span class="org-name" style="font-size:0.75rem;">Red Agua Viva</span>
+                  <span class="org-role">Representante</span>
+                </div>
+              </div>
+              <button class="btn-donate" style="padding:0.5rem; font-size:0.75rem;">Donar</button>
+              <button class="btn-details" style="padding:0.45rem; font-size:0.73rem;">Ver detalles</button>
+            </div>
+          </div>
+
+          <div class="progress-block" style="margin-bottom:0; margin-top:0.85rem;">
+            <div class="progress-meta">
+              <span class="progress-pct-badge">90% completado</span>
+              <span class="progress-amounts">20.000 <span>de 20.000.000</span></span>
+            </div>
+            <div class="progress-track-h">
+              <div class="progress-fill-h" style="width: 90%;"></div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- =======================================================
+         VARIANTE 3: BARRA VERTICAL DERECHA 30% (Págs. 5 y 6 PDF)
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 03 • Termómetro Vertical 30% (Boceto Págs. 5 y 6)</span>
+      <article class="conv-card">
+        <div class="conv-img-wrap" style="height: 175px;">
+          <img src="https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=900&q=80"
+            alt="Útiles escolares" />
+          <span class="badge-verified">📦 Convocatoria Abierta</span>
+        </div>
+
+        <div class="v3-body-with-vertical-bar">
+          <!-- Columna izquierda con toda la info del boceto -->
+          <div style="display:flex; flex-direction:column; justify-content:space-between;">
+            <div>
+              <h2 class="conv-title">Dotación Escolar Rural 2026</h2>
+              <p class="conv-desc">
+                Morrales y kits pedagógicos rastreables desde la bodega central hasta cada escuela rural.
+              </p>
+            </div>
+
+            <div class="conv-actions" style="margin-bottom: 0.85rem;">
+              <button class="btn-donate">Donar</button>
+              <button class="btn-details">Ver detalles</button>
+            </div>
+
+            <div
+              style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.4rem; padding-top:0.65rem; border-top:1px solid var(--border-soft);">
+              <div class="org-profile">
+                <img class="org-avatar" style="width:30px; height:30px;"
+                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80"
+                  alt="Organización" />
+                <span class="org-name" style="font-size:0.75rem;">EducaFuturo ONG</span>
+              </div>
+              <div style="text-align:right;">
+                <div class="progress-amounts" style="font-size:0.7rem;">$6.000.000 <span>/ $20M</span></div>
+                <span class="badge-dates" style="font-size:0.68rem;">📅 Oct — Dic 2026</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Termómetro Vertical al 30% en la derecha tal como en tu PDF -->
+          <div class="v3-vertical-meter" title="30% recaudado">
+            <div class="v3-vertical-fill"></div>
+            <span class="v3-pct-text">30%</span>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- =======================================================
+         VARIANTE 4: INMERSIVA GLASSMORPHISM (Full Image Overlay)
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 04 • Inmersiva Glassmorphism (Ideal App Móvil)</span>
+      <article class="conv-card v4-immersive">
+        <img class="v4-bg-img"
+          src="https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=900&q=80"
+          alt="Cajas de donación humanitaria" />
+        <div class="v4-gradient-overlay"></div>
+        <span class="badge-verified" style="z-index:3;">⛓️ Anclado en Blockchain</span>
+
+        <div class="v4-glass-content">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+            <div class="org-profile">
+              <img class="org-avatar" style="width:28px; height:28px;"
+                src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=200&q=80"
+                alt="Avatar" />
+              <span class="org-name" style="font-size:0.78rem;">Alianza Humanitaria Sur</span>
+            </div>
+            <span class="badge-dates">📅 Cierra en 12 días</span>
+          </div>
+
+          <h2 class="conv-title">Emergencia Invernal: Kits de Abrigo</h2>
+          <p class="conv-desc" style="margin-bottom:0.75rem;">
+            Frazadas térmicas y raciones calientes con confirmación de entrega en tiempo real.
+          </p>
+
+          <div class="progress-block" style="margin-top:0;">
+            <div class="progress-meta">
+              <span class="progress-amounts">$18.000.000 <span>de $20.000.000</span></span>
+              <span
+                style="color:#8ce99a; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:0.8rem;">90%</span>
+            </div>
+            <div class="progress-track-h" style="background:rgba(255,255,255,0.2);">
+              <div class="progress-fill-h" style="width:90%; background:linear-gradient(90deg, #52b788, #e5a93c);">
+              </div>
+            </div>
+          </div>
+
+          <div class="conv-actions">
+            <button class="btn-donate" style="background:#52b788; color:#061a11;">Donar y seguir</button>
+            <button class="btn-details" style="color:#fff; border-color:rgba(255,255,255,0.35);">Ver detalles</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- =======================================================
+         VARIANTE 5: PANORÁMICA HORIZONTAL (Web / Campaña Destacada)
+         ======================================================= -->
+    <div class="variant-wrapper wide-span">
+      <span class="variant-label">Variante 05 • Panorámica Dos Columnas (Destacada para Web Dashboard)</span>
+      <article class="conv-card v5-horizontal">
+        <div class="conv-img-wrap">
+          <img src="https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=900&q=80"
+            alt="Entrega de donaciones" />
+          <span class="badge-verified">⭐ Convocatoria Destacada</span>
+        </div>
+
+        <div class="v5-content">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+              <div class="org-profile">
+                <img class="org-avatar"
+                  src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=200&q=80"
+                  alt="Avatar" />
+                <div class="org-info">
+                  <span class="org-name">Fundación Salud Sin Fronteras</span>
+                  <span class="org-role">Auditoría IA Activa (ADR-040)</span>
+                </div>
+              </div>
+              <span class="badge-dates">📅 01 Oct 2026 — 15 Ene 2027</span>
+            </div>
+
+            <h2 class="conv-title">Insumos Médicos para Centros de Salud Locales</h2>
+            <p class="conv-desc">
+              Cada aporte financiero se vincula en el <code>CampaignFundingLedger</code> y permite auditar la
+              desconsolidación de insumos médicos hasta el hospital receptor.
+            </p>
+          </div>
+
+          <div>
+            <div class="progress-block">
+              <div class="progress-meta">
+                <span class="progress-amounts">$18.000.000 <span>recaudados de $20.000.000 COP</span></span>
+                <span class="progress-pct-badge">90% alcanzado</span>
+              </div>
+              <div class="progress-track-h">
+                <div class="progress-fill-h" style="width: 90%;"></div>
+              </div>
+            </div>
+
+            <div class="conv-actions">
+              <button class="btn-donate">💚 Donar a esta convocatoria</button>
+              <button class="btn-details">Ver detalles y ledger</button>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- =======================================================
+         VARIANTE 6: COMPACTA CON ANILLO CIRCULAR (Feed App Móvil)
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 06 • Compacta con Anillo SVG (Feed Rápido App)</span>
+      <article class="conv-card v6-compact">
+        <div class="v6-top-row">
+          <img class="v6-thumb"
+            src="https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?auto=format&fit=crop&w=400&q=80"
+            alt="Medicamentos y cajas" />
+          <div style="flex:1;">
+            <span class="badge-dates" style="font-size:0.68rem;">📅 Inicia 10 Oct • Fin 30 Nov</span>
+            <h2 class="conv-title" style="font-size:1rem; margin-top:2px;">Botiquines Comunitarios Verificables</h2>
+            <div class="org-profile" style="margin-top:4px;">
+              <img class="org-avatar" style="width:22px; height:22px;"
+                src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80"
+                alt="Org" />
+              <span class="org-name" style="font-size:0.74rem;">Cruz Verde Solidaria</span>
+            </div>
+          </div>
+
+          <!-- Anillo SVG al 30% -->
+          <div class="v6-ring-wrap">
+            <svg viewBox="0 0 36 36">
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+                stroke="#dce6e0" stroke-width="3.5" />
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+                stroke="#e5a93c" stroke-width="3.5" stroke-dasharray="30, 100" stroke-linecap="round" />
+            </svg>
+            <span class="v6-ring-pct">30%</span>
+          </div>
+        </div>
+
+        <p class="conv-desc" style="margin-bottom:0;">
+          Equipamiento de primeros auxilios con seguimiento de custodia desde la compra hasta cada junta de acción
+          comunal.
+        </p>
+
+        <div
+          style="display:flex; justify-content:space-between; align-items:center; background:var(--pax-mint); padding:0.5rem 0.75rem; border-radius:10px;">
+          <span class="progress-amounts" style="font-size:0.73rem;">Meta: $6.000.000 <span>/ $20.000.000</span></span>
+          <span style="font-size:0.7rem; font-weight:700; color:var(--pax-emerald);">142 donantes</span>
+        </div>
+
+        <div class="conv-actions">
+          <button class="btn-donate">Donar</button>
+          <button class="btn-details">Ver detalles</button>
+        </div>
+      </article>
+    </div>
+
+    <!-- =======================================================
+         VARIANTE 7: TRAZABILIDAD FÍSICA + FINANCIERA (Kits + QR)
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 07 • Trazabilidad Dual (Fondo Financiero + Kits Físicos)</span>
+      <article class="conv-card">
+        <div class="conv-img-wrap" style="height: 165px;">
+          <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=900&q=80"
+            alt="Bodega de logística y cajas" />
+          <span class="badge-verified">📦 450 / 500 Kits Listos</span>
+        </div>
+
+        <div class="v1-body">
+          <h2 class="conv-title">Despensas Trazables para Comedores</h2>
+          <p class="conv-desc">
+            Cada $40.000 COP financian 1 Caja Física (`PhysicalAsset`) sellada con hash SHA-256 en el Event Store.
+          </p>
+
+          <div class="v7-kits-strip">
+            <span>📦 Conversión Física: <strong>450 Kits</strong></span>
+            <span style="font-family:'JetBrains Mono',monospace; color:var(--pax-blue);">SHA-256 Activo</span>
+          </div>
+
+          <div class="progress-block" style="margin-top:0;">
+            <div class="progress-meta">
+              <span class="progress-amounts">$18.000.000 <span>de $20.000.000</span></span>
+              <span class="progress-pct-badge">90%</span>
+            </div>
+            <div class="progress-track-h">
+              <div class="progress-fill-h" style="width: 90%;"></div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.85rem;">
+            <div class="org-profile">
+              <img class="org-avatar" style="width:28px; height:28px;"
+                src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=200&q=80"
+                alt="Organización" />
+              <span class="org-name" style="font-size:0.76rem;">Banco de Alimentos Costa</span>
+            </div>
+            <span class="badge-dates">📅 01 Oct — 01 Dic</span>
+          </div>
+
+          <div class="conv-actions">
+            <button class="btn-donate">Donar 1 Kit ($40k)</button>
+            <button class="btn-details">Ver detalles</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- =======================================================
+         VARIANTE 8: BOLETO COMPACTO CON MINIATURA (Págs. 1 y 4 PDF)
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 08 • Boleto Ligero con Miniatura (Bocetos Págs. 1 y 4)</span>
+      <article class="conv-card v8-ticket">
+        <div class="v8-header-banner">
+          <img class="v8-banner-img"
+            src="https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=300&q=80"
+            alt="Manos unidas" />
+          <div>
+            <span class="badge-dates">📅 05 Oct — 25 Nov 2026</span>
+            <h2 class="conv-title" style="font-size:1.02rem; margin-bottom:0;">Reconstrucción de Techos Seguros</h2>
+          </div>
+        </div>
+
+        <p class="conv-desc">
+          Compra directa a proveedor verificado de láminas termoacústicas con auditoría pública de entregas.
+        </p>
+
+        <div class="progress-block">
+          <div class="progress-meta">
+            <span class="progress-amounts">20.000 <span>de 20.000.000</span></span>
+            <span class="progress-pct-badge">90%</span>
+          </div>
+          <div class="progress-track-h">
+            <div class="progress-fill-h" style="width: 90%;"></div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+          <div class="org-profile">
+            <img class="org-avatar" style="width:30px; height:30px;"
+              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80"
+              alt="Avatar" />
+            <span class="org-name" style="font-size:0.76rem;">Hábitat Digno ONG</span>
+          </div>
+          <div class="conv-actions">
+            <button class="btn-donate" style="padding:0.5rem 0.85rem;">Donar</button>
+            <button class="btn-details" style="padding:0.5rem 0.75rem;">Detalles</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+
+    <!-- =======================================================
+         SVG reutilizable: caja isométrica con corazón (portadas sin foto)
+         ======================================================= -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <g id="pax-box">
+          <polygon points="60,14 104,38 60,62 16,38" fill="#f8cf7e" />
+          <polygon points="16,38 60,62 60,112 16,88" fill="#d9962c" />
+          <polygon points="104,38 60,62 60,112 104,88" fill="#f3b544" />
+          <polygon points="33,29 77,53 87,47.5 43,23.5" fill="#e8b04f" />
+          <path d="M37 86c-7-4.6-9.6-8.8-8-12.3 1.4-2.9 5-2.6 8 1.2 3-2.3 6.5-1.3 7.7 1.9 1.2 3.4-1.5 7-7.7 9.2z" fill="#1e5b41" />
+        </g>
+      </defs>
+    </svg>
+
+    <!-- =======================================================
+         VARIANTE 09: FILA DE LISTADO (Resultados / búsqueda)
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 09 • Fila de Listado (Búsqueda y Resultados en App)</span>
+      <article class="conv-card v9-list">
+        <div class="v9-row">
+          <img class="v9-thumb"
+            src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=300&q=80"
+            alt="Kits nutricionales" />
+          <div style="min-width:0;">
+            <div class="v9-title">Kits de Nutrición Infantil en Bolívar</div>
+            <div class="v9-sub">Fundación Caribe Unido · 12 días</div>
+            <div class="v9-mini-track"><i style="width:90%"></i></div>
+          </div>
+          <div class="v9-pct">90%<small>$18 M</small></div>
+        </div>
+        <div class="v9-row">
+          <div class="v9-thumb illus-cover cover-water"><svg viewBox="0 0 120 120"><use href="#pax-box" /></svg></div>
+          <div style="min-width:0;">
+            <div class="v9-title">Agua Limpia para La Guajira</div>
+            <div class="v9-sub">Red Agua Viva · 21 días</div>
+            <div class="v9-mini-track"><i style="width:54%"></i></div>
+          </div>
+          <div class="v9-pct">54%<small>$10,8 M</small></div>
+        </div>
+        <div class="v9-row">
+          <img class="v9-thumb"
+            src="https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=300&q=80"
+            alt="Útiles escolares" />
+          <div style="min-width:0;">
+            <div class="v9-title">Dotación Escolar Rural 2026</div>
+            <div class="v9-sub">EducaFuturo ONG · 30 días</div>
+            <div class="v9-mini-track"><i style="width:30%"></i></div>
+          </div>
+          <div class="v9-pct">30%<small>$6 M</small></div>
+        </div>
+      </article>
+    </div>
+
+    <!-- =======================================================
+         VARIANTE 10: BARRA POR HITOS
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 10 • Meta por Hitos (Tramos de 25%)</span>
+      <article class="conv-card">
+        <div class="conv-img-wrap" style="height:160px;">
+          <img src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=900&q=80"
+            alt="Comunidad trabajando" />
+          <span class="badge-verified">✓ Organización Verificada</span>
+        </div>
+        <div class="v1-body">
+          <span class="badge-dates">📅 01 Oct — 15 Dic 2026</span>
+          <h2 class="conv-title" style="margin-top:0.35rem;">Huertas Comunitarias en Sucre</h2>
+          <p class="conv-desc">Semillas, herramientas y capacitación para 60 familias, entregadas por etapas.</p>
+
+          <div class="progress-meta" style="margin-bottom:0;">
+            <span class="progress-amounts">$13.600.000 <span>de $20.000.000 COP</span></span>
+            <span class="progress-pct-badge">68%</span>
+          </div>
+          <div class="v10-milestones" aria-label="68% de la meta">
+            <div class="v10-seg"><i style="width:100%"></i></div>
+            <div class="v10-seg"><i style="width:100%"></i></div>
+            <div class="v10-seg"><i style="width:72%"></i></div>
+            <div class="v10-seg"><i style="width:0%"></i></div>
+          </div>
+          <div class="v10-labels">
+            <span class="done">$5 M</span><span class="done">$10 M</span><span>$15 M</span><span>$20 M</span>
+          </div>
+          <div class="v10-next">🌱 <span>Faltan <b>$1.400.000</b> para el siguiente hito: <b>herramientas para 20 familias</b>.</span></div>
+
+          <div class="conv-actions" style="margin-top:0.95rem;">
+            <button class="btn-donate">Donar</button>
+            <button class="btn-details">Ver detalles</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- =======================================================
+         VARIANTE 11: RECORRIDO DE LO RECAUDADO
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 11 • Recorrido de lo Recaudado (Requiere datos de lotes)</span>
+      <article class="conv-card">
+        <div class="conv-img-wrap" style="height:150px;">
+          <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=900&q=80"
+            alt="Bodega con cajas" />
+          <span class="badge-verified">📦 Entregas en curso</span>
+        </div>
+        <div class="v1-body">
+          <h2 class="conv-title">Mercados para Familias de Mocoa</h2>
+          <div class="org-profile" style="margin-bottom:0.2rem;">
+            <img class="org-avatar" style="width:26px; height:26px;"
+              src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=200&q=80"
+              alt="Organización" />
+            <span class="org-name" style="font-size:0.76rem;">Banco de Alimentos Sur</span>
+          </div>
+
+          <div class="v11-steps" style="--done:0.62;">
+            <div class="v11-step done"><span class="v11-dot">✓</span>Recaudo</div>
+            <div class="v11-step done"><span class="v11-dot">✓</span>Compra</div>
+            <div class="v11-step done"><span class="v11-dot">✓</span>Despacho</div>
+            <div class="v11-step now"><span class="v11-dot">•</span>Recepción</div>
+            <div class="v11-step"><span class="v11-dot"></span>Entrega</div>
+          </div>
+
+          <div class="v11-facts">
+            <div class="v11-fact"><strong>6</strong><span>lotes registrados</span></div>
+            <div class="v11-fact"><strong>4</strong><span>despachados</span></div>
+            <div class="v11-fact"><strong>1</strong><span>entregado</span></div>
+          </div>
+
+          <div class="progress-block" style="margin-bottom:0.9rem;">
+            <div class="progress-meta">
+              <span class="progress-amounts">$16.400.000 <span>de $20.000.000</span></span>
+              <span class="progress-pct-badge">82%</span>
+            </div>
+            <div class="progress-track-h"><div class="progress-fill-h" style="width:82%;"></div></div>
+          </div>
+
+          <div class="conv-actions">
+            <button class="btn-donate">Donar</button>
+            <button class="btn-details">Ver recorrido</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- =======================================================
+         VARIANTE 12: SIN FOTO / PORTADA ILUSTRADA
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 12 • Sin Foto (Portada ilustrada por categoría)</span>
+      <article class="conv-card">
+        <div class="conv-img-wrap illus-cover cover-health v12-cover">
+          <svg viewBox="0 0 120 120" role="img" aria-label="Caja de donación"><use href="#pax-box" /></svg>
+          <span class="badge-verified">✓ Organización Verificada</span>
+        </div>
+        <div class="v1-body">
+          <div class="v12-chip-row">
+            <span class="v12-tag">Salud</span><span class="v12-tag">Chocó</span><span class="v12-tag">En especie y dinero</span>
+          </div>
+          <h2 class="conv-title">Brigada de Salud en el Chocó</h2>
+          <p class="conv-desc">Medicamentos básicos y jornadas de atención en tres veredas del Atrato.</p>
+
+          <div class="progress-block">
+            <div class="progress-meta">
+              <span class="progress-amounts">$7.400.000 <span>de $20.000.000</span></span>
+              <span class="progress-pct-badge">37%</span>
+            </div>
+            <div class="progress-track-h"><div class="progress-fill-h" style="width:37%;"></div></div>
+          </div>
+
+          <div class="v1-footer" style="margin-top:0.4rem;">
+            <div class="org-profile">
+              <div class="org-avatar illus-cover cover-health" style="display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:0.72rem;">RS</div>
+              <div class="org-info">
+                <span class="org-name">Red Salud Pacífico</span>
+                <span class="org-role">Sin foto de perfil: se usan iniciales</span>
+              </div>
+            </div>
+          </div>
+          <div class="conv-actions" style="margin-top:0.9rem;">
+            <button class="btn-donate">Donar</button>
+            <button class="btn-details">Ver detalles</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- =======================================================
+         VARIANTE 13: ESTADOS DE LA CONVOCATORIA
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 13 • Estados (Meta alcanzada · Por iniciar · Cerrada)</span>
+      <div class="v13-stack">
+        <article class="conv-card v13-card is-goal">
+          <div class="v13-head">
+            <h2 class="conv-title" style="font-size:0.98rem; margin:0;">Kits Escolares en Tumaco</h2>
+            <span class="status-pill status-goal">★ Meta alcanzada</span>
+          </div>
+          <div class="progress-meta">
+            <span class="progress-amounts">$21.300.000 <span>de $20.000.000</span></span>
+            <span class="progress-pct-badge">107%</span>
+          </div>
+          <div class="progress-track-h"><div class="progress-fill-h" style="width:100%;"></div></div>
+          <p class="v13-note">Sigue recibiendo donaciones hasta el 30 Nov. Lo que supere la meta se informa en el detalle.</p>
+        </article>
+
+        <article class="conv-card v13-card is-soon">
+          <div class="v13-head">
+            <h2 class="conv-title" style="font-size:0.98rem; margin:0;">Techos para Familias de Lorica</h2>
+            <span class="status-pill status-soon">◷ Inicia 01 Nov</span>
+          </div>
+          <div class="progress-meta">
+            <span class="progress-amounts">$0 <span>de $20.000.000</span></span>
+            <span class="badge-dates">Aún no recibe donaciones</span>
+          </div>
+          <div class="progress-track-h"><div class="progress-fill-h" style="width:0%;"></div></div>
+          <div class="conv-actions" style="margin-top:0.75rem;">
+            <button class="btn-details" style="flex:1;">🔔 Avisarme cuando abra</button>
+          </div>
+        </article>
+
+        <article class="conv-card v13-card is-closed">
+          <div class="v13-head">
+            <h2 class="conv-title" style="font-size:0.98rem; margin:0;">Emergencia Invernal Córdoba</h2>
+            <span class="status-pill status-closed">■ Cerrada</span>
+          </div>
+          <div class="progress-meta">
+            <span class="progress-amounts">$17.800.000 <span>de $20.000.000</span></span>
+            <span class="progress-pct-badge" style="color:var(--text-secondary);">89%</span>
+          </div>
+          <div class="progress-track-h"><div class="progress-fill-h" style="width:89%;"></div></div>
+          <div class="conv-actions" style="margin-top:0.75rem;">
+            <button class="btn-details" style="flex:1;">Ver en qué se usó</button>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <!-- =======================================================
+         VARIANTE 14: HISTORIA VERTICAL (Carrusel en App)
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 14 • Historias Verticales (Carrusel deslizable)</span>
+      <div class="v14-rail">
+        <article class="v14-story">
+          <img src="https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=500&q=80" alt="Cajas de donación" />
+          <div class="v14-progress-dots"><span class="on"></span><span></span><span></span></div>
+          <span class="status-pill" style="background:rgba(255,255,255,0.18); color:#fff; align-self:flex-start; margin-bottom:auto;">12 días</span>
+          <div class="v14-big">90<small>%</small></div>
+          <div class="v14-name">Emergencia Invernal: Kits de Abrigo</div>
+          <div class="v14-bar"><i style="width:90%"></i></div>
+        </article>
+        <article class="v14-story">
+          <img src="https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=500&q=80" alt="Entrega de donaciones" />
+          <div class="v14-progress-dots"><span class="on"></span><span class="on"></span><span></span></div>
+          <span class="status-pill" style="background:rgba(255,255,255,0.18); color:#fff; align-self:flex-start; margin-bottom:auto;">21 días</span>
+          <div class="v14-big">54<small>%</small></div>
+          <div class="v14-name">Insumos Médicos para Centros de Salud</div>
+          <div class="v14-bar"><i style="width:54%"></i></div>
+        </article>
+        <article class="v14-story">
+          <img src="https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=500&q=80" alt="Manos unidas" />
+          <div class="v14-progress-dots"><span class="on"></span><span class="on"></span><span class="on"></span></div>
+          <span class="status-pill" style="background:rgba(255,255,255,0.18); color:#fff; align-self:flex-start; margin-bottom:auto;">30 días</span>
+          <div class="v14-big">22<small>%</small></div>
+          <div class="v14-name">Reconstrucción de Techos Seguros</div>
+          <div class="v14-bar"><i style="width:22%"></i></div>
+        </article>
+      </div>
+    </div>
+
+    <!-- =======================================================
+         VARIANTE 15: TIPOGRÁFICA SIN IMAGEN
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 15 • Tipográfica (Sin imagen, cifra protagonista)</span>
+      <article class="conv-card v15-type">
+        <div>
+          <span class="badge-dates">Educación · Tumaco</span>
+        </div>
+        <div class="v15-pct">81<small>% de la meta</small></div>
+        <h2 class="v15-title">Kits escolares para 300 niños de Tumaco</h2>
+        <div class="v15-rule"></div>
+        <div class="v15-meta">
+          <div class="progress-amounts">$16.200.000 <span>de $20.000.000 · 5 días</span></div>
+          <div class="org-profile">
+            <span class="org-name" style="font-size:0.76rem;">Fundación Aula Viva</span>
+          </div>
+        </div>
+        <div class="conv-actions" style="grid-column:1 / -1; margin-top:0.95rem;">
+          <button class="btn-donate">Donar</button>
+          <button class="btn-details">Ver detalles</button>
+        </div>
+      </article>
+    </div>
+
+    <!-- =======================================================
+         VARIANTE 16: DONACIÓN RÁPIDA CON MONTOS SUGERIDOS
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 16 • Donación Rápida (Montos sugeridos)</span>
+      <article class="conv-card">
+        <div class="conv-img-wrap" style="height:150px;">
+          <img src="https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?auto=format&fit=crop&w=900&q=80"
+            alt="Botiquines" />
+          <span class="badge-verified">✓ Organización Verificada</span>
+        </div>
+        <div class="v1-body">
+          <h2 class="conv-title">Botiquines Comunitarios Verificables</h2>
+          <div class="progress-meta">
+            <span class="progress-amounts">$6.000.000 <span>de $20.000.000</span></span>
+            <span class="progress-pct-badge">30%</span>
+          </div>
+          <div class="progress-track-h"><div class="progress-fill-h" style="width:30%;"></div></div>
+
+          <div class="v16-amounts" role="radiogroup" aria-label="Monto a donar">
+            <button class="v16-amount" role="radio" aria-checked="false" data-amt="20000">$20k</button>
+            <button class="v16-amount selected" role="radio" aria-checked="true" data-amt="50000">$50k</button>
+            <button class="v16-amount" role="radio" aria-checked="false" data-amt="100000">$100k</button>
+            <button class="v16-amount" role="radio" aria-checked="false" data-amt="0">Otro</button>
+          </div>
+          <p class="v16-equiv" id="v16Equiv">Con <b>$50.000</b> se completa aprox. <b>1 botiquín</b> (valor de referencia de la organización).</p>
+
+          <div class="conv-actions">
+            <button class="btn-donate" id="v16Btn">Donar $50.000</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- =======================================================
+         VARIANTE 17: ESQUELETO DE CARGA
+         ======================================================= -->
+    <div class="variant-wrapper">
+      <span class="variant-label">Variante 17 • Esqueleto de Carga (Mientras responde la API)</span>
+      <article class="conv-card" aria-busy="true" aria-label="Cargando convocatoria">
+        <div class="skel" style="height:170px; border-radius:0;"></div>
+        <div class="v1-body">
+          <div class="skel" style="height:12px; width:40%; margin-bottom:0.7rem;"></div>
+          <div class="skel" style="height:18px; width:85%; margin-bottom:0.45rem;"></div>
+          <div class="skel" style="height:18px; width:60%; margin-bottom:0.9rem;"></div>
+          <div class="skel" style="height:10px; width:100%; border-radius:99px; margin-bottom:1rem;"></div>
+          <div style="display:flex; gap:0.6rem; align-items:center; margin-bottom:1rem;">
+            <div class="skel" style="width:36px; height:36px; border-radius:50%;"></div>
+            <div class="skel" style="height:12px; width:45%;"></div>
+          </div>
+          <div style="display:flex; gap:0.55rem;">
+            <div class="skel" style="height:40px; flex:1; border-radius:12px;"></div>
+            <div class="skel" style="height:40px; width:100px; border-radius:12px;"></div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+  
+    </main>
+  </div>
+
+  <footer>
+    <div style="max-width:1320px;margin:50px auto 0;padding-top:24px;border-top:1px solid rgba(27,81,65,.14);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--n700)">
+      <span>PaxFide · plataforma de trazabilidad de donaciones</span>
+      <span>Prototipo interactivo con tarjetas de convocatoria oficiales (Móvil y Web). Cifras con fines demostrativos.</span>
+    </div>
+  </footer>
+</section>
+
+<!-- Modal Interactivo para donar y ver detalles -->
+<dialog id="convModal" class="conv-modal" aria-labelledby="modalTitle">
+  <div class="modal-box">
+    <button type="button" class="modal-close" id="modalClose" aria-label="Cerrar ventana">✕</button>
+    <div class="modal-hero">
+      <svg width="100%" height="100%" viewBox="0 0 500 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <linearGradient id="heroG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1B5141"/><stop offset="100%" stop-color="#327DA2"/></linearGradient>
+        </defs>
+        <rect width="500" height="180" fill="url(#heroG)"/>
+        <circle cx="250" cy="90" r="70" fill="rgba(243,181,68,.2)"/>
+        <polygon points="250,50 280,66 250,82 220,66" fill="#F8CF7E"/>
+        <polygon points="220,66 250,82 250,118 220,102" fill="#D9962C"/>
+        <polygon points="280,66 250,82 250,118 280,102" fill="#F3B544"/>
+      </svg>
+    </div>
+    <div class="modal-body">
+      <span class="ev" id="modalTag">CONVOCATORIA AUDITADA</span>
+      <h2 id="modalTitle">Título de la Convocatoria</h2>
+      <p id="modalDesc">Cada donación genera un recibo digital enlazado a un lote físico y sellado criptográficamente en la red pública.</p>
+      
+      <div class="modal-stats">
+        <div><strong>Recaudado</strong><span id="modalRaised">$ 18.000.000</span></div>
+        <div><strong>Meta</strong><span id="modalGoal">$ 20.000.000</span></div>
+        <div><strong>Avance</strong><span id="modalPct">90%</span></div>
+        <div><strong>Kits</strong><span id="modalKits">120 kits</span></div>
+      </div>
+
+      <div class="modal-donate-sec">
+        <h3 style="font-size:14px;margin:0 0 6px;font-family:var(--f-mono);color:var(--g900)">Simular Aporte con Trazabilidad:</h3>
+        <div class="monto-grid">
+          <button type="button" class="monto-btn active" data-amt="$ 20.000">$ 20.000</button>
+          <button type="button" class="monto-btn" data-amt="$ 50.000">$ 50.000</button>
+          <button type="button" class="monto-btn" data-amt="$ 100.000">$ 100.000</button>
+          <button type="button" class="monto-btn" data-amt="$ 250.000">$ 250.000</button>
+        </div>
+        <button type="button" class="btn btn-y btn-donate-modal" id="btnSimulateDonate">Confirmar donación demostrativa</button>
+        <p class="modal-sim-msg" id="modalSimMsg"></p>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function(){
+const cv=document.getElementById('world'), ctx=cv.getContext('2d');
+const cl=x=>x<0?0:x>1?1:x, lerp=(a,b,p)=>a+(b-a)*p;
+const E={out:x=>1-Math.pow(1-x,3),inOut:x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2,back:x=>{const c=1.70158;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2);}};
+const ss=(a,b,x)=>{const t=cl((x-a)/(b-a));return t*t*(3-2*t);};
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- Color Utilities (Día y Noche) ---------- */
+function hexToRgb(hex){
+  const c = parseInt(hex.slice(1), 16);
+  return [(c >> 16) & 255, (c >> 8) & 255, c & 255];
+}
+function lerpColor(c1, c2, p){
+  const r1 = hexToRgb(c1), r2 = hexToRgb(c2);
+  const r = Math.round(lerp(r1[0], r2[0], p));
+  const g = Math.round(lerp(r1[1], r2[1], p));
+  const b = Math.round(lerp(r1[2], r2[2], p));
+  return `rgb(${r},${g},${b})`;
+}
+
+let themeMode = 'auto';
+let nightVal = 0;
+
+function getAutoNight(u){
+  if(u <= 1) return lerp(0, 0.12, u);
+  if(u <= 2) return lerp(0.12, 0.65, u - 1);
+  if(u <= 3) return lerp(0.65, 1.0, u - 2);
+  if(u <= 4) return lerp(1.0, 0.15, u - 3);
+  return lerp(0.15, 0, cl(u - 4));
+}
+
+function updateVeil(night){
+  const r = Math.round(lerp(248, 14, night));
+  const g = Math.round(lerp(250, 32, night));
+  const b = Math.round(lerp(248, 26, night));
+  document.documentElement.style.setProperty('--veil-rgb', `${r},${g},${b}`);
+  
+  const convSec = document.getElementById('convocatorias');
+  if(convSec){
+    if(night > 0.5) convSec.classList.add('night-mode');
+    else convSec.classList.remove('night-mode');
+  }
+}
+
+/* ---------- world data ---------- */
+const S=[[0,0],[9,-3],[18,1],[27,-3],[36,1]];
+const C=[[-12,4],[-6,2],...S,[42,-1],[48,-2]];
+function cr(p0,p1,p2,p3,t){const t2=t*t,t3=t2*t;return [0,1].map(k=>.5*(2*p1[k]+(-p0[k]+p2[k])*t+(2*p0[k]-5*p1[k]+4*p2[k]-p3[k])*t2+(-p0[k]+3*p1[k]-3*p2[k]+p3[k])*t3));}
+function road(u){let v=u+2,j=Math.floor(v);if(j<1)j=1;if(j>6)j=6;return cr(C[j-1],C[j],C[j+1],C[j+2],v-j);}
+const roadPts=[];for(let u=-1.8;u<=5.8;u+=.04)roadPts.push(road(u));
+const SR=[[17,-1],S[2],[19.2,3.4],[20.6,6.6],[21.6,9.6],[22.4,12]];
+const sidePts=[];for(let j=1;j<SR.length-2;j++)for(let t=0;t<1;t+=.05)sidePts.push(cr(SR[j-1],SR[j],SR[j+1],SR[j+2],t));
+
+// Curva serpenteante del Río Sinú por la llanura
+const riverPts=[];
+for(let t=-3.2;t<=6.8;t+=.06){
+  const rx = -32 + t * 14.5;
+  const ry = -22 + Math.sin(t * 1.35) * 4.6 + Math.cos(t * 0.8) * 3.0;
+  riverPts.push([rx, ry]);
+}
+const nearRiver=(x,y,rad=2.2)=>riverPts.some(p=>Math.hypot(p[0]-x,p[1]-y)<rad);
+
+let seed=17;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const zones=S.map(([x,y])=>[x-.6,y-2.6,3.4]);
+const near=(x,y,rad=1.7)=>roadPts.some(p=>Math.hypot(p[0]-x,p[1]-y)<rad)||sidePts.some(p=>Math.hypot(p[0]-x,p[1]-y)<rad*0.85)||zones.some(z=>Math.hypot(z[0]-x,z[1]-y)<z[2]);
+const nearRoad=(x,y,rad=0.85)=>roadPts.some(p=>Math.hypot(p[0]-x,p[1]-y)<rad)||sidePts.some(p=>Math.hypot(p[0]-x,p[1]-y)<rad);
+
+// Manchas orgánicas de vegetación y praderas (eliminan el aspecto plano y blanco)
+const meadowPatches = [];
+for (let i = 0; i < 54; i++) {
+  meadowPatches.push({
+    x: -38 + rnd() * 110,
+    y: -28 + rnd() * 66,
+    w: 2.6 + rnd() * 4.8,
+    h: 1.6 + rnd() * 3.2,
+    rot: rnd() * 3.14,
+    colDay: ['#74B468', '#86C277', '#6CA85F', '#8EC780'][Math.floor(rnd() * 4)],
+    colNight: ['#0A1D14', '#0E2419', '#081710'][Math.floor(rnd() * 3)]
+  });
+}
+
+// Parcelas agrícolas de maíz, arroz y plátano (típicas de Lorica y el Sinú)
+const cropFields = [
+  {x: -16, y: 7, w: 4.8, d: 3.2, c1: '#6FA45C', c2: '#578546'},
+  {x: 6, y: 13, w: 5.2, d: 3.5, c1: '#74A862', c2: '#5D8B4D'},
+  {x: 34, y: -19, w: 6.0, d: 3.8, c1: '#6BA057', c2: '#558245'},
+  {x: -24, y: -14, w: 5.5, d: 3.4, c1: '#72A55F', c2: '#5A864A'}
+];
+
+// Fincas rurales tradicionales con techos de teja de barro
+const fincas = [
+  {x: -18, y: 5.5},
+  {x: 12, y: 15},
+  {x: 38, y: -8},
+  {x: -8, y: -15.5}
+];
+const nearFinca=(x,y,rad=2.0)=>fincas.some(f=>Math.hypot(f.x-x,f.y-y)<rad);
+
+// Árboles sobre todo el mapa extendido (-38 a 72, -28 a 38): Mangos, Ceibas, Guayacanes amarillos y Palmas
+const trees=[];
+for(let i=0;i<680&&trees.length<230;i++){
+  const x=-38+rnd()*110,y=-28+rnd()*66;
+  if(!near(x,y,1.8)&&!nearRiver(x,y,2.4)&&!nearFinca(x,y,2.0)){
+    const type = Math.floor(rnd()*6); // 0..3 frondosos, 4 guayacán amarillo, 5 palma real
+    trees.push([x,y,0.36+rnd()*0.42,type]);
+  }
+}
+const TREEC=['#4E9155','#3F8150','#2E7550','#63A266'];
+
+// Arbustos tropicales densos
+const bushes=[];
+for(let i=0;i<480&&bushes.length<150;i++){
+  const x=-38+rnd()*110,y=-28+rnd()*66;
+  if(!near(x,y,1.3)&&!nearRiver(x,y,1.8)&&!nearFinca(x,y,1.5)){
+    bushes.push([x,y,0.28+rnd()*0.3,Math.floor(rnd()*4)]);
+  }
+}
+const BUSH_DAY=['#3BA756','#2E8548','#4DAE60','#2B84B7'];
+const BUSH_NIGHT=['#14382A','#112E22','#1A4836','#183540'];
+
+// Césped y flores silvestres por todo el mapa
+const grassTufts=[];
+for(let i=0;i<1600&&grassTufts.length<720;i++){
+  const x=-38+rnd()*110,y=-28+rnd()*66;
+  if(!nearRoad(x,y,0.85)&&!nearRiver(x,y,1.6)){
+    grassTufts.push({
+      x, y,
+      s: 0.65+rnd()*0.65,
+      type: Math.floor(rnd()*3),
+      col: ['#FFFFFF','#F9B829','#F8CF7E','#8CC3DE','#FF8A80'][Math.floor(rnd()*5)]
+    });
+  }
+}
+
+// Nubes algodonosas 3D en el cielo caribeño (siempre visibles, flotantes y con volumen real)
+const clouds = [];
+for (let i = 0; i < 44; i++) {
+  const type = i % 3; // 0: Cúmulo majestuoso grande, 1: Nube mediana esponjosa, 2: Nube ligera alta
+  let z, s, spd, puffs;
+  if (type === 0) {
+    z = 5.4 + rnd() * 2.6;
+    s = 1.7 + rnd() * 0.75;
+    spd = 0.22 + rnd() * 0.18;
+    puffs = [
+      { dx: 0, dy: 0, r: 1.15 },
+      { dx: -0.95, dy: 0.12, r: 0.9 },
+      { dx: 0.95, dy: 0.1, r: 0.92 },
+      { dx: 1.75, dy: 0.22, r: 0.72 },
+      { dx: -1.7, dy: 0.2, r: 0.7 },
+      { dx: -0.45, dy: -0.45, r: 0.85 },
+      { dx: 0.5, dy: -0.42, r: 0.82 },
+      { dx: 0, dy: -0.65, r: 0.72 }
+    ];
+  } else if (type === 1) {
+    z = 4.6 + rnd() * 2.4;
+    s = 1.25 + rnd() * 0.45;
+    spd = 0.28 + rnd() * 0.24;
+    puffs = [
+      { dx: 0, dy: 0, r: 1.05 },
+      { dx: -0.82, dy: 0.14, r: 0.8 },
+      { dx: 0.82, dy: 0.12, r: 0.82 },
+      { dx: 1.45, dy: 0.2, r: 0.65 },
+      { dx: -1.4, dy: 0.18, r: 0.62 },
+      { dx: -0.22, dy: -0.42, r: 0.75 },
+      { dx: 0.42, dy: -0.38, r: 0.7 }
+    ];
+  } else {
+    z = 7.5 + rnd() * 3.8;
+    s = 0.85 + rnd() * 0.35;
+    spd = 0.16 + rnd() * 0.16;
+    puffs = [
+      { dx: 0, dy: 0, r: 0.95 },
+      { dx: -0.7, dy: 0.1, r: 0.75 },
+      { dx: 0.7, dy: 0.08, r: 0.78 },
+      { dx: 1.3, dy: 0.15, r: 0.6 },
+      { dx: -0.3, dy: -0.3, r: 0.68 }
+    ];
+  }
+
+  clouds.push({
+    bx: -45 + rnd() * 125,
+    by: -28 + rnd() * 62,
+    z,
+    s,
+    spd,
+    phase: rnd() * 6.28,
+    puffs
+  });
+}
+
+const stars=[];
+for(let i=0;i<75;i++){
+  stars.push({
+    x: rnd(),
+    y: rnd(),
+    r: 0.7 + rnd()*1.5,
+    phase: rnd()*6.28,
+    c: rnd()>.2 ? '#FFFFFF' : '#F9B829'
+  });
+}
+
+const fireflies=[];
+for(let i=0;i<26;i++){
+  fireflies.push({
+    x: 23 + rnd()*10,
+    y: -4 + rnd()*7,
+    p: rnd()*6.28
+  });
+}
+
+/* ---------- projection ---------- */
+const TW=34,TH=17,HZ=36;let W=0,H=0,DPR=1,ox=0,oy=0,cam={x:0,y:-1,k:1};
+function P(x,y,z=0){const k=cam.k;return[ox+((x-cam.x)-(y-cam.y))*TW*k, oy+((x-cam.x)+(y-cam.y))*TH*k-z*HZ*k];}
+function resize(){DPR=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);cv.style.width=W+'px';cv.style.height=H+'px';computeOverview();updateAuthBoxMetrics();}
+let ovK=.3,ovX=17,ovY=-1;
+function computeOverview(){let a0=1e9,a1=-1e9,b0=1e9,b1=-1e9;for(let u=-.4;u<=4.4;u+=.1){const[x,y]=road(u);const a=(x-y)*TW,b=(x+y)*TH;a0=Math.min(a0,a);a1=Math.max(a1,a);b0=Math.min(b0,b-110);b1=Math.max(b1,b+30);}
+  ovK=Math.min(.88*W/(a1-a0),.62*H/(b1-b0));const A=(a0+a1)/2/TW,B=(b0+b1)/2/TH;ovX=(A+B)/2;ovY=(B-A)/2;}
+const mobile=()=>W<=900;
+
+/* ---------- primitives ---------- */
+function poly(pts,fill,alpha){ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);ctx.closePath();if(alpha!=null)ctx.globalAlpha=alpha;ctx.fillStyle=fill;ctx.fill();if(alpha!=null)ctx.globalAlpha=1;}
+function box(x,y,z,w,d,h,c,al){const A=P(x,y,z+h),B=P(x+w,y,z+h),Cc=P(x+w,y+d,z+h),D=P(x,y+d,z+h),B0=P(x+w,y,z),C0=P(x+w,y+d,z),D0=P(x,y+d,z);
+  poly([D,Cc,C0,D0],c[1],al);poly([B,Cc,C0,B0],c[2],al);poly([A,B,Cc,D],c[0],al);}
+function shadow(x,y,r,a=.10){const[p,q]=P(x,y,0);ctx.fillStyle=`rgba(27,81,65,${a})`;ctx.beginPath();ctx.ellipse(p,q,r*TW*cam.k,r*TH*cam.k,0,0,7);ctx.fill();}
+function strip(pts,hw,fill){ctx.fillStyle=fill;ctx.beginPath();const L=[],R=[];for(let i=0;i<pts.length;i++){const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)];let dx=b[0]-a[0],dy=b[1]-a[1];const l=Math.hypot(dx,dy)||1;dx/=l;dy/=l;L.push(P(pts[i][0]-dy*hw,pts[i][1]+dx*hw));R.push(P(pts[i][0]+dy*hw,pts[i][1]-dx*hw));}
+  ctx.moveTo(L[0][0],L[0][1]);for(const p of L)ctx.lineTo(p[0],p[1]);for(let i=R.length-1;i>=0;i--)ctx.lineTo(R[i][0],R[i][1]);ctx.closePath();ctx.fill();}
+function dashes(pts,fill){ctx.fillStyle=fill;for(let i=0;i+3<pts.length;i+=6){const a=pts[i],b=pts[i+3];let dx=b[0]-a[0],dy=b[1]-a[1];const l=Math.hypot(dx,dy)||1,nx=-dy/l*.06,ny=dx/l*.06;poly([P(a[0]+nx,a[1]+ny),P(b[0]+nx,b[1]+ny),P(b[0]-nx,b[1]-ny),P(a[0]-nx,a[1]-ny)],fill);}}
+const BOX=['#F8CF7E','#D9962C','#F3B544'],BLU=['#8CC3DE','#255E79','#327DA2'],GOLD=['#FFE3A3','#C98A22','#F3B544'],STONE=['#F4F6F2','#D5DDD6','#E4EAE4'];
+function face(x,y,z,w,d,h,u0,u1,v0,v1,fill){
+  const X=x+w;poly([P(X,y+d*u0,z+h*v1),P(X,y+d*u1,z+h*v1),P(X,y+d*u1,z+h*v0),P(X,y+d*u0,z+h*v0)],fill);}
+function faceL(x,y,z,w,d,h,u0,u1,v0,v1,fill){
+  const Y=y+d;poly([P(x+w*u0,Y,z+h*v1),P(x+w*u1,Y,z+h*v1),P(x+w*u1,Y,z+h*v0),P(x+w*u0,Y,z+h*v0)],fill);}
+function heartAt(px,py,s,fill){ctx.save();ctx.translate(px,py);ctx.scale(s/24,s/24);ctx.fillStyle=fill;ctx.beginPath();ctx.moveTo(0,8);ctx.bezierCurveTo(-12,0,-11,-10,-4,-9);ctx.bezierCurveTo(-1.5,-8.6,0,-6,0,-5);ctx.bezierCurveTo(0,-6,1.5,-8.6,4,-9);ctx.bezierCurveTo(11,-10,12,0,0,8);ctx.fill();ctx.restore();}
+function crate(x,y,z,s,qr,heart,al=1){box(x,y,z,s,s,s*.82,BOX,al);if(al<.5)return;
+  const[a,b]=P(x+s*.15,y+s*.5,z+s*.82);const[c,d]=P(x+s*.85,y+s*.5,z+s*.82);ctx.strokeStyle='rgba(201,138,34,.8)';ctx.lineWidth=Math.max(1,s*TW*cam.k*.08);ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke();
+  if(qr){face(x,y,z,s,s,s*.82,.25,.72,.25,.75,'#fff');face(x,y,z,s,s,s*.82,.32,.46,.5,.68,'#1B5141');face(x,y,z,s,s,s*.82,.52,.66,.5,.68,'#1B5141');face(x,y,z,s,s,s*.82,.32,.46,.3,.44,'#1B5141');}
+  if(heart){const[p,q]=P(x+s*.5,y+s,z+s*.4);heartAt(p,q,s*TW*cam.k*.5,'#1B5141');}}
+function sign(x,y,txt,al=1){if(al<=0)return;const k=cam.k;const[a,b]=P(x,y,0),[c,d]=P(x,y,1.5);
+  const fs=Math.round(Math.max(10.5,Math.min(14,10*k)));ctx.font=`700 ${fs}px system-ui,sans-serif`;const w=ctx.measureText(txt).width+fs*1.3,h=fs*2;
+  if(isLabelUnderAuthBox(c-w/2,d-h,c+w/2,d))return;
+  ctx.globalAlpha=al;ctx.strokeStyle='#785008';ctx.lineWidth=Math.max(1.5,2.4*k);ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(c,d);ctx.stroke();
+  ctx.fillStyle='#fff';ctx.strokeStyle='rgba(27,81,65,.25)';ctx.lineWidth=1;rr(c-w/2,d-h,w,h,h/3);ctx.fill();ctx.stroke();ctx.fillStyle='#1B5141';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,c,d-h/2+.5);ctx.globalAlpha=1;}
+function chip(px,py,txt,bg,fg,al=1,mono=true){if(al<=0)return;const k=cam.k;const fs=Math.round(Math.max(10,Math.min(13,9.5*k)));ctx.font=`${mono?'500':'700'} ${fs}px ${mono?'"JetBrains Mono",ui-monospace,monospace':'system-ui,sans-serif'}`;
+  const w=ctx.measureText(txt).width+fs*1.2,h=fs*1.9;
+  if(isLabelUnderAuthBox(px-w/2,py-h/2,px+w/2,py+h/2))return;
+  ctx.globalAlpha=al;ctx.fillStyle=bg;rr(px-w/2,py-h/2,w,h,h/2);ctx.fill();ctx.fillStyle=fg;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,px,py+.5);ctx.globalAlpha=1;}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+function grassTuft(x, y, s=1, night=0, type=0){
+  const [p, q] = P(x, y, 0);
+  const k = cam.k;
+  const h = (type === 1 ? 9 : 7) * k * s;
+  const sway = Math.sin(T * 2.5 + x * 2 + y) * 1.5 * k;
+  const col = night > 0.5 ? '#244D3C' : (night > 0.2 ? '#3E7D52' : '#57A364');
+  ctx.strokeStyle = col;
+  ctx.lineWidth = Math.max(1, 1.2 * k * s);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(p - 2.5 * k, q);
+  ctx.quadraticCurveTo(p - 5 * k + sway, q - h * 0.7, p - 6 * k + sway * 1.3, q - h);
+  ctx.moveTo(p, q);
+  ctx.quadraticCurveTo(p + sway * 0.5, q - h * 0.8, p + sway, q - h * 1.2);
+  ctx.moveTo(p + 2.5 * k, q);
+  ctx.quadraticCurveTo(p + 4.5 * k + sway, q - h * 0.65, p + 6 * k + sway * 1.2, q - h * 0.95);
+  ctx.stroke();
+}
+
+function flower(x, y, s=1, col='#FFF', night=0){
+  if(night > 0.85) return;
+  const [p, q] = P(x, y, 0);
+  const k = cam.k;
+  const r = 2.4 * k * s;
+  ctx.strokeStyle = night > 0.3 ? '#244D3C' : '#3E7D52';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(p, q);
+  ctx.lineTo(p, q - 5 * k * s);
+  ctx.stroke();
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.arc(p, q - 5 * k * s, r, 0, 7);
+  ctx.fill();
+  ctx.fillStyle = '#F3B544';
+  ctx.beginPath();
+  ctx.arc(p, q - 5 * k * s, r * 0.45, 0, 7);
+  ctx.fill();
+}
+
+function bush(x, y, r, cIdx, night=0){
+  shadow(x, y, r * 0.9, night > 0.5 ? 0.25 : 0.08);
+  const k = cam.k;
+  const [p, q] = P(x, y, 0);
+  const col = night > 0.5 ? BUSH_NIGHT[cIdx % 4] : BUSH_DAY[cIdx % 4];
+  const R = r * TW * k * 0.8;
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.arc(p - R * 0.38, q - R * 0.45, R * 0.65, 0, 7);
+  ctx.arc(p + R * 0.38, q - R * 0.5, R * 0.6, 0, 7);
+  ctx.arc(p, q - R * 0.75, R * 0.72, 0, 7);
+  ctx.fill();
+  ctx.fillStyle = night > 0.5 ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.22)';
+  ctx.beginPath();
+  ctx.arc(p - R * 0.2, q - R * 0.9, R * 0.35, 0, 7);
+  ctx.fill();
+}
+
+
+function finca(x, y, night) {
+  shadow(x, y, 1.1, night > 0.5 ? 0.2 : 0.08);
+  const wallCol = night > 0.5 ? ['#D0D5CF', '#9EA59D', '#B5BCB4'] : ['#FFFFFF', '#E6EAE4', '#F4F7F2'];
+  const roofCol = night > 0.5 ? '#6E2C1A' : '#C85A32';
+  box(x, y, 0, 1.6, 1.2, 0.9, wallCol);
+  const top = 0.9, rh = 0.6, ym = y + 0.6;
+  poly([P(x, y, top), P(x + 1.6, y, top), P(x + 1.6, ym, top + rh), P(x, ym, top + rh)], roofCol);
+  poly([P(x + 1.6, y, top), P(x + 1.6, y + 1.2, top), P(x + 1.6, ym, top + rh)], night > 0.5 ? '#5A2214' : '#AA4925');
+  poly([P(x, ym, top + rh), P(x + 1.6, ym, top + rh), P(x + 1.6, y + 1.2, top), P(x, y + 1.2, top)], roofCol);
+  const winC = night > 0.35 ? '#FFE3A3' : '#7CB0C6';
+  faceL(x, y, 0, 1.6, 1.2, 0.9, 0.2, 0.45, 0.3, 0.65, winC);
+}
+
+function palmTree(x, y, r, night) {
+  shadow(x, y, r * 0.9, night > 0.5 ? 0.22 : 0.08);
+  const k = cam.k;
+  const [a, b] = P(x, y, 0), [, d] = P(x + 0.15, y + 0.1, 1.35 * r);
+  ctx.strokeStyle = night > 0.5 ? '#3B2918' : '#6A4622';
+  ctx.lineWidth = Math.max(1.8, 0.14 * TW * k);
+  ctx.beginPath();
+  ctx.moveTo(a, b);
+  ctx.quadraticCurveTo(a + 4 * k, (b + d) / 2, a + 3 * k, d);
+  ctx.stroke();
+
+  const palmGreen = night > 0.5 ? '#153828' : '#2D8249';
+  ctx.strokeStyle = palmGreen;
+  ctx.lineWidth = Math.max(1.4, 2.2 * k * r);
+  ctx.lineCap = 'round';
+  const [px, py] = [a + 3 * k, d];
+  for (let ang = 0; ang < 6.28; ang += 1.05) {
+    const len = 20 * k * r;
+    const ex = px + Math.cos(ang) * len;
+    const ey = py + Math.sin(ang) * (len * 0.58) + 5 * k;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.quadraticCurveTo(px + Math.cos(ang) * (len * 0.6), py + Math.sin(ang) * (len * 0.3) - 4 * k, ex, ey);
+    ctx.stroke();
+  }
+}
+
+function guayacanTree(x, y, r, night) {
+  shadow(x + .1, y + .1, r * .95, night > 0.5 ? .24 : .08);
+  const k = cam.k;
+  const [a, b] = P(x, y, 0), [, d] = P(x, y, .55);
+  ctx.strokeStyle = night > 0.5 ? '#3B2918' : '#785028';
+  ctx.lineWidth = Math.max(1.8, .16 * TW * k);
+  ctx.beginPath();
+  ctx.moveTo(a, b);
+  ctx.lineTo(a, d);
+  ctx.stroke();
+
+  const [p, q] = P(x, y, .55 + r * 1.05);
+  const R = r * TW * k * .95;
+  const bloomCol = night > 0.5 ? '#B38118' : '#F9B829';
+  const bloomShade = night > 0.5 ? '#805A0E' : '#D9962C';
+  ctx.fillStyle = bloomShade;
+  ctx.beginPath();
+  ctx.arc(p - R * .32, q + R * .08, R * .62, 0, 7);
+  ctx.arc(p + R * .32, q + R * .08, R * .62, 0, 7);
+  ctx.arc(p, q - R * .25, R * .82, 0, 7);
+  ctx.fill();
+  ctx.fillStyle = bloomCol;
+  ctx.beginPath();
+  ctx.arc(p - R * .15, q - R * .35, R * .68, 0, 7);
+  ctx.fill();
+}
+
+function tree(x, y, r, c, night=0){
+  shadow(x + .1, y + .1, r * .95, night > 0.5 ? .24 : .08);
+  const k = cam.k;
+  const [a, b] = P(x, y, 0), [, d] = P(x, y, .55);
+  ctx.strokeStyle = night > 0.5 ? '#3B2918' : '#785028';
+  ctx.lineWidth = Math.max(1.8, .16 * TW * k);
+  ctx.beginPath();
+  ctx.moveTo(a, b);
+  ctx.lineTo(a, d);
+  ctx.stroke();
+
+  const [p, q] = P(x, y, .55 + r * 1.05);
+  const R = r * TW * k * .95;
+  const treeCol = night > 0.5 ? ['#133324','#102B1F','#184230','#153629'][c] : TREEC[c];
+  ctx.fillStyle = treeCol;
+  ctx.beginPath();
+  ctx.arc(p - R * .32, q + R * .08, R * .62, 0, 7);
+  ctx.arc(p + R * .32, q + R * .08, R * .62, 0, 7);
+  ctx.arc(p, q - R * .25, R * .82, 0, 7);
+  ctx.fill();
+  ctx.fillStyle = night > 0.5 ? 'rgba(255,255,255,.07)' : 'rgba(255,255,255,.20)';
+  ctx.beginPath();
+  ctx.arc(p - R * .24, q - R * .48, R * .42, 0, 7);
+  ctx.fill();
+}
+
+function person(x,y,shirt,al=1,bob=0){
+  if(al<=0)return;ctx.globalAlpha=al;shadow(x,y,.2,nightVal>.5?.22:.12);const k=cam.k;const[p,q]=P(x,y,0);
+  const w=.26*TW*k,h=.7*HZ*k;ctx.fillStyle=shirt;rr(p-w/2,q-h-bob,w,h,w/2);ctx.fill();
+  const[,hq]=P(x,y,.92);ctx.fillStyle='#7A5236';ctx.beginPath();ctx.arc(p,hq-bob,.15*TW*k,0,7);ctx.fill();ctx.globalAlpha=1;
+}
+
+function coin(px,py,r,spin){
+  ctx.fillStyle='#C98A22';ctx.beginPath();ctx.ellipse(px+r*.08,py,Math.max(1,r*Math.abs(spin)),r,0,0,7);ctx.fill();
+  ctx.fillStyle='#F3B544';ctx.beginPath();ctx.ellipse(px,py,Math.max(.6,r*Math.abs(spin)*.92),r*.92,0,0,7);ctx.fill();
+}
+
+function truck(x,y,cargo,load){
+  shadow(x-.1,y,1.1,nightVal>0.5?0.26:.12);
+  
+  if(nightVal > 0.28){
+    const beamAl = ((nightVal - 0.28) / 0.72) * 0.42;
+    const [h1, h2] = P(x + 0.98, y - 0.15, 0.4);
+    const [f1, f2] = P(x + 4.2, y - 1.2, 0);
+    const [f3, f4] = P(x + 4.2, y + 0.8, 0);
+    ctx.save();
+    const gBeam = ctx.createRadialGradient(h1, h2, 4, (f1+f3)/2, (f2+f4)/2, 85 * cam.k);
+    gBeam.addColorStop(0, `rgba(255, 245, 180, ${beamAl * 0.95})`);
+    gBeam.addColorStop(0.5, `rgba(255, 235, 140, ${beamAl * 0.45})`);
+    gBeam.addColorStop(1, 'rgba(255, 235, 140, 0)');
+    ctx.fillStyle = gBeam;
+    ctx.beginPath();
+    ctx.moveTo(h1, h2);
+    ctx.lineTo(f1, f2);
+    ctx.lineTo(f3, f4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  box(x-1.05,y-.45,.22,1.4,.9,.14,['#E4EAE4','#B8C4BE','#CBD5D0']);
+  box(x+.38,y-.45,.22,.6,.9,.78,['#4E9155','#1B5141','#20604C']);
+  faceL(x+.38,y-.45,.22,.6,.9,.78,.15,.85,.45,.85,'#CDE7EE');
+  const k=cam.k;for(const wx of[-.7,.65]){const[p,q]=P(x+wx,y+.45,.2);ctx.fillStyle='#22302B';ctx.beginPath();ctx.ellipse(p,q,.2*TW*k,.21*HZ*k,Math.atan2(TH,TW),0,7);ctx.fill();}
+  if(cargo)crate(x-.95+load*0,y-.38,.36,.72,true,true);
+}
+
+function cube(cx,cy,z,s,c,al){box(cx-s/2,cy-s/2,z,s,s,s,c,al);}
+
+/* ---------- scenes ---------- */
+let T=0,camS=0;
+
+/* ---------- Métricas de AuthBox para exclusión de etiquetas y nubes (Bug 1 & 2) ---------- */
+/* Nota de diseño: draw() aplica ctx.setTransform(DPR, 0, 0, DPR, 0, 0), por lo que las coordenadas del
+   canvas y la proyección P() operan directamente en px CSS. authBoxRect no debe multiplicarse por DPR. */
+let authBoxRect = null;
+
+function updateAuthBoxMetrics() {
+  const el = document.getElementById('authBox');
+  if (el && document.body.classList.contains('auth-active')) {
+    const r = el.getBoundingClientRect();
+    authBoxRect = {
+      left: r.left,
+      top: r.top,
+      right: r.right,
+      bottom: r.bottom,
+      width: r.width,
+      height: r.height
+    };
+  } else {
+    authBoxRect = null;
+  }
+}
+
+// ResizeObserver sobre #authBox y listener pasivo de scroll sobre #authView (rendimiento y precisión en pantallas pequeñas)
+function setupAuthMetricsListeners() {
+  const boxEl = document.getElementById('authBox');
+  if (boxEl && typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(() => {
+      if (document.body.classList.contains('auth-active')) updateAuthBoxMetrics();
+    }).observe(boxEl);
+  }
+  const viewEl = document.getElementById('authView');
+  if (viewEl) {
+    viewEl.addEventListener('scroll', updateAuthBoxMetrics, { passive: true });
+  }
+}
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', setupAuthMetricsListeners);
+} else {
+  setupAuthMetricsListeners();
+}
+
+function isLabelUnderAuthBox(minX, minY, maxX, maxY) {
+  if (!authBoxRect || !document.body.classList.contains('auth-active')) return false;
+  const pad = 12;
+  return !(
+    maxX < authBoxRect.left - pad ||
+    minX > authBoxRect.right + pad ||
+    maxY < authBoxRect.top - pad ||
+    minY > authBoxRect.bottom + pad
+  );
+}
+
+/* ---------- Componente Unificado de Etiquetas con Líneas Guía (Bugs 1, 3, 4, 5) ---------- */
+function drawMapLabel(anchorX, anchorY, anchorZ, labelX, labelY, labelZ, text, variant = 'default', alpha = 1) {
+  if (alpha <= 0.01) return;
+  const [lp, lq] = P(labelX, labelY, labelZ);
+  const k = cam.k;
+  const fs = Math.round(Math.max(10.5, Math.min(13.5, 9.8 * k)));
+  ctx.font = `600 ${fs}px "JetBrains Mono", ui-monospace, monospace`;
+  const textW = ctx.measureText(text).width;
+  const padX = fs * 1.05;
+  const w = textW + padX * 2;
+  const h = fs * 1.95;
+
+  // Supresión: no pintar etiquetas que caigan bajo #authBox cuando auth está abierto (Bug 1)
+  if (isLabelUnderAuthBox(lp - w / 2, lq - h / 2, lp + w / 2, lq + h / 2)) return;
+
+  const [ap, aq] = P(anchorX, anchorY, anchorZ);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // Línea guía discontinua que une el objeto con la etiqueta (Bug 4)
+  const distGuide = Math.hypot(lp - ap, lq - aq);
+  if (distGuide > 8) {
+    ctx.strokeStyle = nightVal > 0.5 ? 'rgba(140, 195, 222, 0.45)' : 'rgba(27, 81, 65, 0.35)';
+    ctx.lineWidth = Math.max(1.2, 1.5 * k);
+    ctx.setLineDash([3 * k, 2.5 * k]);
+    ctx.beginPath();
+    ctx.moveTo(ap, aq);
+    ctx.lineTo(lp, lq + h * 0.42);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Punto de anclaje visible en el objeto
+    ctx.fillStyle = nightVal > 0.5 ? '#8CC3DE' : '#1B5141';
+    ctx.beginPath();
+    ctx.arc(ap, aq, Math.max(2, 2.8 * k), 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Estilos del componente de etiqueta unificado (Bug 5)
+  let bgCol, borderCol, fgCol;
+  if (variant === 'completed') {
+    bgCol = nightVal > 0.5 ? '#1C4A36' : '#1B5141';
+    borderCol = nightVal > 0.5 ? '#52B788' : '#2D8F62';
+    fgCol = '#F3B544';
+  } else if (variant === 'badge') {
+    bgCol = nightVal > 0.5 ? 'rgba(243, 181, 68, 0.22)' : '#FDF4E2';
+    borderCol = nightVal > 0.5 ? 'rgba(243, 181, 68, 0.55)' : '#F3B544';
+    fgCol = nightVal > 0.5 ? '#F8CF7E' : '#785008';
+  } else {
+    // default
+    bgCol = nightVal > 0.5 ? 'rgba(16, 42, 31, 0.94)' : 'rgba(255, 255, 255, 0.95)';
+    borderCol = nightVal > 0.5 ? 'rgba(82, 183, 136, 0.35)' : 'rgba(27, 81, 65, 0.22)';
+    fgCol = nightVal > 0.5 ? '#E8F5EE' : '#1B5141';
+  }
+
+  ctx.shadowColor = 'rgba(18, 38, 28, 0.12)';
+  ctx.shadowBlur = 8 * k;
+  ctx.shadowOffsetY = 2 * k;
+
+  ctx.fillStyle = bgCol;
+  ctx.strokeStyle = borderCol;
+  ctx.lineWidth = Math.max(1, 1.2 * k);
+
+  rr(lp - w / 2, lq - h / 2, w, h, h / 2);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+
+  ctx.fillStyle = fgCol;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, lp, lq + 0.5);
+
+  ctx.restore();
+}
+
+function act(i){if(camS>=i)return 1;return E.out(cl(1-(i-camS)/.9));}
+function scenes(D){
+  // 0 · Donación (Bug 3: Separación espacial de Pasarela de pago, Donar y Fondo de la convocatoria)
+  {const[sx,sy]=S[0],a=act(0);
+   D.push([sx-1.4+sy-2.2,()=>{shadow(sx-1.2,sy-1.5,1,nightVal>.5?.22:.1);box(sx-1.5,sy-2.3,0,.32,1.6,2.7,['#2B3A35','#16211D','#22302B']);
+     face(sx-1.5,sy-2.3,0,.32,1.6,2.7,.08,.92,.06,.94,'#EEF6EF');
+     const[p,q]=P(sx-1.18,sy-1.5,1.75);heartAt(p,q,30*cam.k,'#4E9155');
+     // Etiqueta 'Donar' elevada sobre el corazón con su propia línea guía
+     drawMapLabel(sx-1.18,sy-1.5,1.75, sx-1.18,sy-1.5,3.1, 'Donar', 'completed', 1);}]);
+   D.push([sx+.6+sy-2.3+.7,()=>{shadow(sx+1.3,sy-1.6,1.1,nightVal>.5?.22:.1);box(sx+.6,sy-2.4,0,1.4,1.4,1.15,['#5FA57A','#1B5141','#20604C'],.92);
+     faceL(sx+.6,sy-2.4,0,1.4,1.4,1.15,.15,.85,.35,.7,'rgba(255,255,255,.18)');
+     const n=1+Math.round(5*a);for(let j=0;j<n;j++){const[p,q]=P(sx+1.3,sy-1.7,1.15+j*.09);ctx.fillStyle=j%2?'#C98A22':'#F3B544';ctx.beginPath();ctx.ellipse(p,q,.32*TW*cam.k,.16*TW*cam.k,0,0,7);ctx.fill();}
+     // Etiqueta 'Fondo de la convocatoria' desplazada a la derecha, sin tapar las monedas ni 'Donar'
+     drawMapLabel(sx+1.3,sy-1.7,1.2, sx+2.6,sy-1.8,3.1, 'Fondo de la convocatoria', 'default', a);}]);
+   D.push([sx+sy+1,()=>{if(a<.2)return;for(let j=0;j<4;j++){const qd=((T*.45+j/4)%1);const x=lerp(sx-1.1,sx+1.3,qd),y=lerp(sy-1.5,sy-1.7,qd),z=lerp(1.6,1.4,qd)+Math.sin(Math.PI*qd)*1.1;const[p,q]=P(x,y,z);ctx.globalAlpha=a*Math.sin(Math.PI*qd);coin(p,q,.2*TW*cam.k,Math.cos(T*5+j));ctx.globalAlpha=1;}}]);
+   // Etiqueta 'Pasarela de pago' desplazada hacia la izquierda, unida con línea guía al terminal (Bug 3)
+   D.push([sx-2.8+sy-2.5,()=>drawMapLabel(sx-1.5,sy-2.3,0.8, sx-3.4,sy-2.6,2.4, 'Pasarela de pago', 'default', 1)]);}
+
+  // 1 · Bodega
+  {const[sx,sy]=S[1],a=act(1),bx=sx-1.2,by=sy-4.2;
+   D.push([bx+by,()=>{poly([P(bx,by),P(bx+3.6,by),P(bx+3.6,by+2.6),P(bx,by+2.6)],nightVal>.5?'#1C3028':'#E4EAE4');
+     box(bx,by,0,3.6,.16,2.5,['#F4F6F2','#E9EEEA','#DDE4DF']);box(bx-.16,by,0,.16,2.6,2.5,['#F4F6F2','#E9EEEA','#DDE4DF']);
+     for(const lv of[.75,1.55])box(bx+.15,by+.2,lv,3.3,.85,.07,['#C79B5E','#9C7340','#B4884F']);}]);
+   const slots=[];for(const lv of[.82,1.62])for(let j=0;j<4;j++)slots.push([bx+.3+j*.8,by+.27,lv]);
+   D.push([bx+by+.6,()=>{slots.forEach((s,j)=>{const p=E.back(cl(a*1.4-j*.05));if(p<=0)return;const z=s[2]+(1-p)*.8;crate(s[0],s[1],z,.62,true,false,cl(p*2));});}]);
+   D.push([bx+3.2+by+2.9,()=>{drawMapLabel(bx+1.8,by+1.2,1.8, bx+1.8,by+1.2,3.4, 'Lote · 120 kits · QR', 'default', a);}]);
+   D.push([bx+3.8+by+2.8,()=>drawMapLabel(bx+1.8,by+1.2,0, bx+3.8,by+2.8,2.2, 'Bodega Montería', 'default', 1)]);}
+
+  // 2 · Ruta y reparto
+  {const[sx,sy]=S[2],a=act(2),px=sx-1.4,py=sy-3;
+   D.push([px+py,()=>{box(px-.1,py-.1,0,1.9,1.3,.14,['#C79B5E','#9C7340','#B4884F']);}]);
+   D.push([px+py+1,()=>{const sp=E.inOut(ss(.25,.85,a));crate(px,py,.14,1.0,true,true);crate(px+1.0*sp+.05,py+.15+sp*1.6,.14,.78,true,false,cl(sp*3));
+     drawMapLabel(px+.5,py+.5,0.14, px+.5,py+.5,1.35, sp>.5?'60 kits':'100 kits', 'default', 1);
+     if(sp>.05){drawMapLabel(px+1.0*sp+.45,py+.55+sp*1.6,0.14, px+1.0*sp+.45,py+.55+sp*1.6,1.15, '40 kits', 'badge', cl(sp*2));}
+     if(sp>.5){drawMapLabel(px+.5,py+.5,0.4, px+.4,py+.5,2.35, 'Lote dividido', 'default', cl((sp-.5)*3));}}]);
+   D.push([sx+3.6+sy+2.8,()=>drawMapLabel(sx+1.8,sy+1.4,0, sx+3.6,sy+2.8,1.8, 'Ruta a Lorica', 'default', 1)]);
+   D.push([22+8,()=>drawMapLabel(18.5,5.8,0, 19.2,6.8,1.6, 'Cereté', 'default', 1)]);}
+
+  // 3 · Sello en Blockchain (Bug 4: Línea guía unida al ancla real de los bloques cx,cy,0.45, NO en el vacío)
+  {const[sx,sy]=S[3],a=act(3),cx=sx-.2,cy=sy-2.4;
+   D.push([cx+cy-1,()=>{const n=7;for(let j=0;j<n;j++){const x=sx-4.6+j*.62,y=sy-1.25;const lit=cl(a*1.6-j*.08);const pulse=(Math.sin(T*3-j*.9)+1)/2*.35;
+       const cubeCol = lit>0 ? (nightVal > 0.5 ? ['#56C8F5', '#164E63', '#0284C7'] : BLU) : STONE;
+       cube(x,y,0,.34,cubeCol,.5+lit*.5);
+       if(lit>0&&j<n-1){const[p,q]=P(x+.17,y,.17),[r,s2]=P(x+.45,y,.17);
+         ctx.strokeStyle=nightVal>0.5?`rgba(56,189,248,${.6+pulse})`:`rgba(54,136,176,${.4+pulse})`;
+         ctx.lineWidth=2.2;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(p,q);ctx.lineTo(r,s2);ctx.stroke();ctx.setLineDash([]);}}
+     box(cx-1,cy-1,0,2,2,.45,STONE);}]);
+   D.push([cx+cy+2,()=>{const L=[[-1.05,0],[-.35,0],[.35,0],[1.05,0]].map(([dx])=>[cx+dx,cy,1.55]),M=[[cx-.7,cy,2.75],[cx+.7,cy,2.75]],R=[cx,cy,3.95];
+     const pl=ss(.05,.4,a),pm=ss(.35,.65,a),pr=ss(.6,.85,a),pb=ss(.8,1,a);
+     const ln=(A,B,al)=>{if(al<=0)return;const[p,q]=P(A[0],A[1],A[2]+.2),[r,s2]=P(B[0],B[1],B[2]+.2);
+       ctx.strokeStyle=nightVal>0.5?`rgba(56,189,248,${.85*al})`:`rgba(50,125,162,${.7*al})`;
+       ctx.lineWidth=Math.max(1.5,2.4*cam.k);ctx.beginPath();ctx.moveTo(p,q);ctx.lineTo(r,s2);ctx.stroke();};
+     if(pb>0){const[p,q]=P(R[0],R[1],R[2]+.4);const g=ctx.createLinearGradient(0,q,0,0);
+       g.addColorStop(0,nightVal>0.5?`rgba(249,184,41,${.6*pb})`:`rgba(243,181,68,${.45*pb})`);
+       g.addColorStop(1,'rgba(243,181,68,0)');ctx.fillStyle=g;const bw=24*cam.k;ctx.fillRect(p-bw/2,0,bw,q);}
+     L.forEach((l,j)=>ln(l,M[j>>1],pm));M.forEach(m=>ln(m,R,pr));
+     L.forEach((l,j)=>{const p=E.back(cl(pl*1.3-j*.08));if(p>0)cube(l[0],l[1],l[2]+(1-p)*.6,.36,BLU,cl(p*2));});
+     M.forEach(m=>{const p=E.back(pm);if(p>0)cube(m[0],m[1],m[2]+(1-p)*.6,.44,BLU,cl(p*2));});
+     {const p=E.back(pr);if(p>0){cube(R[0],R[1],R[2]+(1-p)*.6,.6,GOLD,cl(p*2));const[q1,q2]=P(R[0]+.3,R[1]+.3,R[2]+.3);lockIcon(q1,q2,14*cam.k*Math.max(.5,p),ss(.85,1,a));}}
+     // Etiqueta con tilde corregida 'raíz' (Bug 5)
+     drawMapLabel(cx,cy,3.95, cx,cy,5.3, 'Lote 142 · raíz anclada', 'default', pb);}]);
+   // Guía unida con precisión a la plataforma real de bloques de blockchain
+   D.push([cx+2.4+cy+2.0,()=>drawMapLabel(cx,cy,0.45, cx+2.4,cy+2.0,2.6, 'Anclaje en blockchain', 'default', 1)]);}
+
+  // 4 · Entrega (Bug 3 y 4: Etiqueta no pisa el techo de la casa y el poste apunta a la entrada real)
+  {const[sx,sy]=S[4],a=act(4),hx=sx-1.2,hy=sy-4.1;
+   D.push([hx+hy+1,()=>{shadow(hx+1.4,hy+1.2,2,nightVal>.5?.22:.08);box(hx,hy,0,2.8,2.1,1.5,['#FFFFFF','#F2F2EC','#E1E6E0']);
+     const top=1.5,rh=.9,ym=hy+1.05;poly([P(hx,hy,top),P(hx+2.8,hy,top),P(hx+2.8,ym,top+rh),P(hx,ym,top+rh)],'#20604C');
+     poly([P(hx+2.8,hy,top),P(hx+2.8,hy+2.1,top),P(hx+2.8,ym,top+rh)],'#E1E6E0');poly([P(hx,ym,top+rh),P(hx+2.8,ym,top+rh),P(hx+2.8,hy+2.1,top),P(hx,hy+2.1,top)],'#2E7550');
+     faceL(hx,hy,0,2.8,2.1,1.5,.38,.6,0,.62,'#785008');
+     const winC = nightVal > 0.35 ? '#FFE3A3' : '#CDE7EE';
+     faceL(hx,hy,0,2.8,2.1,1.5,.1,.28,.4,.72,winC);faceL(hx,hy,0,2.8,2.1,1.5,.7,.88,.4,.72,winC);
+     face(hx,hy,0,2.8,2.1,1.5,.2,.45,.4,.72,winC);face(hx,hy,0,2.8,2.1,1.5,.6,.85,.4,.72,winC);}]);
+   D.push([hx+hy+3.2,()=>{const st=ss(.3,.75,a);crate(hx+.2,hy+2.35,0,.7,true,true);if(st>0)crate(lerp(S[4][0]-.95,hx+.2,st),lerp(S[4][1]-.23,hy+2.35,st),0+.7*st+Math.sin(Math.PI*st)*.6,.7,true,true);}]);
+   const ppl=[[hx+1.4,hy+2.7,'#2B84B7'],[hx+2.05,hy+2.55,'#F3B544'],[hx+1.75,hy+3.2,'#3BA756'],[hx+2.6,hy+3.0,'#1B5141'],[hx+.95,hy+3.35,'#255E79']];
+   D.push([hx+hy+5.6,()=>{ppl.forEach(([x,y,c],j)=>person(x,y,c,cl(a*1.6-j*.12),Math.abs(Math.sin(T*2.2+j))*2*cam.k*ss(.7,1,a)));}]);
+   D.push([hx+hy+6,()=>{const p=E.back(ss(.6,.9,a));if(p<=0)return;
+     // Círculo de check verde elevado a z = 4.2 sobre la casa
+     const[q1,q2]=P(hx+1.4,hy+1.05,4.2);const r=16*cam.k*p;
+     ctx.fillStyle='#4E9155';ctx.beginPath();ctx.arc(q1,q2,r,0,7);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=Math.max(2,3*cam.k*p);ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(q1-r*.4,q2);ctx.lineTo(q1-r*.1,q2+r*.32);ctx.lineTo(q1+r*.42,q2-r*.3);ctx.stroke();
+     // Etiqueta elevada a z = 5.1 con línea guía a la cumbrera del techo (hx+1.4, hy+1.05, 2.4), sin pisar el tejado (Bug 3)
+     drawMapLabel(hx+1.4,hy+1.05,2.4, hx+1.4,hy+1.05,5.1, 'Entrega confirmada', 'completed', cl(p));}]);
+   // Poste anclado a la entrada real del centro comunitario (hx+1.4, hy+2.1, 0), NO en la carretera (Bug 4)
+   D.push([hx+3.4+hy+3.0,()=>drawMapLabel(hx+1.4,hy+2.1,0, hx+3.4,hy+3.0,2.2, 'Centro comunitario · Lorica', 'default', 1)]);}
+
+  // Token y mundo en movimiento continuo
+  {const u=camS;
+   if(u>=4.4){
+     // Modo mundo VIVO: camión patrullando la carretera continuamente mientras se exploran convocatorias
+     const loopU = 0.85 + ((T * 0.16) % 3.15); // Transita de Bodega a Lorica
+     const [tx, ty] = road(loopU);
+     const bounce = Math.sin(T * 8) * 0.025;
+     D.push([tx + ty, () => truck(tx, ty + 0.15 + bounce, true, 0)]);
+
+     // Moto mensajera complementaria con caja PaxFide
+     const motoU = 1.1 + (((T * 0.26) + 1.6) % 2.7);
+     const [mx, my] = road(motoU);
+     D.push([mx + my + 0.1, () => {
+       shadow(mx, my, 0.45, nightVal > 0.5 ? 0.22 : 0.1);
+       box(mx - 0.25, my - 0.15, 0.15, 0.5, 0.35, 0.3, ['#2B84B7','#1C5D85','#226C98']);
+       crate(mx - 0.15, my - 0.1, 0.45, 0.32, false, false);
+       const [p, q] = P(mx, my, 0.7);
+       ctx.fillStyle = nightVal > 0.4 ? '#FFE3A3' : '#F3B544';
+       ctx.beginPath();
+       ctx.arc(p + 4 * cam.k, q, 3 * cam.k, 0, 7);
+       ctx.fill();
+     }]);
+
+     // Monedas de donación saltando en el aire a lo largo de la ruta
+     for(let j = 0; j < 3; j++) {
+       const qd = ((T * 0.32 + j / 3) % 1);
+       const [cx, cy] = road(0.85 + qd * 3.1);
+       const cz = 0.55 + Math.sin(Math.PI * qd) * 0.85;
+       const [p, q] = P(cx, cy, cz);
+       D.push([cx + cy + 0.3, () => {
+         ctx.globalAlpha = 0.85 * Math.sin(Math.PI * qd);
+         shadow(cx, cy, 0.28, nightVal > 0.5 ? 0.2 : 0.08);
+         coin(p, q, 0.3 * TW * cam.k, Math.cos(T * 5 + j * 2));
+         ctx.globalAlpha = 1;
+       }]);
+     }
+   } else {
+     // Modo interactivo guiado por el scroll en las paradas 1 a 5
+     if(u>.12&&u<.98){
+       const[x,y]=road(u);const al=ss(.12,.3,u)*(1-ss(.85,.98,u));
+       D.push([x+y+.5,()=>{const[p,q]=P(x,y,.75+Math.sin(T*3)*.08);ctx.globalAlpha=al;shadow(x,y,.35,nightVal>.5?.22:.12);coin(p,q,.42*TW*cam.k,Math.cos(u*24));ctx.globalAlpha=1;}]);
+     }
+     const tu=Math.min(4,Math.max(1,u));const[x,y]=road(tu);const delivered=u>3.5&&ss(.3,.75,act(4))>.02;
+     D.push([x+y,()=>truck(x,y+.15,!delivered,0)]);
+   }
+  }
+}
+
+function lockIcon(px,py,s,al){if(al<=0)return;ctx.globalAlpha=al;ctx.fillStyle='#1B5141';rr(px-s*.55,py-s*.1,s*1.1,s*.85,s*.15);ctx.fill();ctx.strokeStyle='#1B5141';ctx.lineWidth=Math.max(1.5,s*.18);ctx.beginPath();ctx.arc(px,py-s*.1,s*.32,Math.PI,0);ctx.stroke();ctx.globalAlpha=1;}
+
+/* ---------- frame render ---------- */
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  
+  // Suelo verde vivo natural (llanura caribeña fértil) en vez del blanco pálido
+  const groundCol = lerpColor('#7FBA72', '#0C2016', nightVal);
+  ctx.fillStyle = groundCol;
+  ctx.fillRect(0,0,W,H);
+
+  // Manchas orgánicas de vegetación y praderas para un mundo lleno de matices
+  for (const m of meadowPatches) {
+    const [px, py] = P(m.x, m.y, 0);
+    const kw = m.w * TW * cam.k, kh = m.h * TH * cam.k;
+    if (px < -kw || px > W + kw || py < -kh || py > H + kh) continue;
+    ctx.fillStyle = nightVal > 0.5 ? m.colNight : m.colDay;
+    ctx.beginPath();
+    ctx.ellipse(px, py, kw, kh, m.rot, 0, 7);
+    ctx.fill();
+  }
+
+  // Sol y Luna
+  const sunAlpha = cl(1 - nightVal * 1.55);
+  if (sunAlpha > 0.01) {
+    const sx = W * 0.82;
+    const sy = H * 0.15 + nightVal * 110;
+    const sr = Math.max(11, 15 * cam.k);
+    ctx.save();
+    ctx.globalAlpha = sunAlpha * 0.35;
+    const gSun = ctx.createRadialGradient(sx, sy, sr * 0.4, sx, sy, sr * 2.8);
+    gSun.addColorStop(0, '#F9B829');
+    gSun.addColorStop(1, 'rgba(249, 184, 41, 0)');
+    ctx.fillStyle = gSun;
+    ctx.beginPath();
+    ctx.arc(sx, sy, sr * 2.8, 0, 7);
+    ctx.fill();
+
+    ctx.globalAlpha = sunAlpha;
+    ctx.fillStyle = '#F9B829';
+    ctx.beginPath();
+    ctx.arc(sx, sy, sr, 0, 7);
+    ctx.fill();
+
+    ctx.strokeStyle = '#F9B829';
+    ctx.lineWidth = Math.max(1.8, 2.2 * cam.k);
+    ctx.lineCap = 'round';
+    for (let a = 0; a < 8; a++) {
+      const ang = a * Math.PI / 4 + T * 0.08;
+      ctx.beginPath();
+      ctx.moveTo(sx + Math.cos(ang) * (sr * 1.35), sy + Math.sin(ang) * (sr * 1.35));
+      ctx.lineTo(sx + Math.cos(ang) * (sr * 1.8), sy + Math.sin(ang) * (sr * 1.8));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  const moonAlpha = cl((nightVal - 0.25) / 0.75);
+  if (moonAlpha > 0.01) {
+    const mx = W * 0.82;
+    const my = H * 0.14 - (1 - nightVal) * 35;
+    const mr = Math.max(12, 16 * cam.k);
+    ctx.save();
+    ctx.globalAlpha = moonAlpha * 0.25;
+    const gMoon = ctx.createRadialGradient(mx, my, mr * 0.4, mx, my, mr * 2.5);
+    gMoon.addColorStop(0, '#8CC3DE');
+    gMoon.addColorStop(1, 'rgba(140, 195, 222, 0)');
+    ctx.fillStyle = gMoon;
+    ctx.beginPath();
+    ctx.arc(mx, my, mr * 2.5, 0, 7);
+    ctx.fill();
+
+    ctx.globalAlpha = moonAlpha * 0.95;
+    ctx.fillStyle = '#FDF4E2';
+    ctx.beginPath();
+    ctx.arc(mx, my, mr, 0, 7);
+    ctx.fill();
+    ctx.fillStyle = groundCol;
+    ctx.beginPath();
+    ctx.arc(mx + mr * 0.45, my - mr * 0.1, mr * 0.88, 0, 7);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    for (const st of stars) {
+      const al = moonAlpha * (0.35 + 0.55 * Math.sin(T * 3 + st.phase));
+      if (al > 0.05) {
+        ctx.fillStyle = st.c;
+        ctx.globalAlpha = al;
+        ctx.beginPath();
+        ctx.arc(st.x * W, st.y * H * 0.45, st.r, 0, 7);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  // Río Sinú (Caudal de agua reluciente con riberas y reflejos)
+  const riverBankCol = lerpColor('#BAC9A3', '#13281E', nightVal);
+  const riverWaterCol = lerpColor('#4CA6CC', '#123A4D', nightVal);
+  const riverDeepCol = lerpColor('#3990B6', '#0E2E3E', nightVal);
+  strip(riverPts, 2.5, riverBankCol);
+  strip(riverPts, 2.0, riverWaterCol);
+  strip(riverPts, 1.3, riverDeepCol);
+  if (nightVal < 0.6) {
+    ctx.fillStyle = `rgba(255, 255, 255, ${(1 - nightVal) * 0.42})`;
+    for (let i = 2; i < riverPts.length - 2; i += 6) {
+      const [rx, ry] = riverPts[i];
+      const [rp, rq] = P(rx + Math.sin(T * 2 + i) * 0.35, ry, 0);
+      if (rp > -20 && rp < W + 20 && rq > -20 && rq < H + 20) {
+        ctx.beginPath();
+        ctx.ellipse(rp, rq, 4.5 * cam.k, 1.2 * cam.k, 0, 0, 7);
+        ctx.fill();
+      }
+    }
+  }
+
+  // Parcelas de cultivos agrícolas con surcos
+  for (const cf of cropFields) {
+    const A = P(cf.x, cf.y, 0), B = P(cf.x + cf.w, cf.y, 0), Cc = P(cf.x + cf.w, cf.y + cf.d, 0), D = P(cf.x, cf.y + cf.d, 0);
+    poly([A, B, Cc, D], nightVal > 0.5 ? '#0D2117' : cf.c1);
+    for (let i = 0.3; i < cf.w - 0.2; i += 0.55) {
+      const L1 = P(cf.x + i, cf.y + 0.1, 0), L2 = P(cf.x + i, cf.y + cf.d - 0.1, 0);
+      ctx.strokeStyle = nightVal > 0.5 ? '#132D20' : cf.c2;
+      ctx.lineWidth = Math.max(1, 1.2 * cam.k);
+      ctx.beginPath(); ctx.moveTo(L1[0], L1[1]); ctx.lineTo(L2[0], L2[1]); ctx.stroke();
+    }
+  }
+
+  // Carretera y caminos
+  const roadBaseCol = lerpColor('#B8C8B5', '#14251E', nightVal);
+  const roadSurface = lerpColor('#CAD8C6', '#1C3229', nightVal);
+  const dashCol = nightVal > 0.5 ? '#F8CF7E' : '#F3B544';
+  
+  strip(roadPts, .82, roadBaseCol);
+  strip(roadPts, .68, roadSurface);
+  dashes(roadPts, dashCol);
+  strip(sidePts, .6, roadBaseCol);
+  strip(sidePts, .48, roadSurface);
+
+  // Césped y flores silvestres por todo el paisaje
+  for (const g of grassTufts) {
+    const [p, q] = P(g.x, g.y, 0);
+    if (p < -40 || p > W + 40 || q < -40 || q > H + 40) continue;
+    if (g.type === 2) {
+      flower(g.x, g.y, g.s, g.col, nightVal);
+    } else {
+      grassTuft(g.x, g.y, g.s, nightVal, g.type);
+    }
+  }
+
+  // Luciérnagas en la noche
+  if (nightVal > 0.4) {
+    ctx.save();
+    for (let i = 0; i < fireflies.length; i++) {
+      const f = fireflies[i];
+      const fx = f.x + Math.sin(T * 1.5 + f.p) * 0.6;
+      const fy = f.y + Math.cos(T * 1.2 + f.p) * 0.4;
+      const fz = 0.4 + Math.sin(T * 2 + f.p) * 0.3;
+      const [p, q] = P(fx, fy, fz);
+      if (p < -20 || p > W + 20 || q < -20 || q > H + 20) continue;
+      const glow = (Math.sin(T * 4 + f.p) + 1) / 2;
+      ctx.globalAlpha = nightVal * (0.35 + glow * 0.6);
+      ctx.fillStyle = '#F3D544';
+      ctx.beginPath();
+      ctx.arc(p, q, Math.max(1.5, 2.5 * cam.k), 0, 7);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // Follaje, fincas rurales y paradas ordenadas por profundidad isométrica
+  const D=[];const m=140;
+  for(const b of bushes){
+    const p=P(b[0],b[1]);
+    if(p[0]<-m||p[0]>W+m||p[1]<-m||p[1]>H+m*1.6)continue;
+    D.push([b[0]+b[1],()=>bush(b[0],b[1],b[2],b[3],nightVal)]);
+  }
+  for(const t of trees){
+    const p=P(t[0],t[1]);
+    if(p[0]<-m||p[0]>W+m||p[1]<-m||p[1]>H+m*1.6)continue;
+    if(t[3] === 4){
+      D.push([t[0]+t[1],()=>guayacanTree(t[0],t[1],t[2],nightVal)]);
+    } else if(t[3] === 5){
+      D.push([t[0]+t[1],()=>palmTree(t[0],t[1],t[2],nightVal)]);
+    } else {
+      D.push([t[0]+t[1],()=>tree(t[0],t[1],t[2],t[3],nightVal)]);
+    }
+  }
+  for(const f of fincas){
+    const p=P(f.x,f.y);
+    if(p[0]<-m||p[0]>W+m||p[1]<-m||p[1]>H+m*1.6)continue;
+    D.push([f.x+f.y,()=>finca(f.x,f.y,nightVal)]);
+  }
+  
+  scenes(D);
+  D.sort((a,b)=>a[0]-b[0]);
+  for(const d of D) d[1]();
+
+  // NUBES 3D ISOMÉTRICAS Y FLOTANTES CON ZONAS DE EXCLUSIÓN SUAVE (Bug 2)
+  // Brisa tropical desplazando las nubes continuamente de oeste a este
+  const isNight = nightVal > 0.5;
+  const cloudAlpha  = isNight ? 0.86 : 0.95;
+  const baseCol     = isNight ? '#142C3D' : '#C4DCD3'; // Sombra ambiental inferior 3D
+  const bodyCol     = isNight ? '#224760' : '#F6FAF7'; // Volumen blanco algodonoso
+  const hiCol       = isNight ? '#6EACD4' : '#FFFFFF'; // Cresta iluminada por el sol caribeño
+
+  // Objetos etiquetados en coordenadas del mundo 3D (para exclusión suave)
+  const labeledObjs = [
+    { x: S[0][0], y: S[0][1] - 1.5, z: 1.5, r: 52 },
+    { x: S[1][0] - 1.2 + 1.8, y: S[1][1] - 4.2 + 1.2, z: 1.5, r: 62 },
+    { x: S[2][0] - 1.4 + 0.5, y: S[2][1] - 3.0 + 0.5, z: 1.0, r: 52 },
+    { x: S[3][0] - 0.2, y: S[3][1] - 2.4, z: 2.2, r: 68 },
+    { x: S[4][0] - 1.2 + 1.4, y: S[4][1] - 4.1 + 1.05, z: 2.0, r: 68 }
+  ];
+
+  // Haz amarillo de anclaje (Stop 3, Blockchain)
+  const [beamPx, beamPy] = P(S[3][0] - 0.2, S[3][1] - 2.4, 3.95);
+  const beamWidth = 26 * cam.k;
+
+  function calcCloudExclusionFade(cx, cy, cz, cScale) {
+    const [cp, cq] = P(cx, cy, cz);
+    const kw = TW * cam.k * cScale;
+    const cRad = kw * 1.5;
+
+    // 1. Exclusión suave respecto a #authBox en px CSS (coincidente con ctx.setTransform)
+    let cardFade = 1.0;
+    if (authBoxRect && document.body.classList.contains('auth-active')) {
+      const cdx = Math.max(0, Math.max(authBoxRect.left - cp, cp - authBoxRect.right));
+      const cdy = Math.max(0, Math.max(authBoxRect.top - cq, cq - authBoxRect.bottom));
+      const distCard = Math.hypot(cdx, cdy);
+      const pad = 24;
+      const fadeDist = cRad * 0.85;
+      cardFade = cl((distCard - pad) / Math.max(1, fadeDist));
+    }
+
+    // 2. Exclusión suave respecto al haz amarillo de anclaje (columna vertical ascendente)
+    let beamFade = 1.0;
+    if (cq < beamPy + 30) {
+      const distBeamX = Math.abs(cp - beamPx);
+      const beamPad = beamWidth * 0.6 + 24;
+      beamFade = cl((distBeamX - beamPad) / Math.max(1, cRad * 0.82));
+    }
+
+    // 3. Exclusión suave respecto a objetos que tienen etiqueta
+    let objFade = 1.0;
+    for (const obj of labeledObjs) {
+      const [op, oq] = P(obj.x, obj.y, obj.z);
+      const dist = Math.hypot(cp - op, cq - oq);
+      const pad = obj.r * cam.k;
+      const f = cl((dist - pad) / Math.max(1, cRad * 0.85));
+      if (f < objFade) objFade = f;
+    }
+
+    return Math.min(cardFade, beamFade, objFade);
+  }
+
+  // Paso 1: Sombras proyectadas en el terreno verde (unificadas con desvanecimiento suave)
+  for (const c of clouds) {
+    const spanX = 125;
+    const rawX = c.bx + T * c.spd;
+    const cx = ((rawX % spanX) + spanX) % spanX - 45;
+    const cy = c.by + Math.sin(T * 0.12 + c.phase) * 0.5;
+
+    const cFade = calcCloudExclusionFade(cx, cy, c.z, c.s);
+    if (cFade <= 0.005) continue;
+
+    const [sp, sq] = P(cx + c.z * 0.26, cy + c.z * 0.26, 0);
+    if (sp < -240 || sp > W + 240 || sq < -240 || sq > H + 240) continue;
+
+    const kw = TW * cam.k * c.s;
+    const kh = TH * cam.k * c.s;
+    const sAlpha = (isNight ? 0.07 : 0.13) * cFade;
+
+    ctx.save();
+    ctx.fillStyle = `rgba(18, 55, 36, ${sAlpha})`;
+    ctx.beginPath();
+    for (const pf of c.puffs) {
+      const sx = sp + pf.dx * kw * 0.85;
+      const sy = sq + pf.dy * kh * 1.05;
+      const sr = pf.r * kw * 0.72;
+      ctx.ellipse(sx, sy, sr * 1.12, sr * 0.56, 0, 0, 7);
+    }
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Paso 2: Cuerpos de nubes 3D volumétricas con desvanecimiento suave en zonas de exclusión
+  for (const c of clouds) {
+    const spanX = 125;
+    const rawX = c.bx + T * c.spd;
+    const cx = ((rawX % spanX) + spanX) % spanX - 45;
+    const cy = c.by + Math.sin(T * 0.12 + c.phase) * 0.5;
+
+    const cFade = calcCloudExclusionFade(cx, cy, c.z, c.s);
+    if (cFade <= 0.005) continue;
+
+    const [cp, cq] = P(cx, cy, c.z);
+    if (cp < -240 || cp > W + 240 || cq < -240 || cq > H + 240) continue;
+
+    const kw = TW * cam.k * c.s;
+    const kh = TH * cam.k * c.s;
+
+    ctx.save();
+    ctx.globalAlpha = cloudAlpha * cFade;
+
+    // Capa A: Base sombreada 3D (da volumen y peso real a la nube)
+    ctx.fillStyle = baseCol;
+    ctx.beginPath();
+    for (const pf of c.puffs) {
+      const px = cp + pf.dx * kw * 0.85;
+      const py = cq + pf.dy * kh * 1.05 + pf.r * kw * 0.16;
+      const pr = pf.r * kw * 0.74;
+      ctx.arc(px, py, pr, 0, 7);
+    }
+    ctx.fill();
+
+    // Capa B: Cuerpo blanco esponjoso central
+    ctx.fillStyle = bodyCol;
+    ctx.beginPath();
+    for (const pf of c.puffs) {
+      const px = cp + pf.dx * kw * 0.85;
+      const py = cq + pf.dy * kh * 1.05;
+      const pr = pf.r * kw * 0.72;
+      ctx.arc(px, py, pr, 0, 7);
+    }
+    ctx.fill();
+
+    // Capa C: Crestas iluminadas (destellos superiores hacia el sol)
+    ctx.fillStyle = hiCol;
+    ctx.beginPath();
+    for (const pf of c.puffs) {
+      const px = cp + pf.dx * kw * 0.85 + pf.r * kw * 0.05;
+      const py = cq + pf.dy * kh * 1.05 - pf.r * kw * 0.12;
+      const pr = pf.r * kw * 0.56;
+      ctx.arc(px, py, pr, 0, 7);
+    }
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+/* ---------- scroll → camera ---------- */
+const secs=[...document.querySelectorAll('[data-i]')],cards=[...document.querySelectorAll('.stop .card')],dots=[...document.querySelectorAll('#dots a')];
+const mani=document.getElementById('mani');const HL=new Set(['registrado.','cambiar','comprobar']);
+mani.innerHTML=mani.textContent.trim().split(/\s+/).map(w=>`<span class="w${HL.has(w)?' hl':''}">${w}</span>`).join(' ');
+const words=[...mani.children];
+let target=0,sRaw=0,last=performance.now(),activeDot=-1;
+
+function updateThemeUI(){
+  const icons = [document.getElementById('themeIcon'), document.getElementById('themeIconMobile'), document.getElementById('themeIconAuth')];
+  const texts = [document.getElementById('themeText'), document.getElementById('themeTextMobile'), document.getElementById('themeTextAuth')];
+  if(document.body.classList.contains('auth-active')){
+    document.body.classList.toggle('night-auth', nightVal >= 0.5);
+  }
+  
+  let ic = '☀️', tx = 'Día';
+  if(themeMode === 'night'){
+    ic = '🌙'; tx = 'Noche';
+  } else if(themeMode === 'day'){
+    ic = '☀️'; tx = 'Día';
+  } else {
+    if(nightVal >= 0.7){ ic = '🌙'; tx = 'Auto (Noche)'; }
+    else if(nightVal >= 0.3){ ic = '🌅'; tx = 'Auto (Ocaso)'; }
+    else { ic = '☀️'; tx = 'Auto (Día)'; }
+  }
+  icons.forEach(el => { if(el) el.textContent = ic; });
+  texts.forEach(el => { if(el) el.textContent = tx; });
+}
+
+function readScroll(){
+  const y=scrollY+innerHeight/2;const c=secs.map(s=>s.offsetTop+s.offsetHeight/2);
+  if(y<=c[0])sRaw=0;else if(y>=c[c.length-1])sRaw=c.length-1;else{for(let i=0;i<c.length-1;i++)if(y<c[i+1]){sRaw=i+(y-c[i])/(c[i+1]-c[i]);break;}}
+  const i=Math.floor(sRaw),f=sRaw-i;target=Math.min(5,i+ss(.28,.72,f));
+  cards.forEach((el,j)=>{el.style.opacity=(1-ss(.22,.44,Math.abs(sRaw-j))).toFixed(3);});
+  const r=mani.getBoundingClientRect();const mp=cl((innerHeight*.78-r.top)/(innerHeight*.45));const n=Math.round(mp*words.length);words.forEach((w,j)=>w.classList.toggle('lit',j<n));
+  
+  const d=Math.round(sRaw);
+  if(d!==activeDot){
+    activeDot=d;
+    dots.forEach((el,j)=>{
+      const isOn = j === d;
+      el.classList.toggle('on', isOn);
+      if(isOn){
+        el.setAttribute('aria-current', 'step');
+      } else {
+        el.removeAttribute('aria-current');
+      }
+    });
+  }
+
+  // Blur dinámico del canvas al llegar a la sección de convocatorias
+  const convEl = document.getElementById('convocatorias');
+  if (convEl) {
+    const rect = convEl.getBoundingClientRect();
+    if (rect.top <= window.innerHeight * 0.82) {
+      cv.classList.add('blurred');
+      if (nightVal >= 0.5) convEl.classList.add('night-mode');
+      else convEl.classList.remove('night-mode');
+    } else {
+      cv.classList.remove('blurred');
+    }
+  }
+
+  // Actualizar ciclo de día y noche
+  if(themeMode === 'auto'){
+    nightVal = getAutoNight(sRaw);
+    updateThemeUI();
+  }
+  updateVeil(nightVal);
+
+  if(reduced){
+    camS=target;
+    camera();
+    draw();
+  }
+}
+
+function camera(){const k0=mobile()?Math.max(.5,Math.min(.72,W/540)):Math.max(.78,Math.min(1.25,W/1350));
+  let x,y,k;const fx=mobile()?W*.5:W*.64,fy=mobile()?H*.36:H*.56;
+  if(camS<=4){const[rx,ry]=road(camS);const rest=1-Math.min(1,Math.abs(camS-Math.round(camS))*2);x=rx;y=ry-1.1;k=k0*lerp(1.1,1.5,E.inOut(rest));ox=fx;oy=fy;}
+  else{const p=E.inOut(cl(camS-4));const[rx,ry]=road(4);x=lerp(rx,ovX,p);y=lerp(ry-1.1,ovY,p);k=lerp(k0*1.5,ovK,p);ox=lerp(fx,W*.5,p);oy=lerp(fy,H*.52,p);
+    if(camS >= 4.4 && !reduced){
+      x += Math.sin(T * 0.22) * 1.5;
+      y += Math.cos(T * 0.18) * 0.9;
+    }
+  }
+  cam.x=x;cam.y=y;cam.k=k;}
+
+/* Frame loop: El mundo continúa VIVO y en movimiento siempre */
+function frame(now){
+  if (reduced) return;
+  const dt=Math.min(.05,(now-last)/1000);
+  last=now;
+  T+=dt;
+  camS=camS+(target-camS)*Math.min(1,dt*5.5);
+  if(Math.abs(target-camS)<1e-4)camS=target;
+  camera();
+  draw();
+  requestAnimationFrame(frame);
+}
+
+addEventListener('scroll',readScroll,{passive:true});
+
+/* Debounce de resize */
+let resizeTimer = null;
+let lastW = window.innerWidth;
+let lastH = window.innerHeight;
+
+function onResizeDebounced(){
+  const curW = window.innerWidth;
+  const curH = window.innerHeight;
+  if (curW === lastW && Math.abs(curH - lastH) < 90) {
+    readScroll();
+    return;
+  }
+  lastW = curW;
+  lastH = curH;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    resize();
+    readScroll();
+    if (reduced) draw();
+  }, 120);
+}
+addEventListener('resize', onResizeDebounced);
+
+/* ---------- Selector Día / Noche ---------- */
+function toggleTheme(){
+  if(themeMode === 'auto') themeMode = 'night';
+  else if(themeMode === 'night') themeMode = 'day';
+  else themeMode = 'auto';
+
+  if(themeMode === 'night') nightVal = 1;
+  else if(themeMode === 'day') nightVal = 0;
+  else nightVal = getAutoNight(sRaw);
+
+  updateThemeUI();
+  updateVeil(nightVal);
+  const convEl = document.getElementById('convocatorias');
+  if(convEl) convEl.classList.toggle('night-mode', nightVal >= 0.5);
+  draw();
+}
+
+const themeToggle = document.getElementById('themeToggle');
+const themeToggleMobile = document.getElementById('themeToggleMobile');
+if(themeToggle) themeToggle.addEventListener('click', toggleTheme);
+if(themeToggleMobile) themeToggleMobile.addEventListener('click', toggleTheme);
+
+/* ---------- Menú Móvil ---------- */
+const navToggle = document.getElementById('navToggle');
+const navLinks = document.getElementById('navLinks');
+function closeMenu(){
+  if (navToggle && navLinks) {
+    navToggle.setAttribute('aria-expanded', 'false');
+    navToggle.setAttribute('aria-label', 'Abrir menú de navegación');
+    navLinks.classList.remove('open');
+  }
+}
+if (navToggle && navLinks) {
+  navToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const expanded = navToggle.getAttribute('aria-expanded') === 'true';
+    navToggle.setAttribute('aria-expanded', String(!expanded));
+    navToggle.setAttribute('aria-label', !expanded ? 'Cerrar menú de navegación' : 'Abrir menú de navegación');
+    navLinks.classList.toggle('open', !expanded);
+  });
+  navLinks.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => closeMenu());
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.nav')) closeMenu();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && navToggle.getAttribute('aria-expanded') === 'true') {
+      closeMenu();
+      navToggle.focus();
+    }
+  });
+}
+
+/* ---------- Seguimiento Demostrativo ---------- */
+const trkForm = document.getElementById('trkForm');
+const trkInput = document.getElementById('trk');
+const trkMsg = document.getElementById('trkMsg');
+const trkResult = document.getElementById('trkResult');
+const resLot = document.getElementById('resLot');
+const resDest = document.getElementById('resDest');
+const resStatus = document.getElementById('resStatus');
+const tlStep5 = document.getElementById('tlStep5');
+
+const DEMO_CODES = {
+  'EJEMPLO-1': { lot: 'Lote ilustrativo #142 (120 kits de alimentos)', dest: 'Lorica, Córdoba', status: 'Entregado (5/5)', done: 5 },
+  'EJEMPLO-2': { lot: 'Lote ilustrativo #143 (Medicamentos esenciales)', dest: 'Cereté, Córdoba', status: 'Despachado (3/5)', done: 3 },
+};
+const tlItems = trkResult ? [...trkResult.querySelectorAll('.trk-timeline li')] : [];
+
+function renderTrackingDemo(code) {
+  const key = (code || '').trim().toUpperCase();
+  if (!key) {
+    trkMsg.textContent = 'Escribe tu código o pulsa uno de los ejemplos.';
+    if (trkResult) trkResult.hidden = true;
+    return;
+  }
+  const demo = DEMO_CODES[key];
+  if (!demo) {
+    trkMsg.textContent = 'No encontramos ese código. En esta demostración solo funcionan EJEMPLO-1 y EJEMPLO-2.';
+    if (trkResult) trkResult.hidden = true;
+    return;
+  }
+  trkMsg.textContent = '';
+  if (!trkResult) return;
+  trkResult.hidden = false;
+  resLot.textContent = demo.lot;
+  resDest.textContent = demo.dest;
+  resStatus.textContent = demo.status;
+  // Los pasos que aún no ocurren se ven atenuados.
+  tlItems.forEach((li, i) => { li.style.opacity = i < demo.done ? '1' : '0.35'; });
+  trkResult.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' });
+}
+
+if (trkForm) {
+  trkForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    renderTrackingDemo(trkInput ? trkInput.value : '');
+  });
+}
+
+document.querySelectorAll('.demo-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const code = chip.dataset.code;
+    if (trkInput) trkInput.value = code;
+    renderTrackingDemo(code);
+  });
+});
+
+/* ---------- Controles y Filtros de Convocatorias (cajas.html) ---------- */
+const btnViewWeb = document.getElementById('btnViewWeb');
+const btnViewMobile = document.getElementById('btnViewMobile');
+const cardsGrid = document.getElementById('cardsGrid');
+
+if (btnViewWeb && btnViewMobile && cardsGrid) {
+  btnViewWeb.addEventListener('click', () => {
+    cardsGrid.classList.remove('mobile-preview');
+    btnViewWeb.classList.add('active');
+    btnViewMobile.classList.remove('active');
+  });
+  btnViewMobile.addEventListener('click', () => {
+    cardsGrid.classList.add('mobile-preview');
+    btnViewMobile.classList.add('active');
+    btnViewWeb.classList.remove('active');
+  });
+}
+
+const filterPills = document.querySelectorAll('.filter-pill');
+const variantWrappers = document.querySelectorAll('.variant-wrapper');
+
+filterPills.forEach(pill => {
+  pill.addEventListener('click', () => {
+    filterPills.forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    const cat = pill.dataset.cat;
+    variantWrappers.forEach(wrap => {
+      if (cat === 'all' || wrap.dataset.cat === cat) {
+        wrap.style.display = 'flex';
+      } else {
+        wrap.style.display = 'none';
+      }
+    });
+  });
+});
+
+/* Botones de Donación Rápida con montos sugeridos (Variante 16) */
+const v16Amounts = document.querySelectorAll('.v16-amount');
+const v16Equiv = document.getElementById('v16Equiv');
+const v16Btn = document.getElementById('v16Btn');
+
+if (v16Amounts.length) {
+  v16Amounts.forEach(btn => {
+    btn.addEventListener('click', () => {
+      v16Amounts.forEach(b => {
+        b.classList.remove('selected');
+        b.setAttribute('aria-checked', 'false');
+      });
+      btn.classList.add('selected');
+      btn.setAttribute('aria-checked', 'true');
+      const amt = parseInt(btn.dataset.amt, 10);
+      if (amt > 0) {
+        const formatted = '$' + (amt).toLocaleString('es-CO');
+        const count = Math.max(1, Math.round(amt / 50000));
+        if (v16Equiv) v16Equiv.innerHTML = 'Con <b>' + formatted + '</b> se completa aprox. <b>' + count + ' botiquín' + (count > 1 ? 'es' : '') + '</b> (valor de referencia de la organización).';
+        if (v16Btn) {
+          v16Btn.textContent = 'Donar ' + formatted;
+          v16Btn.dataset.raised = formatted;
+        }
+      } else {
+        if (v16Equiv) v16Equiv.innerHTML = 'Ingresa el monto que desees aportar a la dotación de botiquines.';
+        if (v16Btn) {
+          v16Btn.textContent = 'Donar otro monto';
+          v16Btn.dataset.raised = '$ 50.000';
+        }
+      }
+    });
+  });
+}
+
+/* ---------- Modal de Convocatorias ---------- */
+const convModal = document.getElementById('convModal');
+const modalClose = document.getElementById('modalClose');
+const modalTitle = document.getElementById('modalTitle');
+const modalDesc = document.getElementById('modalDesc');
+const modalRaised = document.getElementById('modalRaised');
+const modalGoal = document.getElementById('modalGoal');
+const modalPct = document.getElementById('modalPct');
+const modalKits = document.getElementById('modalKits');
+const modalSimMsg = document.getElementById('modalSimMsg');
+const btnSimulateDonate = document.getElementById('btnSimulateDonate');
+let selectedAmount = '$ 20.000';
+
+document.querySelectorAll('.btn-open-modal, .btn-donate, .btn-details').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (!convModal) return;
+    const card = btn.closest('.conv-card') || btn.closest('.variant-wrapper');
+    const titleEl = card ? (card.querySelector('.conv-title') || card.querySelector('h2')) : null;
+    const raisedEl = card ? card.querySelector('.progress-amounts') : null;
+    const pctEl = card ? (card.querySelector('.progress-pct-badge') || card.querySelector('.v3-pct-text') || card.querySelector('.v6-ring-pct')) : null;
+
+    modalTitle.textContent = btn.dataset.title || (titleEl ? titleEl.textContent.trim() : 'Convocatoria Abierta');
+    modalRaised.textContent = btn.dataset.raised || (raisedEl ? raisedEl.textContent.trim() : '$ 18.000.000');
+    modalGoal.textContent = btn.dataset.goal || '$ 20.000.000';
+    modalPct.textContent = btn.dataset.pct || (pctEl ? pctEl.textContent.trim() : '90%');
+    modalKits.textContent = btn.dataset.kits || '120 kits verificados';
+    modalSimMsg.textContent = '';
+    convModal.showModal();
+  });
+});
+
+if (modalClose && convModal) {
+  modalClose.addEventListener('click', () => convModal.close());
+  convModal.addEventListener('click', (e) => {
+    if (e.target === convModal) convModal.close();
+  });
+}
+
+document.querySelectorAll('.monto-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.monto-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedAmount = btn.dataset.amt;
+  });
+});
+
+document.querySelectorAll('.chip-monto').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const amt = chip.dataset.amt;
+    if (amt) {
+      selectedAmount = amt;
+      document.querySelectorAll('.monto-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.amt === amt);
+      });
+    }
+  });
+});
+
+if (btnSimulateDonate) {
+  btnSimulateDonate.addEventListener('click', () => {
+    modalSimMsg.textContent = `¡Aporte simulado de ${selectedAmount} registrado! Recibirás el código de seguimiento ficticio PAX-DEMO-88 para ver la ruta del lote.`;
+  });
+}
+
+/* ---------- Inicialización ---------- */
+resize();
+readScroll();
+camS = target;
+T = reduced ? 2 : 0;
+camera();
+draw();
+if (!reduced) {
+  requestAnimationFrame(frame);
+}
+
+
+/* ===================================================
+   LÓGICA DE LOGIN / REGISTRO (SOLO UNA CAJA, FONDO CLARO SIN BLUR)
+   =================================================== */
+let authReturnY = 0, authOpener = null;
+function openAuthView(tab = 'login') {
+  authReturnY = window.scrollY;
+  authOpener = document.activeElement;
+  document.body.classList.add('auth-active');
+  cv.classList.remove('blurred');
+  
+  if (nightVal > 0.5) {
+    document.body.classList.add('night-auth');
+  } else {
+    document.body.classList.remove('night-auth');
+  }
+  
+  const authView = document.getElementById('authView');
+  if (authView) authView.setAttribute('aria-hidden', 'false');
+  
+  switchAuthTab(tab);
+  if (authView) authView.scrollTop = 0;
+  updateAuthBoxMetrics();
+  const firstField = document.getElementById(tab === 'login' ? 'loginEmail' : 'regName');
+  if (firstField) setTimeout(() => firstField.focus({ preventScroll: true }), 60);
+}
+
+function closeAuthView() {
+  document.body.classList.remove('auth-active');
+  const authView = document.getElementById('authView');
+  if (authView) authView.setAttribute('aria-hidden', 'true');
+  updateAuthBoxMetrics();
+  window.scrollTo({ top: authReturnY, behavior: 'instant' });
+  readScroll();
+  if (authOpener && typeof authOpener.focus === 'function') authOpener.focus({ preventScroll: true });
+}
+
+// Mensajes del login sin innerHTML con texto escrito por la persona (evita inyección de HTML).
+function showAuthMsg(kind, strong, rest) {
+  const feedback = document.getElementById('authFeedbackMsg');
+  if (!feedback) return;
+  feedback.className = 'auth-feedback-msg ' + kind;
+  feedback.textContent = '';
+  if (strong) { const b = document.createElement('b'); b.textContent = strong + ' '; feedback.appendChild(b); }
+  feedback.appendChild(document.createTextNode(rest));
+  feedback.style.display = 'block';
+}
+
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+  const tabBtnLogin = document.getElementById('tabBtnLogin');
+  const tabBtnRegister = document.getElementById('tabBtnRegister');
+  const formLogin = document.getElementById('formLogin');
+  const formRegister = document.getElementById('formRegister');
+  const title = document.getElementById('authCardTitle');
+  const sub = document.getElementById('authCardSub');
+  const footSwitch = document.getElementById('authFootSwitch');
+  const feedback = document.getElementById('authFeedbackMsg');
+
+  if (feedback) feedback.style.display = 'none';
+
+  if (isLogin) {
+    if (tabBtnLogin) {
+      tabBtnLogin.classList.add('active');
+      tabBtnLogin.setAttribute('aria-selected', 'true');
+    }
+    if (tabBtnRegister) {
+      tabBtnRegister.classList.remove('active');
+      tabBtnRegister.setAttribute('aria-selected', 'false');
+    }
+    if (formLogin) formLogin.style.display = 'flex';
+    if (formRegister) formRegister.style.display = 'none';
+    if (title) title.textContent = 'Iniciar Sesión';
+    if (sub) sub.textContent = 'Gestiona tus donaciones, verifica lotes en blockchain y apoya convocatorias.';
+    if (footSwitch) footSwitch.innerHTML = '¿No tienes una cuenta aún? <button type="button" class="auth-switch-btn" onclick="switchAuthTab(\'register\')">Regístrate gratis</button>';
+  } else {
+    if (tabBtnRegister) {
+      tabBtnRegister.classList.add('active');
+      tabBtnRegister.setAttribute('aria-selected', 'true');
+    }
+    if (tabBtnLogin) {
+      tabBtnLogin.classList.remove('active');
+      tabBtnLogin.setAttribute('aria-selected', 'false');
+    }
+    if (formRegister) formRegister.style.display = 'flex';
+    if (formLogin) formLogin.style.display = 'none';
+    if (title) title.textContent = 'Crear Cuenta';
+    if (sub) sub.textContent = 'Crea tu cuenta para donar y seguir cada paso de tus donaciones.';
+    if (footSwitch) footSwitch.innerHTML = '¿Ya tienes una cuenta? <button type="button" class="auth-switch-btn" onclick="switchAuthTab(\'login\')">Inicia sesión aquí</button>';
+  }
+}
+
+function togglePassVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const isPass = input.type === 'password';
+  input.type = isPass ? 'text' : 'password';
+  btn.innerHTML = isPass
+    ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+}
+
+function checkPassStrength(val) {
+  const meter = document.getElementById('strengthMeter');
+  const label = document.getElementById('strengthLabel');
+  if (!meter || !label) return;
+
+  if (!val) {
+    meter.style.width = '0%';
+    label.textContent = 'Seguridad de contraseña';
+    label.style.color = 'var(--n500)';
+    return;
+  }
+
+  let score = 0;
+  if (val.length >= 8) score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+
+  if (score <= 1) {
+    meter.style.width = '25%';
+    meter.style.backgroundColor = '#E53E3E';
+    label.textContent = 'Seguridad: Débil (añade números o mayúsculas)';
+    label.style.color = '#E53E3E';
+  } else if (score === 2) {
+    meter.style.width = '50%';
+    meter.style.backgroundColor = '#DD6B20';
+    label.textContent = 'Seguridad: Media';
+    label.style.color = '#DD6B20';
+  } else if (score === 3) {
+    meter.style.width = '75%';
+    meter.style.backgroundColor = '#38A169';
+    label.textContent = 'Seguridad: Segura';
+    label.style.color = '#38A169';
+  } else {
+    meter.style.width = '100%';
+    meter.style.backgroundColor = '#2D8F62';
+    label.textContent = 'Seguridad: ¡Excelente y robusta!';
+    label.style.color = '#2D8F62';
+  }
+}
+
+function handleAuthSubmit(type) {
+  if (type === 'login') {
+    const email = document.getElementById('loginEmail').value.trim();
+    showAuthMsg('success', 'Demostración:', 'aquí se iniciaría la sesión de ' + email + '. Esta página no envía datos a ningún servidor.');
+  } else {
+    const name = document.getElementById('regName').value.trim();
+    const role = (document.querySelector('input[name="userRole"]:checked') || {}).value;
+    showAuthMsg('success', 'Demostración:', role === 'organizacion'
+      ? 'se crearía la cuenta de ' + name + '. La organización queda pendiente hasta que un administrador la verifique.'
+      : 'se crearía la cuenta de ' + name + ' y llegaría un correo para confirmarla.');
+  }
+}
+
+function handleSocialAuth(provider) {
+  showAuthMsg('info', 'Demostración:', 'el acceso con ' + provider + ' aún no está disponible en PaxFide.');
+}
+
+function handleForgotPass() {
+  const email = document.getElementById('loginEmail').value.trim();
+  showAuthMsg('info', '', email
+    ? 'Demostración: se enviarían instrucciones para recuperar la contraseña a ' + email + '.'
+    : 'Escribe tu correo arriba y vuelve a pulsar «¿Olvidaste tu contraseña?».');
+}
+
+// Hacer accesibles globalmente para handlers inline
+window.openAuthView = openAuthView;
+window.closeAuthView = closeAuthView;
+window.switchAuthTab = switchAuthTab;
+window.togglePassVisibility = togglePassVisibility;
+window.checkPassStrength = checkPassStrength;
+window.handleAuthSubmit = handleAuthSubmit;
+window.handleSocialAuth = handleSocialAuth;
+window.handleForgotPass = handleForgotPass;
+window.showAuthMsg = showAuthMsg;
+
+// Listeners de eventos
+const btnOpenAuth = document.getElementById('btnOpenAuth');
+if (btnOpenAuth) btnOpenAuth.addEventListener('click', () => openAuthView('login'));
+
+const btnOpenAuthMobile = document.getElementById('btnOpenAuthMobile');
+if (btnOpenAuthMobile) {
+  btnOpenAuthMobile.addEventListener('click', () => {
+    const navTgt = document.getElementById('navToggle');
+    const navLks = document.getElementById('navLinks');
+    if (navTgt && navLks) {
+      navTgt.setAttribute('aria-expanded', 'false');
+      navLks.classList.remove('open');
+    }
+    openAuthView('login');
+  });
+}
+
+const btnOrgRegister = document.getElementById('btnOrgRegister');
+if (btnOrgRegister) btnOrgRegister.addEventListener('click', () => {
+  openAuthView('register');
+  const orgRadio = document.querySelector('input[name="userRole"][value="organizacion"]');
+  if (orgRadio) orgRadio.checked = true;
+});
+
+const btnBackFromAuth = document.getElementById('btnBackFromAuth');
+if (btnBackFromAuth) btnBackFromAuth.addEventListener('click', closeAuthView);
+
+const tabBtnLogin = document.getElementById('tabBtnLogin');
+if (tabBtnLogin) tabBtnLogin.addEventListener('click', () => switchAuthTab('login'));
+
+const tabBtnRegister = document.getElementById('tabBtnRegister');
+if (tabBtnRegister) tabBtnRegister.addEventListener('click', () => switchAuthTab('register'));
+
+const themeToggleAuth = document.getElementById('themeToggleAuth');
+if (themeToggleAuth) {
+  themeToggleAuth.addEventListener('click', () => {
+    cycleTheme();
+    if (nightVal > 0.5) document.body.classList.add('night-auth');
+    else document.body.classList.remove('night-auth');
+  });
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.body.classList.contains('auth-active')) {
+    closeAuthView();
+  }
+});
+
+(() => {
+  const convEl = document.getElementById('convocatorias');
+  const ctaEl = document.getElementById('seguir');
+  if (!convEl || !ctaEl) return;
+  const sync = () => ctaEl.classList.toggle('night-mode', convEl.classList.contains('night-mode'));
+  new MutationObserver(sync).observe(convEl, { attributes: true, attributeFilter: ['class'] });
+  sync();
+})();
+
+window.__pax={
+  set:(s,t)=>{
+    target=camS=s;
+    T=t??T;
+    camera();
+    draw();
+  },
+  read:readScroll,
+  setTheme:(m)=>{
+    themeMode = m;
+    if(m==='night') nightVal=1;
+    else if(m==='day') nightVal=0;
+    else nightVal=getAutoNight(sRaw);
+    updateThemeUI();
+    updateVeil(nightVal);
+    const convEl = document.getElementById('convocatorias');
+    if(convEl) convEl.classList.toggle('night-mode', nightVal >= 0.5);
+    draw();
+  }
+};
+})();
+</script>
+</body>
+</html>

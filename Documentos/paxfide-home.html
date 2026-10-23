@@ -1,0 +1,1534 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PaxFide Inicio · Ciudad Conectada</title>
+<style>
+/* ========================================================
+   PaxFide Inicio: Ciudad Isométrica Viva & Glassmorphism
+   Flujo: bienvenida → datos faltantes (ADR-050 D1) → app con navegación dinámica.
+   ======================================================== */
+:root{
+  --g900:#1B5141;--g800:#20604C;--g500:#4E9155;--g50:#EEF6EF;
+  --b800:#255E79;--b700:#327DA2;--b500:#3688B0;--b50:#EBF5F9;
+  --y900:#785008;--y400:#F3B544;--y50:#FDF4E2;
+  --n700:#405656;--n400:#739797;--n200:#E2E9E9;--n50:#F8FAFA;
+  --d700:#B42318;--d50:#FEF3F2;
+  --bg:#DCE8D6;
+  --card:rgba(255,255,255,0.88);
+  --card-solid:#FFFFFF;
+  --fg:var(--g900);--muted:var(--n700);--line:rgba(27,81,65,0.15);--soft:rgba(255,255,255,0.68);--field:#fff;
+  --navbg:rgba(255,255,255,0.88);--navfg:var(--n700);--navon:var(--g900);--navpill:var(--g50);
+  --f:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.22,1,.36,1);--spring:cubic-bezier(.175,.885,.32,1.275);
+  --sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#07130E;
+    --card:rgba(16,38,29,0.86);
+    --card-solid:#132C22;
+    --fg:#EEF6EF;
+    --muted:rgba(238,246,239,.76);
+    --line:rgba(255,255,255,.15);
+    --soft:rgba(255,255,255,.07);
+    --field:#0F261D;
+    --navbg:rgba(13,31,24,0.90);
+    --navfg:rgba(238,246,239,.72);
+    --navon:#EEF6EF;
+    --navpill:rgba(78,145,85,.32);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#07130E;
+  --card:rgba(16,38,29,0.86);
+  --card-solid:#132C22;
+  --fg:#EEF6EF;
+  --muted:rgba(238,246,239,.76);
+  --line:rgba(255,255,255,.15);
+  --soft:rgba(255,255,255,.07);
+  --field:#0F261D;
+  --navbg:rgba(13,31,24,0.90);
+  --navfg:rgba(238,246,239,.72);
+  --navon:#EEF6EF;
+  --navpill:rgba(78,145,85,.32);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  background:var(--bg);
+  color:var(--fg);
+  font:16px/1.5 var(--f);
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+  transition:background-color .4s ease,color .4s ease;
+}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--b700);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ic{width:22px;height:22px;flex:none}
+
+/* Lienzo de Ciudad Isométrica en Fondo */
+#cityWorld{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:0;
+  display:block;
+  transform:translate3d(0,0,0);
+}
+body.peek-city #cityWorld{
+  cursor:grab;
+}
+body.peek-city #cityWorld:active{
+  cursor:grabbing;
+}
+
+/* Capa de indicadores de distrito de la ciudad */
+.city-hud{
+  position:fixed;
+  top:calc(14px + var(--st));
+  left:calc(16px + var(--sl));
+  z-index:35;
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:6px 8px 6px 14px;
+  background:var(--card);
+  backdrop-filter:blur(16px) saturate(1.3);
+  -webkit-backdrop-filter:blur(16px) saturate(1.3);
+  border:1px solid var(--line);
+  border-radius:999px;
+  font:600 12px var(--mono);
+  color:var(--fg);
+  box-shadow:0 10px 28px rgba(0,0,0,0.14);
+  pointer-events:auto;
+  transition:all .3s var(--ease);
+}
+body[data-nav="left"] .city-hud{
+  left:calc(104px + var(--sl));
+}
+body[data-nav="top"] .city-hud{
+  top:calc(74px + var(--st));
+}
+.city-hud-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--g500);
+  box-shadow:0 0 8px var(--g500);
+  animation:pulseDot 2s infinite ease-in-out;
+}
+@keyframes pulseDot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.35);opacity:.65}}
+.city-hud small{color:var(--muted);font-weight:500}
+.hud-btn{
+  border:1px solid var(--line);
+  background:var(--soft);
+  color:var(--fg);
+  border-radius:999px;
+  padding:4px 10px;
+  font:600 11px var(--mono);
+  cursor:pointer;
+  transition:background .2s,transform .15s;
+}
+.hud-btn:hover{background:var(--navpill);transform:translateY(-1px)}
+.hud-btn[aria-pressed="true"]{background:var(--y400);color:var(--g900);border-color:var(--y400)}
+
+/* Modo explorar ciudad despejada */
+body.peek-city .app,body.peek-city .gate{pointer-events:none}
+body.peek-city .nav{pointer-events:auto}
+body.peek-city .main,
+body.peek-city .gate{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transform:scale(0.98);
+  transition:opacity .35s var(--ease), transform .35s var(--ease);
+}
+.main,.gate{
+  transition:opacity .35s var(--ease), transform .35s var(--ease);
+}
+
+/* Botones con estilo moderno */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 20px;border-radius:13px;border:1px solid transparent;font-weight:700;font-size:15px;cursor:pointer;transition:transform .15s var(--ease),background .15s,box-shadow .15s}
+.btn:active{transform:scale(.98)}
+.btn-p{background:var(--g900);color:#fff;box-shadow:0 4px 14px rgba(27,81,65,.2)}
+:root[data-theme="dark"] .btn-p{background:#20604C;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn-p{background:#20604C;color:#fff}}
+.btn-y{background:var(--y400);color:var(--g900);box-shadow:0 4px 14px rgba(243,181,68,.25)}
+.btn-s{background:var(--soft);border-color:var(--line);backdrop-filter:blur(6px)}
+.btn-g{background:none;border:0;color:var(--b700);font-weight:700;padding:0 8px;cursor:pointer}
+
+.lbl{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
+.inp{width:100%;min-height:48px;border:1.5px solid var(--n400);border-radius:12px;background:var(--field);padding:0 14px;font-size:16px}
+.inp:focus{outline:none;border-color:var(--g500);box-shadow:0 0 0 3px rgba(78,145,85,.2)}
+.inp[aria-invalid="true"]{border-color:var(--d700)}
+.err{color:var(--d700);font-size:13px;margin-top:6px}
+.err[hidden]{display:none}
+.hint{color:var(--muted);font-size:13px;margin-top:6px}
+
+/* ============ pantallas de entrada (bienvenida y datos) ============ */
+.gate{
+  min-height:100vh;
+  min-height:100dvh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:calc(24px + var(--st)) max(16px,var(--sr)) calc(24px + var(--sb)) max(16px,var(--sl));
+  position:relative;
+  z-index:2;
+}
+.gate[hidden]{display:none}
+.gcard{
+  position:relative;
+  width:min(540px,100%);
+  background:var(--card);
+  backdrop-filter:blur(18px) saturate(1.25);
+  -webkit-backdrop-filter:blur(18px) saturate(1.25);
+  border:1px solid var(--line);
+  border-radius:28px;
+  padding:32px 28px 26px;
+  box-shadow:0 24px 60px rgba(0,0,0,.22);
+  animation:rise .6s var(--ease) both;
+}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+
+.brand{font-weight:800;font-size:20px;letter-spacing:-.02em;display:inline-flex;align-items:center;gap:8px}
+.brand .f{color:var(--b700)}.brand .d{color:var(--y400)}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:18px}
+.dots i{width:8px;height:8px;border-radius:9px;background:var(--line);transition:width .3s var(--ease),background .3s}
+.dots i.on{width:22px;background:var(--g500)}
+.wh{font-size:clamp(26px,6vw,34px);line-height:1.12;font-weight:800;letter-spacing:-.025em;margin:18px 0 8px}
+.wp{color:var(--muted);margin:0 0 18px;font-size:15.5px}
+
+/* cadena de bloques animada */
+.chain{display:flex;align-items:center;justify-content:center;gap:0;margin:8px 0 6px;height:96px}
+.chain .blk{width:56px;height:56px;opacity:0;transform:translateY(16px) scale(.8);animation:drop .55s var(--spring) forwards}
+.chain .blk:nth-child(3){animation-delay:.35s}.chain .blk:nth-child(5){animation-delay:.7s}
+.chain .lnk{width:26px;height:4px;border-radius:4px;background:var(--line);position:relative;overflow:hidden}
+.chain .lnk::after{content:"";position:absolute;inset:0;background:var(--g500);transform:scaleX(0);transform-origin:left;animation:fill .4s var(--ease) forwards}
+.chain .lnk:nth-child(2)::after{animation-delay:.55s}.chain .lnk:nth-child(4)::after{animation-delay:.9s}
+.chain .seal{position:relative;margin-left:10px;width:40px;height:40px;border-radius:50%;background:var(--g900);display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(.4);animation:drop .5s var(--spring) 1.15s forwards}
+@keyframes drop{to{opacity:1;transform:none}}
+@keyframes fill{to{transform:scaleX(1)}}
+
+.feats{list-style:none;margin:0 0 22px;padding:0;display:flex;flex-direction:column;gap:10px}
+.feats li{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:16px;background:var(--soft);border:1px solid var(--line);opacity:0;animation:rise .5s var(--ease) forwards}
+.feats li:nth-child(1){animation-delay:1.25s}.feats li:nth-child(2){animation-delay:1.4s}.feats li:nth-child(3){animation-delay:1.55s}
+.feats .fi{flex:none;width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff}
+.feats b{display:block;font-size:15px}
+.feats span{font-size:13.5px;color:var(--muted)}
+.gact{display:flex;gap:10px;flex-wrap:wrap}
+.gact .btn{flex:1 1 180px}
+.privacy{display:flex;gap:10px;padding:12px 14px;border-radius:14px;background:var(--b50);color:var(--b800);font-size:13.5px;margin-top:16px}
+:root[data-theme="dark"] .privacy{background:rgba(54,136,176,.16);color:#BFE0F0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .privacy{background:rgba(54,136,176,.16);color:#BFE0F0}}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:480px){.row2{grid-template-columns:1fr}.gcard{padding:26px 18px 20px;border-radius:24px}}
+
+/* ============ app con barra configurable ============ */
+.app{
+  min-height:100vh;
+  min-height:100dvh;
+  display:grid;
+  position:relative;
+  z-index:2;
+}
+.app[hidden]{display:none}
+.app[data-nav="bottom"]{grid-template:"main" 1fr "nav" auto / 1fr}
+.app[data-nav="top"]{grid-template:"nav" auto "main" 1fr / 1fr}
+.app[data-nav="left"]{grid-template:"nav main" 1fr / auto 1fr}
+.app[data-nav="right"]{grid-template:"main nav" 1fr / 1fr auto}
+
+.nav{
+  grid-area:nav;
+  position:sticky;
+  z-index:20;
+  background:var(--navbg);
+  backdrop-filter:blur(18px) saturate(1.25);
+  -webkit-backdrop-filter:blur(18px) saturate(1.25);
+  display:flex;
+  gap:4px;
+  align-items:center;
+}
+.app[data-nav="bottom"] .nav{bottom:0;border-top:1px solid var(--line);padding:6px max(8px,var(--sr)) calc(6px + var(--sb)) max(8px,var(--sl));justify-content:center;box-shadow:0 -6px 24px rgba(18,38,28,.06)}
+.app[data-nav="top"] .nav{top:0;border-bottom:1px solid var(--line);padding:calc(6px + var(--st)) max(12px,var(--sr)) 6px max(12px,var(--sl));box-shadow:0 6px 24px rgba(18,38,28,.06)}
+.app[data-nav="left"] .nav,.app[data-nav="right"] .nav{top:0;height:100vh;height:100dvh;flex-direction:column;padding:calc(14px + var(--st)) 8px calc(14px + var(--sb));width:calc(88px + var(--sl))}
+.app[data-nav="left"] .nav{border-right:1px solid var(--line);padding-left:calc(8px + var(--sl));box-shadow:6px 0 24px rgba(18,38,28,.06)}
+.app[data-nav="right"] .nav{border-left:1px solid var(--line);padding-right:calc(8px + var(--sr));width:calc(88px + var(--sr));box-shadow:-6px 0 24px rgba(18,38,28,.06)}
+
+.nav .logo{display:none}
+.app[data-nav="left"] .logo,.app[data-nav="right"] .logo,.app[data-nav="top"] .logo{display:flex;align-items:center;justify-content:center}
+.app[data-nav="left"] .logo,.app[data-nav="right"] .logo{margin-bottom:12px}
+.app[data-nav="top"] .logo{margin-right:auto;padding-right:12px}
+.items{display:flex;gap:4px;list-style:none;margin:0;padding:0}
+.app[data-nav="left"] .items,.app[data-nav="right"] .items{flex-direction:column;width:100%}
+.app[data-nav="bottom"] .items{width:min(640px,100%);justify-content:space-around}
+.app[data-nav="top"] .items{overflow-x:auto;scrollbar-width:none}
+.item{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:64px;padding:6px 6px 5px;border:0;background:none;color:var(--navfg);cursor:pointer;border-radius:14px;font-size:11.5px;font-weight:600;line-height:1.15;text-align:center;width:100%;position:relative;transition:color .2s}
+.item .pill{display:flex;align-items:center;justify-content:center;width:52px;height:30px;border-radius:999px;transition:background .25s var(--ease),transform .25s var(--spring)}
+.item[aria-current="page"]{color:var(--navon)}
+.item[aria-current="page"] .pill{background:var(--navpill);transform:scale(1.04)}
+.item:hover:not([aria-current]) .pill{background:var(--soft)}
+.item .badge{position:absolute;top:3px;left:calc(50% + 10px);min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:var(--y400);color:var(--g900);font:700 10.5px/17px var(--f)}
+.tune{border:0;background:none;color:var(--navfg);cursor:pointer;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:6px}
+.app[data-nav="left"] .tune,.app[data-nav="right"] .tune{margin-top:auto}
+.app[data-nav="top"] .tune{margin-left:8px}
+.app[data-nav="bottom"] .tune{display:none}
+
+.main{grid-area:main;min-width:0;padding:calc(58px + var(--st)) max(16px,var(--sr)) 40px max(16px,var(--sl))}
+.app[data-nav="top"] .main{padding-top:58px}
+.app[data-nav="left"] .main{padding-left:clamp(16px,3vw,36px)}
+.app[data-nav="right"] .main{padding-right:clamp(16px,3vw,36px)}
+.wrap{max-width:1040px;margin:0 auto}
+@media (max-width:560px){
+  .app[data-nav="left"] .nav,.app[data-nav="right"] .nav{width:calc(72px + var(--sl))}
+  .item{min-width:56px;font-size:10.5px}.item .pill{width:44px}
+  .app[data-nav="left"] .logo,.app[data-nav="right"] .logo{display:none}
+}
+
+/* ============ contenido del home ============ */
+.head{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding:10px 12px;border-radius:20px;background:var(--card);backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2);border:1px solid var(--line)}
+.head h1{margin:0;font-size:clamp(22px,4.6vw,30px);letter-spacing:-.02em;line-height:1.15}
+.head p{margin:2px 0 0;color:var(--muted);font-size:14.5px}
+.avatar{flex:none;width:46px;height:46px;border-radius:15px;background:linear-gradient(135deg,var(--g800),var(--g500));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;box-shadow:0 6px 16px rgba(27,81,65,.2)}
+.iconbtn{margin-left:auto;flex:none;width:44px;height:44px;border-radius:14px;border:1px solid var(--line);background:var(--card);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
+.c12{grid-column:span 12}.c8{grid-column:span 8}.c4{grid-column:span 4}.c6{grid-column:span 6}
+@media (max-width:860px){.c8,.c4,.c6{grid-column:span 12}}
+
+.card{
+  background:var(--card);
+  backdrop-filter:blur(18px) saturate(1.25);
+  -webkit-backdrop-filter:blur(18px) saturate(1.25);
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:18px;
+  box-shadow:0 12px 32px rgba(0,0,0,.10);
+}
+.card h2{margin:0 0 4px;font-size:17px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.card .sub{margin:0 0 14px;color:var(--muted);font-size:13.5px}
+.nudge{display:flex;gap:14px;align-items:center;background:var(--y50);border:1px solid #F6D99A;color:var(--y900);border-radius:18px;padding:12px 14px;margin-bottom:16px;animation:rise .4s var(--ease);backdrop-filter:blur(10px)}
+:root[data-theme="dark"] .nudge{background:rgba(243,181,68,.14);border-color:rgba(243,181,68,.3);color:#F8CF7E}
+.nudge b{display:block}.nudge span{font-size:13.5px}
+.nudge .x{margin-left:auto;flex:none;border:0;background:none;color:inherit;cursor:pointer;width:36px;height:36px;border-radius:10px}
+
+.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(27,81,65,0.96),rgba(46,117,80,0.92));backdrop-filter:blur(16px);color:#fff;border:0;box-shadow:0 16px 40px rgba(27,81,65,.22)}
+.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:rgba(243,181,68,.16)}
+.hero h2{color:#fff;font-size:19px}
+.hero .sub{color:rgba(255,255,255,.84)}
+.track{display:flex;gap:8px;position:relative;z-index:1}
+.track .inp{background:rgba(255,255,255,.96);color:#1B5141;border-color:transparent;font-family:var(--mono);font-weight:700;letter-spacing:.03em}
+.track .btn{flex:none}
+.hero .note{position:relative;z-index:1;font-size:12.5px;color:rgba(255,255,255,.82);margin:8px 0 0;display:flex;gap:6px;align-items:center}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:var(--soft);border:1px solid var(--line);border-radius:16px;padding:12px;backdrop-filter:blur(10px)}
+.stat b{display:block;font:800 22px var(--mono);letter-spacing:-.02em}
+.stat span{font-size:12.5px;color:var(--muted)}
+
+.hscroll{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(220px,1fr);gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px;scrollbar-width:thin}
+.cc{scroll-snap-align:start;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--card);backdrop-filter:blur(12px);cursor:pointer;text-align:left;padding:0;transition:transform .2s var(--ease),box-shadow .2s}
+.cc:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(0,0,0,.14)}
+.cc .cv{height:78px;display:flex;align-items:flex-end;padding:8px}
+.cc .cv span{font:700 11px var(--mono);background:rgba(255,255,255,.94);color:var(--g900);padding:3px 7px;border-radius:6px}
+.cc .cb{padding:11px 12px 12px}
+.cc b{display:block;font-size:14.5px;line-height:1.3}
+.cc small{color:var(--muted);font-size:12.5px}
+.bar{height:6px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--g500);border-radius:9px;transform-origin:left;animation:grow 1s var(--ease) both}
+@keyframes grow{from{transform:scaleX(0)}}
+
+.dlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.dlist li{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.dlist li:last-child{border-bottom:0}
+.dlist .di{flex:none;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.dlist .dt{flex:1;min-width:0}
+.dlist .dt b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dlist .dt small{color:var(--muted);font-size:12.5px}
+.dlist .amt{font:700 14px var(--mono);white-space:nowrap}
+
+.tone{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.t-ok{background:var(--g50);color:var(--g900)}.t-info{background:var(--b50);color:var(--b800)}.t-espera,.t-ambiguo{background:var(--y50);color:var(--y900)}
+.seal{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.seal p{flex:1 1 180px;margin:0;font-size:14px;color:var(--muted)}
+.seal svg.tree{flex:none;width:120px;height:auto}
+
+.qa{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.qa button{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:14px;border-radius:16px;border:1px solid var(--line);background:var(--soft);backdrop-filter:blur(10px);cursor:pointer;text-align:left;font-weight:700;font-size:14px;transition:border-color .2s,transform .2s var(--ease)}
+.qa button:hover{border-color:var(--g500);transform:translateY(-2px)}
+.qa .qi{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff}
+.qa small{font-weight:500;color:var(--muted);font-size:12.5px}
+
+.ph{text-align:center;padding:48px 16px}
+.ph .big{width:72px;height:72px;border-radius:22px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;background:var(--g50);color:var(--g900)}
+:root[data-theme="dark"] .ph .big{background:rgba(78,145,85,.2);color:#BFE5C5}
+.ph h1{margin:0 0 6px;font-size:24px}
+.ph p{margin:0 auto;color:var(--muted);max-width:46ch}
+.view{animation:viewIn .35s var(--ease)}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ============ hoja de personalización ============ */
+.sheet{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center;background:rgba(10,20,16,.45);backdrop-filter:blur(6px)}
+.sheet[hidden]{display:none}
+.sheet .panel{width:min(520px,100%);background:var(--card);backdrop-filter:blur(22px);border-radius:24px 24px 0 0;padding:10px 20px calc(20px + var(--sb));box-shadow:0 -10px 40px rgba(0,0,0,.2);animation:up .3s var(--ease)}
+@media (min-width:700px){.sheet{align-items:center}.sheet .panel{border-radius:24px;padding-bottom:22px}}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+.sheet h2{margin:0 0 4px;font-size:19px}
+.sheet .sub{margin:0 0 14px;color:var(--muted);font-size:14px}
+.pos{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.pos button{border:1.5px solid var(--line);background:var(--soft);border-radius:16px;padding:10px 6px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;font-weight:700}
+.pos button[aria-checked="true"]{border-color:var(--g900);box-shadow:inset 0 0 0 1px var(--g900);background:var(--g50);color:var(--g900)}
+:root[data-theme="dark"] .pos button[aria-checked="true"]{border-color:#8CD39A;box-shadow:inset 0 0 0 1px #8CD39A;background:rgba(78,145,85,.2);color:#EEF6EF}
+.mini{width:54px;height:76px;border-radius:9px;border:2px solid currentColor;position:relative;opacity:.85}
+.mini i{position:absolute;background:var(--g500);border-radius:3px}
+.mini[data-p="bottom"] i{left:3px;right:3px;bottom:3px;height:11px}
+.mini[data-p="top"] i{left:3px;right:3px;top:3px;height:11px}
+.mini[data-p="left"] i{top:3px;bottom:3px;left:3px;width:11px}
+.mini[data-p="right"] i{top:3px;bottom:3px;right:3px;width:11px}
+.sheet .foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+.sheet .foot small{color:var(--muted)}
+
+/* ============ controles de demostración ============ */
+.demo{position:fixed;z-index:50;bottom:calc(14px + var(--sb));right:calc(14px + var(--sr))}
+body[data-nav="bottom"] .demo{bottom:calc(84px + var(--sb))}
+body[data-nav="right"] .demo{right:calc(100px + var(--sr))}
+.demo>button{border:1px solid var(--line);background:var(--card);backdrop-filter:blur(10px);border-radius:999px;padding:7px 14px;font:700 12px var(--mono);cursor:pointer;color:var(--muted);box-shadow:0 4px 16px rgba(0,0,0,.15)}
+.demo .dp{position:absolute;right:0;bottom:42px;width:280px;background:var(--card);backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 18px 48px rgba(0,0,0,.26);font-size:13px}
+.demo .dp[hidden]{display:none}
+.demo .dp label{display:block;font-weight:700;margin:8px 0 4px}
+.demo .dp select{width:100%;min-height:36px;border-radius:9px;border:1px solid var(--line);background:var(--field);padding:0 8px}
+.demo .dp .btn{min-height:36px;font-size:13px;width:100%;margin-top:10px}
+
+@media (max-width:600px){
+  .city-hud{font-size:11px;gap:8px;padding:5px 6px 5px 12px;max-width:calc(100% - 24px - var(--sl) - var(--sr));left:calc(12px + var(--sl))}
+  .city-hud small{display:none}
+  .city-hud>span:nth-child(2){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .main{padding-top:calc(64px + var(--st))}
+  .gate{padding-top:calc(64px + var(--st))}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ============ Lienzo de Fondo: Ciudad Isométrica Conectada ============ -->
+<canvas id="cityWorld" aria-hidden="true"></canvas>
+
+<!-- ============ HUD: Distrito Actual de la Ciudad ============ -->
+<div class="city-hud" id="cityHud" aria-live="polite">
+  <span class="city-hud-dot"></span>
+  <span>Sector: <b id="hudZoneName">Valle del Sinú</b></span>
+  <small id="hudZoneType">· Panorama</small>
+  <button type="button" class="hud-btn" id="btnPeekCity" aria-pressed="false" title="Ocultar el panel para recorrer la ciudad">Ver ciudad</button>
+</div>
+
+<!-- ============ 1 · Bienvenida ============ -->
+<section class="gate" id="sWelcome" aria-labelledby="wT">
+  <div class="gcard">
+    <span class="brand" aria-label="PaxFide"><svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6l16 9-16 9-16-9z" fill="#F8CF7E"/><path d="M8 15l16 9v18L8 33z" fill="#D9962C"/><path d="M40 15l-16 9v18l16-9z" fill="#F3B544"/></svg><span>Pax<span class="f">Fide</span><span class="d">.</span></span></span>
+    <div class="chain" aria-hidden="true">
+      <svg class="blk" viewBox="0 0 56 56"><path d="M28 6l20 11-20 11L8 17z" fill="#8CC3DE"/><path d="M8 17l20 11v22L8 39z" fill="#327DA2"/><path d="M48 17L28 28v22l20-11z" fill="#3688B0"/></svg>
+      <span class="lnk"></span>
+      <svg class="blk" viewBox="0 0 56 56"><path d="M28 6l20 11-20 11L8 17z" fill="#A8D5AE"/><path d="M8 17l20 11v22L8 39z" fill="#20604C"/><path d="M48 17L28 28v22l20-11z" fill="#4E9155"/></svg>
+      <span class="lnk"></span>
+      <svg class="blk" viewBox="0 0 56 56"><path d="M28 6l20 11-20 11L8 17z" fill="#F8CF7E"/><path d="M8 17l20 11v22L8 39z" fill="#D9962C"/><path d="M48 17L28 28v22l20-11z" fill="#F3B544"/></svg>
+      <span class="seal"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+    </div>
+    <h1 class="wh" id="wT">Te damos la bienvenida a PaxFide</h1>
+    <p class="wp" id="wP">Ya iniciaste sesión. Esto es lo que puedes hacer aquí:</p>
+    <ul class="feats">
+      <li><span class="fi" style="background:var(--g500)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z"/></svg></span><div><b>Dona a convocatorias verificadas</b><span>Cada organización pasa por una revisión antes de publicar.</span></div></li>
+      <li><span class="fi" style="background:var(--b700)"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6"/></svg></span><div><b>Sigue el recorrido de tu ayuda</b><span>Del pago a la compra, el despacho y la entrega.</span></div></li>
+      <li><span class="fi" style="background:#D9962C"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg></span><div><b>Cada paso queda sellado</b><span>Se registra de forma que no se puede cambiar sin que se note.</span></div></li>
+    </ul>
+    <div class="gact"><button class="btn btn-p" type="button" id="wGo">Continuar</button></div>
+    <div class="dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+  </div>
+</section>
+
+<!-- ============ 2 · Datos faltantes (ADR-050 D1: opcional) ============ -->
+<section class="gate" id="sData" aria-labelledby="dT" hidden>
+  <form class="gcard" id="dForm" novalidate>
+    <span class="brand"><span>Pax<span class="f">Fide</span><span class="d">.</span></span></span>
+    <h1 class="wh" id="dT">¿Cómo te llamamos?</h1>
+    <p class="wp">Así te saludamos y te identificamos dentro de tu organización. Puedes completarlo ahora o más tarde desde tu perfil.</p>
+    <div class="row2">
+      <div><label class="lbl" for="gName">Nombre</label><input class="inp" id="gName" autocomplete="given-name" maxlength="100" aria-describedby="gName-e"><div class="err" id="gName-e" hidden></div></div>
+      <div><label class="lbl" for="fName">Apellido</label><input class="inp" id="fName" autocomplete="family-name" maxlength="100" aria-describedby="fName-e"><div class="err" id="fName-e" hidden></div></div>
+    </div>
+    <label class="lbl" for="mail">Correo de la cuenta</label>
+    <input class="inp" id="mail" value="laura.gomez@correo.co" readonly aria-readonly="true" style="background:var(--soft);color:var(--muted)">
+    <div class="privacy"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 4v5c0 4-3 7.5-7 9-4-1.5-7-5-7-9V7z"/><path d="M9 12l2 2 4-4"/></svg><div>Tu nombre se queda en tu cuenta. No aparece en el recorrido público de las donaciones ni en la blockchain.</div></div>
+    <div class="gact" style="margin-top:18px"><button class="btn btn-s" type="button" id="dSkip">Ahora no</button><button class="btn btn-p" type="submit" id="dSave">Guardar y continuar</button></div>
+    <p class="err" id="dErr" role="alert" hidden></p>
+    <div class="dots" aria-hidden="true"><i></i><i class="on"></i><i></i></div>
+  </form>
+</section>
+
+<!-- ============ 3 · App con barra configurable ============ -->
+<div class="app" id="app" data-nav="bottom" hidden>
+  <nav class="nav" aria-label="Principal">
+    <span class="logo" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 48 48"><path d="M24 6l16 9-16 9-16-9z" fill="#F8CF7E"/><path d="M8 15l16 9v18L8 33z" fill="#D9962C"/><path d="M40 15l-16 9v18l16-9z" fill="#F3B544"/></svg></span>
+    <ul class="items" id="navItems"></ul>
+    <button class="tune" type="button" data-open-tune aria-label="Personalizar la barra"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>Barra</button>
+  </nav>
+  <main class="main" id="main"><div class="wrap" id="view"></div></main>
+</div>
+
+<!-- hoja: posición de la barra -->
+<div class="sheet" id="tune" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="tuneT">
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="tuneT">¿Dónde quieres la barra?</h2>
+    <p class="sub">Se aplica al momento y se recuerda en este dispositivo.</p>
+    <div class="pos" role="radiogroup" aria-labelledby="tuneT" id="posGroup"></div>
+    <div class="foot"><small id="posHint"></small><button class="btn btn-p" type="button" id="tuneDone">Listo</button></div>
+  </div>
+</div>
+
+<!-- controles solo para el prototipo -->
+<div class="demo">
+  <button type="button" id="demoBtn" aria-expanded="false">⚙️ DEMO</button>
+  <div class="dp" id="demoPanel" hidden>
+    <b>Controles del prototipo</b>
+    <label for="dRole">Cuenta (según GET /me)</label>
+    <select id="dRole"><option value="donor">Donante (sin organización)</option><option value="EMPLOYEE">Empleado</option><option value="ADMINISTRATOR">Administrador</option><option value="REPRESENTATIVE">Representante</option></select>
+    <label for="dProf">Perfil (GET /account/profile)</label>
+    <select id="dProf"><option value="empty">Sin nombre</option><option value="full">Con nombre (salta el paso 2)</option></select>
+    <label for="dTheme">Tema de iluminación</label>
+    <select id="dTheme"><option value="">Automático / Sistema</option><option value="light">Día (Soleado)</option><option value="dark">Noche (Luces de Ciudad)</option></select>
+    <label for="dSpeed">Vuelo de cámara entre ventanas</label>
+    <select id="dSpeed"><option value="1">Velocidad Normal</option><option value="2">Vuelo Rápido</option></select>
+    <button class="btn btn-s" type="button" id="dRestart">Reiniciar desde la bienvenida</button>
+  </div>
+</div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store={get(k){try{return localStorage.getItem('pxf.'+k)}catch{return null}},set(k,v){try{localStorage.setItem('pxf.'+k,v)}catch{}}};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const P_ICONS={
+  home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
+  explore:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+  heart:'<path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z"/>',
+  route:'<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6"/>',
+  org:'<path d="M4 21V9l8-5 8 5v12M9 21v-5h6v5M3 21h18"/>',
+  campaign:'<path d="M4 10v4a1 1 0 0 0 1 1h2l5 4V5L7 9H5a1 1 0 0 0-1 1z"/><path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/>',
+  box:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',
+  qr:'<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"/>'
+};
+const ico=(k,cls='ic')=>`<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P_ICONS[k]}</svg>`;
+
+/* ========================================================
+   ESTADO DE LA APLICACIÓN
+   ======================================================== */
+try{localStorage.removeItem('pxf.lastTrack')}catch{} // limpia el código que guardaba la versión anterior
+const savedProf = store.get('prof');
+const S={
+  role:store.get('role')||'donor',
+  profile:(savedProf==='full' || store.get('givenName')) ? {
+    email:'laura.gomez@correo.co',
+    givenName:store.get('givenName')||'Laura',
+    familyName:store.get('familyName')||'Gómez'
+  } : { email:'laura.gomez@correo.co' },
+  nav:['top','bottom','left','right'].includes(store.get('nav'))?store.get('nav'):null,
+  view:'home',
+  nudgeHidden:false,
+  lastTrackingCode:'' // solo en memoria: el código es una credencial y no se guarda en el navegador
+};
+const isMember=()=>S.role!=='donor';
+const canManage=()=>S.role==='ADMINISTRATOR'||S.role==='REPRESENTATIVE';
+const defaultNav=()=>matchMedia('(min-width: 900px)').matches?'left':'bottom';
+
+/* ========================================================
+   MOTOR ISOMÉTRICO 2.5D: CIUDAD PAXFIDE VIVA
+   - Se dibuja en píxeles CSS (setTransform con DPR): nítido en retina y del mismo tamaño en todas las pantallas.
+   - Dos pasadas: 1) suelo plano (pasto, río, calles, plazas); 2) todo lo que tiene altura,
+     ordenado por profundidad (x + y) para que árboles, camiones y edificios se tapen bien.
+   - Con prefers-reduced-motion: la escena queda quieta y la cámara salta sin animar.
+   ======================================================== */
+const cv = document.getElementById('cityWorld');
+let ctx = cv.getContext('2d');
+let W = innerWidth, H = innerHeight, DPR = Math.min(2, devicePixelRatio || 1);
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const TW = 36, TH = 18, HZ = 22;
+let ox = W / 2, oy = H / 2;
+const MONO = '700 11px ui-monospace, "SF Mono", Menlo, Consolas, monospace';
+
+const DISTRICTS = {
+  welcome:   { x: 0,    y: 0.5,  k: 0.9,  name: 'Valle del Sinú · PaxFide', type: 'Panorama', orbit: true },
+  home:      { x: -0.5, y: -0.8, k: 1.08, name: 'Plaza Fundacional', type: 'Centro cívico' },
+  explore:   { x: -6.8, y: 6.2,  k: 1.16, name: 'Barrio Las Escuelas', type: 'Causas y educación' },
+  campaigns: { x: -6.8, y: 6.2,  k: 1.16, name: 'Convocatorias', type: 'Proyectos activos' },
+  donations: { x: 2.2,  y: 6.0,  k: 1.15, name: 'Ronda del Río Sinú', type: 'Impacto' },
+  track:     { x: 7.2,  y: -4.8, k: 1.16, name: 'Hub de Trazabilidad', type: 'Anclaje' },
+  assets:    { x: 7.2,  y: -4.8, k: 1.16, name: 'Bodega de lotes QR', type: 'Logística' },
+  org:       { x: -6.5, y: -5.5, k: 1.15, name: 'Sede Ambiental', type: 'Organizaciones' },
+  'org-new': { x: -6.5, y: -5.5, k: 1.15, name: 'Registro de alianza', type: 'Verificación' },
+  profile:   { x: 5.5,  y: 1.8,  k: 1.22, name: 'Villa Residencial', type: 'Tu perfil' }
+};
+const cam = { x: 0, y: 0.5, k: 0.9 };
+const camTarget = { x: 0, y: 0.5, k: 0.9 };
+let currentDistrictKey = 'welcome';
+let currentDistrict = DISTRICTS.welcome;
+let speedFactor = 1.0;
+
+/* ---------- arrastrar el mapa en modo "Ver ciudad" ---------- */
+let isDraggingMap = false;
+let dragStart = { x: 0, y: 0, camX: 0, camY: 0 };
+cv.addEventListener('pointerdown', e => {
+  if (!document.body.classList.contains('peek-city')) return;
+  isDraggingMap = true;
+  dragStart = { x: e.clientX, y: e.clientY, camX: camTarget.x, camY: camTarget.y };
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove', e => {
+  if (!isDraggingMap) return;
+  // Inversa de la proyección: pantalla (dx, dy) → mundo (x, y)
+  const a = (e.clientX - dragStart.x) / (TW * cam.k), b = (e.clientY - dragStart.y) / (TH * cam.k);
+  camTarget.x = Math.max(-12, Math.min(12, dragStart.camX - (a + b) / 2));
+  camTarget.y = Math.max(-12, Math.min(12, dragStart.camY - (b - a) / 2));
+  if (reducedMotion) { cam.x = camTarget.x; cam.y = camTarget.y; }
+});
+['pointerup', 'pointercancel'].forEach(ev => cv.addEventListener(ev, () => { isDraggingMap = false; }));
+cv.addEventListener('wheel', e => {
+  if (!document.body.classList.contains('peek-city')) return;
+  e.preventDefault();
+  camTarget.k = Math.max(0.6, Math.min(1.8, camTarget.k * (e.deltaY > 0 ? 0.92 : 1.08)));
+  if (reducedMotion) cam.k = camTarget.k;
+}, { passive: false });
+
+function updateHUD(d) {
+  const n = document.getElementById('hudZoneName'), t = document.getElementById('hudZoneType');
+  if (n) n.textContent = d.name;
+  if (t) t.textContent = '· ' + d.type;
+}
+function setDistrict(key) {
+  currentDistrictKey = key;
+  const d = DISTRICTS[key] || DISTRICTS.home;
+  currentDistrict = d;
+  camTarget.x = d.x; camTarget.y = d.y; camTarget.k = d.k;
+  updateHUD(d);
+  if (reducedMotion) { cam.x = d.x; cam.y = d.y; cam.k = d.k; }
+}
+
+const btnPeekCity = document.getElementById('btnPeekCity');
+function setPeek(on) {
+  document.body.classList.toggle('peek-city', on);
+  btnPeekCity.setAttribute('aria-pressed', String(on));
+  btnPeekCity.textContent = on ? 'Mostrar panel' : 'Ver ciudad';
+  // El contenido oculto tampoco se puede enfocar ni lo leen los lectores de pantalla
+  ['#sWelcome', '#sData', '#main'].forEach(s => { const el = document.querySelector(s); if (el) el.inert = on; });
+}
+btnPeekCity.addEventListener('click', () => setPeek(!document.body.classList.contains('peek-city')));
+
+function isoP(x, y, z = 0) {
+  const k = cam.k;
+  return [ox + ((x - cam.x) - (y - cam.y)) * TW * k, oy + ((x - cam.x) + (y - cam.y)) * TH * k - z * HZ * k];
+}
+function resizeCity() {
+  DPR = Math.min(2, devicePixelRatio || 1);
+  W = innerWidth; H = innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ox = W / 2; oy = H / 2 + 35;
+}
+addEventListener('resize', resizeCity);
+
+/* ---------- utilidades ---------- */
+const mod = (a, n) => ((a % n) + n) % n; // módulo siempre positivo
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const NIGHT = n => n > 0.5;
+const pick = (n, day, night) => NIGHT(n) ? night : day;
+
+function drawPoly(pts, fill, stroke = null, strokeW = 1, alpha = 1) {
+  if (alpha <= 0) return;
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.closePath();
+  if (alpha < 1) ctx.globalAlpha = alpha;
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = strokeW * cam.k; ctx.stroke(); }
+  if (alpha < 1) ctx.globalAlpha = 1;
+}
+function drawIsoBox(x, y, z, w, d, h, c, alpha = 1) {
+  const A = isoP(x, y, z + h), B = isoP(x + w, y, z + h), C = isoP(x + w, y + d, z + h), D = isoP(x, y + d, z + h);
+  const B0 = isoP(x + w, y, z), C0 = isoP(x + w, y + d, z), D0 = isoP(x, y + d, z);
+  drawPoly([D, C, C0, D0], c.left, null, 1, alpha);
+  drawPoly([C, B, B0, C0], c.right, null, 1, alpha);
+  drawPoly([A, B, C, D], c.top, null, 1, alpha);
+}
+function drawFlat(x, y, w, d, z, fill, stroke) {
+  drawPoly([isoP(x, y, z), isoP(x + w, y, z), isoP(x + w, y + d, z), isoP(x, y + d, z)], fill, stroke, 1.2);
+}
+function drawHipRoof(x, y, z, w, d, h, o, c) {
+  const A = isoP(x - o, y - o, z), B = isoP(x + w + o, y - o, z), C = isoP(x + w + o, y + d + o, z), D = isoP(x - o, y + d + o, z);
+  const R1 = isoP(x + w * 0.28, y + d * 0.5, z + h), R2 = isoP(x + w * 0.72, y + d * 0.5, z + h);
+  drawPoly([A, B, R2, R1], c.top); drawPoly([A, D, R1], c.left);
+  drawPoly([D, C, R2, R1], c.left); drawPoly([C, B, R2], c.right);
+}
+function drawIsoWindows(face, x, y, z, length, rows, cols, wS, hS, night) {
+  // De noche, algunas ventanas se apagan y prenden despacio: la ciudad está habitada
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const lit = night > 0.25 && Math.sin(worldTime * 0.35 + (r * 7 + c * 13 + x * 3)) > -0.55;
+    const col = lit ? `rgba(249,199,94,${0.5 + night * 0.45})` : (night > 0.25 ? 'rgba(40,70,80,.9)' : 'rgba(215,235,245,.92)');
+    const u = (c + 0.5) / cols, wz = z + ((r + 0.5) / rows) * (rows * hS * 1.3);
+    const P = face === 'left'
+      ? [[x + u * length - wS * .4, y], [x + u * length + wS * .4, y]]
+      : [[x, y + u * length - wS * .4], [x, y + u * length + wS * .4]];
+    drawPoly([isoP(P[0][0], P[0][1], wz), isoP(P[1][0], P[1][1], wz), isoP(P[1][0], P[1][1], wz + hS), isoP(P[0][0], P[0][1], wz + hS)], col);
+  }
+}
+function drawGroundShadow(x, y, rx, ry, a = 0.16) {
+  const [px, py] = isoP(x, y, 0.01);
+  ctx.fillStyle = `rgba(18,38,28,${a})`;
+  ctx.beginPath(); ctx.ellipse(px, py, rx * TW * cam.k, ry * TH * cam.k, 0, 0, Math.PI * 2); ctx.fill();
+}
+
+/* ---------- vegetación ---------- */
+function drawTrunk(base, top, w, col) {
+  ctx.beginPath(); ctx.moveTo(base[0], base[1]); ctx.lineTo(top[0], top[1]);
+  ctx.strokeStyle = col; ctx.lineWidth = Math.max(2, w * cam.k); ctx.lineCap = 'round'; ctx.stroke();
+}
+function blobCanopy(top, rad, cols, t, seed) {
+  // Copa en lóbulos que "respiran" con el viento
+  const br = 1 + Math.sin(t * 1.3 + seed) * 0.03;
+  ctx.fillStyle = cols[0]; ctx.beginPath(); ctx.arc(top[0], top[1] - 3 * cam.k, rad * br, 0, 7); ctx.fill();
+  ctx.fillStyle = cols[1]; ctx.beginPath();
+  ctx.arc(top[0] - rad * .38, top[1] - rad * .2, rad * .74 * br, 0, 7);
+  ctx.arc(top[0] + rad * .42, top[1] - rad * .14, rad * .76 * br, 0, 7); ctx.fill();
+  ctx.fillStyle = cols[2]; ctx.beginPath(); ctx.arc(top[0] + rad * .08, top[1] - rad * .5, rad * .62 * br, 0, 7); ctx.fill();
+}
+const TREE = {
+  shade:    { h: 1.4,  r: 17, trunk: ['#6B482A', '#4A3423'], day: ['#2E723D', '#419652', '#59B36C'], night: ['#143B29', '#1C4E37', '#255E44'] },
+  guayacan: { h: 1.35, r: 15, trunk: ['#5E3E20', '#3E2914'], day: ['#D9962C', '#F3B544', '#F8CF7E'], night: ['#8B6816', '#B88B22', '#D9A42C'] },
+  jacaranda:{ h: 1.3,  r: 14, trunk: ['#4A3326', '#33231A'], day: ['#6C4F94', '#8E6CBF', '#B395E0'], night: ['#3D2D54', '#583F7A', '#74569C'] },
+  pine:     { h: 1.7,  r: 11, trunk: ['#5B3A1E', '#3A2614'], day: ['#1F5E3A', '#2E7550', '#3E8C5A'], night: ['#0F2E1E', '#163D29', '#1E4D34'] }
+};
+function drawTree(type, x, y, s, t, n) {
+  if (type === 'palm') return drawPalmTree(x, y, s, t, n);
+  if (type === 'bush') return drawBush(x, y, 0.45 * s, n);
+  const T = TREE[type];
+  drawGroundShadow(x, y, 0.8 * s, 0.42 * s, 0.24);
+  const sway = Math.sin(t * 1.6 + x * 1.5 + y) * 0.08 * s;
+  const base = isoP(x, y, 0), top = isoP(x + sway, y - sway, T.h * s);
+  drawTrunk(base, top, 4.6 * s, pick(n, T.trunk[0], T.trunk[1]));
+  if (type === 'pine') {
+    const cols = pick(n, T.day, T.night);
+    for (let i = 0; i < 3; i++) {
+      const w = (T.r - i * 3) * cam.k * s, yy = top[1] + (6 - i * 9) * cam.k * s;
+      ctx.fillStyle = cols[i]; ctx.beginPath();
+      ctx.moveTo(top[0] - w, yy); ctx.lineTo(top[0] + w, yy); ctx.lineTo(top[0] + sway * 20, yy - 16 * cam.k * s); ctx.fill();
+    }
+    return;
+  }
+  blobCanopy(top, T.r * cam.k * s, pick(n, T.day, T.night), t, x * 3 + y);
+}
+function drawPalmTree(x, y, s, t, n) {
+  drawGroundShadow(x, y, 0.5 * s, 0.26 * s, 0.22);
+  const sway = Math.sin(t * 1.8 + x * 1.3) * 0.12 * s;
+  const base = isoP(x, y, 0), top = isoP(x + sway, y - sway, 1.8 * s);
+  ctx.beginPath(); ctx.moveTo(base[0], base[1]);
+  ctx.quadraticCurveTo(base[0] + 5 * cam.k, (base[1] + top[1]) / 2, top[0], top[1]);
+  ctx.strokeStyle = pick(n, '#8B5A2B', '#5A3A1C'); ctx.lineWidth = Math.max(2, 3.4 * cam.k * s); ctx.lineCap = 'round'; ctx.stroke();
+  const cols = pick(n, ['#4E9155', '#2E7550', '#74B56C', '#20604C'], ['#1E4A35', '#173D2B', '#2B6145', '#123325']);
+  for (let i = 0; i < 6; i++) {
+    const ang = (i / 6) * Math.PI * 2 + Math.sin(t * 0.9 + x) * 0.15;
+    const len = (16 + (i % 2) * 5) * cam.k * s;
+    ctx.beginPath(); ctx.moveTo(top[0], top[1]);
+    ctx.quadraticCurveTo(top[0] + Math.cos(ang) * len * .55, top[1] - 8 * cam.k, top[0] + Math.cos(ang) * len, top[1] + Math.sin(ang) * len * .55 + 3 * cam.k);
+    ctx.strokeStyle = cols[i % 4]; ctx.lineWidth = Math.max(1.5, 2.5 * cam.k * s); ctx.stroke();
+  }
+}
+function drawBush(x, y, r, n, col) {
+  drawGroundShadow(x, y, r * .8, r * .4, 0.18);
+  const [bx, by] = isoP(x, y, 0.12), k = cam.k;
+  ctx.fillStyle = col || pick(n, '#4E9155', '#1C4A33');
+  ctx.beginPath();
+  ctx.arc(bx, by, r * 14 * k, 0, 7); ctx.arc(bx - r * 5 * k, by + r * 2 * k, r * 10 * k, 0, 7); ctx.arc(bx + r * 5 * k, by + r * 2 * k, r * 10 * k, 0, 7);
+  ctx.fill();
+  ctx.fillStyle = pick(n, 'rgba(255,255,255,.18)', 'rgba(255,255,255,.05)');
+  ctx.beginPath(); ctx.arc(bx - r * 3 * k, by - r * 6 * k, r * 5 * k, 0, 7); ctx.fill();
+}
+function drawStreetLamp(x, y, n) {
+  const p0 = isoP(x, y, 0), p1 = isoP(x, y, 1.05);
+  ctx.strokeStyle = pick(n, '#405656', '#8FAFAF'); ctx.lineWidth = Math.max(1.4, 2 * cam.k);
+  ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke();
+  ctx.fillStyle = n > 0.35 ? '#F9C75E' : '#FFFFFF';
+  ctx.beginPath(); ctx.arc(p1[0], p1[1], Math.max(2, 3.2 * cam.k), 0, 7); ctx.fill();
+  if (n > 0.1) {
+    const g = ctx.createRadialGradient(p0[0], p0[1], 0, p0[0], p0[1], 32 * cam.k);
+    g.addColorStop(0, `rgba(249,199,94,${0.45 * n})`); g.addColorStop(1, 'rgba(249,199,94,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(p0[0], p0[1], 32 * cam.k, 16 * cam.k, 0, 0, 7); ctx.fill();
+  }
+}
+
+/* ---------- geografía: río, calles, zonas ocupadas ---------- */
+const riverY = u => 5.6 + Math.sin(u * 0.25) * 1.1;
+const ROADS = [
+  [-3, -3, 3, -3], [3, -3, 3, 3], [-3, 3, 3, 3], [-3, -3, -3, 3], [3, -2, 8, -2], [8, -6, 8, -2],
+  [-2, 3, -2, 8], [-8, 8, -2, 8], [-6, -3, -3, -3], [-6, -6, -6, -3], [3, 2, 6, 2]
+];
+const ZONES = [ // [x, y, w, d] de cada distrito: ahí no se siembra nada al azar
+  [-8.8, -8.5, 4.6, 4.4], [5.2, -8.2, 5.2, 5.2], [-2.4, -2.4, 4.8, 4.8], [4.5, -0.2, 3.6, 3.6],
+  [-10.2, 5.8, 6.0, 4.8], [0.8, 6.5, 4.8, 3.6]
+];
+function distSeg(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1, l = dx * dx + dy * dy || 1;
+  const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / l));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+function isFree(x, y, m = 0.4) {
+  if (x < -12.8 || x > 12.8 || y < -11.8 || y > 11.8) return false;
+  if (Math.abs(y - riverY(x)) < 1.7 + m) return false;
+  for (const [a, b, w, d] of ZONES) if (x > a - m && x < a + w + m && y > b - m && y < b + d + m) return false;
+  for (const r of ROADS) if (distSeg(x, y, ...r) < 0.75 + m) return false;
+  return true;
+}
+
+/* ---------- siembra determinista (siempre el mismo valle) ---------- */
+const R = rng(20261018);
+const TUFTS = [], FLOWERS = [], WILD_TREES = [], MEADOW = [];
+for (let i = 0; i < 900 && TUFTS.length < 340; i++) {
+  const x = -12.8 + R() * 25.6, y = -11.8 + R() * 23.6;
+  if (isFree(x, y, 0.05)) TUFTS.push({ x, y, s: 0.75 + R() * 0.55, p: R() * 6 });
+}
+const FLOWER_COLS = ['#F3B544', '#FFFFFF', '#E86A5C', '#B395E0', '#F8CF7E'];
+for (let c = 0; c < 26; c++) { // manchas de flores en grupos, no regadas al azar
+  const cx = -12 + R() * 24, cy = -11 + R() * 22, col = FLOWER_COLS[c % FLOWER_COLS.length];
+  for (let j = 0; j < 9; j++) {
+    const x = cx + (R() - .5) * 1.6, y = cy + (R() - .5) * 1.1;
+    if (isFree(x, y, 0.05)) FLOWERS.push({ x, y, col, s: .7 + R() * .5 });
+  }
+}
+const TYPES = ['shade', 'shade', 'guayacan', 'jacaranda', 'pine', 'pine', 'palm', 'bush', 'bush'];
+for (let i = 0; i < 700 && WILD_TREES.length < 58; i++) {
+  const x = -12.6 + R() * 25.2, y = -11.6 + R() * 23.2;
+  if (!isFree(x, y, 0.45)) continue;
+  if (WILD_TREES.some(t => Math.hypot(t.x - x, t.y - y) < 1.15)) continue;
+  WILD_TREES.push({ x, y, type: TYPES[Math.floor(R() * TYPES.length)], s: 0.75 + R() * 0.4, p: R() * 6 });
+}
+for (let i = 0; i < 16; i++) MEADOW.push({ x: -12 + R() * 24, y: -11 + R() * 22, rx: 1.6 + R() * 2.6, ry: 1.2 + R() * 2, tone: R() });
+
+/* ---------- vehículos, peatones, fauna ---------- */
+const vehicles = [
+  { route: [[8, -5], [8, -2], [3, -2], [3, 3], [-2, 3], [-2, 8], [-7, 8], [-2, 8], [-2, 3], [-3, 3], [-3, -3], [3, -3], [3, -2], [8, -2]], i: 0, t: 0, speed: 0.22,
+    cargo: { top: '#F8CF7E', left: '#D9962C', right: '#F3B544' }, cab: { top: '#4E9155', left: '#1B5141', right: '#20604C' } },
+  { route: [[-3, -3], [-6, -3], [-6, -6], [-6, -3], [-3, -3], [3, -3], [3, 3], [-3, 3]], i: 2, t: 0.3, speed: 0.26,
+    cargo: { top: '#8CC3DE', left: '#255E79', right: '#327DA2' }, cab: { top: '#EBF5F9', left: '#B8D4E3', right: '#9BC0D4' } },
+  { route: [[3, 2], [6, 2], [3, 2], [3, 3], [-3, 3], [-3, -3], [3, -3], [3, 2]], i: 0, t: 0.6, speed: 0.28,
+    cargo: { top: '#A8D5AE', left: '#2E7550', right: '#4E9155' }, cab: { top: '#F3B544', left: '#D9962C', right: '#785008' } }
+];
+function vehiclePos(v) {
+  const A = v.route[v.i], B = v.route[(v.i + 1) % v.route.length];
+  return { x: A[0] + (B[0] - A[0]) * v.t, y: A[1] + (B[1] - A[1]) * v.t, dx: B[0] - A[0], dy: B[1] - A[1] };
+}
+function updateVehicles(dt) {
+  for (const v of vehicles) {
+    const A = v.route[v.i], B = v.route[(v.i + 1) % v.route.length];
+    v.t += (v.speed * dt * 8) / Math.max(0.5, Math.hypot(B[0] - A[0], B[1] - A[1]));
+    if (v.t >= 1) { v.t = 0; v.i = (v.i + 1) % v.route.length; }
+  }
+}
+function drawTruck(v, n) {
+  const { x, y, dx, dy } = vehiclePos(v), alongX = Math.abs(dx) >= Math.abs(dy), dir = alongX ? Math.sign(dx || 1) : Math.sign(dy || 1);
+  const bump = Math.abs(Math.sin(worldTime * 9 + v.i)) * 0.02;
+  drawGroundShadow(x, y, 0.65, 0.36, 0.28);
+  const cab = dir > 0 ? 0.28 : -0.52, box = dir > 0 ? -0.45 : -0.15;
+  if (alongX) { drawIsoBox(x + box, y - .24, .06 + bump, .68, .48, .48, v.cargo); drawIsoBox(x + cab, y - .22, .06 + bump, .32, .44, .36, v.cab); }
+  else { drawIsoBox(x - .24, y + box, .06 + bump, .48, .68, .48, v.cargo); drawIsoBox(x - .22, y + cab, .06 + bump, .44, .32, .36, v.cab); }
+  if (n > 0.2) {
+    const [fx, fy] = isoP(x + (alongX ? dir * .45 : 0), y + (alongX ? 0 : dir * .45), .22);
+    const sx = (dx - dy) * TW, sy = (dx + dy) * TH, ang = Math.atan2(sy, sx); // dirección en pantalla
+    const g = ctx.createRadialGradient(fx, fy, 2, fx, fy, 60 * cam.k);
+    g.addColorStop(0, `rgba(255,245,190,${0.7 * n})`); g.addColorStop(1, 'rgba(255,245,190,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.arc(fx, fy, 60 * cam.k, ang - .35, ang + .35); ctx.closePath(); ctx.fill();
+  }
+}
+// Peatones: recorren el anillo de la plaza y los senderos
+const PEOPLE = Array.from({ length: 9 }, (_, i) => ({ off: i / 9, speed: 0.012 + (i % 3) * 0.004, dir: i % 2 ? 1 : -1, col: ['#F3B544', '#327DA2', '#E86A5C', '#4E9155', '#B395E0'][i % 5] }));
+function ringPoint(u) { // perímetro de la plaza, 2.65 desde el centro
+  const s = 2.65, p = mod(u, 1) * 4, side = Math.floor(p), f = p - side;
+  return [[-s + 2 * s * f, -s], [s, -s + 2 * s * f], [s - 2 * s * f, s], [-s, s - 2 * s * f]][side];
+}
+function drawPerson(x, y, col, t, n) {
+  const step = Math.abs(Math.sin(t * 10)) * 0.04;
+  const [px, py] = isoP(x, y, 0), [hx, hy] = isoP(x, y, 0.62 + step), k = cam.k;
+  ctx.fillStyle = 'rgba(18,38,28,.2)'; ctx.beginPath(); ctx.ellipse(px, py, 4 * k, 2 * k, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = n > .5 ? '#9FB8AE' : col; ctx.lineWidth = Math.max(2, 4 * k); ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(px, py - 2 * k); ctx.lineTo(hx, hy + 4 * k); ctx.stroke();
+  ctx.fillStyle = n > .5 ? '#C9D9D2' : '#8B5A3C'; ctx.beginPath(); ctx.arc(hx, hy, Math.max(1.8, 2.6 * k), 0, 7); ctx.fill();
+}
+const clouds = [{ x: -16, y: -12, z: 6.2, s: 2.2, speed: .008 }, { x: -4, y: 4, z: 6.8, s: 1.8, speed: .010 }, { x: 8, y: -10, z: 5.8, s: 2.6, speed: .007 }, { x: 14, y: 6, z: 6.4, s: 1.6, speed: .009 }];
+function updateClouds(dt) {
+  for (const c of clouds) { c.x += c.speed * dt * 60; c.y -= c.speed * .35 * dt * 60; if (c.x > 22) { c.x = -22; c.y = Math.random() * 24 - 12; } }
+}
+function drawCloud(c, n) {
+  drawGroundShadow(c.x, c.y, c.s * .8, c.s * .45, n > .5 ? .03 : .07);
+  const [cx, cy] = isoP(c.x, c.y, c.z), r = c.s * 15 * cam.k;
+  ctx.fillStyle = n > .5 ? 'rgba(220,235,230,.14)' : 'rgba(255,255,255,.88)';
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.arc(cx + r * .75, cy - r * .2, r * .75, 0, 7); ctx.arc(cx - r * .65, cy - r * .1, r * .7, 0, 7); ctx.arc(cx + r * .3, cy - r * .55, r * .65, 0, 7); ctx.fill();
+}
+function drawLandmarkTag(x, y, z, text, color, on) {
+  const [px, py] = isoP(x, y, z + (on ? Math.sin(worldTime * 2.4) * 0.08 : 0));
+  ctx.save(); ctx.font = MONO;
+  const pw = ctx.measureText(text).width + 22, ph = 22;
+  ctx.fillStyle = on ? color : 'rgba(16,38,29,.8)';
+  ctx.beginPath(); ctx.roundRect(px - pw / 2, py - ph / 2, pw, ph, 11); ctx.fill();
+  ctx.strokeStyle = on ? '#FFFFFF' : 'rgba(255,255,255,.25)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = on && color === '#F3B544' ? '#1B5141' : '#FFFFFF';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, px, py + 1);
+  ctx.restore();
+}
+
+/* ========================================================
+   PASADA 1: SUELO PLANO
+   ======================================================== */
+function drawGroundStatic(n) {
+  const grass = pick(n, '#5DAE69', '#10291E');
+  // Bloque del valle: tierra en los costados, pasto liso arriba (sin damero)
+  drawIsoBox(-13.5, -12.5, -0.65, 27, 25, 0.65, { top: grass, left: pick(n, '#8A6B47', '#2A1E14'), right: pick(n, '#6E5236', '#1E150E') });
+  const P = [isoP(-13.5, -12.5, 0), isoP(13.5, -12.5, 0), isoP(13.5, 12.5, 0), isoP(-13.5, 12.5, 0)];
+  ctx.save();
+  ctx.beginPath(); ctx.moveTo(...P[0]); P.slice(1).forEach(p => ctx.lineTo(...p)); ctx.closePath(); ctx.clip();
+  // Manchas suaves de pasto más claro y más oscuro: relieve sin cuadrícula
+  for (const m of MEADOW) {
+    const [px, py] = isoP(m.x, m.y, 0), rx = m.rx * TW * cam.k, ry = m.ry * TH * cam.k;
+    const g = ctx.createRadialGradient(px, py, 0, px, py, Math.max(rx, ry));
+    const c = m.tone > .5 ? pick(n, 'rgba(120,196,110,.55)', 'rgba(40,90,60,.35)') : pick(n, 'rgba(58,130,70,.45)', 'rgba(5,20,14,.4)');
+    g.addColorStop(0, c); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+
+  // Senderos de tierra
+  ctx.strokeStyle = pick(n, '#D6C6A3', '#1F3529'); ctx.lineWidth = 0.42 * TW * cam.k; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  [[[-1.5, 2.5], [-1.5, 4.5], [1.5, 5.0]], [[3.5, -1.0], [5.0, 0.0], [5.2, 1.2]], [[-3.0, -2.5], [-4.5, -4.0], [-5.5, -4.5]], [[-3.0, 7.5], [-5.0, 7.5], [-6.5, 7.0]], [[9, -2], [10.5, 0.5], [11.5, 3]]]
+    .forEach(path => { ctx.beginPath(); path.forEach(([x, y], i) => { const p = isoP(x, y, .01); i ? ctx.lineTo(...p) : ctx.moveTo(...p); }); ctx.stroke(); });
+
+  // Río Sinú: orilla, agua, corriente y destellos (lo mejor de las dos versiones)
+  const band = (half, z, fill) => {
+    const top = [], bot = [];
+    for (let i = 0; i <= 54; i++) { const u = -13.5 + (i / 54) * 27, y = riverY(u); top.push(isoP(u, y - half, z)); bot.push(isoP(u, y + half, z)); }
+    drawPoly(top.concat(bot.reverse()), fill);
+  };
+  band(1.55, .02, pick(n, '#CDBF9F', '#1E382C'));   // orilla de arena
+  band(1.25, -.06, pick(n, '#2D81AA', '#14384A'));  // agua
+  band(.55, -.05, pick(n, 'rgba(121,191,223,.35)', 'rgba(40,100,130,.35)')); // canal más claro
+  // Calles
+  for (const [x1, y1, x2, y2] of ROADS) {
+    const a = isoP(x1, y1, .015), b = isoP(x2, y2, .015);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = pick(n, '#C7D4CA', '#13281E'); ctx.lineWidth = 1.4 * TW * cam.k; ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
+    ctx.strokeStyle = pick(n, '#556960', '#1C382C'); ctx.lineWidth = 1.05 * TW * cam.k; ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
+    ctx.strokeStyle = pick(n, 'rgba(255,255,255,.7)', 'rgba(243,181,68,.45)'); ctx.lineWidth = Math.max(1, 1.8 * cam.k);
+    ctx.setLineDash([8 * cam.k, 8 * cam.k]); ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke(); ctx.setLineDash([]);
+  }
+  // Puente
+  drawIsoBox(-2.65, 3.8, 0, 1.3, 2.8, .26, { top: pick(n, '#33473C', '#20382D'), left: '#255E79', right: '#1B5141' });
+
+  // Explanadas de cada distrito
+  drawIsoBox(-8.8, -8.5, 0, 4.6, 4.4, .14, { top: pick(n, '#C9E0C1', '#1B3F2F'), left: '#20604C', right: '#1B5141' });
+  drawIsoBox(5.2, -8.2, 0, 5.2, 5.2, .16, { top: pick(n, '#D5E0E3', '#1B333E'), left: '#255E79', right: '#1B4357' });
+  drawIsoBox(-2.4, -2.4, 0, 4.8, 4.8, .12, { top: pick(n, '#EBF3E6', '#1B3B2E'), left: '#20604C', right: '#1B5141' });
+  drawIsoBox(-1.5, -1.5, .12, 3, 3, .03, { top: pick(n, '#DCEAD5', '#234B3B'), left: '#4E9155', right: '#20604C' });
+  drawIsoBox(4.5, -.2, 0, 3.6, 3.6, .14, { top: pick(n, '#D6E8CE', '#1B3A2D'), left: '#20604C', right: '#1B5141' });
+  drawIsoBox(-10.2, 5.8, 0, 6, 4.8, .15, { top: pick(n, '#D9EAD2', '#1D3B2E'), left: '#20604C', right: '#1B5141' });
+  drawFlat(-6.2, 6.4, 1.7, 2.4, .17, '#327DA2', '#EBF5F9');
+  drawIsoBox(.8, 6.5, 0, 4.8, 3.6, .14, { top: pick(n, '#D5E8CE', '#1B3D2F'), left: '#20604C', right: '#1B5141' });
+  drawIsoBox(1.8, 5.2, .05, 1.6, 1.5, .12, { top: '#C68B59', left: '#8B5A2B', right: '#6E4720' });
+
+  // Flores (puntos planos) y matas de pasto, en lote para que sea rápido
+  for (const f of FLOWERS) {
+    const [fx, fy] = isoP(f.x, f.y, .02), r = Math.max(1.4, 2.2 * cam.k * f.s);
+    ctx.fillStyle = f.col; ctx.beginPath(); ctx.arc(fx, fy - 3 * cam.k, r, 0, 7); ctx.fill();
+  }
+}
+function drawGroundLive(n, t) {
+  // Líneas de corriente que fluyen río abajo
+  ctx.lineWidth = Math.max(1, 1.6 * cam.k); ctx.lineCap = 'round';
+  for (let j = 0; j < 14; j++) {
+    const u = mod(t * 1.1 + j * 2.1, 28) - 14, lane = ((j * 7) % 5 - 2) * 0.35;
+    if (u > -3.2 && u < -1.0) continue; // no pasar por encima del puente
+    const a = isoP(u, riverY(u) + lane, -.04), b = isoP(u + .9, riverY(u + .9) + lane, -.04);
+    const alpha = (Math.sin(t * 2 + j) * .5 + .5) * .6 + .2;
+    ctx.strokeStyle = n > .5 ? `rgba(121,191,223,${alpha * .5})` : `rgba(255,255,255,${alpha})`;
+    ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke();
+  }
+
+  // Matas de pasto, en lote. Una ráfaga recorre el valle en diagonal: dobla más el pasto y le aclara las puntas
+  ctx.lineCap = 'round';
+  const gustAt = (x, y) => { const d = mod((x + y) - t * 3.2, 30) - 15; return Math.exp(-d * d / 6); };
+  for (const g of TUFTS) { const [bx, by] = isoP(g.x, g.y, .01); g.sx = bx; g.sy = by; g.gust = NIGHT(n) ? 0 : gustAt(g.x, g.y); }
+  const blades = [[pick(n, '#3E8C47', '#1E4A35'), -1], [pick(n, '#6BBE72', '#2B6145'), 0], [pick(n, '#4FA058', '#22553C'), 1]];
+  const tip = (g, side) => {
+    const k = cam.k * g.s, hgt = (side === 0 ? 13 : 9) * k;
+    const wind = (Math.sin(t * 2.4 + g.x * 2.1 + g.y * 1.7 + g.p) * 4 + g.gust * 9) * k;
+    return [g.sx + side * 6 * cam.k + wind, g.sy - hgt * (1 - g.gust * .25), g.sx + side * 4 * cam.k, g.sy - hgt * .6];
+  };
+  for (const [col, side] of blades) {
+    ctx.strokeStyle = col; ctx.lineWidth = Math.max(1, 1.4 * cam.k); ctx.beginPath();
+    for (const g of TUFTS) { const [tx, ty, cx, cy] = tip(g, side); ctx.moveTo(g.sx + side * 3 * cam.k, g.sy); ctx.quadraticCurveTo(cx, cy, tx, ty); }
+    ctx.stroke();
+  }
+  if (!NIGHT(n)) { // brillo en las puntas por donde pasa la ráfaga
+    ctx.strokeStyle = 'rgba(236,255,210,.85)'; ctx.lineWidth = Math.max(1, 1.5 * cam.k); ctx.beginPath();
+    for (const g of TUFTS) if (g.gust > .35) { const [tx, ty] = tip(g, 0); ctx.moveTo(tx, ty); ctx.lineTo(tx - 2 * cam.k, ty + 4 * cam.k * g.gust); }
+    ctx.stroke();
+  }
+}
+
+/* ---------- caché del suelo: la proyección es afín, así que basta con mover y escalar una imagen ---------- */
+const groundCache = {};
+const CACHE_HALF_W = 1000, CACHE_HALF_H = 560; // cubre todo el valle a escala 1
+function getGroundCache(night) {
+  const key = night ? 'n' : 'd', f = Math.min(1.5, DPR);
+  if (groundCache[key] && groundCache[key].f === f) return groundCache[key];
+  const c = document.createElement('canvas'); c.width = Math.ceil(CACHE_HALF_W * 2 * f); c.height = Math.ceil(CACHE_HALF_H * 2 * f);
+  const real = ctx, saved = { x: cam.x, y: cam.y, k: cam.k, ox, oy };
+  ctx = c.getContext('2d'); ctx.setTransform(f, 0, 0, f, 0, 0);
+  cam.x = 0; cam.y = 0; cam.k = 1; ox = CACHE_HALF_W; oy = CACHE_HALF_H;
+  try { drawGroundStatic(night ? 1 : 0); }
+  finally { ctx = real; cam.x = saved.x; cam.y = saved.y; cam.k = saved.k; ox = saved.ox; oy = saved.oy; }
+  return (groundCache[key] = { c, f });
+}
+function drawGround(n, t) {
+  const G = getGroundCache(NIGHT(n)), [x0, y0] = isoP(0, 0, 0), k = cam.k;
+  ctx.drawImage(G.c, x0 - CACHE_HALF_W * k, y0 - CACHE_HALF_H * k, CACHE_HALF_W * 2 * k, CACHE_HALF_H * 2 * k);
+  drawGroundLive(n, t);
+}
+
+/* ========================================================
+   PASADA 2: OBJETOS CON ALTURA, ORDENADOS POR PROFUNDIDAD
+   ======================================================== */
+function sceneObjects(n, t) {
+  const O = [], add = (x, y, fn) => O.push({ d: x + y, fn });
+  const tree = (type, x, y, s, p = 0) => add(x, y, () => drawTree(type, x, y, s, t + p, n));
+
+  // Sede Ambiental (org)
+  add(-6.9, -6.7, () => {
+    drawGroundShadow(-6.9, -6.7, 2, 1, .22);
+    drawIsoBox(-8.2, -7.8, .14, 2.6, 2.2, 1.05, { top: '#4E9155', left: pick(n, '#EBF5EC', '#1F4B38'), right: pick(n, '#CFE3D1', '#153628') });
+    drawIsoBox(-7.8, -7.4, 1.19, 1.8, 1.4, .65, { top: '#74B56C', left: pick(n, '#D9ECF2', '#255E79'), right: pick(n, '#B7D8E6', '#1B465B') });
+    drawIsoWindows('left', -8.0, -5.6, .35, 2.2, 2, 4, .28, .28, n);
+  });
+  [[-8.3, -4.8, 3.2], [-5.0, -7.8, 2.7]].forEach(([wx, wy, wh], idx) => add(wx, wy, () => {
+    const [bX, bY] = isoP(wx, wy, .14), [tX, tY] = isoP(wx, wy, wh);
+    ctx.strokeStyle = pick(n, '#FFFFFF', '#B8D0C5'); ctx.lineWidth = 3.2 * cam.k; ctx.beginPath(); ctx.moveTo(bX, bY); ctx.lineTo(tX, tY); ctx.stroke();
+    ctx.strokeStyle = '#F8FAFA'; ctx.lineWidth = 2.2 * cam.k;
+    for (let b = 0; b < 3; b++) { const a = t * 2.4 + idx * 1.2 + b * 2.094; ctx.beginPath(); ctx.moveTo(tX, tY); ctx.lineTo(tX + Math.cos(a) * 21 * cam.k, tY + Math.sin(a) * 18 * cam.k); ctx.stroke(); }
+    ctx.fillStyle = '#F3B544'; ctx.beginPath(); ctx.arc(tX, tY, 3.5 * cam.k, 0, 7); ctx.fill();
+  }));
+  tree('shade', -9.5, -6.5, 1.1); tree('jacaranda', -5.2, -5.2, 1.05, 1); add(-7.0, -4.5, () => drawBush(-7.0, -4.5, .55, n));
+
+  // Hub de Trazabilidad (track / assets)
+  add(7.4, -6.2, () => {
+    drawGroundShadow(7.4, -6.2, 2, 1.1, .22);
+    drawIsoBox(5.8, -7.6, .16, 3.2, 2.8, 1.35, { top: '#327DA2', left: pick(n, '#EBF2F5', '#1D3E4F'), right: pick(n, '#C9D9E0', '#142C38') });
+    drawIsoBox(6.1, -7.2, 1.51, .7, 2, .28, { top: '#8CC3DE', left: '#255E79', right: '#3688B0' });
+    drawIsoBox(7.2, -7.2, 1.51, .7, 2, .28, { top: '#8CC3DE', left: '#255E79', right: '#3688B0' });
+    drawIsoWindows('left', 6.0, -4.8, .4, 2.8, 2, 5, .26, .28, n);
+  });
+  add(6.6, -4.4, () => {
+    drawIsoBox(6.2, -4.8, .16, .8, .08, .75, { top: '#F3B544', left: '#D9962C', right: '#785008' });
+    drawIsoBox(7.4, -4.8, .16, .8, .08, .75, { top: '#F3B544', left: '#D9962C', right: '#785008' });
+    drawIsoBox(5.6, -4.3, .16, .65, .65, .52, { top: '#F8CF7E', left: '#D9962C', right: '#F3B544' });
+    drawIsoBox(6.4, -4.2, .16, .55, .55, .42, { top: '#A8D5AE', left: '#20604C', right: '#4E9155' });
+    drawIsoBox(5.7, -4.2, .68, .45, .45, .35, { top: '#8CC3DE', left: '#255E79', right: '#327DA2' });
+  });
+  add(9.5, -6.8, () => { // Torre de anclaje: el bloque sube y baja y emite ondas
+    drawIsoBox(9.1, -7.2, .16, .8, .8, 1.9, { top: '#255E79', left: '#1B5141', right: '#133B2F' });
+    const fz = 2.45 + Math.sin(t * 3) * .18;
+    drawIsoBox(9.2, -7.1, fz, .6, .6, .55, { top: '#F8CF7E', left: '#F3B544', right: '#D9962C' });
+    const [bx, by] = isoP(9.5, -6.8, fz + .3);
+    for (let r = 0; r < 2; r++) {
+      const ph = mod(t * .7 + r * .5, 1), rad = (6 + ph * 30) * cam.k;
+      ctx.strokeStyle = `rgba(243,181,68,${1 - ph})`; ctx.lineWidth = 2 * cam.k; ctx.beginPath(); ctx.arc(bx, by, rad, 0, 7); ctx.stroke();
+    }
+  });
+  tree('palm', 10.2, -5.5, 1.1); tree('guayacan', 4.6, -6.8, 1.0, 1.5);
+
+  // Plaza Fundacional (home)
+  add(0, -1.6, () => {
+    drawGroundShadow(0, -1.6, 2.4, 1.1, .22);
+    drawIsoBox(-1.8, -2.3, .15, 3.6, 1.5, 1.45, { top: '#FAFDF9', left: pick(n, '#F4F9F2', '#214838'), right: pick(n, '#DAE6D6', '#163327') });
+    drawIsoWindows('left', -1.6, -.8, .35, 3.2, 2, 5, .28, .32, n);
+    drawHipRoof(-1.95, -2.45, 1.6, 3.9, 1.8, .55, .35, { top: '#F3B544', left: '#D9962C', right: '#9E6B14' });
+    drawIsoBox(-.55, -2.1, 1.6, 1.1, 1.1, 1.15, { top: '#FAFDF9', left: pick(n, '#FFFFFF', '#265340'), right: pick(n, '#E2ECE0', '#1A3B2D') });
+    // Reloj de la torre
+    const [cx, cy] = isoP(0, -1.0, 2.2), k = cam.k;
+    ctx.fillStyle = '#FFFFFF'; ctx.strokeStyle = '#1B5141'; ctx.lineWidth = 1.2 * k;
+    ctx.beginPath(); ctx.ellipse(cx, cy, 5 * k, 6 * k, 0, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(t * .5) * 4 * k, cy + Math.sin(t * .5) * 4 * k); ctx.stroke();
+    drawHipRoof(-.68, -2.22, 2.75, 1.36, 1.36, .5, .25, { top: '#F8CF7E', left: '#F3B544', right: '#B87D19' });
+  });
+  add(0, .3, () => { // Fuente con chorro y gotas
+    drawIsoBox(-.75, -.35, .15, 1.5, 1.5, .28, { top: '#3688B0', left: '#20604C', right: '#1B5141' });
+    drawIsoBox(-.4, 0, .43, .8, .8, .25, { top: '#79BFDF', left: '#255E79', right: '#1E4E63' });
+    const [fx, fy] = isoP(0, .4, .72), jh = (12 + Math.sin(t * 5) * 4) * cam.k;
+    ctx.strokeStyle = '#EBF5F9'; ctx.lineWidth = 2.5 * cam.k; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - jh); ctx.stroke();
+    ctx.fillStyle = 'rgba(235,245,249,.9)';
+    for (let d = 0; d < 6; d++) {
+      const ph = mod(t * 1.2 + d / 6, 1), a = d * 1.05;
+      ctx.beginPath(); ctx.arc(fx + Math.cos(a) * ph * 12 * cam.k, fy - jh + ph * ph * (jh + 6 * cam.k), 1.4 * cam.k, 0, 7); ctx.fill();
+    }
+  });
+  tree('palm', -2.0, 1.8, 1.05); tree('palm', 2.0, 1.8, 1.1, 1.2); tree('guayacan', -2.0, -.4, 1.0); tree('shade', 2.0, -.4, 1.0, 2);
+  add(-1.3, 1.5, () => drawStreetLamp(-1.3, 1.5, n)); add(1.3, 1.5, () => drawStreetLamp(1.3, 1.5, n));
+
+  // Villa Residencial (profile)
+  add(6.2, 1.2, () => {
+    drawGroundShadow(6.2, 1.2, 1.6, .8, .2);
+    drawIsoBox(5.1, .3, .14, 2.2, 1.8, 1.05, { top: '#FAFDF9', left: pick(n, '#F7FAF5', '#244D3C'), right: pick(n, '#DCE8D8', '#18362A') });
+    drawIsoWindows('left', 5.2, 2.1, .32, 1.8, 2, 3, .26, .28, n);
+    drawHipRoof(4.95, .15, 1.19, 2.5, 2.1, .48, .25, { top: '#4E9155', left: '#2E7550', right: '#1B5141' });
+    // Humo de chimenea
+    const [sx, sy] = isoP(6.6, .8, 1.75);
+    for (let p = 0; p < 4; p++) { const ph = mod(t * .35 + p / 4, 1); ctx.fillStyle = `rgba(240,245,240,${(1 - ph) * .5})`; ctx.beginPath(); ctx.arc(sx + ph * 10 * cam.k, sy - ph * 26 * cam.k, (2 + ph * 5) * cam.k, 0, 7); ctx.fill(); }
+  });
+  tree('jacaranda', 7.5, 2.2, 1.0, 1); tree('shade', 4.2, -1.2, .95, .5); add(4.9, 2.5, () => drawStreetLamp(4.9, 2.5, n));
+
+  // Barrio Las Escuelas (explore / campaigns)
+  add(-8.1, 7.3, () => {
+    drawGroundShadow(-8.1, 7.3, 1.8, .9, .22);
+    drawIsoBox(-9.6, 6.3, .15, 3, 2, 1.15, { top: '#255E79', left: pick(n, '#FDF4E2', '#2D3E35'), right: pick(n, '#E8D6B5', '#1F2C25') });
+    drawIsoBox(-9.3, 6.6, 1.31, 1.1, 1.4, .06, { top: '#3688B0', left: '#255E79', right: '#1B4357' });
+    drawIsoBox(-7.9, 6.6, 1.31, 1.1, 1.4, .06, { top: '#3688B0', left: '#255E79', right: '#1B4357' });
+    drawIsoWindows('left', -9.4, 8.3, .32, 2.6, 2, 4, .3, .3, n);
+  });
+  add(-5.3, 7.6, () => { // Balón que rebota en la cancha
+    const bz = .2 + Math.abs(Math.sin(t * 3)) * .9, bxp = -5.3 + Math.sin(t * .8) * .5;
+    drawGroundShadow(bxp, 7.6, .14, .08, .3);
+    const [px, py] = isoP(bxp, 7.6, bz); ctx.fillStyle = '#F3B544'; ctx.beginPath(); ctx.arc(px, py, 3.2 * cam.k, 0, 7); ctx.fill();
+  });
+  add(-9.5, 9.5, () => {
+    const [a0, a1] = isoP(-9.5, 9.5, .15), [b0, b1] = isoP(-9.5, 9.5, 1.95);
+    ctx.strokeStyle = '#8FAFAF'; ctx.lineWidth = 3 * cam.k; ctx.beginPath(); ctx.moveTo(a0, a1); ctx.lineTo(b0, b1); ctx.stroke();
+    drawIsoBox(-9.9, 9.1, 1.95, .85, .85, .75, { top: '#79BFDF', left: '#327DA2', right: '#255E79' });
+  });
+  tree('guayacan', -4.8, 9.8, 1.1, .5); tree('shade', -10.5, 5.5, 1.0, 1.2); tree('palm', -7.0, 5.4, 1.0); add(-6.5, 9.2, () => drawBush(-6.5, 9.2, .45, n, pick(n, '#59B36C', '#1E4A35')));
+
+  // Ronda del río (donations)
+  add(2.7, 7.9, () => {
+    drawGroundShadow(2.7, 7.9, 1.6, .8, .2);
+    drawIsoBox(1.5, 7.0, .14, 2.4, 1.8, .95, { top: '#FAFDF9', left: pick(n, '#F4F9F2', '#234D3C'), right: pick(n, '#D8E6D4', '#173629') });
+    drawIsoWindows('left', 1.7, 8.8, .3, 2.0, 1, 4, .3, .34, n);
+    drawHipRoof(1.35, 6.85, 1.09, 2.7, 2.1, .45, .25, { top: '#F3B544', left: '#D9962C', right: '#9E6B14' });
+  });
+  tree('palm', 4.5, 7.4, 1.15, 2.1); tree('shade', 4.3, 9.1, 1.05, 1.4); tree('guayacan', .5, 8.2, .95, .8);
+  add(1.3, 6.8, () => drawStreetLamp(1.3, 6.8, n)); add(3.8, 6.8, () => drawStreetLamp(3.8, 6.8, n));
+
+  // Bosque y arbustos sembrados en el pasto libre
+  for (const w of WILD_TREES) add(w.x, w.y, () => drawTree(w.type, w.x, w.y, w.s, t + w.p, n));
+
+  // Lanchas en el río
+  [[-11 + mod(t * 1.05, 22), 1], [11 - mod(t * .8 + 6, 22), -1]].forEach(([u, dir]) => add(u, riverY(u), () => {
+    const ry = riverY(u), bob = Math.sin(t * 2.5 + u) * .03, [bx, by] = isoP(u, ry, -.02 + bob);
+    ctx.strokeStyle = 'rgba(235,245,249,.6)'; ctx.lineWidth = 1.8 * cam.k;
+    ctx.beginPath(); ctx.moveTo(bx - dir * 20 * cam.k, by - dir * 10 * cam.k + 3 * cam.k); ctx.lineTo(bx, by + 3 * cam.k); ctx.stroke();
+    drawIsoBox(u - .45, ry - .25, -.04 + bob, .9, .5, .2, { top: '#FAFDF9', left: '#255E79', right: '#1B5141' });
+    drawIsoBox(u - .2, ry - .15, .16 + bob, .4, .3, .22, { top: '#F8CF7E', left: '#D9962C', right: '#F3B544' });
+  }));
+  // Camiones y peatones
+  for (const v of vehicles) { const p = vehiclePos(v); add(p.x, p.y, () => drawTruck(v, n)); }
+  for (const p of PEOPLE) {
+    const [x, y] = ringPoint(p.off + p.dir * t * p.speed);
+    add(x, y, () => drawPerson(x, y, p.col, t + p.off * 9, n));
+  }
+  return O.sort((a, b) => a.d - b.d);
+}
+
+/* ========================================================
+   PASADA 3: AIRE (pájaros, mariposas, hojas, luciérnagas, nubes, etiquetas)
+   ======================================================== */
+function drawAir(n, t) {
+  // Dos bandadas en formación de V
+  for (let f = 0; f < 2; f++) {
+    const lead = mod(t * (2 + f * .6) + f * 17, 40) - 20;
+    for (let b = 0; b < 5; b++) {
+      const side = b === 0 ? 0 : (b % 2 ? -1 : 1) * Math.ceil(b / 2);
+      const bx = lead - Math.abs(side) * .9, by = -6 + f * 9 + side * .7 + Math.sin(t * .8 + b) * .25;
+      const [px, py] = isoP(bx, by, 4.6 + f * .8), flap = Math.sin(t * 13 + b * 1.6) * 5 * cam.k;
+      ctx.strokeStyle = pick(n, '#20604C', '#A8D5AE'); ctx.lineWidth = Math.max(1.4, 2 * cam.k);
+      ctx.beginPath(); ctx.moveTo(px - 6 * cam.k, py - flap); ctx.quadraticCurveTo(px - cam.k, py, px, py + 2 * cam.k); ctx.quadraticCurveTo(px + cam.k, py, px + 6 * cam.k, py - flap); ctx.stroke();
+    }
+  }
+  if (!NIGHT(n)) {
+    // Mariposas sobre las flores
+    for (let i = 0; i < 10; i++) {
+      const f = FLOWERS[(i * 23) % FLOWERS.length]; if (!f) break;
+      const x = f.x + Math.sin(t * .7 + i) * .8, y = f.y + Math.cos(t * .5 + i * 2) * .6, z = .5 + Math.sin(t * 2 + i) * .25;
+      const [px, py] = isoP(x, y, z), w = Math.abs(Math.sin(t * 16 + i)) * 4 * cam.k + cam.k;
+      ctx.fillStyle = ['#F3B544', '#FFFFFF', '#B395E0', '#E86A5C'][i % 4];
+      ctx.beginPath(); ctx.ellipse(px - w * .6, py, w, 3 * cam.k, -.4, 0, 7); ctx.ellipse(px + w * .6, py, w, 3 * cam.k, .4, 0, 7); ctx.fill();
+    }
+    // Hojas y pétalos llevados por la brisa
+    for (let i = 0; i < 18; i++) {
+      const x = mod(i * 3.4 + t * 1.5, 28) - 14, y = mod(i * 2.8 - t * .75, 24) - 12, z = .5 + Math.sin(t * 2.2 + i * 1.8) * .3 + (i % 3) * .4;
+      const [px, py] = isoP(x, y, z);
+      ctx.fillStyle = i % 3 === 0 ? '#F3B544' : (i % 3 === 1 ? '#5CB868' : '#F8CF7E');
+      ctx.beginPath(); ctx.ellipse(px, py, 3.5 * cam.k, 1.8 * cam.k, t * 2 + i, 0, 7); ctx.fill();
+    }
+  } else {
+    // Luciérnagas: titilan cerca del pasto y del río
+    for (let f = 0; f < 34; f++) {
+      const x = mod(f * 1.7 + t * .2, 24) - 12, y = mod(f * 2.3 - t * .15, 22) - 11, z = .3 + Math.sin(t * 3 + f * 1.5) * .4;
+      const [px, py] = isoP(x, y, z), glow = (Math.sin(t * 4 + f * 2) * .5 + .5) * n;
+      const g = ctx.createRadialGradient(px, py, 0, px, py, 8 * cam.k);
+      g.addColorStop(0, `rgba(255,235,120,${glow * .9})`); g.addColorStop(1, 'rgba(255,235,120,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, 8 * cam.k, 0, 7); ctx.fill();
+    }
+  }
+  for (const c of clouds) drawCloud(c, n);
+  const on = k => currentDistrictKey === k;
+  drawLandmarkTag(-6.9, -6.7, 2.4, 'Sede Ambiental', '#4E9155', on('org') || on('org-new'));
+  drawLandmarkTag(7.4, -6.2, 2.4, 'Hub de Trazabilidad', '#3688B0', on('track') || on('assets'));
+  drawLandmarkTag(0, -1.5, 3.5, 'Plaza Fundacional', '#F3B544', on('home'));
+  drawLandmarkTag(6.2, 1.2, 2.1, 'Villa Residencial', '#4E9155', on('profile'));
+  drawLandmarkTag(-7.8, 7.2, 2.2, 'Barrio Las Escuelas', '#F3B544', on('explore') || on('campaigns'));
+  drawLandmarkTag(2.7, 7.8, 2.0, 'Ronda del Río', '#3688B0', on('donations'));
+}
+
+/* ========================================================
+   BUCLE DE RENDER (uno solo, se pausa con la pestaña oculta)
+   ======================================================== */
+let lastFrameTime = performance.now(), worldTime = 0, rafId = null;
+function isNightMode() {
+  const th = document.documentElement.dataset.theme;
+  if (th === 'dark') return 1; if (th === 'light') return 0;
+  return matchMedia('(prefers-color-scheme: dark)').matches ? 1 : 0;
+}
+let curNight = isNightMode();
+function renderCityWorld(now) {
+  rafId = null;
+  const dt = Math.min(0.1, (now - lastFrameTime) / 1000);
+  lastFrameTime = now;
+  if (!reducedMotion) worldTime += dt; // con movimiento reducido, la escena queda quieta
+  const tn = isNightMode();
+  curNight = reducedMotion ? tn : curNight + (tn - curNight) * Math.min(1, dt * 4);
+  if (!reducedMotion) {
+    if (currentDistrict.orbit && !isDraggingMap) { camTarget.x = Math.sin(worldTime * .22) * 2.2; camTarget.y = .5 + Math.cos(worldTime * .22) * 1.6; }
+    const e = Math.min(1, dt * (speedFactor === 2 ? 6.5 : 3.8));
+    cam.x += (camTarget.x - cam.x) * e; cam.y += (camTarget.y - cam.y) * e; cam.k += (camTarget.k - cam.k) * e;
+    updateVehicles(dt); updateClouds(dt);
+  }
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // Cielo y fondo
+  const n = curNight, bg = ctx.createLinearGradient(0, 0, 0, H);
+  if (n > .5) { bg.addColorStop(0, '#06110C'); bg.addColorStop(1, '#0E2419'); } else { bg.addColorStop(0, '#E4F2F7'); bg.addColorStop(.55, '#E6F2DE'); bg.addColorStop(1, '#C6DEBB'); }
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  if (n > .5) { // estrellas
+    ctx.fillStyle = '#EEF6EF';
+    for (let s = 0; s < 60; s++) { const x = mod(s * 197.3, W), y = mod(s * 83.7, H * .55); ctx.globalAlpha = (Math.sin(worldTime * 2 + s) * .5 + .5) * .7 * n; ctx.fillRect(x, y, 1.5, 1.5); }
+    ctx.globalAlpha = 1;
+  }
+  drawGround(n, worldTime);
+  for (const o of sceneObjects(n, worldTime)) o.fn();
+  drawAir(n, worldTime);
+  if (!document.hidden) rafId = requestAnimationFrame(renderCityWorld);
+}
+resizeCity();
+setDistrict('welcome');
+rafId = requestAnimationFrame(renderCityWorld);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && rafId === null) { lastFrameTime = performance.now(); rafId = requestAnimationFrame(renderCityWorld); }
+});
+
+
+/* ========================================================
+   NAVEGACIÓN Y VISTAS DE LA APP
+   ======================================================== */
+function navFor(){
+  const base=[{k:'home',l:'Inicio',i:'home'},{k:'explore',l:'Explorar',i:'explore'}];
+  if(!isMember())return[...base,{k:'donations',l:'Donaciones',i:'heart'},{k:'track',l:'Seguimiento',i:'route'},{k:'profile',l:'Perfil',i:'user'}];
+  const org=[{k:'org',l:'Organización',i:'org'}];
+  if(canManage())org.push({k:'campaigns',l:'Convocatorias',i:'campaign',badge:2});
+  return[...base,...org,{k:'assets',l:'Lotes',i:'box'},{k:'profile',l:'Perfil',i:'user'}];
+}
+
+function renderNav(){
+  $('#navItems').innerHTML=navFor().map(n=>`<li><button type="button" class="item" data-k="${n.k}" ${S.view===n.k?'aria-current="page"':''}><span class="pill">${ico(n.i)}</span>${n.l}${n.badge?`<span class="badge" aria-label="${n.badge} pendientes">${n.badge}</span>`:''}</button></li>`).join('');
+}
+$('#navItems').addEventListener('click',e=>{const b=e.target.closest('.item');if(b)go(b.dataset.k);});
+
+function go(k){
+  S.view=k;
+  setPeek(false);
+  renderNav();
+  renderView();
+  setDistrict(k);
+  $('#main').scrollTo?.(0,0);
+  window.scrollTo(0,0);
+}
+
+/* ---------- Posición de la Barra ---------- */
+const POS=[['top','Arriba'],['bottom','Abajo'],['left','Izquierda'],['right','Derecha']];
+function applyNav(p){
+  $('#app').dataset.nav=p;
+  document.body.dataset.nav=p;
+  $$('#posGroup button').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.p===p)));
+  $('#posHint').textContent=S.nav?'Elegida por ti.':'Automática según el tamaño de la pantalla.';
+}
+$('#posGroup').innerHTML=POS.map(([p,l])=>`<button type="button" role="radio" data-p="${p}" aria-checked="false"><span class="mini" data-p="${p}"><i></i></span>${l}</button>`).join('');
+$('#posGroup').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.nav=b.dataset.p;store.set('nav',S.nav);applyNav(S.nav);});
+$('#posGroup').addEventListener('keydown',e=>{
+  const i=POS.findIndex(([p])=>p===$('#app').dataset.nav);let n=null;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown')n=(i+1)%4;if(e.key==='ArrowLeft'||e.key==='ArrowUp')n=(i+3)%4;
+  if(n!==null){e.preventDefault();S.nav=POS[n][0];store.set('nav',S.nav);applyNav(S.nav);$(`#posGroup [data-p="${S.nav}"]`).focus();}
+});
+
+let tuneOpener=null;
+function openTune(from){tuneOpener=from;$('#tune').hidden=false;$(`#posGroup [data-p="${$('#app').dataset.nav}"]`).focus();}
+function closeTune(){$('#tune').hidden=true;tuneOpener&&tuneOpener.focus();}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-open-tune]');if(b)openTune(b);});
+$('#tuneDone').onclick=closeTune;
+$('#tune').addEventListener('click',e=>{if(e.target.id==='tune')closeTune();});
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#tune').hidden)closeTune();});
+matchMedia('(min-width: 900px)').addEventListener('change',()=>{if(!S.nav)applyNav(defaultNav());});
+
+/* ---------- Vistas de Contenido ---------- */
+const greetName=()=>S.profile.givenName||'';
+const initials=()=>S.profile.givenName?(S.profile.givenName[0]+(S.profile.familyName?S.profile.familyName[0]:'')).toUpperCase():null;
+function hour(){const h=new Date().getHours();return h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches';}
+
+const CAMPS=[
+  {t:'Kits escolares en Tumaco',o:'Fundación Aula Viva',d:2,p:81,c:'linear-gradient(135deg,#F3B544,#D9962C)'},
+  {t:'Mercados para familias de Mocoa',o:'Banco de Alimentos Sur',d:4,p:54,c:'linear-gradient(135deg,#4E9155,#20604C)'},
+  {t:'Agua potable para Uribia',o:'Fundación Manos Unidas',d:6,p:41,c:'linear-gradient(135deg,#3688B0,#255E79)'},
+  {t:'Brigada de salud en el Chocó',o:'Red Salud Pacífico',d:21,p:37,c:'linear-gradient(135deg,#327DA2,#255E79)'}
+];
+
+const MY=[
+  {t:'Agua para La Guajira',a:'$ 50.000',d:'12 oct',tone:'info',s:'En camino',i:'truck',bg:'var(--b50)',fg:'var(--b800)'},
+  {t:'Emergencia invernal en Córdoba',a:'$ 20.000',d:'28 sep',tone:'ok',s:'Entregada',i:'heart',bg:'var(--g50)',fg:'var(--g900)'},
+  {t:'Kits escolares en Tumaco',a:'$ 100.000',d:'17 oct',tone:'espera',s:'Esperando confirmación',i:'lock',bg:'var(--y50)',fg:'var(--y900)'}
+];
+
+const treeSvg=`<svg class="tree" viewBox="0 0 260 110" aria-hidden="true"><g stroke="var(--b700)" stroke-width="2.4" fill="none"><path d="M40 92 L80 60 M100 92 L80 60 M160 92 L180 60 M220 92 L180 60 M80 60 L130 26 M180 60 L130 26"/></g>${[40,100,160,220].map(x=>`<rect x="${x-11}" y="84" width="22" height="18" rx="4" fill="var(--b700)"/>`).join('')}<rect x="69" y="50" width="22" height="20" rx="5" fill="var(--b800)"/><rect x="169" y="50" width="22" height="20" rx="5" fill="var(--b800)"/><rect x="116" y="12" width="28" height="26" rx="6" fill="#F3B544"/></svg>`;
+
+function head(){
+  const n=greetName(),ini=initials();
+  return `<header class="head"><div class="avatar" aria-hidden="true">${ini?esc(ini):ico('user')}</div><div><h1>${hour()}${n?', '+esc(n):''}</h1><p>${isMember()?'Fundación Manos Unidas · '+({EMPLOYEE:'Empleado',ADMINISTRATOR:'Administrador',REPRESENTATIVE:'Representante'})[S.role]:'Qué bueno verte por aquí.'}</p></div>
+  <button class="iconbtn" type="button" data-open-tune aria-label="Personalizar la barra de navegación"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></button></header>`;
+}
+
+function nudge(){
+  if(S.profile.givenName||S.nudgeHidden)return'';
+  return `<div class="nudge" role="status">${ico('user')}<div><b>Completa tu perfil</b><span>Agrega tu nombre para que te saludemos como se debe.</span></div><button class="btn btn-y" type="button" id="nAdd" style="min-height:38px;padding:0 14px;font-size:14px">Agregar</button><button class="x" type="button" id="nX" aria-label="Ocultar aviso">${ico('x')}</button></div>`;
+}
+
+function vHome(){
+  let h=head()+nudge()+'<div class="grid">';
+  h+=`<section class="card hero c8" aria-labelledby="trT"><h2 id="trT">${ico('route')}Seguir una donación</h2><p class="sub">Escribe el código que recibiste al donar.</p>
+    <form class="track" id="trF"><label class="sr" for="trC">Código de seguimiento</label><input class="inp" id="trC" placeholder="TRK-XXXX-XXXX" autocomplete="off" spellcheck="false"><button class="btn btn-y" type="submit">Ver ruta</button></form>
+    <p class="note">${ico('lock','ic')}El código es la llave de la donación: no lo publiques.</p></section>`;
+  h+=`<section class="card c4" aria-labelledby="sgT"><h2 id="sgT">${ico('lock')}Sellado en blockchain</h2><div class="seal">${treeSvg}<p>Cada paso deja una huella. Las huellas se juntan en una sola y esa se ancla, para que nadie cambie la historia sin que se note.</p></div></section>`;
+
+  if(isMember()){
+    h+=`<section class="card c12" aria-labelledby="orgT"><h2 id="orgT">${ico('org')}Tu organización hoy</h2><p class="sub">Datos de ejemplo.</p>
+      <div class="stats"><div class="stat"><b>3</b><span>convocatorias abiertas</span></div><div class="stat"><b>5</b><span>lotes por despachar</span></div><div class="stat"><b>2</b><span>lotes en camino</span></div></div>
+      <div class="qa" style="margin-top:12px">
+        ${canManage()?`<button type="button" data-go="campaigns"><span class="qi" style="background:var(--g800)">${ico('plus')}</span>Nueva convocatoria<small>Publica una necesidad</small></button>`:''}
+        <button type="button" data-go="assets"><span class="qi" style="background:var(--b700)">${ico('box')}</span>Registrar lote<small>Con lo que se compró</small></button>
+        <button type="button" data-go="assets"><span class="qi" style="background:#D9962C">${ico('qr')}</span>Despachar o recibir<small>Escanea el QR en la app</small></button>
+      </div></section>`;
+  }
+
+  h+=`<section class="card c12" aria-labelledby="cpT"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><h2 id="cpT">${ico('campaign')}Cierran pronto</h2><button class="btn-g" type="button" data-go="explore">Ver todas</button></div><p class="sub">Convocatorias que todavía puedes apoyar.</p>
+    <div class="hscroll">${CAMPS.map(c=>`<button class="cc" type="button" data-go="explore"><div class="cv" style="background:${c.c}"><span>${c.d<=7?`Cierra en ${c.d} días`:`${c.d} días`}</span></div><div class="cb"><b>${esc(c.t)}</b><small>${esc(c.o)}</small><div class="bar"><i style="width:${c.p}%"></i></div><small><b style="display:inline;font-family:var(--mono)">${c.p}%</b> de la meta</small></div></button>`).join('')}</div></section>`;
+
+  if(!isMember()){
+    h+=`<section class="card c8" aria-labelledby="myT"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><h2 id="myT">${ico('heart')}Tus donaciones</h2><button class="btn-g" type="button" data-go="donations">Ver todas</button></div><p class="sub">Solo tú y la organización las ven.</p>
+      <ul class="dlist">${MY.map(d=>`<li><span class="di" style="background:${d.bg};color:${d.fg}">${ico(d.i)}</span><div class="dt"><b>${esc(d.t)}</b><small>${d.d} · <span class="tone t-${d.tone}">${d.s}</span></small></div><span class="amt">${d.a}</span></li>`).join('')}</ul></section>
+      <section class="card c4" aria-labelledby="crT"><h2 id="crT">${ico('org')}¿Tienes una fundación?</h2><p class="sub">Regístrala, la revisamos y luego puedes publicar convocatorias.</p><button class="btn btn-s" type="button" data-go="org-new" style="width:100%">Registrar organización</button></section>`;
+  }
+  return h+'</div>';
+}
+
+const PH={
+  explore:['explore','Explorar convocatorias','Búsqueda y filtros (M-10). Explora causas verificadas en el mapa comunitario.'],
+  donations:['heart','Tus donaciones','Lista de tus donaciones con su estado.'],
+  track:['route','Seguimiento en Ruta','Línea de tiempo de la donación con la insignia de integridad y lote QR (M-18).'],
+  org:['org','Organización','Miembros, invitaciones y datos de la sede comunitaria.'],
+  'org-new':['org','Registrar organización','Formulario con la aceptación de términos de organización (ADR-050 D2).'],
+  campaigns:['campaign','Convocatorias','Las convocatorias de tu organización y su estado en el distrito.'],
+  assets:['box','Lotes y Almacén','Registro, despacho, recepción y división de lotes en la bodega central.']
+};
+
+function vPlaceholder(k){
+  const [i,t,d]=PH[k]||['box','Ventana','Detalle en construcción'];
+  const trackCode = (k === 'track' && S.lastTrackingCode) ? `<div style="margin:16px auto;padding:10px 18px;border-radius:12px;background:var(--soft);border:1px solid var(--line);display:inline-block;font-family:var(--mono);font-weight:700">${esc(S.lastTrackingCode)}</div>` : '';
+  return `<div class="ph"><div class="big">${ico(i).replace('class="ic"','class="ic" style="width:34px;height:34px"')}</div><h1>${t}</h1><p>${d}</p>${trackCode}<p style="margin-top:14px"><span class="tone t-info">Pantalla por construir</span></p></div>`;
+}
+
+function vProfile(){
+  const p=S.profile;
+  return `<header class="head"><div class="avatar" aria-hidden="true">${initials()?esc(initials()):ico('user')}</div><div><h1>Perfil</h1><p>${esc(p.email)}</p></div></header>
+  <div class="grid"><section class="card c6"><h2>Tus datos</h2><p class="sub">Solo los ves tú.</p>
+    <dl style="margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14.5px"><dt style="color:var(--muted)">Nombre</dt><dd style="margin:0">${p.givenName?esc(p.givenName):'<i style="color:var(--muted)">Sin completar</i>'}</dd><dt style="color:var(--muted)">Apellido</dt><dd style="margin:0">${p.familyName?esc(p.familyName):'<i style="color:var(--muted)">Sin completar</i>'}</dd></dl>
+    <button class="btn btn-s" type="button" id="pEdit" style="margin-top:14px">Editar datos</button></section>
+  <section class="card c6"><h2>Apariencia y Ciudad</h2><p class="sub">Ajustes visuales de este dispositivo.</p>
+    <button class="btn btn-s" type="button" data-open-tune style="width:100%;justify-content:space-between">Barra de navegación <span style="color:var(--muted);font-weight:600">${({top:'Arriba',bottom:'Abajo',left:'Izquierda',right:'Derecha'})[$('#app').dataset.nav]}</span></button></section>
+  <section class="card c12"><h2>Seguridad y Criptografía</h2><p class="sub">Cambiar contraseña y desactivar cuenta están en el kit (M-27, M-30).</p></section></div>`;
+}
+
+function renderView(){
+  const v=$('#view');
+  v.className='wrap view';void v.offsetWidth;
+  v.innerHTML=S.view==='home'?vHome():S.view==='profile'?vProfile():vPlaceholder(S.view);
+  v.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
+
+  const tf=$('#trF');
+  if(tf) tf.onsubmit=e=>{
+    e.preventDefault();
+    const c=$('#trC').value.trim();
+    if(c){
+      S.lastTrackingCode=c;
+      go('track');
+    } else {
+      $('#trC').focus();
+    }
+  };
+
+  const nx=$('#nX');if(nx)nx.onclick=()=>{S.nudgeHidden=true;renderView();};
+  const na=$('#nAdd');if(na)na.onclick=()=>showData(true);
+  const pe=$('#pEdit');if(pe)pe.onclick=()=>showData(true);
+}
+
+/* ---------- Flujo de Entrada (Gates) ---------- */
+let returnToApp=false;
+function show(id){
+  ['#sWelcome','#sData','#app'].forEach(s=>$(s).hidden=s!==id);
+  if(id!=='#app')delete document.body.dataset.nav;
+  if(id==='#sWelcome'||id==='#sData'){
+    setDistrict('welcome');
+  } else {
+    setDistrict(S.view);
+  }
+  window.scrollTo(0,0);
+}
+
+function showData(fromApp){
+  returnToApp=!!fromApp;
+  show('#sData');
+  $('#gName').value=S.profile.givenName||'';
+  $('#fName').value=S.profile.familyName||'';
+  $('#dSkip').textContent=fromApp?'Cancelar':'Ahora no';
+  $('#sData .dots').hidden=fromApp;
+  $('#gName').focus();
+}
+
+function enterApp(){
+  show('#app');
+  applyNav(S.nav||defaultNav());
+  S.view='home';
+  renderNav();
+  renderView();
+  setDistrict('home');
+}
+
+$('#wGo').onclick=()=>{
+  if(S.profile.givenName&&S.profile.familyName)enterApp();else showData(false);
+};
+$('#dSkip').onclick=()=>enterApp();
+
+function fieldErr(id,msg){
+  const e=$('#'+id+'-e');
+  e.hidden=!msg;
+  e.textContent=msg||'';
+  $('#'+id).setAttribute('aria-invalid',String(!!msg));
+  return !msg;
+}
+
+$('#dForm').onsubmit=async e=>{
+  e.preventDefault();
+  $('#dErr').hidden=true;
+  const g=$('#gName').value.trim(),f=$('#fName').value.trim();
+  const len=s=>[...s].length;
+  const ok=fieldErr('gName',g&&len(g)>100?'Máximo 100 caracteres.':'')&fieldErr('fName',f&&len(f)>100?'Máximo 100 caracteres.':'');
+  if(!ok)return;
+  if(!g&&!f){fieldErr('gName','Escribe al menos tu nombre, o elige "Ahora no".');$('#gName').focus();return;}
+
+  const b=$('#dSave');
+  b.disabled=true;
+  b.textContent='Guardando…';
+  await sleep(500);
+  b.disabled=false;
+  b.textContent='Guardar y continuar';
+
+  S.profile={...S.profile,givenName:g||null,familyName:f||null};
+  store.set('prof','full');
+  if(g) store.set('givenName',g);
+  if(f) store.set('familyName',f);
+
+  if(returnToApp){show('#app');renderView();}else enterApp();
+};
+
+/* ---------- Controles de Demostración ---------- */
+$('#demoBtn').onclick=e=>{
+  const p=$('#demoPanel'),o=p.hidden;
+  p.hidden=!o;
+  e.currentTarget.setAttribute('aria-expanded',String(o));
+};
+
+$('#dRole').value=S.role;
+$('#dProf').value=S.profile.givenName?'full':'empty';
+
+$('#dRole').onchange=e=>{
+  S.role=e.target.value;
+  store.set('role',S.role);
+  if(!$('#app').hidden){S.view='home';renderNav();renderView();setDistrict('home');}
+};
+
+$('#dProf').onchange=e=>{
+  store.set('prof',e.target.value);
+  if(e.target.value==='full'){
+    S.profile={email:S.profile.email,givenName:'Laura',familyName:'Gómez'};
+    store.set('givenName','Laura');store.set('familyName','Gómez');
+  } else {
+    S.profile={email:S.profile.email};
+    try{localStorage.removeItem('pxf.givenName');localStorage.removeItem('pxf.familyName');}catch{}
+  }
+  S.nudgeHidden=false;
+  if(!$('#app').hidden)renderView();
+};
+
+$('#dTheme').onchange=e=>{
+  if(e.target.value){
+    document.documentElement.dataset.theme=e.target.value;
+  } else {
+    delete document.documentElement.dataset.theme;
+  }
+};
+
+$('#dSpeed').onchange=e=>{
+  speedFactor=parseFloat(e.target.value);
+};
+
+$('#dRestart').onclick=()=>{
+  S.nudgeHidden=false;
+  show('#sWelcome');
+  const c=$('#sWelcome .gcard');
+  c.replaceWith(c.cloneNode(true));
+  $('#wGo').onclick=wGoHandler;
+};
+const wGoHandler=$('#wGo').onclick;
+
+})();
+</script>
+</body>
+</html>

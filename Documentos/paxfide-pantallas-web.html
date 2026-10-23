@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PaxFide · Pantallas web</title>
+<meta name="description" content="Bocetos de las pantallas web asignadas a Manuel, a 1280 y 360 px, con el sistema visual de PaxFide.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@500;600;700&display=swap">
+<style>
+/* ── Tokens de la app (sistema-visual + diseno-ux §3) ─────────────────────── */
+:root{
+  --g900:#1B5141; --g800:#20604C; --g500:#4E9155; --g50:#EEF6EF;
+  --b800:#255E79; --b700:#327DA2; --b500:#3688B0; --b50:#EBF5F9;
+  --y900:#785008; --y400:#F3B544; --y50:#FDF4E2;
+  --n700:#405656; --white:#FFFFFF;
+  --d700:#B42318; --d50:#FEF3F2;
+  --n50:#F8FAFA; --n100:#F0F4F4; --n200:#E2E9E9; --n400:#739797;
+  --overlay:rgba(27,81,65,.5);
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --line:rgba(27,81,65,.12);
+  --shadow:0 12px 32px rgba(27,81,65,.08);
+  --shadow-lg:0 24px 60px rgba(27,81,65,.14);
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:96px}
+body{margin:0;background:var(--g50);color:var(--g900);font:16px/1.5 var(--f-body)}
+a{color:var(--b800)}
+:focus-visible{outline:2px solid var(--g900);outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ── Tablero ──────────────────────────────────────────────────────────────── */
+.topnav{position:sticky;top:12px;z-index:30;margin:12px auto 0;width:min(1240px,calc(100% - 32px));
+  display:flex;align-items:center;gap:16px;padding:8px 12px 8px 16px;border-radius:999px;
+  background:rgba(255,255,255,.92);border:1px solid rgba(27,81,65,.14);box-shadow:0 12px 36px rgba(27,81,65,.12)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--g900);font:800 20px/1 var(--f-display);letter-spacing:-.02em;flex:none}
+.brand .g{color:var(--b700)} .brand .d{color:var(--y400)}
+.topnav ol{display:flex;gap:4px;list-style:none;margin:0;padding:0;overflow-x:auto;scrollbar-width:none}
+.topnav ol a{display:block;white-space:nowrap;padding:8px 10px;border-radius:999px;color:var(--n700);text-decoration:none;font:600 13px var(--f-body)}
+.topnav ol a:hover{background:var(--g50);color:var(--g900)}
+.topnav ol a b{font:600 11px var(--f-mono);color:var(--y900);margin-right:4px}
+.view{margin-left:auto;display:flex;flex:none;gap:2px;padding:3px;border-radius:999px;background:var(--n50);border:1px solid var(--line)}
+.view label{cursor:pointer;padding:6px 12px;border-radius:999px;font:600 12px var(--f-mono);color:var(--n700)}
+.view input{position:absolute;opacity:0;pointer-events:none}
+.view input:checked+label{background:var(--g900);color:var(--white)}
+.view input:focus-visible+label{outline:2px solid var(--g900);outline-offset:2px}
+
+main.board{width:min(1240px,calc(100% - 32px));margin:0 auto;padding:48px 0 96px}
+.intro{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:24px;align-items:start;margin-bottom:56px;
+  padding:36px;border-radius:28px;background:rgba(255,255,255,.9);border:1px solid var(--line);box-shadow:var(--shadow-lg)}
+.ev{display:inline-flex;align-items:center;gap:8px;font:500 11.5px var(--f-mono);letter-spacing:.04em;text-transform:uppercase;
+  color:var(--g800);background:var(--g50);padding:5px 10px;border-radius:7px}
+.intro h1{font:700 clamp(32px,4vw,48px)/1.03 var(--f-display);letter-spacing:-.025em;margin:14px 0 12px}
+.intro h1 em{font-style:normal;color:var(--g500)}
+.intro p{margin:0;color:var(--n700);max-width:60ch}
+.legend{display:grid;gap:10px;padding:20px;border-radius:20px;background:var(--n50);border:1px solid var(--line);font-size:14px;color:var(--n700)}
+.legend b{font:600 13px var(--f-body);color:var(--g900)}
+.legend .row{display:flex;gap:10px;align-items:flex-start}
+
+.sec{margin:0 0 72px}
+.sec-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding-bottom:14px;margin-bottom:18px;border-bottom:1px solid rgba(27,81,65,.16)}
+.sec-head .num{font:600 13px var(--f-mono);color:var(--y900)}
+.sec-head h2{font:700 30px/1.1 var(--f-display);letter-spacing:-.02em;margin:0}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font:600 11px var(--f-mono);letter-spacing:.03em;text-transform:uppercase}
+.chip.prop{background:var(--y50);color:var(--y900);box-shadow:inset 0 0 0 1px var(--y400)}
+.chip.dep{background:var(--b50);color:var(--b800)}
+.chip.ok{background:var(--white);color:var(--g800);box-shadow:inset 0 0 0 1px var(--line)}
+.spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:0 0 24px}
+.spec div{padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.9);border:1px solid var(--line);font-size:13.5px;color:var(--n700)}
+.spec dt{font:600 11px var(--f-mono);letter-spacing:.04em;text-transform:uppercase;color:var(--g800);margin-bottom:6px}
+.spec dd{margin:0}
+.spec code{font:500 12.5px var(--f-mono);color:var(--g900);background:var(--n100);padding:1px 6px;border-radius:5px}
+
+.pair{margin:0 0 36px}
+.pair>h3{font:600 15px var(--f-body);margin:0 0 10px;display:flex;align-items:center;gap:10px}
+.pair>h3::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--g500)}
+.frames{display:flex;gap:28px;align-items:flex-start;overflow-x:auto;padding:4px 4px 12px;scrollbar-width:thin}
+.frames figure{margin:0;flex:none}
+.frames figcaption{font:500 12px var(--f-mono);color:var(--n700);margin-bottom:8px}
+body:has(#v-d:checked) figure.fm,body:has(#v-m:checked) figure.fd{display:none}
+
+/* ── Marco de pantalla ────────────────────────────────────────────────────── */
+.frame{position:relative;overflow:hidden;background:var(--n50);border-radius:22px;border:1px solid rgba(27,81,65,.14);box-shadow:var(--shadow-lg)}
+.fd .frame{width:1280px} .fm .frame{width:360px}
+.appbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px auto 0;width:calc(100% - 28px);max-width:1120px;
+  padding:8px 10px 8px 14px;border-radius:999px;background:var(--white);border:1px solid rgba(27,81,65,.14);box-shadow:0 8px 24px rgba(27,81,65,.08)}
+.appbar .brand{font-size:18px}
+.fm .appbar .brand{font-size:16px}
+.content{padding:40px 32px 56px}
+.fm .content{padding:24px 16px 40px}
+.wrap{margin:0 auto;max-width:720px} .wrap.wide{max-width:1120px}
+
+/* tipografía de pantalla (no son h1 reales: el documento solo tiene uno) */
+.ph{font:700 34px/1.08 var(--f-display);letter-spacing:-.025em;margin:0 0 6px}
+.fm .ph{font-size:26px}
+.ph-sub{font:500 13px var(--f-mono);color:var(--n700);margin:0 0 24px;word-break:break-all}
+.ph-gap{margin-bottom:24px}
+.h2{font:700 21px/1.2 var(--f-display);letter-spacing:-.015em;margin:0 0 14px}
+.k{font-size:14px;color:var(--n700)}
+.mono{font-family:var(--f-mono);font-weight:500;word-break:break-all}
+.stack{display:flex;flex-direction:column;gap:20px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.fm .grid3,.fm .grid2{grid-template-columns:1fr}
+.only-m{display:none} .fm .only-m{display:block} .fm .only-d{display:none}
+
+/* superficies */
+.card{background:var(--white);border:1px solid var(--line);border-radius:22px;padding:28px;box-shadow:var(--shadow)}
+.fm .card{padding:18px;border-radius:18px}
+.card.flat{box-shadow:none}
+.card.sel{box-shadow:inset 0 0 0 2px var(--g900)}
+
+/* lista de definición */
+dl.dl{margin:0}
+.dl>div{display:flex;gap:16px;align-items:center;padding:12px 0;border-bottom:1px solid var(--n200)}
+.dl>div:last-child{border-bottom:0}
+.dl dt{width:190px;flex:none;font-size:14px;color:var(--n700)}
+.dl dd{margin:0;font-weight:600;min-width:0}
+.fm .dl>div{flex-direction:column;align-items:flex-start;gap:2px}
+.fm .dl dt{width:auto}
+
+/* botones (píldora, como la landing) */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 22px;border-radius:999px;
+  font:700 14px var(--f-body);cursor:pointer;text-decoration:none;border:0;white-space:nowrap}
+.btn-p{background:var(--g900);color:var(--white);box-shadow:0 6px 16px rgba(27,81,65,.25)}
+.btn-s{background:var(--white);color:var(--g900);box-shadow:inset 0 0 0 1px var(--n400)}
+.btn-big{height:52px;padding:0 32px;font-size:15px}
+.btn-sm{height:40px;padding:0 16px;font-size:13px}
+.acts{display:flex;flex-wrap:wrap;gap:12px}
+.fm .acts{flex-direction:column}
+.fm .acts .btn,.fm .btn.block{width:100%}
+
+/* campos */
+.field{display:block}
+.field>span:first-child{display:block;font:600 14px var(--f-body);margin-bottom:6px}
+.input,.select{display:block;width:100%;height:46px;border-radius:12px;border:1.5px solid var(--n400);background:var(--white);
+  padding:0 14px;font:15px var(--f-body);color:var(--g900);appearance:none}
+.input.mono{font-family:var(--f-mono);font-weight:500}
+.select{padding-right:40px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%231B5141' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.input::placeholder{color:var(--n700);opacity:.75}
+.hint{display:flex;gap:8px;align-items:flex-start;margin:8px 0 0;font-size:13.5px;color:var(--n700)}
+.hint .i{color:var(--g800);margin-top:2px}
+.err{margin:8px 0 0;font-size:13.5px;color:var(--d700)}
+.input.bad{border-color:var(--d700)}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+legend{font:600 14px var(--f-body);margin-bottom:8px;padding:0}
+.choice{display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 14px;border-radius:14px;background:var(--white);
+  box-shadow:inset 0 0 0 1.5px var(--n400);font-size:15px;cursor:pointer}
+.choice.on{box-shadow:inset 0 0 0 2px var(--g900);font-weight:600}
+.choice input{accent-color:var(--g900);width:18px;height:18px;margin:0}
+.nitrow{display:grid;grid-template-columns:1fr 96px;gap:12px}
+
+/* cápsula del código (landing) */
+.capsule{display:flex;align-items:center;gap:8px;padding:6px 6px 6px 16px;border-radius:999px;background:var(--white);
+  border:1.5px solid var(--n400);box-shadow:0 8px 22px rgba(27,81,65,.08)}
+.capsule .i{color:var(--g800)}
+.capsule input{flex:1;min-width:0;height:42px;border:0;background:transparent;font:500 15px var(--f-mono);color:var(--g900);outline:none}
+.capsule input::placeholder{color:var(--n700);opacity:.7}
+.fm .capsule{padding:4px 4px 4px 12px}
+.fm .capsule .btn{display:none}
+.paste-m{display:none} .fm .paste-m{display:flex;margin-top:12px}
+
+/* avisos (sin controles dentro: las acciones van debajo) */
+.notice{display:flex;gap:12px;align-items:flex-start;padding:16px 18px;border-radius:16px;font-size:15px}
+.notice .i{margin-top:2px;flex:none}
+.notice p{margin:0}
+.notice .t{font-weight:700;margin-bottom:2px}
+.n-info{background:var(--b50);color:var(--b800)}
+.n-ok{background:var(--g50);color:var(--g900)} .n-ok .i{color:var(--g800)}
+.n-err{background:var(--d50);color:var(--d700)}
+.n-amb{background:var(--y50);color:var(--g900)} .n-amb .t,.n-amb .i{color:var(--y900)}
+.n-neutral{background:var(--white);color:var(--n700);box-shadow:inset 0 0 0 1px var(--n200)}
+.quote{margin:12px 0 0;padding:12px 14px;border-radius:12px;background:var(--white);color:var(--g900);white-space:pre-line;border-left:4px solid var(--b800)}
+
+/* etiquetas de estado */
+.tag{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:999px;font:600 13px var(--f-body)}
+.tag.t-ok{background:var(--g50);color:var(--g800)}
+.tag.t-neutral{background:var(--n100);color:var(--n700)}
+.tag.t-amb{background:var(--y50);color:var(--y900)}
+.tag.t-info{background:var(--b50);color:var(--b800)}
+.badge{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:999px;background:var(--y400);color:var(--g900);font:700 13px var(--f-body)}
+
+/* progreso */
+.figs{display:flex;flex-wrap:wrap;gap:12px 40px}
+.figs b{display:block;font:700 24px/1.15 var(--f-display);letter-spacing:-.02em}
+.bar{height:12px;border-radius:999px;background:var(--n200);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;background:var(--g900)}
+.bar.sm{height:8px}
+.pmeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0;font-size:14px;color:var(--n700)}
+.cvar{display:flex;flex-direction:column;gap:12px}
+.cvar>.lbl{font:600 11.5px var(--f-mono);letter-spacing:.04em;text-transform:uppercase;color:var(--y900)}
+.mini{font:500 11px var(--f-mono);letter-spacing:.04em;text-transform:uppercase;color:var(--n700)}
+.org{font-size:13.5px;color:var(--n700);margin:0}
+.ctitle{font:700 18px/1.25 var(--f-display);letter-spacing:-.01em;margin:4px 0 12px}
+.ctitle a{color:var(--b700);text-decoration-thickness:1px;text-underline-offset:3px}
+
+/* resumen de donaciones */
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:0;overflow:hidden}
+.summary>div{padding:22px 24px;border-right:1px solid var(--n200);display:flex;flex-direction:column;justify-content:center;gap:4px}
+.summary>div:last-child{border-right:0}
+.summary .big{font:700 26px/1.1 var(--f-display);letter-spacing:-.02em}
+.fm .summary{grid-template-columns:1fr}
+.fm .summary>div{border-right:0;border-bottom:1px solid var(--n200);padding:16px 18px}
+.fm .summary>div:last-child{border-bottom:0}
+.filters{display:flex;align-items:flex-end;gap:12px}
+.filters .field{width:280px}
+.fm .filters{flex-direction:column;align-items:stretch}
+.fm .filters .field{width:auto}
+.dcard{display:flex;flex-direction:column;gap:14px}
+.dcard .amt{font:700 24px/1.1 var(--f-display);letter-spacing:-.02em;margin:2px 0 0}
+.dcard h4{font:700 17px/1.3 var(--f-display);margin:0}
+
+/* detalle */
+.md{display:grid;grid-template-columns:340px minmax(0,1fr);gap:24px;align-items:start}
+.fm .md{grid-template-columns:1fr}
+.mlist{display:flex;flex-direction:column;gap:10px}
+.mitem{padding:16px;border-radius:16px;background:var(--white);border:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.mitem.on{box-shadow:inset 0 0 0 2px var(--g900);background:var(--g50)}
+.mitem b{font:700 15px var(--f-display)}
+.secret{margin:12px 0;padding:12px 14px;border-radius:12px;background:var(--n100);font:600 17px var(--f-mono);letter-spacing:.08em;color:var(--g900)}
+.box{padding:18px;border-radius:16px;border:1px solid var(--n200)}
+.back{display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;font-size:14px;color:var(--b800)}
+
+/* pendiente y gráficos */
+.pend{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;padding:16px;border-radius:16px;
+  border:1.5px dashed var(--n400);background:var(--n100);color:var(--n700);font:600 12px var(--f-mono);letter-spacing:.04em;text-transform:uppercase}
+.pend small{font:500 12px var(--f-body);letter-spacing:0;text-transform:none}
+.pend.inline{display:inline-flex;flex-direction:row;padding:4px 10px;border-radius:8px}
+.stat .big{font:700 30px/1.1 var(--f-display);letter-spacing:-.02em;margin:4px 0 6px}
+.hbars{display:flex;flex-direction:column;gap:14px;margin:6px 0 18px}
+.hbar{display:grid;grid-template-columns:140px 1fr;gap:12px;align-items:center;font-size:14px}
+.fm .hbar{grid-template-columns:1fr;gap:4px}
+.hbar .track{display:flex;align-items:center;gap:10px}
+.hbar .track i{display:block;height:20px;border-radius:6px;background:var(--g900)}
+.hbar .track span{font:600 13px var(--f-mono);white-space:nowrap}
+table.eq{width:100%;border-collapse:collapse;font-size:14px}
+table.eq caption{text-align:left;font:600 11px var(--f-mono);letter-spacing:.04em;text-transform:uppercase;color:var(--n700);padding-bottom:6px}
+table.eq th,table.eq td{padding:8px 10px;border-bottom:1px solid var(--n200);text-align:left}
+table.eq th{background:var(--n100);font-weight:600;color:var(--n700)}
+table.eq td.r,table.eq th.r{text-align:right;font-family:var(--f-mono)}
+
+/* estados */
+.loading{display:flex;align-items:center;gap:10px;font-weight:600}
+.skel{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.skel i{display:block;height:12px;border-radius:999px;background:var(--n200)}
+
+/* modal */
+.ov{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--overlay)}
+.dialog{width:400px;max-width:100%;background:var(--white);border-radius:22px;padding:26px;box-shadow:0 24px 60px rgba(27,81,65,.3)}
+.dialog .h2{margin-bottom:8px}
+
+/* anotaciones de accesibilidad */
+.ann{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:var(--b50);color:var(--b800);font:600 11px var(--f-mono);margin-left:8px;vertical-align:middle}
+.focus-demo{outline:2px solid var(--g900);outline-offset:2px}
+.i{width:18px;height:18px;flex:none}
+
+footer.foot{width:min(1240px,calc(100% - 32px));margin:0 auto 48px;padding-top:20px;border-top:1px solid rgba(27,81,65,.16);
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--n700)}
+
+@media (max-width:900px){
+  .intro{grid-template-columns:1fr;padding:24px}
+  .topnav{border-radius:24px;flex-wrap:wrap}
+  .topnav ol{order:3;width:100%}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Símbolos: logo (el de la landing) e iconos ─────────────────────────── -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gLeaf" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4DAE60"/><stop offset="100%" stop-color="#1B5141"/></linearGradient>
+    <linearGradient id="gHeartR" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3A98CC"/><stop offset="100%" stop-color="#255E79"/></linearGradient>
+  </defs>
+  <symbol id="logo" viewBox="0 0 48 48">
+    <circle cx="24" cy="7.5" r="3.2" fill="#F9B829"/>
+    <path d="M24,2.5 L24,3.8 M20,4.2 L20.9,5.3 M28,4.2 L27.1,5.3" stroke="#F9B829" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M24,14 C19,8.5 12,10.5 12,17.5 C12,24.5 24,30.5 24,30.5 C24,30.5 18,25.5 17,20.5 C16,16.5 20,14.5 24,17.5 Z" fill="url(#gLeaf)"/>
+    <path d="M24,14 C29,8.5 36,10.5 36,17.5 C36,24.5 24,30.5 24,30.5 C24,30.5 30,25.5 31,20.5 C32,16.5 28,14.5 24,17.5 Z" fill="url(#gHeartR)"/>
+    <polygon points="24,19 28.5,21.5 24,24 19.5,21.5" fill="#F8CF7E"/>
+    <polygon points="19.5,21.5 24,24 24,29 19.5,26.5" fill="#D9962C"/>
+    <polygon points="28.5,21.5 24,24 24,29 28.5,26.5" fill="#F3B544"/>
+    <path d="M12,25.5 C14.5,23.5 18,28.5 24,32 C30,30 35.5,25 36.5,21.5 C35.5,26.5 31,34.5 24,35.5 C17,35.5 12,30.5 12,25.5 Z" fill="#1B5141"/>
+  </symbol>
+  <symbol id="i-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.2 1.5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l6.5 11.5h-13z"/><path d="M8 6.5v3M8 11.6v.01"/></symbol>
+  <symbol id="i-info" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 7.5v3.5M8 5v.01"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2"/></symbol>
+  <symbol id="i-x" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M5.8 5.8l4.4 4.4M10.2 5.8l-4.4 4.4"/></symbol>
+  <symbol id="i-spin" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 2a6 6 0 106 6"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="8" height="11" rx="1.5"/><path d="M6 3V2h4v1"/></symbol>
+  <symbol id="i-qr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM20 20h1M17 20h1M20 17h1"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></symbol>
+  <symbol id="i-back" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"/></symbol>
+</svg>
+
+<header class="topnav">
+  <a class="brand" href="#top" aria-label="PaxFide, inicio del tablero">
+    <svg width="32" height="32" aria-hidden="true"><use href="#logo"/></svg>
+    <span>Pax<span class="g">Fide</span><span class="d">.</span></span>
+  </a>
+  <ol aria-label="Pantallas">
+    <li><a href="#s1"><b>01</b>Progreso</a></li>
+    <li><a href="#s2"><b>02</b>Mis donaciones</a></li>
+    <li><a href="#s3"><b>03</b>Detalle</a></li>
+    <li><a href="#s4"><b>04</b>Seguimiento</a></li>
+    <li><a href="#s5"><b>05</b>Mi impacto</a></li>
+    <li><a href="#s6"><b>06</b>Mi cuenta</a></li>
+    <li><a href="#s7"><b>07</b>Activo con fondos</a></li>
+    <li><a href="#s8"><b>08</b>Dividir lote</a></li>
+    <li><a href="#s9"><b>09</b>En especie</a></li>
+    <li><a href="#s10"><b>10</b>Mi organización</a></li>
+    <li><a href="#s11"><b>11</b>Datos de la organización</a></li>
+    <li><a href="#s12"><b>12</b>Accesibilidad</a></li>
+  </ol>
+  <div class="view" role="radiogroup" aria-label="Ancho visible">
+    <input type="radio" name="view" id="v-a" checked><label for="v-a">Ambos</label>
+    <input type="radio" name="view" id="v-d"><label for="v-d">1280</label>
+    <input type="radio" name="view" id="v-m"><label for="v-m">360</label>
+  </div>
+</header>
+
+<main class="board" id="top">
+  <section class="intro" aria-labelledby="title">
+    <div>
+      <span class="ev">Bocetos web · Manuel · 18 oct 2026</span>
+      <h1 id="title">Pantallas web de PaxFide, <em>listas para revisar.</em></h1>
+      <p>Cada pantalla se muestra a 1280 px y a 360 px, con sus estados obligatorios. Solo usa los tokens de la app y los
+        datos que da el backend (<span class="mono">Donaciones develop 4bef7be</span>). Las cifras y los nombres son de ejemplo.
+        La especificación completa está en <span class="mono">bocetos-web-manuel.md</span>.</p>
+    </div>
+    <div class="legend" aria-label="Leyenda">
+      <div class="row"><span class="chip ok">Existe</span><span>Ya implementado en <span class="mono">develop</span>; se ajusta, no se rediseña.</span></div>
+      <div class="row"><span class="chip prop">Propuesta</span><span>Decisión nueva, pendiente de aprobación.</span></div>
+      <div class="row"><span class="chip dep">Depende</span><span>Sin endpoint o ADR: se dibuja como bloque pendiente.</span></div>
+      <div class="row"><b>Regla de avisos:</b><span>ningún control dentro de un aviso de color; las acciones van debajo.</span></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ 1. PROGRESO ═══════════════ -->
+  <section class="sec" id="s1" aria-labelledby="h-s1">
+    <div class="sec-head"><span class="num">01 · M-09</span><h2 id="h-s1">Progreso de convocatoria</h2><span class="chip ok">Existe · se unifica</span></div>
+    <dl class="spec">
+      <div><dt>Ruta y rol</dt><dd>Componente para <code>/</code> (tarjeta) y <code>/c/:publicCode</code> (detalle). Público.</dd></div>
+      <div><dt>Datos</dt><dd><code>GET /public/campaigns</code> y <code>GET /public/campaigns/{publicCode}</code>: <code>clearedAmount?</code>, <code>targetAmount?</code>, <code>currency?</code>, <code>endDate</code>, <code>status</code>.</dd></div>
+      <div><dt>Derivado</dt><dd>%, días restantes (hora local) y «Meta alcanzada» se calculan en el navegador.</dd></div>
+    </dl>
+    <div class="pair" data-t="t-progress" data-label="Detalle y tarjeta · seis variantes" data-wide></div>
+  </section>
+
+  <!-- ═══════════════ 2. MIS DONACIONES ═══════════════ -->
+  <section class="sec" id="s2" aria-labelledby="h-s2">
+    <div class="sec-head"><span class="num">02 · M-15</span><h2 id="h-s2">Mis donaciones</h2><span class="chip ok">Existe</span><span class="chip prop">Filtro y tarjetas</span></div>
+    <dl class="spec">
+      <div><dt>Ruta y rol</dt><dd><code>/account/donations</code>. Cualquier cuenta con sesión.</dd></div>
+      <div><dt>Datos</dt><dd><code>GET /account/donations</code>: <code>intentId</code>, <code>campaignTitle?</code>, <code>amount</code>, <code>currency</code>, <code>status</code>, <code>trackingCode?</code>. Una página de 100.</dd></div>
+      <div><dt>Depende</dt><dd>Fecha, organización y enlace a la convocatoria: la respuesta no los trae. Sin fecha no hay orden.</dd></div>
+    </dl>
+    <div class="pair" data-t="t-don" data-label="Con donaciones"></div>
+    <div class="pair" data-t="t-don-empty" data-label="Vacía"></div>
+    <div class="pair" data-t="t-don-filter" data-label="Filtro sin resultados"></div>
+    <div class="pair" data-t="t-state-loading" data-title="Mis donaciones" data-label="Cargando"></div>
+    <div class="pair" data-t="t-state-error" data-title="Mis donaciones" data-label="Error al cargar"></div>
+    <div class="pair" data-t="t-state-403" data-title="Mis donaciones" data-label="Sin acceso (403)"></div>
+  </section>
+
+  <!-- ═══════════════ 3. DETALLE ═══════════════ -->
+  <section class="sec" id="s3" aria-labelledby="h-s3">
+    <div class="sec-head"><span class="num">03 · M-16</span><h2 id="h-s3">Detalle de donación y «Ver el recorrido»</h2><span class="chip prop">Sin ruta nueva</span></div>
+    <dl class="spec">
+      <div><dt>Ruta y rol</dt><dd>Dentro de <code>/account/donations</code>: en 1280, lista + detalle; en 360, el detalle sustituye a la lista. La cuenta dueña.</dd></div>
+      <div><dt>Datos</dt><dd>Los de <code>GET /account/donations</code>. «Ver el recorrido» abre <code>/tracking</code> con el código en memoria, nunca en la URL.</dd></div>
+      <div><dt>Depende</dt><dd>Fecha, medio de donación y organización.</dd></div>
+    </dl>
+    <div class="pair" data-t="t-detail" data-label="Código oculto"></div>
+    <div class="pair" data-t="t-detail-shown" data-label="Código visible"></div>
+    <div class="pair" data-t="t-detail-nocode" data-label="Sin código todavía"></div>
+    <div class="pair" data-t="t-state-error" data-title="Mis donaciones" data-label="Error al cargar"></div>
+  </section>
+
+  <!-- ═══════════════ 4. SEGUIMIENTO ═══════════════ -->
+  <section class="sec" id="s4" aria-labelledby="h-s4">
+    <div class="sec-head"><span class="num">04 · M-19</span><h2 id="h-s4">Campo del código con «Pegar»</h2><span class="chip ok">Existe · añade Pegar</span></div>
+    <dl class="spec">
+      <div><dt>Ruta y rol</dt><dd><code>/tracking</code>. Público.</dd></div>
+      <div><dt>Datos</dt><dd>Portapapeles del navegador (<code>navigator.clipboard.readText</code>, solo al pulsar). Consulta: <code>GET /donations/tracking</code> con el código en <code>Authorization</code>.</dd></div>
+      <div><dt>Regla</dt><dd>Pegar no consulta solo; el código nunca va en la URL ni en almacenamiento.</dd></div>
+    </dl>
+    <div class="pair" data-t="t-trk" data-label="Predeterminada"></div>
+    <div class="pair" data-t="t-trk-help" data-label="Portapapeles no disponible"></div>
+    <div class="pair" data-t="t-trk-401" data-label="Código no válido (401)"></div>
+  </section>
+
+  <!-- ═══════════════ 5. MI IMPACTO ═══════════════ -->
+  <section class="sec" id="s5" aria-labelledby="h-s5">
+    <div class="sec-head"><span class="num">05 · M-21</span><h2 id="h-s5">Mi impacto</h2><span class="chip dep">Depende de backend</span></div>
+    <dl class="spec">
+      <div><dt>Ruta y rol</dt><dd><code>/account/impact</code> (ruta nueva: árbol D4 y lista D5). Donante con sesión.</dd></div>
+      <div><dt>Derivado hoy</dt><dd>Total confirmado por moneda y por convocatoria, desde <code>GET /account/donations</code>.</dd></div>
+      <div><dt>Depende</dt><dd>Bienes entregados, personas alcanzadas y evolución en el tiempo: no hay contrato.</dd></div>
+    </dl>
+    <div class="pair" data-t="t-impact" data-label="Estructura con lo que existe y lo pendiente"></div>
+  </section>
+
+  <!-- ═══════════════ 6. MI CUENTA ═══════════════ -->
+  <section class="sec" id="s6" aria-labelledby="h-s6">
+    <div class="sec-head"><span class="num">06 · M-26</span><h2 id="h-s6">Mi cuenta</h2><span class="chip prop">Ruta nueva</span><span class="chip dep">Correo</span></div>
+    <dl class="spec">
+      <div><dt>Ruta y rol</dt><dd><code>/account</code> (árbol D4 y lista D5). Cualquier cuenta con sesión.</dd></div>
+      <div><dt>Datos</dt><dd><code>GET /me</code>: <code>organizationId?</code>, <code>roles</code>. Cerrar sesión es local (JWT solo en memoria) y avisa a las demás pestañas.</dd></div>
+      <div><dt>Depende</dt><dd>Correo (<code>/me</code> no lo da); textos de ayuda (M-20); contraseña y desactivar (ADR de cuenta).</dd></div>
+    </dl>
+    <div class="pair" data-t="t-account" data-label="Cuenta"></div>
+    <div class="pair" data-t="t-account-modal" data-label="Confirmar cierre de sesión"></div>
+    <div class="pair" data-t="t-state-error" data-title="Mi cuenta" data-label="Error al cargar"></div>
+  </section>
+
+  <!-- ═══════════════ 7. ACTIVO CON FONDOS ═══════════════ -->
+  <section class="sec" id="s7" aria-labelledby="h-s7">
+    <div class="sec-head"><span class="num">07</span><h2 id="h-s7">Registrar activo comprado con fondos</h2><span class="chip ok">Existe</span><span class="chip prop">Revisión antes de enviar</span></div>
+    <dl class="spec">
+      <div><dt>Ruta y rol</dt><dd>Acción de <code>/panel</code>. El backend exige <code>EMPLOYEE</code> (no <code>ADMINISTRATOR</code>): ver C-6.</dd></div>
+      <div><dt>Datos</dt><dd><code>GET /organizations/{id}/funds</code> para elegir; <code>POST /physical-assets/register</code> con <code>Command-Id</code>.</dd></div>
+      <div><dt>Regla</dt><dd>Las referencias nunca piden nombres ni documentos. Ambiguo en amarillo, con reintento manual.</dd></div>
+    </dl>
+    <div class="pair" data-t="t-asset-form" data-label="1 · Formulario"></div>
+    <div class="pair" data-t="t-asset-review" data-label="2 · Revisión"></div>
+    <div class="pair" data-t="t-asset-amb" data-label="3 · Resultado ambiguo"></div>
+    <div class="pair" data-t="t-asset-403" data-label="Sin el rol que pide el backend (403)"></div>
+  </section>
+
+  <!-- ═══════════════ 8. DIVIDIR ═══════════════ -->
+  <section class="sec" id="s8" aria-labelledby="h-s8">
+    <div class="sec-head"><span class="num">08</span><h2 id="h-s8">Dividir lote</h2><span class="chip ok">Existe</span></div>
+    <dl class="spec">
+      <div><dt>Ruta y rol</dt><dd>Acción de <code>/assets/:assetRef</code>. <code>EMPLOYEE</code>. No aparece en <code>DELIVERED</code>.</dd></div>
+      <div><dt>Datos</dt><dd><code>GET /physical-assets/{assetRef}</code>; <code>POST …/split</code> <code>{quantity}</code> → 202; estado con <code>GET …/splits/{child}</code>.</dd></div>
+      <div><dt>Nombre</dt><dd>La interfaz dice «Dividir activo»; el encargo, «Dividir lote» (C-10).</dd></div>
+    </dl>
+    <div class="pair" data-t="t-split" data-label="Ficha del activo"></div>
+    <div class="pair" data-t="t-split-modal" data-label="Modal «Dividir activo»"></div>
+    <div class="pair" data-t="t-split-run" data-label="División en curso y completada"></div>
+    <div class="pair" data-t="t-split-amb" data-label="Resultado ambiguo"></div>
+  </section>
+
+  <!-- ═══════════════ 9. EN ESPECIE ═══════════════ -->
+  <section class="sec" id="s9" aria-labelledby="h-s9">
+    <div class="sec-head"><span class="num">09</span><h2 id="h-s9">Registrar donación en especie</h2><span class="chip prop">Por confirmar · martes 20</span></div>
+    <dl class="spec">
+      <div><dt>Ruta y rol</dt><dd>Acción de <code>/panel</code>. <code>EMPLOYEE</code>. Puede pasar al móvil (decisión 2).</dd></div>
+      <div><dt>Datos</dt><dd><code>POST /physical-assets/from-donation</code>; convocatoria opcional desde <code>GET /me/campaigns</code> (propuesta).</dd></div>
+      <div><dt>Regla</dt><dd>No se pide ningún dato del donante en especie.</dd></div>
+    </dl>
+    <div class="pair" data-t="t-kind" data-label="Formulario"></div>
+  </section>
+
+  <!-- ═══════════════ 10. MI ORGANIZACIÓN ═══════════════ -->
+  <section class="sec" id="s10" aria-labelledby="h-s10">
+    <div class="sec-head"><span class="num">10 · S-18</span><h2 id="h-s10">Mi organización y su verificación</h2><span class="chip ok">Endpoint listo</span></div>
+    <dl class="spec">
+      <div><dt>Ruta y rol</dt><dd><code>/panel/organization</code>. <code>ADMINISTRATOR</code> o <code>REPRESENTATIVE</code>; <code>EMPLOYEE</code> → 403.</dd></div>
+      <div><dt>Datos</dt><dd><code>GET /organizations/{organizationId}</code>: <code>name?</code>, <code>type</code>, <code>verificationStatus</code>, <code>informationRequest?</code> (texto plano, solo si se pidió información).</dd></div>
+      <div><dt>Rechazada</dt><dd>Sin botón de reintento ni ninguna acción de recuperación (H-S18-2/3).</dd></div>
+    </dl>
+    <div class="pair" data-t="t-org" data-v="pending" data-label="Pendiente de verificación"></div>
+    <div class="pair" data-t="t-org" data-v="info" data-label="Se pidió más información"></div>
+    <div class="pair" data-t="t-org" data-v="ok" data-label="Verificada"></div>
+    <div class="pair" data-t="t-org" data-v="rej" data-label="Rechazada"></div>
+    <div class="pair" data-t="t-org-403" data-label="Empleado (403)"></div>
+  </section>
+
+  <!-- ═══════════════ 11. DATOS DE LA ORGANIZACIÓN ═══════════════ -->
+  <section class="sec" id="s11" aria-labelledby="h-s11">
+    <div class="sec-head"><span class="num">11</span><h2 id="h-s11">Datos de la organización</h2><span class="chip prop">Propuesta · sin backend</span><span class="chip dep">Depende de ADR</span></div>
+    <dl class="spec">
+      <div><dt>Hoy</dt><dd><code>POST /organizations</code> solo acepta <code>{type, name}</code>. Todo lo demás depende del backend.</dd></div>
+      <div><dt>ADR</dt><dd>Certificado y logo: ADR de fotos y almacenamiento. Representante legal: decisión de privacidad (Ley 1581).</dd></div>
+      <div><dt>Catálogos</dt><dd>Departamentos, ciudades y tipos de sociedad salen de un catálogo; no se escriben a mano.</dd></div>
+    </dl>
+    <div class="pair" data-t="t-orgform" data-v="F" data-label="Fundación"></div>
+    <div class="pair" data-t="t-orgform" data-v="E" data-label="Empresa"></div>
+  </section>
+
+  <!-- ═══════════════ 12. ACCESIBILIDAD ═══════════════ -->
+  <section class="sec" id="s12" aria-labelledby="h-s12">
+    <div class="sec-head"><span class="num">12 · M-04</span><h2 id="h-s12">Accesibilidad transversal</h2></div>
+    <dl class="spec">
+      <div><dt>Tamaño de texto</dt><dd>Zoom del navegador hasta 200 % sin perder contenido; una columna a 320 px. Propuesta: tamaños en <code>rem</code>.</dd></div>
+      <div><dt>Foco visible</dt><dd>Contorno de 2 px <code>green-900</code>, separación de 2 px, en todo lo enfocable. Nunca amarillo.</dd></div>
+      <div><dt>Lectores de pantalla</dt><dd>Una <code>h1</code>, regiones, <code>role="status"</code>/<code>"alert"</code>, errores con <code>aria-describedby</code>, gráficos con tabla.</dd></div>
+    </dl>
+    <div class="pair" data-t="t-a11y" data-label="Foco y regiones anotadas"></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span>PaxFide · plataforma de trazabilidad de donaciones</span>
+  <span>Bocetos de diseño con datos de ejemplo. No es la aplicación ni consulta el backend.</span>
+</footer>
+
+<!-- ════════════════════════ PLANTILLAS ════════════════════════ -->
+
+<template id="t-progress">
+  <div class="content"><div class="wrap wide">
+    <div class="ph ph-gap">Progreso de convocatoria</div>
+    <div class="grid3">
+      <div class="cvar"><span class="lbl">0 %</span>
+        <div class="card flat stack" style="gap:12px"><span class="mini">Detalle</span>
+          <div class="figs"><div><span class="k">Recaudado</span><b>$ 0</b></div><div><span class="k">Meta</span><b>$ 2.000.000</b></div></div>
+          <div class="bar" role="img" aria-label="Recaudado: 0 % de la meta"><i style="width:0"></i></div>
+          <p class="pmeta">0 % de la meta · Quedan 30 días</p></div>
+        <div class="card flat"><span class="mini">Tarjeta</span><p class="org" style="margin-top:8px">Fundación Demo</p><p class="ctitle"><a href="#s1">Agua potable para la vereda</a></p>
+          <p class="pmeta" style="font-weight:600;color:var(--g900);margin-bottom:8px">$ 0 de $ 2 M (0 %)</p><div class="bar sm"><i style="width:0"></i></div><p class="pmeta" style="margin-top:8px">Quedan 30 días</p></div>
+      </div>
+      <div class="cvar"><span class="lbl">En curso · 60 %</span>
+        <div class="card flat stack" style="gap:12px"><span class="mini">Detalle</span>
+          <div class="figs"><div><span class="k">Recaudado</span><b>$ 1.200.000</b></div><div><span class="k">Meta</span><b>$ 2.000.000</b></div></div>
+          <div class="bar" role="img" aria-label="Recaudado: 60 % de la meta"><i style="width:60%"></i></div>
+          <p class="pmeta">60 % de la meta · Quedan 12 días</p></div>
+        <div class="card flat"><span class="mini">Tarjeta</span><p class="org" style="margin-top:8px">Fundación Demo</p><p class="ctitle"><a href="#s1">Kits escolares 2026</a></p>
+          <p class="pmeta" style="font-weight:600;color:var(--g900);margin-bottom:8px">$ 1,2 M de $ 2 M (60 %)</p><div class="bar sm"><i style="width:60%"></i></div><p class="pmeta" style="margin-top:8px">Quedan 12 días</p></div>
+      </div>
+      <div class="cvar"><span class="lbl">Meta alcanzada · 130 %</span>
+        <div class="card flat stack" style="gap:12px"><span class="mini">Detalle</span>
+          <div class="figs"><div><span class="k">Recaudado</span><b>$ 2.600.000</b></div><div><span class="k">Meta</span><b>$ 2.000.000</b></div></div>
+          <div><span class="badge"><svg class="i"><use href="#i-check"/></svg>Meta alcanzada</span></div>
+          <div class="bar" role="img" aria-label="Recaudado: 130 % de la meta"><i style="width:100%"></i></div>
+          <p class="pmeta">130 % de la meta · Quedan 5 días</p></div>
+        <div class="card flat"><span class="mini">Tarjeta</span><p class="org" style="margin-top:8px">Fundación Demo</p><p class="ctitle"><a href="#s1">Mercados solidarios</a></p>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px"><p class="pmeta" style="font-weight:600;color:var(--g900)">$ 2,6 M de $ 2 M (130 %)</p><span class="badge"><svg class="i"><use href="#i-check"/></svg>Meta alcanzada</span></div>
+          <div class="bar sm"><i style="width:100%"></i></div><p class="pmeta" style="margin-top:8px">Quedan 5 días</p></div>
+      </div>
+      <div class="cvar"><span class="lbl">Último día</span>
+        <div class="card flat stack" style="gap:12px"><span class="mini">Detalle</span>
+          <div class="figs"><div><span class="k">Recaudado</span><b>$ 1.700.000</b></div><div><span class="k">Meta</span><b>$ 2.000.000</b></div></div>
+          <div class="bar" role="img" aria-label="Recaudado: 85 % de la meta"><i style="width:85%"></i></div>
+          <p class="pmeta">85 % de la meta · <svg class="i"><use href="#i-clock"/></svg>Último día</p></div>
+        <div class="card flat"><span class="mini">Tarjeta</span><p class="org" style="margin-top:8px">Fundación Demo</p><p class="ctitle"><a href="#s1">Techos para el Chocó</a></p>
+          <p class="pmeta" style="font-weight:600;color:var(--g900);margin-bottom:8px">$ 1,7 M de $ 2 M (85 %)</p><div class="bar sm"><i style="width:85%"></i></div><p class="pmeta" style="margin-top:8px"><svg class="i"><use href="#i-clock"/></svg>Último día</p></div>
+      </div>
+      <div class="cvar"><span class="lbl">Convocatoria cerrada</span>
+        <div class="card flat stack" style="gap:12px"><span class="mini">Detalle</span>
+          <div class="figs"><div><span class="k">Recaudado</span><b>$ 1.440.000</b></div><div><span class="k">Meta</span><b>$ 2.000.000</b></div></div>
+          <div class="bar" role="img" aria-label="Recaudado: 72 % de la meta"><i style="width:72%"></i></div>
+          <p class="pmeta">72 % de la meta · <svg class="i"><use href="#i-lock"/></svg>Convocatoria cerrada</p></div>
+        <div class="card flat"><span class="mini">Tarjeta</span><p class="org" style="margin-top:8px">Fundación Demo</p><p class="ctitle"><a href="#s1">Huertas comunitarias</a></p>
+          <p class="pmeta" style="font-weight:600;color:var(--g900);margin-bottom:8px">$ 1,44 M de $ 2 M (72 %)</p><div class="bar sm"><i style="width:72%"></i></div><p class="pmeta" style="margin-top:8px"><svg class="i"><use href="#i-lock"/></svg>Convocatoria cerrada</p></div>
+      </div>
+      <div class="cvar"><span class="lbl">Sin meta</span>
+        <div class="card flat stack" style="gap:12px"><span class="mini">Detalle</span>
+          <div class="figs"><div><span class="k">Recaudado</span><b>$ 480.000</b></div></div>
+          <p class="pmeta">Sin barra ni porcentaje: la convocatoria no tiene meta.</p></div>
+        <div class="card flat"><span class="mini">Tarjeta</span><p class="org" style="margin-top:8px">Fundación Demo</p><p class="ctitle"><a href="#s1">Biblioteca rural</a></p>
+          <p class="pmeta" style="font-weight:600;color:var(--g900)">Recaudado $ 480.000</p></div>
+      </div>
+    </div>
+  </div></div>
+</template>
+
+<template id="t-don">
+  <div class="content"><div class="wrap wide stack">
+    <div class="ph">Mis donaciones</div>
+    <div class="card summary flat">
+      <div><span class="k">Donaciones</span><span class="big">4</span></div>
+      <div><span class="k">Confirmado</span><span class="big">$ 250.000 COP</span></div>
+      <div><span class="k">Sin confirmar a tiempo</span><span><span class="tag t-amb"><svg class="i"><use href="#i-alert"/></svg>1 donación</span></span></div>
+    </div>
+    <div class="filters">
+      <label class="field"><span>Estado</span><select class="select"><option>Todos los estados</option><option>Confirmada</option><option>Pendiente</option><option>Sin confirmar a tiempo</option><option>Fallida</option><option>No aceptada por la convocatoria</option></select></label>
+      <button class="btn btn-s" type="button">Actualizar</button>
+    </div>
+    <ul class="grid3" style="list-style:none;margin:0;padding:0">
+      <li class="card dcard"><h4>Agua potable para la vereda</h4><div><span class="k">Monto</span><p class="amt">$ 100.000 COP</p></div><div><span class="tag t-ok"><svg class="i"><use href="#i-check"/></svg>Confirmada</span></div><button class="btn btn-s block" type="button">Ver detalle</button></li>
+      <li class="card dcard"><h4>Kits escolares 2026</h4><div><span class="k">Monto</span><p class="amt">$ 150.000 COP</p></div><div><span class="tag t-ok"><svg class="i"><use href="#i-check"/></svg>Confirmada</span></div><button class="btn btn-s block" type="button">Ver detalle</button></li>
+      <li class="card dcard"><h4>Mercados solidarios</h4><div><span class="k">Monto</span><p class="amt">$ 50.000 COP</p></div><div><span class="tag t-neutral"><svg class="i"><use href="#i-clock"/></svg>Pendiente</span></div><button class="btn btn-s block" type="button">Ver detalle</button></li>
+      <li class="card dcard"><h4>Techos para el Chocó</h4><div><span class="k">Monto</span><p class="amt">$ 80.000 COP</p></div><div><span class="tag t-amb"><svg class="i"><use href="#i-alert"/></svg>Sin confirmar a tiempo</span></div><button class="btn btn-s block" type="button">Ver detalle</button></li>
+    </ul>
+  </div></div>
+</template>
+
+<template id="t-don-empty">
+  <div class="content"><div class="wrap wide stack">
+    <div class="ph">Mis donaciones</div>
+    <div class="notice n-neutral"><svg class="i"><use href="#i-info"/></svg><p>Todavía no tienes donaciones hechas con esta cuenta.</p></div>
+  </div></div>
+</template>
+
+<template id="t-don-filter">
+  <div class="content"><div class="wrap wide stack">
+    <div class="ph">Mis donaciones</div>
+    <div class="filters">
+      <label class="field"><span>Estado</span><select class="select"><option>Fallida</option></select></label>
+      <button class="btn btn-s" type="button">Actualizar</button>
+    </div>
+    <div class="notice n-neutral"><svg class="i"><use href="#i-info"/></svg><p>No hay donaciones con ese estado.</p></div>
+  </div></div>
+</template>
+
+<template id="t-state-loading">
+  <div class="content"><div class="wrap stack">
+    <div class="ph" data-slot="title"></div>
+    <div class="card flat"><p class="loading" role="status" style="margin:0"><svg class="i"><use href="#i-spin"/></svg>Cargando…</p>
+      <div class="skel" aria-hidden="true"><i style="width:60%"></i><i style="width:82%"></i><i style="width:40%"></i></div></div>
+  </div></div>
+</template>
+
+<template id="t-state-error">
+  <div class="content"><div class="wrap stack">
+    <div class="ph" data-slot="title"></div>
+    <div class="notice n-err" role="alert"><svg class="i"><use href="#i-x"/></svg><p>No pudimos cargar la información. Inténtalo de nuevo.</p></div>
+    <div class="acts"><button class="btn btn-s" type="button">Reintentar</button></div>
+  </div></div>
+</template>
+
+<template id="t-state-403">
+  <div class="content"><div class="wrap stack">
+    <div class="ph" data-slot="title"></div>
+    <div class="notice n-neutral"><svg class="i"><use href="#i-lock"/></svg><p>No tienes acceso a este recurso.</p></div>
+  </div></div>
+</template>
+
+<template id="t-detail">
+  <div class="content"><div class="wrap wide">
+    <a class="back only-m" href="#s3"><svg class="i"><use href="#i-back"/></svg>Volver a mis donaciones</a>
+    <div class="ph ph-gap only-d">Mis donaciones</div>
+    <div class="md">
+      <div class="mlist only-d">
+        <div class="mitem on"><b>Agua potable para la vereda</b><span class="k">$ 100.000 COP</span><span><span class="tag t-ok"><svg class="i"><use href="#i-check"/></svg>Confirmada</span></span></div>
+        <div class="mitem"><b>Kits escolares 2026</b><span class="k">$ 150.000 COP</span><span><span class="tag t-ok"><svg class="i"><use href="#i-check"/></svg>Confirmada</span></span></div>
+        <div class="mitem"><b>Mercados solidarios</b><span class="k">$ 50.000 COP</span><span><span class="tag t-neutral"><svg class="i"><use href="#i-clock"/></svg>Pendiente</span></span></div>
+      </div>
+      <div class="card">
+        <div class="h2" style="margin:0 0 4px">Agua potable para la vereda</div>
+        <p class="ph-sub" style="margin-bottom:12px">01JA7Q3M9X2K8T5V0N4B6C1D2E</p>
+        <dl class="dl">
+          <div><dt>Convocatoria</dt><dd>Agua potable para la vereda</dd></div>
+          <div><dt>Monto</dt><dd>$ 100.000 COP</dd></div>
+          <div><dt>Estado</dt><dd><span class="tag t-ok"><svg class="i"><use href="#i-check"/></svg>Confirmada</span></dd></div>
+        </dl>
+        <div class="box" style="margin:20px 0 24px">
+          <div style="font-weight:700">Código de seguimiento</div>
+          <p class="hint"><svg class="i"><use href="#i-lock"/></svg>Es la llave de tu seguimiento: no la compartas.</p>
+          <p class="secret" data-slot="code">•••• •••• ••••</p>
+          <button class="btn btn-s btn-sm block" type="button" data-slot="toggle">Mostrar código de seguimiento</button>
+        </div>
+        <button class="btn btn-p btn-big block" type="button">Ver el recorrido<svg class="i"><use href="#i-arrow"/></svg></button>
+      </div>
+    </div>
+  </div></div>
+</template>
+
+<template id="t-detail-nocode">
+  <div class="content"><div class="wrap wide">
+    <a class="back only-m" href="#s3"><svg class="i"><use href="#i-back"/></svg>Volver a mis donaciones</a>
+    <div class="ph ph-gap only-d">Mis donaciones</div>
+    <div class="md">
+      <div class="mlist only-d">
+        <div class="mitem"><b>Agua potable para la vereda</b><span class="k">$ 100.000 COP</span><span><span class="tag t-ok"><svg class="i"><use href="#i-check"/></svg>Confirmada</span></span></div>
+        <div class="mitem on"><b>Mercados solidarios</b><span class="k">$ 50.000 COP</span><span><span class="tag t-neutral"><svg class="i"><use href="#i-clock"/></svg>Pendiente</span></span></div>
+      </div>
+      <div class="card">
+        <div class="h2" style="margin:0 0 4px">Mercados solidarios</div>
+        <p class="ph-sub" style="margin-bottom:12px">01JA7R0B4N6P2W8C3K5D9F1G7H</p>
+        <dl class="dl">
+          <div><dt>Convocatoria</dt><dd>Mercados solidarios</dd></div>
+          <div><dt>Monto</dt><dd>$ 50.000 COP</dd></div>
+          <div><dt>Estado</dt><dd><span class="tag t-neutral"><svg class="i"><use href="#i-clock"/></svg>Pendiente</span></dd></div>
+        </dl>
+        <div style="margin-top:20px" class="notice n-info" role="status"><svg class="i"><use href="#i-info"/></svg>
+          <div><p class="t">Todavía no hay código de seguimiento</p><p>Llega cuando la donación se confirma y sus fondos se aplican.</p></div></div>
+        <p class="mini" style="margin:10px 0 0">Texto pendiente de M-20 (Carlos). Sin botón «Ver el recorrido».</p>
+      </div>
+    </div>
+  </div></div>
+</template>
+
+<template id="t-trk">
+  <div class="content"><div class="wrap stack">
+    <div><span class="ev">Seguimiento de donación</span></div>
+    <div class="ph">Seguimiento de tu donación</div>
+    <div class="card stack">
+      <label class="field"><span>Código de seguimiento</span>
+        <div class="capsule"><svg class="i" style="width:20px;height:20px"><use href="#i-qr"/></svg>
+          <input placeholder="Pega o escribe tu código" spellcheck="false" autocomplete="off" autocapitalize="off">
+          <button class="btn btn-s btn-sm" type="button"><svg class="i"><use href="#i-clip"/></svg>Pegar</button></div>
+      </label>
+      <button class="btn btn-s paste-m" type="button"><svg class="i"><use href="#i-clip"/></svg>Pegar</button>
+      <div data-slot="msg"></div>
+      <div class="acts"><button class="btn btn-p btn-big" type="button">Consultar<svg class="i"><use href="#i-arrow"/></svg></button></div>
+    </div>
+  </div></div>
+</template>
+
+<template id="t-impact">
+  <div class="content"><div class="wrap wide stack">
+    <div class="ph">Mi impacto</div>
+    <div class="grid3">
+      <div class="card flat stat"><span class="k">Donado (confirmado)</span><p class="big">$ 250.000 COP</p><span class="chip ok">Derivado</span></div>
+      <div class="card flat stat"><span class="k">Donaciones</span><p class="big">4</p><span class="chip ok">Derivado</span></div>
+      <div class="pend" style="min-height:132px">Bienes entregados<small>Pendiente de backend</small></div>
+    </div>
+    <div class="grid2" style="gap:20px">
+      <div class="card flat">
+        <div class="h2">Confirmado por convocatoria</div>
+        <div class="hbars" aria-hidden="true">
+          <div class="hbar"><span>Kits escolares</span><span class="track"><i style="width:75%"></i><span>$ 150.000</span></span></div>
+          <div class="hbar"><span>Agua potable</span><span class="track"><i style="width:50%"></i><span>$ 100.000</span></span></div>
+        </div>
+        <table class="eq"><caption>Tabla equivalente</caption>
+          <thead><tr><th scope="col">Convocatoria</th><th scope="col" class="r">Confirmado (COP)</th></tr></thead>
+          <tbody><tr><td>Kits escolares 2026</td><td class="r">150.000</td></tr><tr><td>Agua potable para la vereda</td><td class="r">100.000</td></tr></tbody></table>
+      </div>
+      <div class="pend" style="min-height:280px">Estado de los bienes<small>Registrado · despachado · recibido · entregado — pendiente de backend</small></div>
+    </div>
+  </div></div>
+</template>
+
+<template id="t-account">
+  <div class="content"><div class="wrap stack">
+    <div class="ph">Mi cuenta</div>
+    <div class="card"><dl class="dl">
+      <div><dt>Correo</dt><dd><span class="pend inline">Pendiente de backend</span></dd></div>
+      <div><dt>Organización</dt><dd>Fundación Demo</dd></div>
+      <div><dt>Tus papeles</dt><dd>Representante</dd></div>
+    </dl></div>
+    <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px">
+      <li><a href="#s2">Mis donaciones</a></li>
+      <li><a href="#s6">Ayuda: qué significa cada estado</a></li>
+    </ul>
+    <div class="acts"><button class="btn btn-s" type="button">Cerrar sesión</button></div>
+  </div></div>
+</template>
+
+<template id="t-asset-form">
+  <div class="content"><div class="wrap">
+    <div class="ph ph-gap">Registrar activo</div>
+    <form class="card stack" onsubmit="return false">
+      <fieldset><legend>Origen del bien</legend>
+        <div class="grid2"><label class="choice"><input type="radio" name="o">Donación en especie</label><label class="choice on"><input type="radio" name="o" checked>Compra con fondos de una donación</label></div>
+      </fieldset>
+      <div class="grid2">
+        <label class="field"><span>Fondo</span><select class="select"><option>01JA9F… · disponible $ 500.000</option></select></label>
+        <label class="field"><span>Asignación de fondos</span><select class="select"><option>01JA9K… · $ 200.000 · Confirmada</option></select></label>
+      </div>
+      <label class="field"><span>Tipo de bien</span><input class="input" value="Bomba de agua sumergible"><span class="hint">Por ejemplo: mercado, kit de higiene.</span></label>
+      <div class="grid2">
+        <label class="field"><span>Cantidad</span><input class="input" value="4" inputmode="decimal"><span class="hint">Número positivo, hasta 4 decimales.</span></label>
+        <label class="field"><span>Unidad de medida</span><input class="input" value="unidad"><span class="hint">Por ejemplo: kit, kg.</span></label>
+      </div>
+      <label class="field"><span>Custodio (referencia)</span><input class="input mono" value="CUST-0042">
+        <span class="hint"><svg class="i"><use href="#i-lock"/></svg>Una referencia, nunca nombres ni documentos: queda registrada para siempre.</span></label>
+      <label class="field"><span>Ubicación actual</span><input class="input" value="Bodega central"></label>
+      <label class="field"><span>Asignación de origen (referencia, opcional)</span><input class="input mono"></label>
+      <div class="acts"><button class="btn btn-p" type="button">Revisar</button><button class="btn btn-s" type="button">Cancelar</button></div>
+    </form>
+  </div></div>
+</template>
+
+<template id="t-asset-review">
+  <div class="content"><div class="wrap stack">
+    <div class="ph">Revisa antes de registrar</div>
+    <div class="card"><dl class="dl">
+      <div><dt>Origen</dt><dd>Compra con fondos de una donación</dd></div>
+      <div><dt>Fondo</dt><dd class="mono">01JA9F…</dd></div>
+      <div><dt>Asignación de fondos</dt><dd class="mono">01JA9K… · $ 200.000</dd></div>
+      <div><dt>Tipo de bien</dt><dd>Bomba de agua sumergible</dd></div>
+      <div><dt>Cantidad</dt><dd>4 unidad</dd></div>
+      <div><dt>Custodio (referencia)</dt><dd class="mono">CUST-0042</dd></div>
+      <div><dt>Ubicación actual</dt><dd>Bodega central</dd></div>
+    </dl></div>
+    <div class="notice n-info"><svg class="i"><use href="#i-lock"/></svg><p>Esto queda registrado para siempre.</p></div>
+    <div class="acts"><button class="btn btn-p" type="button">Registrar</button><button class="btn btn-s" type="button">Volver a editar</button></div>
+  </div></div>
+</template>
+
+<template id="t-asset-amb">
+  <div class="content"><div class="wrap stack">
+    <div class="ph">Registrar activo</div>
+    <div class="notice n-amb" role="alert"><svg class="i"><use href="#i-alert"/></svg>
+      <div><p class="t">No pudimos confirmar la operación</p><p>Puede que se haya realizado. Revisa antes de repetirla.</p></div></div>
+    <div class="acts"><button class="btn btn-p" type="button">Reintentar</button><button class="btn btn-s" type="button">Cerrar</button></div>
+    <p class="mini" style="margin:0">«Reintentar» reenvía con el mismo Command-Id. Tras «Cerrar»: «No sabemos si la operación se realizó; revísalo antes de repetirla.»</p>
+  </div></div>
+</template>
+
+<template id="t-asset-403">
+  <div class="content"><div class="wrap stack">
+    <div class="ph">Registrar activo</div>
+    <div class="notice n-err" role="alert"><svg class="i"><use href="#i-x"/></svg><p>No tienes acceso a este recurso.</p></div>
+    <div class="acts"><button class="btn btn-s" type="button">Volver a editar</button><button class="btn btn-s" type="button">Cancelar</button></div>
+    <p class="mini" style="margin:0">Ocurre con un ADMINISTRATOR sin EMPLOYEE: el backend exige EMPLOYEE (C-6).</p>
+  </div></div>
+</template>
+
+<template id="t-split">
+  <div class="content"><div class="wrap stack">
+    <div><div class="ph">Activo</div><p class="ph-sub" style="margin:0">01JAB2C3D4E5F6G7H8J9K0M1N2</p></div>
+    <div class="card"><dl class="dl">
+      <div><dt>Estado</dt><dd>Recibido</dd></div>
+      <div><dt>Cantidad</dt><dd>120</dd></div>
+      <div><dt>Unidad de medida</dt><dd>kg</dd></div>
+      <div><dt>Ubicación actual</dt><dd>Bodega central</dd></div>
+      <div><dt>Custodio actual</dt><dd class="mono">CUST-0042</dd></div>
+      <div><dt>Convocatoria</dt><dd class="mono">01J9Z8Y7X6W5V4T3S2R1Q0P9N8</dd></div>
+    </dl></div>
+    <div class="acts"><button class="btn btn-s" type="button">Dividir activo</button></div>
+  </div></div>
+</template>
+
+<template id="t-split-modal-body">
+  <div class="dialog" role="dialog" aria-modal="true" aria-label="Dividir activo">
+    <div class="h2">Dividir activo</div>
+    <p style="margin:0 0 10px;color:var(--n700)">Separa una parte de la cantidad de este activo en un activo nuevo.</p>
+    <p style="margin:0 0 16px;font-weight:700">Cantidad actual: 120 kg</p>
+    <label class="field"><span>Cantidad a separar</span><input class="input" inputmode="decimal" placeholder="40"><span class="hint">Número positivo, hasta 4 decimales.</span></label>
+    <div data-slot="msg" style="margin-top:16px"></div>
+    <div class="acts" style="margin-top:20px" data-slot="acts"><button class="btn btn-p" type="button">Dividir</button><button class="btn btn-s" type="button">Cancelar</button></div>
+  </div>
+</template>
+
+<template id="t-split-run">
+  <div class="content"><div class="wrap stack">
+    <div><div class="ph">Activo</div><p class="ph-sub" style="margin:0">01JAB2C3D4E5F6G7H8J9K0M1N2</p></div>
+    <div class="notice n-info" role="status"><svg class="i"><use href="#i-clock"/></svg><div><p class="t">División en curso</p><p>Estamos creando el activo nuevo…</p></div></div>
+    <div class="notice n-ok" role="status"><svg class="i"><use href="#i-check"/></svg><div><p class="t">División completada</p><p>Se creó el activo nuevo con la cantidad separada.</p></div></div>
+    <p style="margin:0"><a href="#s8">Ver el activo nuevo</a></p>
+    <p class="mini" style="margin:0">Arriba: mientras el estado es PENDING. Abajo: al terminar (el enlace va fuera del aviso).</p>
+  </div></div>
+</template>
+
+<template id="t-kind">
+  <div class="content"><div class="wrap">
+    <div class="ph ph-gap">Registrar donación en especie</div>
+    <form class="card stack" onsubmit="return false">
+      <label class="field"><span>Tipo de bien</span><input class="input" value="Arroz blanco"><span class="hint">Por ejemplo: mercado, kit de higiene.</span></label>
+      <div class="grid2">
+        <label class="field"><span>Cantidad</span><input class="input" value="120" inputmode="decimal"><span class="hint">Número positivo, hasta 4 decimales.</span></label>
+        <label class="field"><span>Unidad de medida</span><input class="input" value="kg"><span class="hint">Por ejemplo: kit, kg.</span></label>
+      </div>
+      <label class="field"><span>Custodio (referencia)</span><input class="input mono" value="CUST-0042">
+        <span class="hint"><svg class="i"><use href="#i-lock"/></svg>Una referencia, nunca nombres ni documentos: queda registrada para siempre.</span></label>
+      <label class="field"><span>Ubicación actual</span><input class="input" value="Bodega central"></label>
+      <label class="field"><span>Convocatoria (opcional)</span><select class="select"><option>Sin convocatoria</option><option>Mercados solidarios</option></select>
+        <span class="hint">Tus convocatorias asignadas (GET /me/campaigns).</span></label>
+      <div class="acts"><button class="btn btn-p" type="button">Revisar</button><button class="btn btn-s" type="button">Cancelar</button></div>
+    </form>
+  </div></div>
+</template>
+
+<template id="t-org">
+  <div class="content"><div class="wrap stack">
+    <div class="ph">Mi organización</div>
+    <div class="card">
+      <div class="h2">Tu organización</div>
+      <dl class="dl">
+        <div><dt>Nombre</dt><dd>Fundación Demo</dd></div>
+        <div><dt>Tipo</dt><dd>Fundación</dd></div>
+        <div><dt>Estado</dt><dd data-slot="tag"></dd></div>
+        <div><dt>Identificador</dt><dd class="mono">01JA5M8N2P4Q6R8S0T2V4W6X8Y</dd></div>
+      </dl>
+    </div>
+    <div data-slot="notice"></div>
+    <div class="card flat"><dl class="dl"><div><dt>Tus papeles</dt><dd>Representante</dd></div></dl></div>
+  </div></div>
+</template>
+
+<template id="t-org-403">
+  <div class="content"><div class="wrap stack">
+    <div class="ph">Mi organización</div>
+    <div class="notice n-neutral"><svg class="i"><use href="#i-lock"/></svg><p>No tienes acceso a este recurso.</p></div>
+    <div class="card flat"><dl class="dl"><div><dt>Tus papeles</dt><dd>Empleado</dd></div></dl></div>
+    <p class="mini" style="margin:0">Ningún dato de la organización (nombre, tipo ni estado).</p>
+  </div></div>
+</template>
+
+<template id="t-orgform">
+  <div class="content"><div class="wrap">
+    <div class="ph">Registrar tu organización</div>
+    <p style="margin:0 0 24px"><span class="chip prop">Propuesta · sin backend</span></p>
+    <form class="card stack" onsubmit="return false">
+      <fieldset><legend>Tipo de organización</legend>
+        <div class="grid2"><label class="choice" data-slot="cF"><input type="radio" name="t">Fundación</label><label class="choice" data-slot="cE"><input type="radio" name="t">Empresa</label></div>
+      </fieldset>
+      <div class="h2" style="margin:8px 0 0">Datos legales</div>
+      <label class="field"><span>Razón social</span><input class="input" placeholder="Nombre legal de la organización"></label>
+      <div class="nitrow">
+        <label class="field"><span>NIT</span><input class="input mono" inputmode="numeric" placeholder="Sin dígito de verificación"></label>
+        <label class="field"><span>DV</span><input class="input mono" inputmode="numeric" maxlength="1"></label>
+      </div>
+      <div data-slot="extra"></div>
+      <div class="h2" style="margin:8px 0 0">Ubicación y contacto</div>
+      <div class="grid2">
+        <label class="field"><span>Departamento</span><select class="select"><option>Catálogo DIVIPOLA (pendiente)</option></select></label>
+        <label class="field"><span>Ciudad</span><select class="select" disabled><option>Elige antes el departamento</option></select></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>Correo institucional</span><input class="input" type="email" autocomplete="off"></label>
+        <label class="field"><span>Teléfono institucional</span><input class="input" type="tel" autocomplete="off"></label>
+      </div>
+      <div class="h2" style="margin:8px 0 0">Representante legal</div>
+      <label class="field"><span>Nombre completo</span><input class="input" autocomplete="off">
+        <span class="hint"><svg class="i"><use href="#i-lock"/></svg>Este dato solo lo verá la plataforma para verificar tu organización. Pendiente de la decisión de privacidad.</span></label>
+      <div class="h2" style="margin:8px 0 0">Documentos</div>
+      <div class="grid2">
+        <div><span style="display:block;font-weight:600;font-size:14px;margin-bottom:6px">Certificado de Cámara de Comercio</span><div class="pend" style="min-height:96px">Subida de archivo<small>Depende del ADR de fotos y almacenamiento</small></div></div>
+        <div><span style="display:block;font-weight:600;font-size:14px;margin-bottom:6px">Logo (opcional)</span><div class="pend" style="min-height:96px">Imagen<small>Depende del ADR de fotos (M-08)</small></div></div>
+      </div>
+      <div class="acts"><button class="btn btn-p" type="button">Enviar para verificación</button><button class="btn btn-s" type="button">Cancelar</button></div>
+      <p class="hint" style="margin:0"><svg class="i"><use href="#i-info"/></svg>La plataforma revisará los datos antes de que puedas crear convocatorias.</p>
+    </form>
+  </div></div>
+</template>
+
+<template id="t-a11y">
+  <div class="content"><div class="wrap stack">
+    <div class="ph">Mi organización <span class="ann">h1</span></div>
+    <div class="notice n-info" role="status"><svg class="i"><use href="#i-clock"/></svg><p>La plataforma está revisando tu organización. Hasta que esté verificada no podrás crear convocatorias.</p><span class="ann">role="status"</span></div>
+    <label class="field"><span>Código de seguimiento <span class="ann">label visible</span></span>
+      <input class="input bad focus-demo" aria-invalid="true" aria-describedby="a11y-e" value="">
+      <span class="err" id="a11y-e">Este campo es obligatorio.</span><span class="ann" style="margin:6px 0 0">aria-describedby</span></label>
+    <div class="acts">
+      <button class="btn btn-p focus-demo" type="button">Primario con foco</button>
+      <button class="btn btn-s focus-demo" type="button">Secundario con foco</button>
+    </div>
+    <div class="card flat" style="font-size:14px;color:var(--n700)">
+      <b style="color:var(--g900)">Regiones:</b> <span class="mono">header</span> (logo y «Cerrar sesión») · <span class="mono">main</span> (contenido) · avisos con
+      <span class="mono">role="status"</span> o <span class="mono">role="alert"</span>. Objetivo táctil ≥ 40 px. Zoom al 200 %: la versión de 360 px es la que ve el usuario a 640 px de ventana.
+    </div>
+  </div></div>
+</template>
+
+<script>
+/* Monta cada variante dos veces (1280 y 360) con la barra de la app. Sin animaciones. */
+(function () {
+  const appbar = () => `
+    <div class="appbar" role="banner">
+      <span class="brand"><svg width="28" height="28" aria-hidden="true"><use href="#logo"/></svg><span>Pax<span class="g">Fide</span><span class="d">.</span></span></span>
+      <a class="btn btn-s btn-sm" href="#top" tabindex="-1">Cerrar sesión</a>
+    </div>`;
+
+  const tag = {
+    pending: '<span class="tag t-info"><svg class="i"><use href="#i-clock"/></svg>Pendiente de verificación</span>',
+    info: '<span class="tag t-info"><svg class="i"><use href="#i-info"/></svg>Se pidió más información</span>',
+    ok: '<span class="tag t-ok"><svg class="i"><use href="#i-check"/></svg>Verificada</span>',
+    rej: '<span class="tag t-neutral"><svg class="i"><use href="#i-x"/></svg>Rechazada</span>',
+  };
+  const orgNotice = {
+    pending: '<div class="notice n-info" role="status"><svg class="i"><use href="#i-clock"/></svg><p>La plataforma está revisando tu organización. Hasta que esté verificada no podrás crear convocatorias.</p></div>',
+    info: '<div class="notice n-info" role="status"><svg class="i"><use href="#i-info"/></svg><div><p class="t">La plataforma pidió más información:</p><p class="quote">Falta el certificado de existencia y representación legal.\nEnvíenlo actualizado (menos de 30 días).</p></div></div>',
+    ok: '<div class="notice n-ok" role="status"><svg class="i"><use href="#i-check"/></svg><p>Tu organización está verificada.</p></div>',
+    rej: '<div class="notice n-neutral"><svg class="i"><use href="#i-x"/></svg><p>La plataforma rechazó la verificación de tu organización.</p></div>',
+  };
+
+  function build(pair, mobile) {
+    const id = pair.dataset.t;
+    const fig = document.createElement('figure');
+    fig.className = mobile ? 'fm' : 'fd';
+    fig.innerHTML = `<figcaption>${mobile ? 'Móvil · 360 px' : 'Escritorio · 1280 px'}</figcaption><div class="frame">${appbar()}</div>`;
+    const frame = fig.querySelector('.frame');
+    const tplId = { 't-detail-shown': 't-detail', 't-trk-help': 't-trk', 't-trk-401': 't-trk',
+      't-account-modal': 't-account', 't-split-modal': 't-split', 't-split-amb': 't-split' }[id] || id;
+    frame.appendChild(document.getElementById(tplId).content.cloneNode(true));
+    const slot = (n) => frame.querySelector(`[data-slot="${n}"]`);
+
+    if (pair.dataset.title && slot('title')) slot('title').textContent = pair.dataset.title;
+    if (id === 't-detail-shown') { slot('code').textContent = 'PX7K-92QD-M4TA'; slot('toggle').textContent = 'Ocultar código de seguimiento'; }
+    if (id === 't-trk-help') slot('msg').outerHTML = '<p class="hint" style="margin:0"><svg class="i"><use href="#i-info"/></svg>No pudimos leer el portapapeles. Pega el código con Ctrl+V o mantén pulsado el campo.</p>';
+    if (id === 't-trk-401') {
+      frame.querySelector('.capsule input').value = 'PX7K-0000-ZZZZ';
+      slot('msg').outerHTML = '<div class="notice n-err" role="alert"><svg class="i"><use href="#i-x"/></svg><p>El código no es válido o expiró.</p></div>';
+    }
+    if (id === 't-account-modal') {
+      const ov = document.createElement('div'); ov.className = 'ov';
+      ov.innerHTML = '<div class="dialog" role="dialog" aria-modal="true" aria-label="¿Cerrar sesión?"><div class="h2">¿Cerrar sesión?</div><p style="margin:0 0 20px;color:var(--n700)">Tendrás que volver a iniciar sesión para ver tus donaciones.</p><div class="acts"><button class="btn btn-p" type="button">Cerrar sesión</button><button class="btn btn-s" type="button">Cancelar</button></div></div>';
+      frame.appendChild(ov);
+    }
+    if (id === 't-split-modal' || id === 't-split-amb') {
+      const ov = document.createElement('div'); ov.className = 'ov';
+      ov.appendChild(document.getElementById('t-split-modal-body').content.cloneNode(true));
+      frame.appendChild(ov);
+      if (id === 't-split-amb') {
+        ov.querySelector('[data-slot="msg"]').innerHTML = '<div class="notice n-amb" role="alert"><svg class="i"><use href="#i-alert"/></svg><div><p class="t">No pudimos confirmar la operación</p><p>Puede que se haya realizado. Revisa antes de repetirla.</p></div></div>';
+        ov.querySelector('[data-slot="acts"]').innerHTML = '<button class="btn btn-p" type="button">Reintentar</button><button class="btn btn-s" type="button">Cerrar</button>';
+        ov.querySelector('input').value = '40';
+      }
+    }
+    if (id === 't-org') { slot('tag').innerHTML = tag[pair.dataset.v]; slot('notice').outerHTML = orgNotice[pair.dataset.v]; }
+    if (id === 't-orgform') {
+      const f = pair.dataset.v === 'F';
+      const on = slot(f ? 'cF' : 'cE'); on.classList.add('on'); on.querySelector('input').checked = true;
+      slot('extra').outerHTML = f
+        ? '<fieldset><legend>¿Pertenece al Régimen Tributario Especial?</legend><div class="grid2"><label class="choice"><input type="radio">Sí</label><label class="choice"><input type="radio">No</label></div></fieldset>'
+        : '<label class="field"><span>Tipo de sociedad (opcional)</span><select class="select"><option>Catálogo de tipos (pendiente)</option></select></label>';
+    }
+    // Los radios de cada marco no deben compartir grupo con los de otros marcos
+    frame.querySelectorAll('input[type=radio]').forEach((r, i) => { r.name = `${id}-${pair.dataset.v || ''}-${mobile ? 'm' : 'd'}-${r.name || i}`; });
+    // Los controles de los bocetos no se recorren con el teclado: el tablero sí
+    frame.querySelectorAll('a,button,input,select').forEach((el) => el.setAttribute('tabindex', '-1'));
+    return fig;
+  }
+
+  document.querySelectorAll('.pair').forEach((pair) => {
+    const h = document.createElement('h3'); h.textContent = pair.dataset.label;
+    const row = document.createElement('div'); row.className = 'frames';
+    row.append(build(pair, false), build(pair, true));
+    pair.append(h, row);
+  });
+})();
+</script>
+</body>
+</html>
