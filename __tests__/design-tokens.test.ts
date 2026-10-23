@@ -567,7 +567,7 @@ describe('Hexadecimales y tokens dark-* solo en el archivo de tokens', () => {
    * texto encima (R-F1); sus colores viven en UN archivo por ilustración. Ningún otro archivo de la ilustración lleva
    * hexadecimales (lo comprueba el test de arriba, que no los exime).
    */
-  const ILLUSTRATION_PALETTES = new Set(['components/background/cityPalette.ts']);
+  const ILLUSTRATION_PALETTES = new Set(['components/background/cityPalette.ts', 'components/landing/worldPalette.ts']);
 
   it('solo globals.css declara hexadecimales (más las excepciones anteriores listadas)', () => {
     for (const file of files) {

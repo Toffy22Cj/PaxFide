@@ -18,7 +18,8 @@ function when(surface: string, category: RouteCategory): RouteCategory {
 export function classifyRoute(pathname: string): RouteCategory {
   if (!pathname.startsWith('/')) return 'NOT_APPROVED';
   const parts = pathname.split('/').filter(Boolean);
-  if (parts.length === 0) return 'NOT_APPROVED';
+  // Landing pública (plan-fase7-pantallas.md A-2): solo `/` exacto
+  if (parts.length === 0) return pathname === '/' ? when('/', 'PUBLIC') : 'NOT_APPROVED';
 
   const [a, b] = parts;
 

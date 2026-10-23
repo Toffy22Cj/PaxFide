@@ -82,6 +82,7 @@ addCampaign('01JDEMOPUBLICC0DEMONETARY1', {
   description: 'Recaudamos fondos para entregar mercados a adultos mayores del barrio.', status: 'OPEN',
   startDate: '2026-10-01T00:00:00Z', endDate: '2026-12-31T23:59:59Z', acceptedDonationTypes: ['MONETARY'],
   acceptedPaymentMethods: ['GATEWAY', 'BANK_TRANSFER'], currency: 'COP', targetAmount: '500000000', clearedAmount: '125000000', targetPolicy: 'FLEXIBLE',
+  organizationLogo: true,
 });
 addCampaign('01JDEMOPUBLICC0DECLOSED001', {
   campaignRef: 'camp-demo-2', organizationRef: 'org-1', organizationName: 'Fundación Demo', title: 'Kits escolares 2025',
@@ -154,8 +155,14 @@ function publicView(c) {
     'acceptedPaymentMethods', 'currency', 'targetAmount', 'clearedAmount']) {
     if (c[k] !== undefined && c[k] !== null) out[k] = c[k];
   }
+  // Notas del 2026-10-18 y del 2026-10-21 (referencia-api-v1.md §5): verificación siempre presente; logo solo si hay
+  out.organizationVerified = organizationStatus.get(c.organizationRef) === 'VERIFIED';
+  if (c.organizationLogo) out.organizationLogoUrl = `/api/v1/public/campaigns/${c.publicCode}/organization-logo`;
   return out;
 }
+
+/** Logo de demostración: un PNG de 1×1 (los bytes no importan al front, solo que sea una imagen del backend). */
+const DEMO_LOGO = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 
 /** Fallos forzados por los tests: el siguiente POST cuya ruta empiece por `prefix` falla con `mode`. */
 const failures = [];
@@ -248,6 +255,7 @@ const server = http.createServer(async (req, res) => {
       title: body.title || 'Convocatoria de prueba', status: 'OPEN', startDate: '2026-10-01T00:00:00Z',
       endDate: '2026-12-31T23:59:59Z', acceptedDonationTypes: ['MONETARY'], acceptedPaymentMethods: ['GATEWAY', 'BANK_TRANSFER'],
       currency: 'COP', targetAmount: '100000000', clearedAmount: '0',
+      ...(body.visibility === 'PRIVATE_LINK' ? { visibility: 'PRIVATE_LINK' } : {}),
     });
     send(res, 200, { publicCode: code });
     return;
@@ -327,6 +335,16 @@ const server = http.createServer(async (req, res) => {
     const out = { items: page.map((c) => { const v = publicView(c); delete v.description; delete v.acceptedPaymentMethods; return { publicCode: c.publicCode, ...v }; }) };
     if (start + 20 < all.length) out.nextCursor = Buffer.from(page[page.length - 1].publicCode).toString('base64url');
     send(res, 200, out);
+    return;
+  }
+
+  // GET /public/campaigns/{publicCode}/organization-logo (ADR-051 Tarea 2): bytes del logo o 404, siempre el mismo
+  const logoMatch = p.match(/^\/public\/campaigns\/([^/]+)\/organization-logo$/);
+  if (logoMatch && req.method === 'GET') {
+    const c = campaigns.get(decodeURIComponent(logoMatch[1]));
+    if (!c || !c.organizationLogo) { problem(res, 404, 'NotFound'); return; }
+    res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600' });
+    res.end(DEMO_LOGO);
     return;
   }
 

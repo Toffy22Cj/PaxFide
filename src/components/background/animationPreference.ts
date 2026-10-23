@@ -34,3 +34,30 @@ export function loopMode(state: { paused: boolean; reducedMotion: boolean; hidde
   if (state.paused || state.reducedMotion) return 'still'; // un fotograma, sin requestAnimationFrame
   return 'animate';
 }
+
+/**
+ * Preferencia de pausa compartida (A-2): el botón de la cabecera y cada ilustración (la ciudad y el mundo de la
+ * landing) leen el mismo valor y se enteran del cambio sin recargar. Se lee del almacenamiento una sola vez.
+ */
+const listeners = new Set<() => void>();
+let cached: boolean | null = null;
+
+export function subscribePaused(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
+
+export function getPausedSnapshot(getStorage: () => PreferenceStorage | null | undefined): boolean {
+  if (cached === null) cached = readPaused(getStorage);
+  return cached;
+}
+
+export function setPausedPreference(getStorage: () => PreferenceStorage | null | undefined, paused: boolean): PauseWriteResult {
+  cached = paused;
+  const result = writePaused(getStorage, paused);
+  listeners.forEach((l) => l());
+  return result;
+}
+
+/** Solo para tests: olvida el valor leído. */
+export function resetPausedSnapshot(): void { cached = null; }

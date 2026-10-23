@@ -27,6 +27,7 @@ export default defineConfig({
       reuseExistingServer: false,
       env: {
         NEXT_PUBLIC_E2E_SURFACES: JSON.stringify([
+          '/',
           '/login',
           '/panel',
           '/panel/campaigns',

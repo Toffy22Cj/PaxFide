@@ -2,7 +2,8 @@
 
 // Ref: prompts-agentes-estilo-v2.md VS-2; sistema-visual-paxfide-web-enmienda-1.md §8 (data-nav-position y
 // --nav-inset-*); respuesta de Carlos al plan de VS-2 (2026-10-21: B, C, D, E y GET /me en cada ruta); ADR-046 D5;
-// plan-fase7-pantallas.md A-1 (fondo animado en las rutas de D-P2, control de pausa en la cabecera, R-F1 y R-F2).
+// plan-fase7-pantallas.md A-1 (fondo animado en las rutas de D-P2, control de pausa en la cabecera, R-F1 y R-F2) y A-2
+// (en `/` el mundo de la landing en lugar de la ciudad; la misma pausa para los dos).
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 import * as session from '../../lib/auth/session';
@@ -12,8 +13,8 @@ import { navEntriesFor, positionForWidth, NAV_BREAKPOINT_PX, type NavPosition } 
 import { nextNavPrincipal } from '../../lib/nav/navPrincipal';
 import { AppNav } from '../nav/AppNav';
 import { CityBackground } from '../background/CityBackground';
-import { readPaused, writePaused } from '../background/animationPreference';
-import { hasAnimatedBackground } from '../../lib/routing/backgroundRoutes';
+import { togglePausedPreference, usePausedPreference, useReducedMotion } from '../background/usePausedPreference';
+import { backgroundFor } from '../../lib/routing/backgroundRoutes';
 import s from './Shell.module.css';
 
 /** Marca: SVG propio con los colores de marca (sustituto ligero del raster, `sistema-visual` §6). */
@@ -67,22 +68,11 @@ function useNavPosition(): NavPosition | 'auto' {
   return position;
 }
 
-const getStorage = () => window.localStorage;
-
-/** Pausa de la ciudad (R-F2): se recuerda en el navegador. Con "reducir movimiento" no hay nada que pausar (R-F3). */
-function useCityPause(): { paused: boolean; toggle: () => void; canPause: boolean } {
-  const [paused, setPaused] = useState(false);
-  const [canPause, setCanPause] = useState(false);
-  useEffect(() => {
-    setPaused(readPaused(getStorage));
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () => setCanPause(!mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
-  const toggle = () => setPaused((p) => { writePaused(getStorage, !p); return !p; });
-  return { paused, toggle, canPause };
+/** Pausa de la ilustración (R-F2): se recuerda en el navegador. Con "reducir movimiento" no hay nada que pausar (R-F3). */
+function useAnimationPause(): { paused: boolean; toggle: () => void; canPause: boolean } {
+  const paused = usePausedPreference();
+  const reduced = useReducedMotion();
+  return { paused, toggle: () => togglePausedPreference(paused), canPause: reduced === false };
 }
 
 function PauseIcon({ paused }: { paused: boolean }) {
@@ -106,8 +96,9 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
   const principal = useNavPrincipal(state, pathname, me);
   const position = useNavPosition();
   const entries = navEntriesFor({ authenticated: state === 'AUTHENTICATED', principal }, isSurfaceEnabled, position);
-  const city = hasAnimatedBackground(pathname);
-  const pause = useCityPause();
+  const background = backgroundFor(pathname);
+  const city = background === 'city';
+  const pause = useAnimationPause();
   const pauseLabel = pause.paused ? 'Reanudar animación' : 'Pausar animación';
 
   return (
@@ -118,7 +109,7 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
           <span className={s.brand}><Mark />PaxFide</span>
           <div className={s.actions}>
             {/* Aquí va el selector de tema en VS-8, al retirar el tema claro forzado (DF7-17). */}
-            {city && pause.canPause && (
+            {background && pause.canPause && (
               <button type="button" className={s.pause} onClick={pause.toggle} aria-pressed={pause.paused}
                 aria-label={pauseLabel} data-testid="city-pause">
                 <PauseIcon paused={pause.paused} /><span className={s.pauseText}>{pauseLabel}</span>
@@ -133,7 +124,7 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
         </div>
       </header>
       <AppNav entries={entries} pathname={pathname} />
-      <main className={[s.main, wide ? s.wide : '', city ? s.onCity : ''].join(' ')}>{children}</main>
+      <main className={[s.main, wide ? s.wide : '', city ? s.onCity : '', background === 'world' ? s.onWorld : ''].join(' ')}>{children}</main>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { apiRequest } from './http';
-import { segment } from './config';
+import { getApiBase, segment } from './config';
 import { parsePublicCampaign, PublicCampaign, PublicCampaignOutcome } from './publicCampaignModel';
 
 export type { PublicCampaign, PublicCampaignOutcome };
@@ -80,6 +80,25 @@ export interface DiscoveryItem {
   currency?: string;
   targetAmount?: string;
   clearedAmount?: string;
+  /** Siempre presente en el contrato (nota del 2026-10-18); si faltara, se trata como no verificada. */
+  organizationVerified: boolean;
+  /** URL absoluta del logo en el backend (nota del 2026-10-21, ADR-051 Tarea 2), solo si la organización tiene logo. */
+  organizationLogoUrl?: string;
+}
+
+/**
+ * El backend da el logo como ruta propia (`/api/v1/public/campaigns/{publicCode}/organization-logo`): se resuelve
+ * contra el origen de la API. Cualquier otra forma (otro origen, `//host`) se descarta: nunca se pide nada fuera.
+ */
+function apiAssetUrl(v: unknown): string | undefined {
+  if (typeof v !== 'string' || !v.startsWith('/') || v.startsWith('//')) return undefined;
+  try {
+    const base = new URL(getApiBase());
+    const url = new URL(v, base);
+    return url.origin === base.origin ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export type DiscoveryOutcome = { kind: 'ok'; items: DiscoveryItem[]; nextCursor?: string } | { kind: 'error' };
@@ -95,6 +114,7 @@ export async function fetchDiscovery(cursor?: string): Promise<DiscoveryOutcome>
       startDate: String(i.startDate), endDate: String(i.endDate),
       acceptedDonationTypes: Array.isArray(i.acceptedDonationTypes) ? i.acceptedDonationTypes : [],
       currency: optStr(i.currency), targetAmount: optStr(i.targetAmount), clearedAmount: optStr(i.clearedAmount),
+      organizationVerified: i.organizationVerified === true, organizationLogoUrl: apiAssetUrl(i.organizationLogoUrl),
     }));
   return { kind: 'ok', items, nextCursor: optStr(r.data.nextCursor) };
 }
