@@ -35,6 +35,9 @@ export interface DonationTracking {
   financialSnapshot: FinancialSnapshot | null;
   logistics: LogisticsItem[];
   status: string;
+  /** G-1 (nota del 2026-10-21, §8): faltan si la donación no tiene convocatoria o no se encuentra. */
+  campaignTitle?: string;
+  organizationName?: string;
 }
 
 export type TrackingOutcome<T> =
@@ -67,6 +70,8 @@ export function parseTracking(data: unknown): DonationTracking | null {
   const f = d.financialSnapshot as Record<string, unknown> | null | undefined;
   return {
     status: d.status,
+    campaignTitle: opt(d.campaignTitle),
+    organizationName: opt(d.organizationName),
     financialSnapshot: f && typeof f === 'object' ? {
       currency: opt(f.currency),
       originalAmount: amount(f.originalAmount),

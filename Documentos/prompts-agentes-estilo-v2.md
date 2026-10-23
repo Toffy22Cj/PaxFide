@@ -78,7 +78,7 @@ Fuente: `Documentos/referencia-api-v1.md` del backend (implementado en `develop`
 |---|---|---|
 | `TRK-2026-8841` en la cabecera | `trackingCode` (credencial) | Según **T-1** (§3.5): enmascarado por defecto, con "Ver código" y "Copiar" |
 | `$300.000 COP` | `financialSnapshot.originalAmount` + `currency` (`long`, unidades mínimas, EF3) | ✅ con `money.ts` |
-| Convocatoria · ciudad · organización (`sub`) | Solo `campaignRef?` | ⛔ **G-1**: el seguimiento no trae título, ciudad ni organización |
+| Convocatoria · ciudad · organización (`sub`) | `campaignTitle?`, `organizationName?` (G-1, nota del 2026-10-21 de §8) | ✅ título y organización desde A-4, solo si llegan; ⛔ la ciudad |
 | Píldora "En distribución · 2 lotes" | `status: ACTIVA\|EN_PROCESO` + `logistics.length` | ✅ / 🔁; el texto sale del archivo de textos, no del prototipo |
 | Paso raíz "Donada" con fecha (`FUNDS_CLEARED`) | `financialSnapshot` sin fechas | ✅ el importe confirmado; ⛔ **G-2**: la fecha del pago |
 | `assets[].name` ("Lote A · 120 Kits de alimentos"), `type` | `assetType`, `quantity`, `unitOfMeasure` | 🔁 con `labels.ts` y `quantity.ts`; ⛔ nombres libres y descripciones |

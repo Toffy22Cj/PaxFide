@@ -1,16 +1,18 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { DiscoveryItem, fetchDiscovery } from '../lib/api/publicCampaigns';
-import { formatMinorUnits, percentOf } from '../lib/money';
-import { PageHeader, Actions, uiClasses as ui } from '../components/ui/Layout';
+import { PageHeader, Actions } from '../components/ui/Layout';
 import { Button } from '../components/ui/Button';
-import { EmptyState, ErrorState, LoadingState } from '../components/States';
+import { EmptyState, ErrorState } from '../components/States';
+import { CampaignCard } from '../components/campaign/CampaignCard';
+import { SkeletonCard } from '../components/loaders';
+import s from './discovery.module.css';
 
 /**
  * Descubrimiento público (`/campaigns`, P2; `GET /public/campaigns`): solo convocatorias `PUBLIC` y `OPEN` (las de
- * enlace privado nunca aparecen, DD-52). Paginación por cursor con "Cargar más" (`diseno-ux` §1.6).
+ * enlace privado nunca aparecen, DD-52). Paginación por cursor con "Cargar más" (`diseno-ux` §1.6). Estilo v2 (A-5):
+ * la tarjeta compartida de A-2 (logo o inicial, "Verificada", barra si hay meta, cierre) y carga con esqueleto.
  */
 export function DiscoveryScreen({ client = fetchDiscovery }: { client?: typeof fetchDiscovery }) {
   const [items, setItems] = useState<DiscoveryItem[]>([]);
@@ -34,30 +36,24 @@ export function DiscoveryScreen({ client = fetchDiscovery }: { client?: typeof f
   return (
     <div>
       <PageHeader title="Convocatorias abiertas" />
-      {state === 'loading' && <LoadingState />}
+      {/* A-5: carga con el esqueleto de VS-1 (se detiene con "reducir movimiento") */}
+      {state === 'loading' && (
+        <div className={s.grid}>
+          <SkeletonCard aria-label="Cargando convocatorias" />
+          {/* Las otras dos solo dibujan: un único anuncio de carga */}
+          <div aria-hidden="true"><SkeletonCard /></div>
+          <div aria-hidden="true"><SkeletonCard /></div>
+        </div>
+      )}
       {state === 'error' && <ErrorState onRetry={() => void load()} />}
       {(state === 'ready' || state === 'more-error') && items.length === 0 && (
         <EmptyState text="No hay convocatorias abiertas en este momento." />
       )}
       {items.length > 0 && (
-        <ul className={ui.list}>
-          {items.map((c) => {
-            const pct = c.targetAmount ? percentOf(c.clearedAmount ?? '0', c.targetAmount) : null;
-            return (
-              <li key={c.publicCode} className={ui.surface} style={{ marginBottom: 0 }} data-testid="discovery-item">
-                {c.organizationName && <p className={ui.hint} style={{ margin: 0 }}>{c.organizationName}</p>}
-                <h2 className={ui.sectionTitle} style={{ marginBottom: 8 }}>
-                  <Link href={`/c/${encodeURIComponent(c.publicCode)}`}>{c.title}</Link>
-                </h2>
-                {c.currency && c.targetAmount && (
-                  <p style={{ margin: 0 }}>
-                    {formatMinorUnits(c.clearedAmount ?? '0', c.currency)} de {formatMinorUnits(c.targetAmount, c.currency)}
-                    {pct !== null ? ` (${pct} %)` : ''}
-                  </p>
-                )}
-              </li>
-            );
-          })}
+        <ul className={s.grid}>
+          {items.map((c) => (
+            <li key={c.publicCode} className={s.item} data-testid="discovery-item"><CampaignCard campaign={c} headingLevel={2} /></li>
+          ))}
         </ul>
       )}
       {state === 'more-error' && <ErrorState text="No pudimos cargar más convocatorias." onRetry={() => void load(cursor)} />}
