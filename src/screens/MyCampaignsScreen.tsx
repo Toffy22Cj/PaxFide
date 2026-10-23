@@ -7,7 +7,7 @@ import { useRead } from '../lib/api/useRead';
 import { ListOutcome } from '../lib/api/campaignAdmin';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { campaignStatusLabel, roleLabel } from '../lib/labels';
-import { DefinitionList, PageHeader, uiClasses as ui } from '../components/ui/Layout';
+import { DefinitionList, PageHeader, Surface, uiClasses as ui } from '../components/ui/Layout';
 import { EmptyState, ErrorState, ForbiddenState, LoadingState } from '../components/States';
 import { LocalDate } from '../components/LocalDate';
 
@@ -31,13 +31,14 @@ export function MyCampaignsScreen({ client = fetchMyCampaigns }: { client?: type
         <ul className={ui.list}>
           {data.items.map((c) => (
             <li key={c.campaignRef} data-testid="my-campaign">
-              <h2 className={ui.sectionTitle}>{c.title}</h2>
-              <DefinitionList items={[
-                { label: 'Estado', value: campaignStatusLabel(c.status) },
-                { label: 'Tu papel', value: roleLabel(c.actingRole) },
-                { label: 'Desde', value: c.assignedAt ? <LocalDate iso={c.assignedAt} /> : '—' },
-                { label: 'Página pública', value: linkable ? <Link href={`/c/${encodeURIComponent(c.publicCode)}`}>Abrir</Link> : '—' },
-              ]} />
+              <Surface title={c.title}>
+                <DefinitionList items={[
+                  { label: 'Estado', value: campaignStatusLabel(c.status) },
+                  { label: 'Tu papel', value: roleLabel(c.actingRole) },
+                  { label: 'Desde', value: c.assignedAt ? <LocalDate iso={c.assignedAt} /> : '—' },
+                  { label: 'Página pública', value: linkable ? <Link href={`/c/${encodeURIComponent(c.publicCode)}`}>Abrir</Link> : '—' },
+                ]} />
+              </Surface>
             </li>
           ))}
         </ul>
