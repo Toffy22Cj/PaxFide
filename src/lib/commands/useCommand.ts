@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from 'react';
 import { handle401 } from '../auth/session';
 import { apiRequest, AuthMode, ProblemInfo } from '../api/http';
 import { classifyCommandResponse } from './classifier';
+import { clearAmbiguousSessionCommand, recordAmbiguousSessionCommand } from './ambiguousSession';
 
 /**
  * Máquina del comando web sin Outbox (ADR-046 D6; `front-fase2` §10, P-W1/P-W1a/P-W1b).
@@ -83,6 +84,7 @@ export function useCommand<TRes = unknown>(builder: Builder, isTrackingRoute: bo
     if (category === 'AUTH_ERROR') {
       handle401(isTrackingRoute);
       // P-W1a: la intención en memoria se pierde
+      clearAmbiguousSessionCommand(id);
       forget();
       setState('IDLE');
       return;
@@ -91,14 +93,22 @@ export function useCommand<TRes = unknown>(builder: Builder, isTrackingRoute: bo
       setData(result.data ?? null);
       setLocation(result.location);
       setState('SUCCESS');
+      clearAmbiguousSessionCommand(id);
       forget();
       return;
     }
     if (category === 'REJECTED' && result.kind === 'error') {
       setRejection({ status: result.status, problem: result.problem });
       setState('REJECTED');
+      clearAmbiguousSessionCommand(id);
       return;
     }
+    recordAmbiguousSessionCommand({
+      id,
+      title: 'No pudimos confirmar la operación',
+      detail: 'Puede que la operación se haya realizado. Revísalo antes de repetirla.',
+      createdAt: Date.now(),
+    });
     setState('AMBIGUOUS');
   };
 
@@ -119,6 +129,7 @@ export function useCommand<TRes = unknown>(builder: Builder, isTrackingRoute: bo
 
   const close = useCallback(() => {
     // "Cerrar" no significa "falló": el usuario abandona la intención sin enviar nada más
+    if (commandIdRef.current) clearAmbiguousSessionCommand(commandIdRef.current);
     forget();
     setRejection(null);
     setState('IDLE');

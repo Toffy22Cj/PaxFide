@@ -61,6 +61,7 @@ export interface OrgAsset {
   quantity?: string;
   unitOfMeasure?: string;
   campaignRef?: string;
+  assetType?: string;
 }
 
 export async function fetchOrganizationAssets(organizationId: string): Promise<ListOutcome<OrgAsset>> {
@@ -68,6 +69,7 @@ export async function fetchOrganizationAssets(organizationId: string): Promise<L
   return listOutcome(r, (a) => (a && typeof a.assetRef === 'string' ? {
     assetRef: a.assetRef, lifecycleStatus: String(a.lifecycleStatus), currentCustodianRef: opt(a.currentCustodianRef),
     currentLocation: opt(a.currentLocation), quantity: opt(a.quantity), unitOfMeasure: opt(a.unitOfMeasure), campaignRef: opt(a.campaignRef),
+    assetType: opt(a.assetType),
   } : null));
 }
 
@@ -161,3 +163,50 @@ export const revokePlatformAdminRequest = (accountId: string) => () => ({
 export const createOrganizationRequest = (payload: unknown) => ({
   path: '/organizations', body: payload, auth: 'required' as const,
 });
+
+/**
+ * `GET /organizations/{organizationId}` (S-18): `ADMINISTRATOR` o `REPRESENTATIVE`.
+ * Devuelve información de la organización, incluyendo logo si existe.
+ */
+export interface OrganizationDetails {
+  organizationId: string;
+  name?: string;
+  type: string;
+  verificationStatus: string;
+  informationRequest?: string;
+  logoUrl?: string;
+}
+
+export type OrganizationOutcome =
+  | { kind: 'ok'; organization: OrganizationDetails }
+  | { kind: 'forbidden' }
+  | { kind: 'unauthorized' }
+  | { kind: 'error' };
+
+export async function fetchOrganization(organizationId: string): Promise<OrganizationOutcome> {
+  const r = await apiRequest<{
+    organizationId?: unknown;
+    name?: unknown;
+    type?: unknown;
+    verificationStatus?: unknown;
+    informationRequest?: unknown;
+    logoUrl?: unknown;
+  }>({ path: `/organizations/${segment(organizationId)}`, auth: 'required' });
+
+  if (r.kind === 'ok' && r.data && typeof r.data.organizationId === 'string') {
+    return {
+      kind: 'ok',
+      organization: {
+        organizationId: r.data.organizationId,
+        name: opt(r.data.name),
+        type: String(r.data.type ?? ''),
+        verificationStatus: String(r.data.verificationStatus ?? ''),
+        informationRequest: opt(r.data.informationRequest),
+        logoUrl: opt(r.data.logoUrl),
+      },
+    };
+  }
+  if (r.kind === 'error' && r.status === 403) return { kind: 'forbidden' };
+  if (r.kind === 'error' && r.status === 401) return { kind: 'unauthorized' };
+  return { kind: 'error' };
+}

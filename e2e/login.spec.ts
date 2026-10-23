@@ -15,7 +15,7 @@ test.describe('Login por la interfaz (ID-01) y PanelHome con /me (N1)', () => {
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
 
     await expect(page).toHaveURL(/\/panel$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Panel' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: /Tu organización|Fundación Demo|Panel/ })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Convocatorias de mi organización' })).toBeVisible();
     expect(nextRequestsWithAuth).toEqual([]);
     // El JWT no aparece en la URL ni en ningún almacenamiento

@@ -475,10 +475,33 @@ const server = http.createServer(async (req, res) => {
       return {
         campaignRef: c.campaignRef, publicCode: c.publicCode, title: c.title, status: c.status, visibility: c.visibility || 'PUBLIC',
         currency: c.currency, targetAmount: c.targetAmount, targetPolicy: c.targetPolicy, clearedAmount: c.clearedAmount,
+        startDate: c.startDate, endDate: c.endDate,
         responsibles, assignedEmployeeCount: responsibles.filter((r) => r.actingRole === 'EMPLOYEE').length,
       };
     });
     send(res, 200, { items });
+    return;
+  }
+
+  // S-18: GET /organizations/{organizationId} (solo ADMINISTRATOR o REPRESENTATIVE, el resto 403)
+  const singleOrgMatch = p.match(/^\/organizations\/([^/]+)$/);
+  if (singleOrgMatch && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(singleOrgMatch[1]);
+    if (actor.organizationId !== orgId || (!actor.roles.includes('ADMINISTRATOR') && !actor.roles.includes('REPRESENTATIVE'))) {
+      problem(res, 403, 'Forbidden'); return;
+    }
+    const o = organizations.get(orgId);
+    if (!o) { problem(res, 404, 'NotFound'); return; }
+    const out = {
+      organizationId: orgId,
+      name: o.name,
+      type: o.type,
+      verificationStatus: organizationStatus.get(orgId) || 'PENDING_VERIFICATION',
+      informationRequest: o.informationRequest,
+      logoUrl: o.logoUrl,
+    };
+    send(res, 200, out);
     return;
   }
 
@@ -664,6 +687,7 @@ const server = http.createServer(async (req, res) => {
     const items = [...assets.values()].filter((a) => a.organizationRef === orgId).slice(0, 200).map((a) => ({
       assetRef: a.assetRef, lifecycleStatus: a.lifecycleStatus, currentCustodianRef: a.currentCustodianRef,
       currentLocation: a.currentLocation, quantity: scale4(a.quantity), unitOfMeasure: a.unitOfMeasure, campaignRef: a.campaignRef,
+      assetType: a.assetType,
     }));
     send(res, 200, { items });
     return;
