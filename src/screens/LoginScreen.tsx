@@ -9,7 +9,8 @@ import { PageHeader } from '../components/ui/Layout';
 import { TextField, PasswordField } from '../components/ui/Field';
 import { Button } from '../components/ui/Button';
 import { StatusNotice } from '../components/States';
-import s from './login.module.css';
+import { BrandMark } from '../components/shell/BrandMark';
+import s from './access.module.css';
 
 type Props = { loginClient?: (email: string, password: string) => Promise<LoginOutcome> };
 
@@ -67,18 +68,21 @@ export function LoginScreen({ loginClient = loginRequest }: Props) {
   const reasonText = reason ? REASON_TEXT[reason] : null;
 
   return (
-    <div className={s.wrap}>
-      <PageHeader title="Iniciar sesión" />
-      {reasonText && <StatusNotice variant="info" text={reasonText} />}
-      {failure && <StatusNotice variant="rejected" text={failure} />}
-      <form onSubmit={onSubmit} noValidate>
-        <TextField label="Correo electrónico" type="email" autoComplete="username" value={email}
-          onChange={(e) => setEmail(e.target.value)} error={errors.email} disabled={sending} />
-        <PasswordField label="Contraseña" autoComplete="current-password" value={password}
-          onChange={(e) => setPassword(e.target.value)} error={errors.password} disabled={sending} />
-        <Button type="submit" block sending={sending}>Iniciar sesión</Button>
-      </form>
-      {isSurfaceEnabled('/register') && <p><Link href="/register">Crear cuenta</Link></p>}
+    <div className={s.page}>
+      <div className={s.card}>
+        <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
+        <PageHeader title="Iniciar sesión" />
+        {reasonText && <StatusNotice variant="info" text={reasonText} />}
+        {failure && <StatusNotice variant="rejected" text={failure} />}
+        <form onSubmit={onSubmit} noValidate>
+          <TextField label="Correo electrónico" type="email" autoComplete="username" value={email}
+            onChange={(e) => setEmail(e.target.value)} error={errors.email} disabled={sending} />
+          <PasswordField label="Contraseña" autoComplete="current-password" value={password}
+            onChange={(e) => setPassword(e.target.value)} error={errors.password} disabled={sending} />
+          <Button type="submit" block sending={sending}>Iniciar sesión</Button>
+        </form>
+        {isSurfaceEnabled('/register') && <p className={s.alt}><Link href="/register">Crear cuenta</Link></p>}
+      </div>
     </div>
   );
 }
