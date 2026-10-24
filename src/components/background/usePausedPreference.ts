@@ -21,6 +21,7 @@ export function togglePausedPreference(current: boolean): void {
 export function useReducedMotion(): boolean | null {
   const [reduced, setReduced] = useState<boolean | null>(null);
   useEffect(() => {
+    if (typeof window.matchMedia !== 'function') { setReduced(false); return; }
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => setReduced(mq.matches);
     update();

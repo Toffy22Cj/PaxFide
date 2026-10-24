@@ -207,3 +207,21 @@ export const stopProgress = (i: number, v: number) => (v >= i ? 1 : ease.out(cla
 
 export const MAX_DPR = 1.5;
 export const clampDpr = (dpr: number | undefined) => Math.min(MAX_DPR, Math.max(1, dpr || 1));
+
+/** Rectángulo de contenido en px CSS de la ventana (el canvas usa las mismas coordenadas). */
+export interface ScreenRect { left: number; top: number; right: number; bottom: number }
+
+/**
+ * R-F1: nada se dibuja encima del contenido, ni siquiera se trasluce por su superficie. Una nube centrada en (x, y)
+ * con radio `r` se desvanece al acercarse a un bloque de contenido y desaparece al tocarlo (como el prototipo hacía
+ * con su tarjeta de acceso). 1 = lejos de todo, 0 = encima de algún bloque.
+ */
+export function rectFade(x: number, y: number, r: number, rects: readonly ScreenRect[], pad = 24): number {
+  let f = 1;
+  for (const b of rects) {
+    const dx = Math.max(0, b.left - x, x - b.right);
+    const dy = Math.max(0, b.top - y, y - b.bottom);
+    f = Math.min(f, clamp01((Math.hypot(dx, dy) - r - pad) / Math.max(1, r)));
+  }
+  return f;
+}
