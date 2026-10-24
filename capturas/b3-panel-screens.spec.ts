@@ -40,5 +40,28 @@ for (const width of [390, 1280]) {
       await go(page, scr.path);
       await page.screenshot({ path: path.join(OUT, `${scr.name}__claro__${width}.png`), fullPage: true });
     }
+
+    // Estimación con resultado (gráficas de PredictionCharts)
+    await go(page, '/panel/prediction');
+    await page.getByRole('button', { name: 'Ver estimación' }).click();
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: path.join(OUT, `b3-panel-prediction-result__claro__${width}.png`), fullPage: true });
+  });
+}
+
+// /assets/:assetRef solo lo opera un EMPLEADO (canOperate en el fake-backend; un administrador recibe 403)
+for (const width of [390, 1280]) {
+  test(`b3 detalle de lote claro ${width}`, async ({ page }) => {
+    if (test.info().project.name !== '1280') return;
+    await page.setViewportSize({ width, height: 860 });
+    await page.goto('/panel');
+    await page.getByLabel('Correo electrónico').waitFor();
+    await page.getByLabel('Correo electrónico').fill('empleado@demo.test');
+    await page.getByLabel('Contraseña').fill('demo-empleado');
+    await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+    await expect(page).toHaveURL(/\/panel$/);
+    await go(page, '/assets/ASSET-123');
+    await expect(page.getByTestId('field-lifecycleStatus')).toBeVisible();
+    await page.screenshot({ path: path.join(OUT, `b3-asset-detail__claro__${width}.png`), fullPage: true });
   });
 }
