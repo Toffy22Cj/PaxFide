@@ -3,7 +3,8 @@
 // Ref: prompts-agentes-estilo-v2.md VS-2; sistema-visual-paxfide-web-enmienda-1.md §8 (data-nav-position y
 // --nav-inset-*); respuesta de Carlos al plan de VS-2 (2026-10-21: B, C, D, E y GET /me en cada ruta); ADR-046 D5;
 // plan-fase7-pantallas.md A-1 (fondo animado en las rutas de D-P2, control de pausa en la cabecera, R-F1 y R-F2) y A-2
-// (en `/` el mundo de la landing en lugar de la ciudad; la misma pausa para los dos) y D-P13 (en `/`, sin cabecera ni barra).
+// (en `/` el mundo de la landing en lugar de la ciudad; la misma pausa para los dos) y D-P13 (en `/`, sin cabecera ni barra);
+// plan-fase7-pantallas.md C-1 y plan-fase7-fidelidad.md F-A0 (ThemeSelect en el hueco de la cabecera, DF7-10).
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { usePathname } from 'next/navigation';
 import * as session from '../../lib/auth/session';
@@ -16,6 +17,7 @@ import { CityBackground } from '../background/CityBackground';
 import { usePausedPreference } from '../background/usePausedPreference';
 import { PauseButton } from '../background/PauseButton';
 import { BrandMark } from './BrandMark';
+import { ThemeSelect } from '../theme/ThemeSelect';
 import { backgroundFor, hasAppChrome } from '../../lib/routing/backgroundRoutes';
 import s from './Shell.module.css';
 
@@ -44,6 +46,16 @@ function useNavPrincipal(state: session.MachineState, pathname: string, me: type
     );
   }, [state, pathname, me]);
   return principal;
+}
+
+/** Medio círculo lleno: claro y oscuro (decorativo; el nombre accesible es la etiqueta "Tema" del select). */
+function ThemeIcon() {
+  return (
+    <svg className={s.themeIcon} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="8" /><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" />
+    </svg>
+  );
 }
 
 /** `auto` hasta hidratar (el CSS decide por media query); después, la posición por ancho (enmienda §8, E4). */
@@ -85,7 +97,7 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
           <div className={s.bar}>
             <span className={s.brand}><BrandMark />PaxFide</span>
             <div className={s.actions}>
-              {/* Aquí va el selector de tema en VS-8, al retirar el tema claro forzado (DF7-17). */}
+              <ThemeSelect className={s.theme} labelClassName={s.themeLabel} selectClassName={s.themeSelect} icon={<ThemeIcon />} />
               {background && <PauseButton className={s.pause} textClassName={s.pauseText} />}
               {state === 'AUTHENTICATED' && (
                 <button type="button" className={s.logout} data-testid="logout-btn" onClick={() => session.logout()}>

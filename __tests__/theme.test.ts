@@ -4,6 +4,7 @@ import {
   THEME_INIT_SCRIPT,
   THEME_STORAGE_KEY,
   applyPreference,
+  isDarkTheme,
   parsePreference,
   readPreference,
   writePreference,
@@ -91,5 +92,19 @@ describe('THEME_INIT_SCRIPT', () => {
   it('ignora valores no válidos y no lanza si localStorage lanza', () => {
     expect(run(() => 'sepia')).not.toHaveBeenCalled();
     expect(() => run(() => { throw new Error('SecurityError'); })).not.toThrow();
+  });
+});
+
+// Ref: plan-fase7-pantallas.md C-1 y plan-fase7-fidelidad.md D-F2/F-A0: la ilustración sigue el tema efectivo
+describe('isDarkTheme', () => {
+  it('data-theme manda sobre el sistema, en los dos sentidos', () => {
+    expect(isDarkTheme('dark', false)).toBe(true);
+    expect(isDarkTheme('light', true)).toBe(false);
+  });
+  it('sin data-theme (o con un valor no válido) manda el sistema', () => {
+    expect(isDarkTheme(null, true)).toBe(true);
+    expect(isDarkTheme(null, false)).toBe(false);
+    expect(isDarkTheme('sepia', true)).toBe(true);
+    expect(isDarkTheme('', false)).toBe(false);
   });
 });

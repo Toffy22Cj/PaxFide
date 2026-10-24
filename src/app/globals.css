@@ -73,7 +73,6 @@
   --radius-button: 999px;
 
   /* Sombra */
-  --shadow-modal: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   /* Enmienda 1 §7.1 (claro) y §4.2 (oscuro: .30 / .40 / .45, Carlos, 2026-10-21) */
   --shadow-card-light: 0 12px 32px rgba(27, 81, 65, 0.08);
   --shadow-hover-light: 0 20px 42px rgba(29, 92, 66, 0.16);
@@ -114,21 +113,21 @@
   --text-md: 16px;
   --text-lg: 20px;
   --text-xl: 24px;
-  --weight-regular: 400;
   --weight-semibold: 600;
-  --control-height: 40px;
   --width-login: 400px;
   --width-detail: 720px;
   --gutter-mobile: 16px;
 }
 
 /*
- * Capa semántica (DF7-08; valores de la enmienda 1 §4.1–§4.3 y §5). Los componentes nuevos usan SOLO estos nombres; claro por defecto, oscuro con
- * prefers-color-scheme salvo data-theme="light", y oscuro forzado con data-theme="dark".
- * Las pantallas existentes siguen con los tokens de marca hasta su pasada de estilo (VS-8), por eso aquí no se
- * cambia color-scheme ni el fondo de body (DF7-09).
+ * Capa semántica (DF7-08; valores de la enmienda 1 §4.1–§4.3 y §5). Los componentes usan SOLO estos nombres.
+ * Claro por defecto; oscuro con prefers-color-scheme salvo data-theme="light" en <html>; oscuro forzado con
+ * data-theme="dark". Ref: plan-fase7-fidelidad.md D-F11 (F-A0): data-theme="dark" o "light" sobre CUALQUIER
+ * contenedor redefine los tokens semánticos dentro de él (lo usa la landing de noche, D-F2). Ningún token nuevo.
  */
-:root {
+:root,
+[data-theme="light"] {
+  color-scheme: light;
   --color-bg: var(--neutral-50);
   --color-ground: var(--brand-ground);
   --color-surface: var(--white);
@@ -162,6 +161,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --color-bg: var(--dark-bg);
     --color-ground: var(--dark-ground);
     --color-surface: var(--dark-surface);
@@ -194,7 +194,8 @@
   }
 }
 
-:root[data-theme="dark"] {
+[data-theme="dark"] {
+  color-scheme: dark;
   --color-bg: var(--dark-bg);
   --color-ground: var(--dark-ground);
   --color-surface: var(--dark-surface);
@@ -226,23 +227,29 @@
   --shadow-float: var(--shadow-float-dark);
 }
 
+/* Un contenedor con su propio tema pinta su texto con sus tokens (el color heredado vendría ya resuelto del padre). */
+[data-theme="light"],
+[data-theme="dark"] {
+  color: var(--color-text);
+}
+
 *:focus-visible {
-  outline: 2px solid var(--brand-green-900);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
 html { -webkit-text-size-adjust: 100%; }
 
+/* C-1 (plan-fase7-pantallas.md §6) retira DF7-09 y DF7-17: body y enlaces van por la capa semántica y siguen el tema */
 body {
   font-family: var(--font-family-sans);
   margin: 0;
-  background: var(--neutral-50);
-  color: var(--brand-green-900);
+  background: var(--color-bg);
+  color: var(--color-text);
   font-size: var(--text-md);
   line-height: 1.5;
 }
 
-/* Sobre neutral-50 los enlaces van en brand-blue-800 (diseno-ux §3.2) */
-a { color: var(--brand-blue-800); }
+a { color: var(--color-link); }
 
 *, *::before, *::after { box-sizing: border-box; }
