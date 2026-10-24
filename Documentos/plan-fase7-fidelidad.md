@@ -1,6 +1,6 @@
 # Plan de la Fase 7 — Fidelidad a los bocetos
 
-**Estado: PROPUESTO — espera la aprobación de Carlos.** Todas las decisiones están tomadas (§2 y §6, Carlos, 2026-10-24). Lo que depende del backend está en §5b y no empieza hasta que su PR esté en `develop`.
+**Estado: APROBADO — Carlos, 2026-10-24.** Todas las decisiones están tomadas (§2 y §6). Lo que depende del backend está en §5b y no empieza hasta que su PR esté en `develop`.
 **Fecha:** 2026-10-24 (UTC).
 **Base verificada:** `paxfide-web` `develop` en `bd099a3`, con A-1 a A-5 y B-1 a B-4 mergeadas (PR #33 a #40). C-1 sin hacer. Backend `develop` en `0b3dc3e`.
 **Bocetos:** `Documentos/paxfide-landing.html`, `paxfide-home.html`, `paxfide-panel.html`, `paxfide-linea-tiempo.html` y `paxfide-movimiento.html` (versiones del 2026-10-20). `paxfide-pantallas-web.html` son los bocetos de Manuel y **no** entran en este plan (§7).

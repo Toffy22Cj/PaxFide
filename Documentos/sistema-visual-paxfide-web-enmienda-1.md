@@ -52,7 +52,7 @@ Se adopta la dirección de `sistema-visual-v2-propuesta.md` §1: cálido, con la
 
 En `paxfide-panel.html` la ciudad animada se oculta al entrar en la parte administrativa y el fondo pasa a `--pn-bg`: el prototipo ya cumple esta regla.
 
-*Nota (2026-10-24, `plan-fase7-fidelidad.md` D-F5, PROPUESTO):* el fondo animado se extiende al acceso (`/login`, `/register`, `/invitaciones`), con el mundo de la landing, como en el boceto. La parte administrativa sigue con el fondo estático. La tabla de arriba no se reescribe.
+*Nota (2026-10-24, `plan-fase7-fidelidad.md` D-F5, APROBADO):* el fondo animado se extiende al acceso (`/login`, `/register`, `/invitaciones`), con el mundo de la landing, como en el boceto. La parte administrativa sigue con el fondo estático. La tabla de arriba no se reescribe.
 
 ### 3.2 Base clara del fondo animado [Carlos: E1 = (c)]
 

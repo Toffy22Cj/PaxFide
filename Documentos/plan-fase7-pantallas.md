@@ -65,7 +65,7 @@ Cualquier otra elección menor (nombres internos, partición en componentes) se 
 | D-P12 | El cierre del tema oscuro (retirar DF7-17, montar `ThemeSelect`, capturas en oscuro) es una tarea aparte, C-1, cuando A y B estén mergeadas | Sin pantallas a medias en oscuro |
 | D-P13 | **(Carlos, 2026-10-23)** En `/` el Shell se monta sin cabecera de la app y sin barra de navegación (ni lateral ni inferior). La landing usa solo su propia cabecera, que incluye el botón "Pausar animación / Reanudar animación" (R-F2, misma preferencia guardada). En el resto de rutas nada cambia. La regla vive en una función pura junto a `hasAnimatedBackground` (`hasAppChrome(pathname)`), con test unitario y E2E: en `/` no existe `<nav aria-label="Principal">` (aserción negativa) y en `/campaigns` sí | Es una página para quien todavía no usa la app: sus enlaces son anclas de la página y accesos a Ingresar y Donar; dos navegaciones apiladas repetían "Seguimiento" y le daban aspecto de panel |
 
-*Nota (2026-10-24):* `plan-fase7-fidelidad.md` (PROPUESTO) cambia D-P2 (D-F5), D-P3 (D-F3), D-P4 (D-F2) y D-P12 (D-F11), y fija la entrada suave entre rutas (D-F6, que era D-P14, aprobada por Carlos el 2026-10-24). Las filas de arriba no se reescriben.
+*Nota (2026-10-24):* `plan-fase7-fidelidad.md` (APROBADO, Carlos, 2026-10-24) cambia D-P2 (D-F5), D-P3 (D-F3), D-P4 (D-F2) y D-P12 (D-F11), y fija la entrada suave entre rutas (D-F6, que era D-P14, aprobada por Carlos el 2026-10-24). Las filas de arriba no se reescriben.
 
 ---
 
