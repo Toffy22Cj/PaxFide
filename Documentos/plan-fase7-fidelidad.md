@@ -1,6 +1,6 @@
 # Plan de la Fase 7 — Fidelidad a los bocetos
 
-**Estado: PROPUESTO — espera la aprobación de Carlos.** Las decisiones de §2 marcadas "Carlos, 2026-10-24" ya están tomadas. Quedan dos pendientes en §6, y las tareas que dependen de ellas no las tocan hasta que Carlos responda.
+**Estado: PROPUESTO — espera la aprobación de Carlos.** Las decisiones de §2 marcadas "Carlos, 2026-10-24" ya están tomadas. P-F1 quedó resuelto el 2026-10-24 (D-F14). Queda un pendiente en §6 (P-F2, el par de entradas que se combinan), y lo que depende de él no se toca hasta que Carlos responda.
 **Fecha:** 2026-10-24 (UTC).
 **Base verificada:** `paxfide-web` `develop` en `bd099a3`, con A-1 a A-5 y B-1 a B-4 mergeadas (PR #33 a #40). C-1 sin hacer. Backend `develop` en `0b3dc3e`.
 **Bocetos:** `Documentos/paxfide-landing.html`, `paxfide-home.html`, `paxfide-panel.html`, `paxfide-linea-tiempo.html` y `paxfide-movimiento.html` (versiones del 2026-10-20). `paxfide-pantallas-web.html` son los bocetos de Manuel y **no** entran en este plan (§7).
@@ -66,6 +66,7 @@ Lo que **no** cambia de la regla de los prompts (§2): los colores salen de toke
 | D-F10 | **Bienvenida.** Las tres diapositivas "Te damos la bienvenida a PaxFide" del boceto (cubos encadenados, tres puntos, "Continuar") se muestran **una vez, en el primer inicio de sesión tras crear la cuenta en esa pestaña**. El aviso se guarda en memoria al terminar el registro (como el `trackingCode`), así que no se guarda nada en el navegador. "Continuar" lleva a `/home`. La pantalla "¿Cómo te llamamos?" no se hace (⏳ ADR-050), y tampoco la de términos (⏳ R-5) | Prompts §3.3 ("pantallas de entrada" pasan de ⏳ a ✅ parcial) |
 | D-F11 | **El tema oscuro se activa ya (cambia D-P12).** C-1 pasa a ser la primera tarea de la pista A (F-A0). Además de lo que dice C-1, los selectores de tema de `globals.css` funcionan en cualquier elemento, no solo en `<html>`. `[data-theme="dark"]` y `[data-theme="light"]` sobre un contenedor redefinen los tokens semánticos dentro de él. Es lo que necesita D-F2. Esta tarea es la única que toca `globals.css`, y no añade ningún token | D-P12; plan de pantallas §1.3 (globals.css: "nadie" salvo F-A0) |
 | D-F12 | **Los bloques del boceto con datos reales.** Donde el boceto pone cifras de ejemplo y el contrato tiene el dato, se usa el dato real sin el rótulo "Datos de ejemplo". Ejemplos: "Tu organización hoy" en el home, los KPI del panel y "Cierran pronto". **"Cierran pronto" ya no espera a R-1:** se calcula en el cliente con `endDate` sobre la página que ya llega de `GET /public/campaigns` (D-P9: 7 días o menos, de menos a más días). Si no hay ninguna, el bloque dice "Convocatorias abiertas" con las 3 primeras | D-P6 |
+| D-F14 | **Cómo registrar una organización (Carlos, 2026-10-24; resuelve P-F1).** El registro **no** pregunta "¿Cómo participarás?" ni ofrece registrar una organización. Debajo del formulario de "Crear cuenta" va una nota plegable, **"¿Representas una fundación?"**, que explica el camino paso a paso con los pasos reales de hoy: 1) crea tu cuenta aquí, como cualquier donante; 2) inicia sesión; 3) en Inicio, en la tarjeta "¿Tienes una fundación?", pulsa "Registrar organización" y llena sus datos; 4) la plataforma la revisa (estado "Pendiente de verificación"); puede pedirte más información; 5) cuando esté "Verificada", puedes crear convocatorias. La misma explicación, en versión corta, va en la tarjeta "¿Tienes una fundación?" del home. Los nombres de estado salen de `labels.ts` (`verificationStatusLabel`). Es texto: no envía nada al backend | P-F1; X-7 |
 | D-F13 | **El panel sin "Secciones del panel".** El boceto no tiene ese bloque: a las secciones se llega por la barra. Para el representante, que no lee convocatorias, fondos ni lotes, el panel muestra la cabecera de la organización, su estado de verificación y "Por hacer" vacío con el texto aprobado | B-2 |
 
 ### 2.1 Textos de las etiquetas (D-F4)
@@ -108,20 +109,20 @@ Lo que **no** cambia de la regla de los prompts (§2): los colores salen de toke
 
 | # | Boceto | Pantalla | Motivo |
 |---|---|---|---|
-| X-1 | Botones "Google" y "Billetera Web3", y el separador "o continúa con correo electrónico" | Acceso | No hay backend para eso (`POST /auth/login` y `/auth/register` solo reciben correo y contraseña) |
+| X-1 | Botones "Google" y "Billetera Web3", y el separador "o continúa con correo electrónico" | Acceso | **Carlos, 2026-10-24: se quitan.** Además no hay backend: la billetera no tiene diseño y Google (ADR-050 D9) no está implementado |
 | X-2 | "Recordarme en este navegador" | Acceso | D2: la sesión vive solo en memoria |
-| X-3 | "¿Olvidaste tu contraseña?" | Acceso | No hay endpoint |
-| X-4 | "Nombre completo u Organización" | Registro | ⏳ ADR-050 (perfil) |
-| X-5 | "Acepto los Términos de Transparencia…" | Registro | ⏳ R-5 (versiones de términos) |
+| X-3 | "¿Olvidaste tu contraseña?" (recuperarla por correo sin haber iniciado sesión) | Acceso | ⏳ **Carlos, 2026-10-24: sí debe estar.** Diseño aprobado en ADR-050 D8 (`POST /auth/password-reset` y `/confirm`, enlace `/recuperar#token=`), **sin implementar en el backend**. Entra cuando el backend lo tenga (§6, P-F3) |
+| X-4 | "Nombre completo u Organización" | Registro | ⏳ ADR-050 D1 (registro en dos pasos con nombre), sin implementar en el backend. "u Organización" no se usa nunca (D-F14) |
+| X-5 | "Acepto los Términos de Transparencia y la Política de Privacidad" (términos y condiciones y autorización de datos, Ley 1581) | Registro | ⏳ ADR-050 D2 (`acceptedTermsVersion`, `acceptedDataPolicyVersion` en el registro) y el endpoint de versiones (R-5), sin implementar en el backend |
 | X-6 | "Mínimo 8 caracteres" | Registro | El backend exige 12 (`PasswordTooShort`). El medidor de seguridad del boceto se mantiene, con 12 como mínimo |
-| X-7 | "¿Cómo participarás?" (Donante / Organización) | Registro | **Pendiente: P-F1 (§6)** |
+| X-7 | "¿Cómo participarás?" (Donante / Organización) | Registro | **Carlos, 2026-10-24:** no va; en su lugar, la nota de D-F14 |
 | X-8 | Nombre y apellido en el saludo, iniciales, "Completa tu perfil" y "¿Cómo te llamamos?" | Home, Perfil | ⏳ ADR-050 |
-| X-9 | Tarjeta "Seguridad y criptografía" | Perfil | Plan R-3+R-2 sin aprobar; nada de "Próximamente" (D5) |
+| X-9 | Tarjeta "Seguridad y criptografía" (cambiar contraseña con la sesión abierta, desactivar cuenta) | Perfil | ⏳ ADR-050 D5 y D6, sin implementar en el backend (plan R-3+R-2 sin aprobar). Nada de "Próximamente" (D5). Entra con P-F3 |
 | X-10 | Cifras, organizaciones, lugares y fechas de ejemplo | Todas | §3 de los prompts y D-P5. Las etiquetas, según §2.1 |
 | X-11 | Filtros por causa ("Nutrición", "Agua limpia"…) y búsqueda | Landing | ⏳ R-1 |
 | X-12 | Las 17 variantes de tarjeta de convocatoria | Landing | Son un muestrario del boceto: se usa la variante 01 (la "unificada clásica"), que es `CampaignCard` |
 | X-13 | KPI "Integridad", "Actividad reciente" y "Recaudado en octubre" (pasa a "Recaudado" total) | Panel | ⛔ G-7, G-8, G-6 |
-| X-14 | Fecha y hora de los lotes; "desde hace más de 3 días" | Panel | ⛔ sin marcas de tiempo |
+| X-14 | Columna "Último cambio" (fecha y hora) en la tabla de lotes del panel; "desde hace más de 3 días" | Panel | ⛔ `GET /organizations/{id}/physical-assets` no trae marcas de tiempo. **Las fechas de cada paso del seguimiento sí se muestran** (`history[].timestamp`), como ya hace `/tracking` |
 | X-15 | Hash por paso ("Huella criptográfica"), "Anclado en blockchain (Merkle)" por paso, fecha del pago, sublotes como árbol, nombre del lote y destinatario | Seguimiento | ⛔ G-3, G-2, G-4 y privacidad. Se mantienen la insignia de integridad de la donación (P4) y los lotes en lista plana, cada uno con su carretera, igual que el boceto |
 | X-16 | Selector "Escenario" y "Recorrido en vivo" | Seguimiento | Herramienta del boceto |
 | X-17 | Botón "DEMO" y cambio de rol | Home, Panel | Herramienta del boceto |
@@ -167,7 +168,8 @@ Lo que dice C-1 en `plan-fase7-pantallas.md` §6, más:
   - en el registro, el medidor de seguridad de la contraseña (`checkPassStrength`, mínimo 12, X-6);
   - mensajes con `feedbackSlide`;
   - modo noche de la tarjeta con D-F2.
-- Desviaciones X-1 a X-7. **El selector de X-7 no se implementa hasta P-F1.**
+- Desviaciones X-1 a X-7. Nota "¿Representas una fundación?" de D-F14 bajo el formulario de registro (plegable, con `<details>`/`<summary>` o botón con `aria-expanded`), y su versión corta en la tarjeta "¿Tienes una fundación?" del home (F-A4).
+- Test de D-F14: en `/register` no existe ningún control para elegir donante u organización ni enlace a `/panel/organization` (negativa); la nota contiene los cinco pasos.
 - `/invitaciones`: la misma tarjeta, con el texto de aceptación actual.
 - Bienvenida de D-F10.
 - Tests:
@@ -188,7 +190,7 @@ Lo que dice C-1 en `plan-fase7-pantallas.md` §6, más:
   - `enabled-surfaces*.json`;
   - `src/app/account/page.tsx` y `src/screens/ProfileScreen.tsx`;
   - entrada "Perfil";
-  - en estrecho, según P-F2: **hasta que Carlos responda, "Perfil" solo aparece en la barra en escritorio.**
+  - en estrecho, según P-F2: **hasta que Carlos elija el par que se combina, "Perfil" solo aparece en la barra en escritorio.**
 - **Tests:**
   - E2E del vuelo: la cámara cambia de distrito al ir de `/home` a `/tracking`; con `reduce`, salta;
   - "Ver ciudad": el contenido queda `inert` y "Mostrar panel" lo devuelve;
@@ -268,8 +270,9 @@ La línea de tiempo de `paxfide-linea-tiempo.html`:
 
 | # | Pregunta | Mientras no responda |
 |---|---|---|
-| P-F1 | **Registro: "¿Cómo participarás?" (Donante / Organización).** El backend crea igual las dos cuentas: solo recibe correo y contraseña. La organización se registra después, en `/panel/organization`. El selector solo serviría para elegir a dónde ir tras la bienvenida: con "Donante", a `/home`; con "Organización", directo a registrar la organización. No se envía nada distinto al backend ni se guarda en ninguna parte. **Opción (a):** mantenerlo así, como atajo. **Opción (b):** quitarlo; quien quiera registrar una fundación lo hace desde la tarjeta "¿Tienes una fundación?" del home, que ya existe | F-A2 no lo implementa (X-7) |
-| P-F2 | **Barra estrecha con "Perfil".** Con "Perfil", una cuenta con organización tendría 6 entradas en estrecho (Inicio, Explorar, Donaciones, Seguimiento, Organización y Perfil), y DF7-20 permite 5. El boceto, para los miembros de una organización, no muestra "Donaciones" ni "Seguimiento" en la barra. **Opción (a):** en estrecho, quien tiene organización ve Inicio, Explorar, Seguimiento, Organización y Perfil; "Donaciones" queda en el home ("Tus donaciones") y en escritorio. **Opción (b):** "Perfil" no va en la barra estrecha y se llega desde la cabecera | "Perfil" solo en escritorio |
+| P-F1 | ~~Registro: "¿Cómo participarás?"~~ | **Resuelto (Carlos, 2026-10-24): D-F14** |
+| P-F2 | **Barra estrecha con "Perfil": qué dos entradas se combinan (Carlos, 2026-10-24: "podemos combinar dos botones").** Es la web en un ancho estrecho (< 768 px), no la app móvil. Una cuenta con organización tendría 6 entradas y DF7-20 permite 5. **Propuesta:** "Donaciones" y "Seguimiento" se combinan en una sola entrada "Donaciones" (→ `/account/donations`), que queda activa en las dos rutas; arriba de "Tus donaciones" va el enlace "Seguir con un código" (→ `/tracking`). Cada donación de la lista ya abre su seguimiento. Así: Inicio, Explorar, Donaciones, Organización, Perfil. En escritorio nada se combina | "Perfil" solo en escritorio |
+| P-F3 | **Recuperar y cambiar la contraseña (ADR-050 D8 y D5).** Carlos quiere los dos en la web. El backend no los tiene. **Opción (a):** el compañero del backend implementa D5 y D8 (plan R-3+R-2) y después la web hace `/recuperar`, "¿Olvidaste tu contraseña?" y la tarjeta "Seguridad" del Perfil. **Opción (b):** la web los hace ya contra el servidor falso con el contrato de ADR-050, con las superficies deshabilitadas (D5: 404) hasta que el backend llegue; riesgo: si el contrato cambia al implementarlo, se rehace | X-3 y X-9 siguen fuera
 
 ---
 
