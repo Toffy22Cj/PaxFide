@@ -18,7 +18,7 @@ import { EmptyState, ErrorState, ForbiddenState, LoadingState, StatusNotice, Una
 import { CreateCampaignForm } from '../components/campaign/CreateCampaignForm';
 import { CommandModal, FieldSpec } from '../components/asset/CommandModal';
 import { QrCode } from '../components/QrCode';
-import { LocalDate } from '../components/LocalDate';
+import p from './panelLists.module.css';
 
 /** QR de la URL canónica de la página pública (matriz §4b: `/c/{publicCode}`), con el origen de esta web. */
 function PublicQr({ publicCode, title }: { publicCode: string; title: string }) {
@@ -110,8 +110,6 @@ function CampaignItem({ c, onAction }: { c: AdminCampaign; onAction: (kind: Acti
           { label: 'Visibilidad', value: visibilityLabel(c.visibility) },
           { label: 'Meta', value: c.targetAmount && c.currency ? formatMinorUnits(c.targetAmount, c.currency) : 'Sin meta monetaria' },
           { label: 'Recaudado', value: c.clearedAmount && c.currency ? formatMinorUnits(c.clearedAmount, c.currency) : '—' },
-          ...(c.startDate ? [{ label: 'Fecha de inicio', value: <LocalDate iso={c.startDate} /> }] : []),
-          ...(c.endDate ? [{ label: 'Fecha de cierre', value: <LocalDate iso={c.endDate} /> }] : []),
           { label: 'Responsables', value: c.responsibles.length > 0
             ? <ul className={ui.list}>{c.responsibles.map((r) => <li key={r.accountId}><span className={ui.mono}>{r.accountId}</span> ({roleLabel(r.actingRole)})</li>)}</ul>
             : 'Ninguno' },
@@ -119,9 +117,9 @@ function CampaignItem({ c, onAction }: { c: AdminCampaign; onAction: (kind: Acti
           { label: 'Referencia', value: <span className={ui.mono}>{c.campaignRef}</span> },
           { label: 'Página pública', value: <Link href={`/c/${encodeURIComponent(c.publicCode)}`}>Abrir</Link> },
         ]} />
-        <details style={{ margin: 'var(--space-3) 0' }}>
-          <summary style={{ cursor: 'pointer', fontWeight: 'var(--weight-semibold)', color: 'var(--color-link)' }}>Ver QR de la página pública</summary>
-          <div style={{ marginTop: 'var(--space-3)' }}>
+        <details className={p.details}>
+          <summary>Ver QR de la página pública</summary>
+          <div className={p.detailsBody}>
             <PublicQr publicCode={c.publicCode} title={c.title} />
           </div>
         </details>
