@@ -7,7 +7,8 @@ import { PageHeader } from '../components/ui/Layout';
 import { TextField, PasswordField } from '../components/ui/Field';
 import { Button } from '../components/ui/Button';
 import { StatusNotice } from '../components/States';
-import s from './login.module.css';
+import { BrandMark } from '../components/shell/BrandMark';
+import s from './access.module.css';
 
 /**
  * Registro de cuenta (P2; `POST /auth/register`, DD-56). No inicia sesión ni guarda nada: tras crear la cuenta se
@@ -46,10 +47,13 @@ export function RegisterScreen({ client = registerAccount }: { client?: (e: stri
 
   if (result?.kind === 'ok') {
     return (
-      <div className={s.wrap}>
-        <PageHeader title="Crear cuenta" />
-        <StatusNotice variant="success" title="Cuenta creada" text="Ya puedes iniciar sesión con tu correo y tu contraseña." />
-        <Link href="/login">Iniciar sesión</Link>
+      <div className={s.page}>
+        <div className={s.card}>
+          <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
+          <PageHeader title="Crear cuenta" />
+          <StatusNotice variant="success" title="Cuenta creada" text="Ya puedes iniciar sesión con tu correo y tu contraseña." />
+          <p className={s.alt}><Link href="/login">Iniciar sesión</Link></p>
+        </div>
       </div>
     );
   }
@@ -62,19 +66,22 @@ export function RegisterScreen({ client = registerAccount }: { client?: (e: stri
   };
 
   return (
-    <div className={s.wrap}>
-      <PageHeader title="Crear cuenta" />
-      {result && failure[result.kind] && <StatusNotice variant="rejected" text={failure[result.kind]} />}
-      <form onSubmit={submit} noValidate>
-        <TextField label="Correo electrónico" type="email" autoComplete="email" value={email}
-          onChange={(e) => setEmail(e.target.value)} error={errors.email} disabled={sending} />
-        <PasswordField label="Contraseña" autoComplete="new-password" value={password} hint={`Al menos ${MIN_PASSWORD} caracteres.`}
-          onChange={(e) => setPassword(e.target.value)} error={errors.password} disabled={sending} />
-        <PasswordField label="Repite la contraseña" autoComplete="new-password" value={repeat}
-          onChange={(e) => setRepeat(e.target.value)} error={errors.repeat} disabled={sending} />
-        <Button type="submit" block sending={sending}>Crear cuenta</Button>
-      </form>
-      <p><Link href="/login">Ya tengo cuenta</Link></p>
+    <div className={s.page}>
+      <div className={s.card}>
+        <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
+        <PageHeader title="Crear cuenta" />
+        {result && failure[result.kind] && <StatusNotice variant="rejected" text={failure[result.kind]} />}
+        <form onSubmit={submit} noValidate>
+          <TextField label="Correo electrónico" type="email" autoComplete="email" value={email}
+            onChange={(e) => setEmail(e.target.value)} error={errors.email} disabled={sending} />
+          <PasswordField label="Contraseña" autoComplete="new-password" value={password} hint={`Al menos ${MIN_PASSWORD} caracteres.`}
+            onChange={(e) => setPassword(e.target.value)} error={errors.password} disabled={sending} />
+          <PasswordField label="Repite la contraseña" autoComplete="new-password" value={repeat}
+            onChange={(e) => setRepeat(e.target.value)} error={errors.repeat} disabled={sending} />
+          <Button type="submit" block sending={sending}>Crear cuenta</Button>
+        </form>
+        <p className={s.alt}><Link href="/login">Ya tengo cuenta</Link></p>
+      </div>
     </div>
   );
 }
