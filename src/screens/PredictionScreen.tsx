@@ -12,6 +12,7 @@ import { Button } from '../components/ui/Button';
 import { EmptyState, ErrorState, ForbiddenState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
 import { AdvancedPredictionChart, BasicPredictionChart, PredictionHistoryChart } from '../components/prediction/PredictionCharts';
 import s from '../components/prediction/prediction.module.css';
+import p from './panelLists.module.css';
 
 export const ESTIMATE_LABEL = 'ESTIMACIÓN — modelo entrenado con datos sintéticos';
 
@@ -89,7 +90,7 @@ export function PredictionScreen({ meClient = fetchMe, client = fetchPrediction,
               <Button type="submit" sending={result === 'loading'}>Ver estimación</Button>
             </form>
           </Surface>
-          <div style={{ marginTop: 24 }}>
+          <div className={p.spaced}>
             {result === 'loading' && <LoadingState />}
             {result !== null && result !== 'loading' && result.kind === 'forbidden' && <ForbiddenState />}
             {result !== null && result !== 'loading' && result.kind === 'error' && <ErrorState text="No pudimos cargar la estimación. Inténtalo de nuevo." />}
