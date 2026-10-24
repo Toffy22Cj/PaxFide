@@ -16,6 +16,7 @@ import { SelectField } from '../components/ui/Field';
 import { Button } from '../components/ui/Button';
 import { EmptyState, ErrorState, ForbiddenState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
 import { CommandModal, FieldSpec } from '../components/asset/CommandModal';
+import p from './panelLists.module.css';
 
 const LABEL: Record<PlatformDecision, string> = {
   verify: 'Verificar', reject: 'Rechazar', 'request-information': 'Pedir más información',
@@ -77,7 +78,7 @@ function VerificationQueue({ queueClient }: { queueClient: typeof fetchVerificat
       {queue.status === 'ready' && queue.items.length > 0 && (
         <ul className={ui.list}>
           {queue.items.map((o) => (
-            <li key={o.organizationId} data-testid="queue-item">
+            <li key={o.organizationId} data-testid="queue-item" className={p.divided}>
               <h3 className={ui.sectionTitle}>{o.name ?? 'Organización sin nombre'}</h3>
               <DefinitionList items={[
                 { label: 'Tipo', value: organizationTypeLabel(o.type) },
@@ -135,11 +136,12 @@ function PlatformAdmins({ selfId, adminsClient }: { selfId: string; adminsClient
       {admins?.kind === 'ok' && (
         <ul className={ui.list}>
           {admins.items.map((a) => (
-            <li key={a.accountId} data-testid="platform-admin">
-              <span className={ui.mono}>{a.accountId}</span>{a.accountId === selfId ? ' (tú)' : ''}
+            <li key={a.accountId} data-testid="platform-admin" className={p.row}>
+              <span><span className={ui.mono}>{a.accountId}</span>{a.accountId === selfId ? ' (tú)' : ''}</span>
               {canRevoke && (
-                <> <Button variant="secondary" onClick={() => { setDone(null); setAction({ kind: 'revoke', accountId: a.accountId }); }}>
-                  Retirar</Button></>
+                <Button variant="secondary" onClick={() => { setDone(null); setAction({ kind: 'revoke', accountId: a.accountId }); }}>
+                  Retirar
+                </Button>
               )}
             </li>
           ))}

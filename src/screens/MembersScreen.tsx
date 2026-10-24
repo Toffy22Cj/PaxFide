@@ -15,6 +15,7 @@ import { Button } from '../components/ui/Button';
 import { EmptyState, ErrorState, ForbiddenState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
 import { CommandModal } from '../components/asset/CommandModal';
 import { LocalDate } from '../components/LocalDate';
+import p from './panelLists.module.css';
 
 const ROLES = [{ value: 'EMPLOYEE', label: 'Empleado' }, { value: 'ADMINISTRATOR', label: 'Administrador' }];
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -78,7 +79,7 @@ export function MembersScreen({ meClient = fetchMe, membersClient = fetchMembers
                   // Los papeles del representante solo los cambia él (DD-66); quitarlo exige transferir (409)
                   const roleActions = !rep || x.accountId === selfId;
                   return (
-                    <li key={x.accountId} data-testid="member">
+                    <li key={x.accountId} data-testid="member" className={p.divided}>
                       <p><span className={ui.mono}>{x.accountId}</span>{x.accountId === selfId ? ' (tú)' : ''} ·{' '}
                         {x.roles.map(roleLabel).join(', ') || 'sin papel'} · {memberStatusLabel(x.status)}</p>
                       <Actions>

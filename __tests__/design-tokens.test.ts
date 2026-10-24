@@ -555,12 +555,10 @@ describe('Hexadecimales y tokens dark-* solo en el archivo de tokens', () => {
   const files = walk(SRC).filter((f) => /\.(css|ts|tsx)$/.test(f) && !/\.test\.tsx?$/.test(f));
   /**
    * Excepciones anteriores a v2, con su motivo. No se amplían: VS-8 las migra.
-   * - QrCode: el QR se pinta con colores fijos para que se lea igual en cualquier tema.
-   * - PredictionCharts: borde blanco de los marcadores (pantalla existente, fuera de VS-0).
+   * - QrCode: el QR se pinta con colores fijos para que se lea igual en cualquier tema (D-P1).
    */
   const LEGACY_HEX: Record<string, string[]> = {
     'components/QrCode.tsx': ['#FFFFFF', '#1B5141'],
-    'components/prediction/PredictionCharts.tsx': ['#FFFFFF'],
   };
   /**
    * Paletas de ilustración (plan-fase7-pantallas.md D-P1): la ciudad y el mundo de la landing son ilustraciones sin

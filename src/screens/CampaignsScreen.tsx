@@ -18,6 +18,7 @@ import { EmptyState, ErrorState, ForbiddenState, LoadingState, StatusNotice, Una
 import { CreateCampaignForm } from '../components/campaign/CreateCampaignForm';
 import { CommandModal, FieldSpec } from '../components/asset/CommandModal';
 import { QrCode } from '../components/QrCode';
+import p from './panelLists.module.css';
 
 /** QR de la URL canónica de la página pública (matriz §4b: `/c/{publicCode}`), con el origen de esta web. */
 function PublicQr({ publicCode, title }: { publicCode: string; title: string }) {
@@ -103,31 +104,38 @@ function CampaignItem({ c, onAction }: { c: AdminCampaign; onAction: (kind: Acti
     && open && (k !== 'remove' || c.responsibles.length > 0));
   return (
     <li data-testid="org-campaign">
-      <h3 className={ui.sectionTitle}>{c.title}</h3>
-      <DefinitionList items={[
-        { label: 'Estado', value: campaignStatusLabel(c.status), testId: 'campaign-status' },
-        { label: 'Visibilidad', value: visibilityLabel(c.visibility) },
-        { label: 'Meta', value: c.targetAmount && c.currency ? formatMinorUnits(c.targetAmount, c.currency) : 'Sin meta monetaria' },
-        { label: 'Recaudado', value: c.clearedAmount && c.currency ? formatMinorUnits(c.clearedAmount, c.currency) : '—' },
-        { label: 'Responsables', value: c.responsibles.length > 0
-          ? <ul className={ui.list}>{c.responsibles.map((r) => <li key={r.accountId}><span className={ui.mono}>{r.accountId}</span> ({roleLabel(r.actingRole)})</li>)}</ul>
-          : 'Ninguno' },
-        { label: 'Empleados asignados', value: String(c.assignedEmployeeCount) },
-        { label: 'Referencia', value: <span className={ui.mono}>{c.campaignRef}</span> },
-        { label: 'Página pública', value: <Link href={`/c/${encodeURIComponent(c.publicCode)}`}>Abrir</Link> },
-      ]} />
-      <details>
-        <summary>Ver QR de la página pública</summary>
-        <PublicQr publicCode={c.publicCode} title={c.title} />
-      </details>
-      {(actions.length > 0 || isSurfaceEnabled('/panel/prediction')) && (
-        <Actions>
-          {actions.map((k) => (
-            <Button key={k} variant={k === 'close' ? 'secondary' : 'primary'} onClick={() => onAction(k)}>{ACTION_LABEL[k]}</Button>
-          ))}
-          {isSurfaceEnabled('/panel/prediction') && <Link href="/panel/prediction">Ver estimación</Link>}
-        </Actions>
-      )}
+      <Surface headingLevel={3} title={c.title}>
+        <DefinitionList items={[
+          { label: 'Estado', value: campaignStatusLabel(c.status), testId: 'campaign-status' },
+          { label: 'Visibilidad', value: visibilityLabel(c.visibility) },
+          { label: 'Meta', value: c.targetAmount && c.currency ? formatMinorUnits(c.targetAmount, c.currency) : 'Sin meta monetaria' },
+          { label: 'Recaudado', value: c.clearedAmount && c.currency ? formatMinorUnits(c.clearedAmount, c.currency) : '—' },
+          { label: 'Responsables', value: c.responsibles.length > 0
+            ? <ul className={ui.list}>{c.responsibles.map((r) => <li key={r.accountId}><span className={ui.mono}>{r.accountId}</span> ({roleLabel(r.actingRole)})</li>)}</ul>
+            : 'Ninguno' },
+          { label: 'Empleados asignados', value: String(c.assignedEmployeeCount) },
+          { label: 'Referencia', value: <span className={ui.mono}>{c.campaignRef}</span> },
+          { label: 'Página pública', value: <Link href={`/c/${encodeURIComponent(c.publicCode)}`}>Abrir</Link> },
+        ]} />
+        <details className={p.details}>
+          <summary>Ver QR de la página pública</summary>
+          <div className={p.detailsBody}>
+            <PublicQr publicCode={c.publicCode} title={c.title} />
+          </div>
+        </details>
+        {(actions.length > 0 || isSurfaceEnabled('/panel/prediction')) && (
+          <Actions>
+            {actions.map((k) => (
+              <Button key={k} variant={k === 'close' ? 'secondary' : 'primary'} onClick={() => onAction(k)}>{ACTION_LABEL[k]}</Button>
+            ))}
+            {isSurfaceEnabled('/panel/prediction') && (
+              <Link href="/panel/prediction" className={[ui.button, ui.secondary].join(' ')}>
+                Ver estimación
+              </Link>
+            )}
+          </Actions>
+        )}
+      </Surface>
     </li>
   );
 }

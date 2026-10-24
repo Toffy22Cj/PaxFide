@@ -13,6 +13,7 @@ import { Actions, DefinitionList, PageHeader, Surface, uiClasses as ui } from '.
 import { Button } from '../components/ui/Button';
 import { EmptyState, ErrorState, ForbiddenState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
 import { CommandModal } from '../components/asset/CommandModal';
+import p from './panelLists.module.css';
 
 type Action = { kind: 'request'; fund: Fund } | { kind: 'confirm'; fund: Fund; allocationId: string };
 
@@ -68,11 +69,12 @@ export function FundsScreen({ meClient = fetchMe, fundsClient = fetchFunds }: {
                     {f.allocations.length === 0 ? <p>Sin asignaciones.</p> : (
                       <ul className={ui.list}>
                         {f.allocations.map((a) => (
-                          <li key={a.allocationId} data-testid="allocation">
-                            <span className={ui.mono}>{a.allocationId}</span> · {formatMinorUnits(a.amount, f.currency)} · {allocationStatusLabel(a.status)}
+                          <li key={a.allocationId} data-testid="allocation" className={p.row}>
+                            <span><span className={ui.mono}>{a.allocationId}</span> · {formatMinorUnits(a.amount, f.currency)} · {allocationStatusLabel(a.status)}</span>
                             {canConfirm && a.status === 'REQUESTED' && (
-                              <> <Button variant="secondary" onClick={() => { setDone(null); setAction({ kind: 'confirm', fund: f, allocationId: a.allocationId }); }}>
-                                Confirmar asignación</Button></>
+                              <Button variant="secondary" onClick={() => { setDone(null); setAction({ kind: 'confirm', fund: f, allocationId: a.allocationId }); }}>
+                                Confirmar asignación
+                              </Button>
                             )}
                           </li>
                         ))}

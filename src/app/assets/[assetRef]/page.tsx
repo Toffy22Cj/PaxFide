@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, use } from 'react';
 import { fetchAsset, PhysicalAssetOperationalReadModel } from '../../../lib/api/assetClient';
 import { lifecycleLabel } from '../../../lib/labels';
 import { LoadingState, ErrorState, ForbiddenState, NotFoundState, StatusNotice } from '../../../components/States';
-import { DefinitionList, PageHeader } from '../../../components/ui/Layout';
+import { DefinitionList, PageHeader, Surface } from '../../../components/ui/Layout';
 import { AssetActions } from '../../../components/asset/AssetActions';
 import { fetchMe } from '../../../lib/api/identity';
 import { usePrincipal } from '../../../lib/auth/usePrincipal';
@@ -52,15 +52,17 @@ export default function AssetPage({ params, fetchClient = fetchAsset, meClient =
     <div data-testid={`state-content${isReadOnly ? '-readonly' : ''}`}>
       <PageHeader title="Activo" reference={data.assetRef} />
       {isReadOnly && <StatusNotice variant="info" text="Este activo ya fue entregado. Solo lectura." />}
-      <DefinitionList items={[
-        { label: 'Estado', value: lifecycleLabel(data.lifecycleStatus), testId: 'field-lifecycleStatus' },
-        { label: 'Cantidad', value: formatQuantity(data.quantity), testId: 'field-quantity' },
-        { label: 'Unidad de medida', value: data.unitOfMeasure, testId: 'field-unitOfMeasure' },
-        { label: 'Ubicación actual', value: orNone(data.currentLocation), testId: 'field-currentLocation' },
-        { label: 'Custodio actual', value: orNone(data.currentCustodianRef), testId: 'field-currentCustodianRef' },
-        { label: 'Convocatoria', value: data.campaignRef ?? 'Sin registrar', testId: 'field-campaignRef' },
-      ]} />
-      <AssetActions assetRef={data.assetRef} delivered={isReadOnly} onChanged={() => void read(true)} principal={principal} />
+      <Surface>
+        <DefinitionList items={[
+          { label: 'Estado', value: lifecycleLabel(data.lifecycleStatus), testId: 'field-lifecycleStatus' },
+          { label: 'Cantidad', value: formatQuantity(data.quantity), testId: 'field-quantity' },
+          { label: 'Unidad de medida', value: data.unitOfMeasure, testId: 'field-unitOfMeasure' },
+          { label: 'Ubicación actual', value: orNone(data.currentLocation), testId: 'field-currentLocation' },
+          { label: 'Custodio actual', value: orNone(data.currentCustodianRef), testId: 'field-currentCustodianRef' },
+          { label: 'Convocatoria', value: data.campaignRef ?? 'Sin registrar', testId: 'field-campaignRef' },
+        ]} />
+        <AssetActions assetRef={data.assetRef} delivered={isReadOnly} onChanged={() => void read(true)} principal={principal} />
+      </Surface>
     </div>
   );
 }

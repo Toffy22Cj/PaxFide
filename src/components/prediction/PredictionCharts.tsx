@@ -5,8 +5,8 @@ import type { PredictionCut, PredictionView } from '../../lib/api/prediction';
 import { LocalDate } from '../LocalDate';
 
 const pct = (x: number) => `${Math.round(x)} %`;
-const GREEN = 'var(--brand-green-900)';
-const BLUE = 'var(--brand-blue-700)';
+const GREEN = 'var(--color-text)';
+const BLUE = 'var(--color-link)';
 /** Cortes con los que se entrenó el modelo (aviso del backend: 15 %, 25 % y 50 % del tiempo). */
 const TRAINED_CUTS = [0.15, 0.25, 0.5];
 
@@ -29,7 +29,7 @@ export function BasicPredictionChart({ view }: { view: PredictionView }) {
           <p className={s.tileLabel}>Porcentaje final de la meta estimado</p>
           <p className={s.tileValue}>{pct(fin)}</p>
           <svg viewBox="0 0 200 24" className={s.chart} role="img" aria-label={`Final estimado: ${pct(fin)} de la meta`}>
-            <rect x="0" y="6" width="200" height="12" rx="6" fill="var(--neutral-200)" />
+            <rect x="0" y="6" width="200" height="12" rx="6" fill="var(--color-divider)" />
             <rect x="0" y="6" width={finBar} height="12" rx="6" fill={BLUE} />
             <line x1="100" x2="100" y1="0" y2="24" stroke={GREEN} strokeWidth="2" />
           </svg>
@@ -63,7 +63,7 @@ export function AdvancedPredictionChart({ view, observedFraction }: { view: Pred
           <li><svg width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill={GREEN} /></svg>Recaudado hoy (hecho)</li>
         )}
         <li><svg width="16" height="16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" fill={BLUE} /></svg>Final estimado (estimación)</li>
-        <li><svg width="16" height="16" aria-hidden="true"><line x1="8" x2="8" y1="1" y2="15" stroke="var(--brand-neutral-700)" strokeDasharray="2 2" /></svg>Cortes de entrenamiento</li>
+        <li><svg width="16" height="16" aria-hidden="true"><line x1="8" x2="8" y1="1" y2="15" stroke="var(--color-text-secondary)" strokeDasharray="2 2" /></svg>Cortes de entrenamiento</li>
       </ul>
       <div className={s.scroll} tabIndex={0} aria-label="Gráfico desplazable horizontalmente">
         <svg viewBox={`0 0 ${W} ${H}`} className={[s.chart, s.wideChart].join(' ')} role="img" data-testid="advanced-chart"
@@ -77,7 +77,7 @@ export function AdvancedPredictionChart({ view, observedFraction }: { view: Pred
           <line x1={L} x2={W - R} y1={y(100)} y2={y(100)} stroke={GREEN} strokeWidth="1" strokeDasharray="2 3" />
           <text className={s.axis} x={W - R + 4} y={y(100) + 4}>Meta</text>
           {TRAINED_CUTS.map((c) => (
-            <line key={c} x1={x(c)} x2={x(c)} y1={T} y2={H - B} stroke="var(--brand-neutral-700)" strokeWidth="1" strokeDasharray="2 2" opacity="0.6" />
+            <line key={c} x1={x(c)} x2={x(c)} y1={T} y2={H - B} stroke="var(--color-text-secondary)" strokeWidth="1" strokeDasharray="2 2" opacity="0.6" />
           ))}
           {[0, 0.15, 0.25, 0.5, 1].map((c) => (
             <text key={c} className={s.axis} x={x(c)} y={H - B + 16} textAnchor="middle">{Math.round(c * 100)} %</text>
@@ -86,11 +86,11 @@ export function AdvancedPredictionChart({ view, observedFraction }: { view: Pred
           <line x1={x(t)} x2={x(t)} y1={T} y2={H - B} stroke={GREEN} strokeWidth="1.5" />
           <text className={s.axis} x={x(t) + 4} y={T + 10}>Hoy</text>
           {observed !== undefined && (
-            <circle cx={x(t)} cy={y(observed)} r="6" fill={GREEN} stroke="#FFFFFF" strokeWidth="2">
+            <circle cx={x(t)} cy={y(observed)} r="6" fill={GREEN} stroke="var(--color-surface)" strokeWidth="2">
               <title>{`Hoy: recaudado ${pct(observed)} de la meta`}</title>
             </circle>
           )}
-          <rect x={x(1) - 6} y={y(estimate) - 6} width="12" height="12" fill={BLUE} stroke="#FFFFFF" strokeWidth="2">
+          <rect x={x(1) - 6} y={y(estimate) - 6} width="12" height="12" fill={BLUE} stroke="var(--color-surface)" strokeWidth="2">
             <title>{`Final estimado: ${pct(estimate)} de la meta`}</title>
           </rect>
           <text className={s.axis} x={x(1) + 10} y={y(estimate) + 4}>{pct(estimate)}</text>
@@ -138,7 +138,7 @@ export function PredictionHistoryChart({ cuts }: { cuts: PredictionCut[] }) {
       <ul className={s.legend}>
         <li><svg width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill={GREEN} /></svg>Recaudado en el corte (hecho)</li>
         <li><svg width="16" height="16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" fill={BLUE} /></svg>Final estimado en el corte (estimación)</li>
-        <li><svg width="16" height="16" aria-hidden="true"><rect x="2" y="2" width="12" height="12" fill="none" stroke="var(--brand-neutral-700)" strokeDasharray="2 2" /></svg>Corte sin cifra</li>
+        <li><svg width="16" height="16" aria-hidden="true"><rect x="2" y="2" width="12" height="12" fill="none" stroke="var(--color-text-secondary)" strokeDasharray="2 2" /></svg>Corte sin cifra</li>
       </ul>
       <div className={s.scroll} tabIndex={0} aria-label="Gráfico desplazable horizontalmente">
         <svg viewBox={`0 0 ${W} ${H}`} className={[s.chart, s.wideChart].join(' ')} role="img" data-testid="history-chart" aria-label={label}>
@@ -152,20 +152,20 @@ export function PredictionHistoryChart({ cuts }: { cuts: PredictionCut[] }) {
           <text className={s.axis} x={W - R - 2} y={y(100) - 4} textAnchor="end">Meta</text>
           {cuts.map((c) => (
             <g key={c.t} data-testid={`history-cut-${Math.round(c.t * 100)}`} data-available={c.available ? 'true' : 'false'}>
-              <line x1={x(c.t)} x2={x(c.t)} y1={T} y2={H - B} stroke="var(--brand-neutral-700)" strokeWidth="1" strokeDasharray="2 2" opacity="0.6" />
+              <line x1={x(c.t)} x2={x(c.t)} y1={T} y2={H - B} stroke="var(--color-text-secondary)" strokeWidth="1" strokeDasharray="2 2" opacity="0.6" />
               <text className={s.axis} x={x(c.t)} y={H - B + 16} textAnchor="middle">{pct(c.t * 100)}</text>
               {c.raisedAtCut !== undefined && (
-                <circle cx={x(c.t) - 8} cy={y(c.raisedAtCut * 100)} r="6" fill={GREEN} stroke="#FFFFFF" strokeWidth="2">
+                <circle cx={x(c.t) - 8} cy={y(c.raisedAtCut * 100)} r="6" fill={GREEN} stroke="var(--color-surface)" strokeWidth="2">
                   <title>{`Corte ${pct(c.t * 100)}: recaudado ${pct(c.raisedAtCut * 100)} de la meta`}</title>
                 </circle>
               )}
               {c.available && c.estimatedFinal !== undefined ? (
-                <rect x={x(c.t) + 2} y={y(c.estimatedFinal * 100) - 6} width="12" height="12" fill={BLUE} stroke="#FFFFFF" strokeWidth="2">
+                <rect x={x(c.t) + 2} y={y(c.estimatedFinal * 100) - 6} width="12" height="12" fill={BLUE} stroke="var(--color-surface)" strokeWidth="2">
                   <title>{`Corte ${pct(c.t * 100)}: final estimado ${pct(c.estimatedFinal * 100)} de la meta`}</title>
                 </rect>
               ) : (
                 <g>
-                  <rect x={x(c.t) - 28} y={T + 20} width="56" height="22" fill="var(--white)" stroke="var(--brand-neutral-700)" strokeDasharray="2 2" />
+                  <rect x={x(c.t) - 28} y={T + 20} width="56" height="22" fill="var(--color-surface)" stroke="var(--color-text-secondary)" strokeDasharray="2 2" />
                   <text className={s.axis} x={x(c.t)} y={T + 35} textAnchor="middle">Sin cifra</text>
                 </g>
               )}
