@@ -25,6 +25,17 @@
 .bar { max-width: 1120px; height: 100%; margin: 0 auto; padding: 0 var(--gutter-mobile); display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
 .brand { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-text); font-weight: var(--weight-semibold); font-size: var(--text-lg); text-decoration: none; }
 .actions { display: flex; align-items: center; gap: var(--space-3); }
+/* Los controles de icono no se encogen por debajo del objetivo táctil de 44 px; en estrecho, separación de 8 px para que
+   marca, tema, pausa y "Cerrar sesión" quepan en una línea a 390 px, como antes de montar el tema (a 360, el texto del
+   botón pasa a dos líneas, sin desbordar). */
+.actions > * { flex-shrink: 0; }
+.actions > .logout { flex-shrink: 1; }
+@media (max-width: 767.98px) {
+  .bar { gap: var(--space-2); }
+  .actions { gap: var(--space-2); }
+  .actions > .pause { padding: 0; }
+  .actions > .logout { padding: 0 var(--space-2); }
+}
 .logout {
   min-height: 44px; padding: 0 var(--space-4);
   border-radius: var(--radius-control);
@@ -64,3 +75,33 @@
    contenedor no pone ni ancho máximo ni superficie. */
 .main.onWorld { max-width: none; margin: 0; padding: 0 0 calc(var(--space-12) + var(--nav-inset-bottom)); }
 .app[data-has-nav="true"] .main.onWorld { margin-left: var(--nav-inset-left); }
+
+/* Selector de tema (C-1, DF7-10): un <select> nativo con su etiqueta "Tema". Desde 768 px se ven la etiqueta y el select;
+   en estrecho no cabe (la cabecera se desbordaba 82 px a 390): queda un control de 44 px con el icono, como la pausa,
+   y el select nativo, transparente, lo cubre entero (mismo nombre accesible, mismo comportamiento al tocar). */
+.theme { position: relative; display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-text); }
+.themeLabel { font-weight: var(--weight-semibold); }
+.themeIcon { display: none; }
+.themeSelect {
+  min-height: 44px; padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  font: inherit; cursor: pointer;
+  background: var(--color-field); color: var(--color-text); border: 1px solid var(--color-border-control);
+}
+.themeSelect:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+@media (max-width: 767.98px) {
+  .themeLabel {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .theme {
+    width: 44px; height: 44px; justify-content: center;
+    border-radius: var(--radius-button);
+    background: var(--color-surface); border: 1px solid var(--color-border-control);
+  }
+  .theme:focus-within { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+  .themeIcon { display: block; }
+  /* Cubre también el borde de 1 px del contenedor: el objetivo táctil es el círculo entero de 44 px */
+  .themeSelect { position: absolute; top: -1px; left: -1px; width: calc(100% + 2px); height: calc(100% + 2px); min-height: 0; padding: 0; opacity: 0; }
+  .themeSelect:focus-visible { outline: none; }
+}

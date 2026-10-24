@@ -5,14 +5,12 @@ import React, { useEffect, useRef } from 'react';
 import { CityRenderer } from './cityDraw';
 import { clampDpr, createCityScene, stepCityScene } from './cityScene';
 import { loopMode } from './animationPreference';
+import { isDarkTheme, watchTheme } from '../../lib/theme/theme';
 import s from './background.module.css';
 
-/** 1 si el tema efectivo es oscuro (D-P4). Con el claro forzado (DF7-17) siempre es 0. */
+/** 1 si el tema efectivo de la app es oscuro: la ciudad sigue el tema, como `isNightMode` del boceto (D-F2, C-1). */
 function nightFor(root: HTMLElement): number {
-  const th = root.getAttribute('data-theme');
-  if (th === 'dark') return 1;
-  if (th === 'light') return 0;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 1 : 0;
+  return isDarkTheme(root.getAttribute('data-theme'), window.matchMedia('(prefers-color-scheme: dark)').matches) ? 1 : 0;
 }
 
 export function CityBackground({ paused }: { paused: boolean }) {
@@ -70,7 +68,12 @@ export function CityBackground({ paused }: { paused: boolean }) {
     window.addEventListener('resize', resize);
     document.addEventListener('visibilitychange', sync);
     reduceMq.addEventListener('change', sync);
+    // Con el bucle en marcha la mezcla de noche ya sigue al tema; quieta (pausa o "reducir movimiento"), salta sin mezcla
+    const unwatchTheme = watchTheme(document.documentElement, () => {
+      if (loopMode(current()) === 'still') { night = nightFor(document.documentElement); paint(); }
+    });
     return () => {
+      unwatchTheme();
       if (raf !== null) cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', sync);

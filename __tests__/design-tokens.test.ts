@@ -277,9 +277,10 @@ function solid(value: string): string | null {
 }
 
 const root = () => block(':root', 0);
-const light = () => block(':root', 1);
+// D-F11 (plan-fase7-fidelidad.md, F-A0): el claro y el oscuro forzado valen en cualquier contenedor, no solo en <html>
+const light = () => block(':root,\n[data-theme="light"]');
 const darkMedia = () => block('  :root:not([data-theme="light"])');
-const darkForced = () => block(':root[data-theme="dark"]');
+const darkForced = () => block('\n[data-theme="dark"]');
 
 describe('Archivo de tokens (enmienda §4–§7)', () => {
   it('cada token de la tabla tiene en globals.css exactamente el valor aprobado', () => {
@@ -337,6 +338,21 @@ describe('Archivo de tokens (enmienda §4–§7)', () => {
 
   it('el oscuro por sistema va dentro de prefers-color-scheme y respeta data-theme="light" (§4.1)', () => {
     expect(tokensCss).toMatch(/@media \(prefers-color-scheme: dark\) \{\s*:root:not\(\[data-theme="light"\]\) \{/);
+  });
+
+  it('D-F11: data-theme="light" y "dark" no se atan a :root (valen en cualquier contenedor) y fijan color-scheme', () => {
+    expect(tokensCss).not.toMatch(/:root\[data-theme="dark"\]/);
+    expect(tokensCss).toMatch(/(?:^|\n):root,\n\[data-theme="light"\] \{\n  color-scheme: light;/);
+    expect(tokensCss).toMatch(/\n\[data-theme="dark"\] \{\n  color-scheme: dark;/);
+    expect(tokensCss).toMatch(/:root:not\(\[data-theme="light"\]\) \{\n    color-scheme: dark;/);
+  });
+
+  it('C-1: body, enlaces y foco van por la capa semántica (DF7-09 y DF7-17 retiradas)', () => {
+    const body = /(?:^|\n)body\s*\{([^}]*)\}/.exec(tokensCss)![1];
+    expect(body).toMatch(/background:\s*var\(--color-bg\);/);
+    expect(body).toMatch(/(?:^|\s)color:\s*var\(--color-text\);/);
+    expect(tokensCss).toMatch(/\na \{ color: var\(--color-link\); \}/);
+    expect(/\*:focus-visible\s*\{([^}]*)\}/.exec(tokensCss)![1]).toMatch(/var\(--color-focus\)/);
   });
 
   it('la capa semántica solo apunta a tokens (ningún hexadecimal)', () => {

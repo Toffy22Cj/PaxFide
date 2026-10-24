@@ -36,12 +36,16 @@ afterEach(() => vi.restoreAllMocks());
 const nav = () => screen.getByRole('navigation', { name: 'Principal' });
 
 describe('Shell (VS-2)', () => {
-  it('landmarks: banner, navigation "Principal" y main; la cabecera no monta el selector de tema (D)', async () => {
+  it('landmarks: banner, navigation "Principal" y main; la cabecera monta el selector de tema (C-1, DF7-10)', async () => {
     render(<Shell me={async () => ({ kind: 'error' })}><p>contenido</p></Shell>);
     expect(screen.getByRole('banner')).toBeInTheDocument();
     expect(nav()).toBeInTheDocument();
     expect(screen.getByRole('main')).toHaveTextContent('contenido');
-    expect(screen.queryByLabelText('Tema')).toBeNull();
+    const select = within(screen.getByRole('banner')).getByLabelText('Tema');
+    expect(select.tagName).toBe('SELECT');
+    expect(within(select).getAllByRole('option').map((o) => o.textContent)).toEqual(['Como el sistema', 'Claro', 'Oscuro']);
+    // Solo uno: ni en el contenido ni duplicado
+    expect(screen.getAllByLabelText('Tema')).toHaveLength(1);
   });
 
   it('a 390 (bottom), Convocatorias y Lotes no están en la página (DF7-20)', async () => {

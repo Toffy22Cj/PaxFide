@@ -95,5 +95,5 @@ export const WORLD_NIGHT: WorldPalette = {
   cloudShadow: (a) => `rgba(18, 55, 36, ${a})`,
 };
 
-/** Paleta para la mezcla `night` (0 día, 1 noche). Con el claro forzado (DF7-17) siempre es la de día. */
+/** Paleta para la mezcla `night` (0 día, 1 noche): sigue el tema efectivo (C-1). */
 export const worldPalette = (night: number): WorldPalette => (night > 0.5 ? WORLD_NIGHT : WORLD_DAY);

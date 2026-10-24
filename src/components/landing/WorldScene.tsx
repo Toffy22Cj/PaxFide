@@ -7,14 +7,12 @@ import { WorldRenderer } from './worldDraw';
 import { clampDpr, createWorldScene, viewForScroll, type ScreenRect } from './worldScene';
 import { loopMode } from '../background/animationPreference';
 import { usePausedPreference } from '../background/usePausedPreference';
+import { isDarkTheme, watchTheme } from '../../lib/theme/theme';
 import s from './world.module.css';
 
-/** 1 si el tema efectivo es oscuro (D-P4). Con el claro forzado (DF7-17) siempre es 0. */
+/** 1 si el tema efectivo es oscuro (C-1). El control Auto/Noche/Día de la landing (D-F2) llega en F-A1. */
 function nightFor(root: HTMLElement): number {
-  const th = root.getAttribute('data-theme');
-  if (th === 'dark') return 1;
-  if (th === 'light') return 0;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 1 : 0;
+  return isDarkTheme(root.getAttribute('data-theme'), window.matchMedia('(prefers-color-scheme: dark)').matches) ? 1 : 0;
 }
 
 /** Vista objetivo según el scroll: el centro de la ventana frente al centro de cada bloque del recorrido. */
@@ -106,7 +104,12 @@ export function WorldScene() {
     window.addEventListener('resize', resize);
     document.addEventListener('visibilitychange', sync);
     reduceMq.addEventListener('change', sync);
+    // En marcha, cada fotograma lee el tema; quieto (pausa o "reducir movimiento"), se repinta al cambiarlo
+    const unwatchTheme = watchTheme(document.documentElement, () => {
+      if (loopMode(current()) === 'still') { painted = null; still(); }
+    });
     return () => {
+      unwatchTheme();
       if (raf !== null) cancelAnimationFrame(raf);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', resize);
