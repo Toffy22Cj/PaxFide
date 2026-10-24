@@ -1,6 +1,6 @@
 # Plan de la Fase 7 — Fidelidad a los bocetos
 
-**Estado: PROPUESTO — espera la aprobación de Carlos.** Las decisiones de §2 marcadas "Carlos, 2026-10-24" ya están tomadas. P-F1 quedó resuelto el 2026-10-24 (D-F14). Queda un pendiente en §6 (P-F2, el par de entradas que se combinan), y lo que depende de él no se toca hasta que Carlos responda.
+**Estado: PROPUESTO — espera la aprobación de Carlos.** Todas las decisiones están tomadas (§2 y §6, Carlos, 2026-10-24). Lo que depende del backend está en §5b y no empieza hasta que su PR esté en `develop`.
 **Fecha:** 2026-10-24 (UTC).
 **Base verificada:** `paxfide-web` `develop` en `bd099a3`, con A-1 a A-5 y B-1 a B-4 mergeadas (PR #33 a #40). C-1 sin hacer. Backend `develop` en `0b3dc3e`.
 **Bocetos:** `Documentos/paxfide-landing.html`, `paxfide-home.html`, `paxfide-panel.html`, `paxfide-linea-tiempo.html` y `paxfide-movimiento.html` (versiones del 2026-10-20). `paxfide-pantallas-web.html` son los bocetos de Manuel y **no** entran en este plan (§7).
@@ -67,6 +67,9 @@ Lo que **no** cambia de la regla de los prompts (§2): los colores salen de toke
 | D-F11 | **El tema oscuro se activa ya (cambia D-P12).** C-1 pasa a ser la primera tarea de la pista A (F-A0). Además de lo que dice C-1, los selectores de tema de `globals.css` funcionan en cualquier elemento, no solo en `<html>`. `[data-theme="dark"]` y `[data-theme="light"]` sobre un contenedor redefinen los tokens semánticos dentro de él. Es lo que necesita D-F2. Esta tarea es la única que toca `globals.css`, y no añade ningún token | D-P12; plan de pantallas §1.3 (globals.css: "nadie" salvo F-A0) |
 | D-F12 | **Los bloques del boceto con datos reales.** Donde el boceto pone cifras de ejemplo y el contrato tiene el dato, se usa el dato real sin el rótulo "Datos de ejemplo". Ejemplos: "Tu organización hoy" en el home, los KPI del panel y "Cierran pronto". **"Cierran pronto" ya no espera a R-1:** se calcula en el cliente con `endDate` sobre la página que ya llega de `GET /public/campaigns` (D-P9: 7 días o menos, de menos a más días). Si no hay ninguna, el bloque dice "Convocatorias abiertas" con las 3 primeras | D-P6 |
 | D-F14 | **Cómo registrar una organización (Carlos, 2026-10-24; resuelve P-F1).** El registro **no** pregunta "¿Cómo participarás?" ni ofrece registrar una organización. Debajo del formulario de "Crear cuenta" va una nota plegable, **"¿Representas una fundación?"**, que explica el camino paso a paso con los pasos reales de hoy: 1) crea tu cuenta aquí, como cualquier donante; 2) inicia sesión; 3) en Inicio, en la tarjeta "¿Tienes una fundación?", pulsa "Registrar organización" y llena sus datos; 4) la plataforma la revisa (estado "Pendiente de verificación"); puede pedirte más información; 5) cuando esté "Verificada", puedes crear convocatorias. La misma explicación, en versión corta, va en la tarjeta "¿Tienes una fundación?" del home. Los nombres de estado salen de `labels.ts` (`verificationStatusLabel`). Es texto: no envía nada al backend | P-F1; X-7 |
+| D-F15 | **Barra estrecha con "Perfil" (Carlos, 2026-10-24; resuelve P-F2).** En < 768 px, para las cuentas con organización, "Donaciones" y "Seguimiento" se combinan en una sola entrada "Donaciones" (→ `/account/donations`), que queda activa en `/account/donations` y en `/tracking`. Arriba de "Tus donaciones" va el enlace "Seguir con un código" (→ `/tracking`). La barra queda en 5: Inicio, Explorar, Donaciones, Organización, Perfil. Las cuentas sin organización ya caben (Inicio, Explorar, Donaciones, Seguimiento, Perfil) y no cambian. En escritorio no se combina nada. Es la web en un ancho estrecho, no la app móvil | DF7-20 (la cumple) |
+| D-F16 | **Lo que espera al backend sí entra (Carlos, 2026-10-24).** Recuperar y cambiar la contraseña, desactivar la cuenta, el nombre (paso 2 de ADR-050 D1: la pantalla "¿Cómo te llamamos?" del boceto y el Perfil), las dos casillas legales del registro, el hash con su prueba de Merkle por paso, la fecha del pago, el árbol de sublotes y la fecha del último cambio de cada lote. Primero los hace el backend (Manuel, con delegación de Carlos: ADR-050 R-3+R-2, R-4, R-5+D1, ficha R-6 y su Enmienda 1). La web los añade en las tareas de §5b cuando cada PR del backend esté en `develop`, nunca antes (opción (a) de P-F3) | X-3, X-4, X-5, X-8, X-9, X-13, X-14, X-15 pasan de "se omite" a "llega con §5b" |
+| D-F17 | **Textos legales (Carlos, 2026-10-24).** El agente redacta un borrador académico, versión `v1-2026-10`, de los tres textos de ADR-050 D2: términos y condiciones, autorización de tratamiento de datos (Ley 1581) y términos de organización (`Documentos/legal/`). Se publican en rutas públicas nuevas: `/terminos`, `/privacidad` y `/terminos-organizacion` (superficies nuevas aprobadas por Carlos). La versión de cada texto es la misma cadena que el backend pone en `traceability.legal.*-version`. **Son un borrador académico, no asesoría legal:** el equipo los revisa antes de la demo | ADR-050 D2 |
 | D-F13 | **El panel sin "Secciones del panel".** El boceto no tiene ese bloque: a las secciones se llega por la barra. Para el representante, que no lee convocatorias, fondos ni lotes, el panel muestra la cabecera de la organización, su estado de verificación y "Por hacer" vacío con el texto aprobado | B-2 |
 
 ### 2.1 Textos de las etiquetas (D-F4)
@@ -109,21 +112,21 @@ Lo que **no** cambia de la regla de los prompts (§2): los colores salen de toke
 
 | # | Boceto | Pantalla | Motivo |
 |---|---|---|---|
-| X-1 | Botones "Google" y "Billetera Web3", y el separador "o continúa con correo electrónico" | Acceso | **Carlos, 2026-10-24: se quitan.** Además no hay backend: la billetera no tiene diseño y Google (ADR-050 D9) no está implementado |
+| X-1 | Botones "Google" y "Billetera Web3", y el separador "o continúa con correo electrónico" | Acceso | **Carlos, 2026-10-24: se quitan de la web.** El backend de Google (ADR-050 R-6) sigue como última prioridad; si llega, volver a poner el botón es una decisión nueva de Carlos. La billetera no tiene diseño |
 | X-2 | "Recordarme en este navegador" | Acceso | D2: la sesión vive solo en memoria |
-| X-3 | "¿Olvidaste tu contraseña?" (recuperarla por correo sin haber iniciado sesión) | Acceso | ⏳ **Carlos, 2026-10-24: sí debe estar.** Diseño aprobado en ADR-050 D8 (`POST /auth/password-reset` y `/confirm`, enlace `/recuperar#token=`), **sin implementar en el backend**. Entra cuando el backend lo tenga (§6, P-F3) |
-| X-4 | "Nombre completo u Organización" | Registro | ⏳ ADR-050 D1 (registro en dos pasos con nombre), sin implementar en el backend. "u Organización" no se usa nunca (D-F14) |
-| X-5 | "Acepto los Términos de Transparencia y la Política de Privacidad" (términos y condiciones y autorización de datos, Ley 1581) | Registro | ⏳ ADR-050 D2 (`acceptedTermsVersion`, `acceptedDataPolicyVersion` en el registro) y el endpoint de versiones (R-5), sin implementar en el backend |
+| X-3 | "¿Olvidaste tu contraseña?" (recuperarla por correo sin haber iniciado sesión) | Acceso | ⏳ Llega con F-C1 tras ADR-050 R-4 (D8) |
+| X-4 | "Nombre completo u Organización" en el formulario de registro | Registro | El nombre **no** va en el registro: ADR-050 D1 lo pone en un paso 2 opcional ("¿Cómo te llamamos?" y Perfil, F-C1). "u Organización" no se usa nunca (D-F14) |
+| X-5 | "Acepto los Términos de Transparencia y la Política de Privacidad" | Registro | ⏳ Llega con F-C1 tras ADR-050 R-5: dos casillas separadas (términos y autorización de datos, D2) con enlaces a `/terminos` y `/privacidad` (D-F17) |
 | X-6 | "Mínimo 8 caracteres" | Registro | El backend exige 12 (`PasswordTooShort`). El medidor de seguridad del boceto se mantiene, con 12 como mínimo |
 | X-7 | "¿Cómo participarás?" (Donante / Organización) | Registro | **Carlos, 2026-10-24:** no va; en su lugar, la nota de D-F14 |
-| X-8 | Nombre y apellido en el saludo, iniciales, "Completa tu perfil" y "¿Cómo te llamamos?" | Home, Perfil | ⏳ ADR-050 |
-| X-9 | Tarjeta "Seguridad y criptografía" (cambiar contraseña con la sesión abierta, desactivar cuenta) | Perfil | ⏳ ADR-050 D5 y D6, sin implementar en el backend (plan R-3+R-2 sin aprobar). Nada de "Próximamente" (D5). Entra con P-F3 |
+| X-8 | Nombre y apellido en el saludo, iniciales, "Completa tu perfil" y "¿Cómo te llamamos?" | Home, Perfil | ⏳ Llega con F-C1 tras ADR-050 R-5+D1 (`GET/PUT /account/profile`). Hasta entonces, D-P7 (saludo sin nombre) |
+| X-9 | Tarjeta "Seguridad y criptografía" (cambiar contraseña, desactivar cuenta) | Perfil | ⏳ Llega con F-C1 tras ADR-050 R-3+R-2 (D5) y la tarea de desactivación (D6). Nada de "Próximamente" mientras tanto (D5 de ADR-046) |
 | X-10 | Cifras, organizaciones, lugares y fechas de ejemplo | Todas | §3 de los prompts y D-P5. Las etiquetas, según §2.1 |
 | X-11 | Filtros por causa ("Nutrición", "Agua limpia"…) y búsqueda | Landing | ⏳ R-1 |
 | X-12 | Las 17 variantes de tarjeta de convocatoria | Landing | Son un muestrario del boceto: se usa la variante 01 (la "unificada clásica"), que es `CampaignCard` |
-| X-13 | KPI "Integridad", "Actividad reciente" y "Recaudado en octubre" (pasa a "Recaudado" total) | Panel | ⛔ G-7, G-8, G-6 |
-| X-14 | Columna "Último cambio" (fecha y hora) en la tabla de lotes del panel; "desde hace más de 3 días" | Panel | ⛔ `GET /organizations/{id}/physical-assets` no trae marcas de tiempo. **Las fechas de cada paso del seguimiento sí se muestran** (`history[].timestamp`), como ya hace `/tracking` |
-| X-15 | Hash por paso ("Huella criptográfica"), "Anclado en blockchain (Merkle)" por paso, fecha del pago, sublotes como árbol, nombre del lote y destinatario | Seguimiento | ⛔ G-3, G-2, G-4 y privacidad. Se mantienen la insignia de integridad de la donación (P4) y los lotes en lista plana, cada uno con su carretera, igual que el boceto |
+| X-13 | KPI "Integridad", "Actividad reciente" y "Recaudado en octubre" (pasa a "Recaudado" total) | Panel | ⏳ Llegan con F-C3 tras la ficha R-6, bloques B (G-6) y D (G-7, G-8) |
+| X-14 | Columna "Último cambio" de la tabla de lotes del panel | Panel | ⏳ Llega con F-C3 tras la Enmienda 1 de la ficha R-6 (G-9). "Desde hace más de 3 días" se calcula entonces en el cliente. **Las fechas de cada paso del seguimiento ya se muestran** (`history[].timestamp`) |
+| X-15 | Hash por paso ("Huella criptográfica"), "Anclado en blockchain (Merkle)" por paso, fecha del pago, sublotes como árbol | Seguimiento | ⏳ Llegan con F-C2 tras la ficha R-6 bloques B (G-2) y C (G-4, G-3) y su Enmienda 1 (hash y prueba de Merkle). **Nunca:** el nombre del lote y el destinatario (privacidad) |
 | X-16 | Selector "Escenario" y "Recorrido en vivo" | Seguimiento | Herramienta del boceto |
 | X-17 | Botón "DEMO" y cambio de rol | Home, Panel | Herramienta del boceto |
 | X-18 | "Escanear QR" y "Despachar o recibir" como acción | Home, Panel | ⛔ lector QR sin decidir. La tarjeta rápida "Despachar o recibir" se queda con el texto del boceto "Escanea el QR en la app", sin enlace |
@@ -168,7 +171,8 @@ Lo que dice C-1 en `plan-fase7-pantallas.md` §6, más:
   - en el registro, el medidor de seguridad de la contraseña (`checkPassStrength`, mínimo 12, X-6);
   - mensajes con `feedbackSlide`;
   - modo noche de la tarjeta con D-F2.
-- Desviaciones X-1 a X-7. Nota "¿Representas una fundación?" de D-F14 bajo el formulario de registro (plegable, con `<details>`/`<summary>` o botón con `aria-expanded`), y su versión corta en la tarjeta "¿Tienes una fundación?" del home (F-A4).
+- Desviaciones X-1 a X-7. Rutas públicas `/terminos`, `/privacidad` y `/terminos-organizacion` (D-F17) con los textos de `Documentos/legal/` (versión visible arriba), sin estructura de la app y con la misma barra del acceso. Las casillas que enlazan a ellas llegan con F-C1.
+- Nota "¿Representas una fundación?" de D-F14 bajo el formulario de registro (plegable, con `<details>`/`<summary>` o botón con `aria-expanded`), y su versión corta en la tarjeta "¿Tienes una fundación?" del home (F-A4).
 - Test de D-F14: en `/register` no existe ningún control para elegir donante u organización ni enlace a `/panel/organization` (negativa); la nota contiene los cinco pasos.
 - `/invitaciones`: la misma tarjeta, con el texto de aceptación actual.
 - Bienvenida de D-F10.
@@ -190,7 +194,7 @@ Lo que dice C-1 en `plan-fase7-pantallas.md` §6, más:
   - `enabled-surfaces*.json`;
   - `src/app/account/page.tsx` y `src/screens/ProfileScreen.tsx`;
   - entrada "Perfil";
-  - en estrecho, según P-F2: **hasta que Carlos elija el par que se combina, "Perfil" solo aparece en la barra en escritorio.**
+  - en estrecho, D-F15: para las cuentas con organización, "Donaciones" y "Seguimiento" son una sola entrada; enlace "Seguir con un código" en `/account/donations`. Test: un administrador a 390 px tiene exactamente Inicio, Explorar, Donaciones, Organización y Perfil, y "Donaciones" queda activa en `/tracking`; una cuenta sin organización mantiene "Seguimiento" (negativa cruzada).
 - **Tests:**
   - E2E del vuelo: la cámara cambia de distrito al ir de `/home` a `/tracking`; con `reduce`, salta;
   - "Ver ciudad": el contenido queda `inert` y "Mostrar panel" lo devuelve;
@@ -266,13 +270,58 @@ La línea de tiempo de `paxfide-linea-tiempo.html`:
 
 ---
 
+## 5b. Tareas que esperan al backend (D-F16)
+
+Cada una empieza **solo** cuando el PR del backend que necesita esté en `develop` y su contrato esté en `referencia-api-v1.md`. Si el contrato publicado no coincide con lo que dice aquí, DETENTE.
+
+### F-C1 · `feat/web-account-security` (pista A) — tras ADR-050 R-3+R-2, R-4, R-5+D1 y D6
+
+Se puede partir en un PR por tarea del backend, en el orden en que lleguen.
+- **R-3+R-2 (D5):** tarjeta "Seguridad" del Perfil con "Cambiar contraseña" (actual y nueva, mínimo 12, medidor del boceto). La respuesta trae un token nuevo, que sustituye al de la sesión en memoria (D2). `400 CurrentPasswordIncorrect` se muestra en el campo y **no** cierra la sesión. Un 500 tras confirmar dice "Tu contraseña cambió; vuelve a iniciar sesión" y lleva al login (plan R-3+R-2 §4).
+- **R-4 (D8):** "¿Olvidaste tu contraseña?" en el login, que lleva a una pantalla para pedir el correo. Siempre se muestra el mismo mensaje, exista o no la cuenta. La ruta `/recuperar` lee el token del fragmento `#token=`, lo borra de la barra (como `/invitaciones`) y pide la nueva contraseña. Un token inválido da siempre el mismo texto.
+- **R-5 (D1, D2, D3):**
+  - dos casillas en el registro, que no vienen marcadas, con enlace a su texto;
+  - el registro envía las versiones vigentes;
+  - en el login, `403 AcceptanceRequired` abre la pantalla de aceptación con las versiones pendientes y repite el login;
+  - en "Registrar organización", la casilla de términos de organización;
+  - "¿Cómo te llamamos?" después de la bienvenida (D-F10), opcional y con "Más tarde";
+  - nombre y apellido en el Perfil;
+  - saludo con el nombre si existe. Sustituye a D-P7 solo cuando `GET /account/profile` lo devuelve. El nombre nunca va en la URL ni en el almacenamiento.
+- **D6:** "Desactivar mi cuenta" en el Perfil, con la contraseña actual. Los 409 `RepresentativeTransferRequired` y `ActiveCampaignResponsible` tienen texto propio. Tras el 204, la sesión se cierra.
+- **Tests:** para cada ruta, la rama de éxito, la de rechazo y la de fallo, con aserciones negativas de las otras ramas (regla 2.5). Además: el token de recuperación nunca queda en la URL tras cargar `/recuperar`; el nombre no aparece en ninguna petición pública.
+
+### F-C2 · `feat/web-tracking-verifiable` (pista A) — tras la ficha R-6, bloques B y C, y su Enmienda 1
+
+- **Fecha del pago (G-2):** "Pago confirmado" con `firstClearedAt`; si `lastClearedAt` es distinta, también la última.
+- **Árbol de sublotes (G-4):** el árbol central del boceto con `parentAssetRef`. Un `parentAssetRef` que no esté en la respuesta se trata como raíz (nunca se inventa un padre).
+- **Estado de anclaje por paso (G-3):** los cuatro `anchorStatus` con su texto de `labels.ts`. `UNDER_REVIEW` va en amarillo con icono, nunca en verde.
+- **"Huella criptográfica" (Enmienda 1, E1):**
+  - el hash de cada paso, recortado y con "Copiar" (copia el completo);
+  - con `anchorProof`, el botón **"Comprobar en mi navegador"**: recalcula la raíz con `crypto.subtle.digest('SHA-256')` siguiendo el algoritmo exacto de la Enmienda 1 §E1.3, sin dependencias;
+  - la comparación con `merkleRoot` muestra "Coincide" o "No coincide" (en rojo y con icono);
+  - enlace a la transacción en el explorador de la red, solo si la red tiene explorador conocido en una tabla cerrada;
+  - el texto explica qué se comprobó y qué no: que el hash está dentro de la raíz anclada, no el contenido del evento.
+- **Tests:**
+  - el algoritmo de verificación con vectores fijos generados por el backend (un vector con número impar de hojas);
+  - una prueba alterada da "No coincide" (negativa);
+  - sin `anchorProof` no aparece el botón (negativa);
+  - el hash completo no se escribe en ningún log.
+
+### F-C3 · `feat/web-panel-time-data` (pista B) — tras la ficha R-6, bloques B y D, y su Enmienda 1
+
+- KPI "Recaudado en <mes>" con el mes actual de `GET …/funds/monthly` (en la zona horaria que devuelve) y una mini serie de 6 meses si el boceto la tiene; KPI "Integridad" (G-7); "Actividad reciente" (G-8, con su cursor).
+- Columna "Último cambio" (G-9) y "desde hace más de N días" en "Por hacer", con N = 3 como el boceto.
+- **Tests:** meses con 0; varias monedas; un evento de actividad de cada tipo; lote sin `lastEventAt` (columna vacía, no "hace 0 días").
+
+---
+
 ## 6. Pendientes de Carlos
 
 | # | Pregunta | Mientras no responda |
 |---|---|---|
 | P-F1 | ~~Registro: "¿Cómo participarás?"~~ | **Resuelto (Carlos, 2026-10-24): D-F14** |
-| P-F2 | **Barra estrecha con "Perfil": qué dos entradas se combinan (Carlos, 2026-10-24: "podemos combinar dos botones").** Es la web en un ancho estrecho (< 768 px), no la app móvil. Una cuenta con organización tendría 6 entradas y DF7-20 permite 5. **Propuesta:** "Donaciones" y "Seguimiento" se combinan en una sola entrada "Donaciones" (→ `/account/donations`), que queda activa en las dos rutas; arriba de "Tus donaciones" va el enlace "Seguir con un código" (→ `/tracking`). Cada donación de la lista ya abre su seguimiento. Así: Inicio, Explorar, Donaciones, Organización, Perfil. En escritorio nada se combina | "Perfil" solo en escritorio |
-| P-F3 | **Recuperar y cambiar la contraseña (ADR-050 D8 y D5).** Carlos quiere los dos en la web. El backend no los tiene. **Opción (a):** el compañero del backend implementa D5 y D8 (plan R-3+R-2) y después la web hace `/recuperar`, "¿Olvidaste tu contraseña?" y la tarjeta "Seguridad" del Perfil. **Opción (b):** la web los hace ya contra el servidor falso con el contrato de ADR-050, con las superficies deshabilitadas (D5: 404) hasta que el backend llegue; riesgo: si el contrato cambia al implementarlo, se rehace | X-3 y X-9 siguen fuera
+| P-F2 | ~~Barra estrecha con "Perfil"~~ | **Resuelto (Carlos, 2026-10-24): D-F15** |
+| P-F3 | ~~Recuperar y cambiar la contraseña~~ | **Resuelto (Carlos, 2026-10-24): opción (a), D-F16** |
 
 ---
 
@@ -291,8 +340,11 @@ develop (bd099a3)
    ├── Pista A:  F-A0 → F-A1 → F-A2 → F-A3 → F-A4 → F-A5
    │
    └── Pista B:  F-B1 → F-B2
+
+backend (Manuel): ADR-050 R-3+R-2 → R-4 → R-5+D1 → D6 · ficha R-6 B → C (+ Enmienda 1) → D
+   └── cada PR en develop desbloquea su parte de F-C1 (A), F-C2 (A) o F-C3 (B)
 ```
 
 - La pista B no depende de F-A0. Sus capturas en oscuro llegan al rebasar sobre `develop` con F-A0 mergeada, y entonces se completan.
 - **Archivos compartidos:** `labels.ts` y `decisiones-delegadas-web-fase7.md`, como en §1.3 del plan de pantallas. `globals.css` solo en F-A0.
-- **Estimación:** 6 PR de la pista A y 2 de la pista B.
+- **Estimación:** 6 PR de la pista A y 2 de la pista B ahora; después, entre 3 y 6 de F-C1 a F-C3, según cómo lleguen los PR del backend.
