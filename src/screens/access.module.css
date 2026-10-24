@@ -1,5 +1,6 @@
 /* Ref: Documentos/plan-fase7-pantallas.md §5 B-4. Pantallas de acceso (/login, /register, /invitaciones) en v2:
-   superficie centrada con la marca, sin fondo animado (D-P2). Solo tokens semánticos. */
+   superficie centrada con la marca, sin fondo animado (D-P2). Solo tokens semánticos. La marca va en la fuente del
+   cuerpo, como la de la cabecera: /login no descarga fuentes en la primera carga (DF7-12, e2e/theme.spec.ts). */
 .page {
   display: flex;
   justify-content: center;
@@ -22,7 +23,6 @@
   align-items: center;
   gap: var(--space-2);
   margin-bottom: var(--space-4);
-  font-family: var(--font-display);
   font-size: var(--font-size-display-5);
   font-weight: var(--weight-semibold);
   color: var(--color-text);
