@@ -1,27 +1,27 @@
 'use client';
-// Ref: plan-fase7-pantallas.md A-2, D-P1–D-P5; sistema-visual-paxfide-web-enmienda-1.md §3.3 (R-F1–R-F7).
+// Ref: plan-fase7-pantallas.md A-2, D-P1–D-P5; sistema-visual-paxfide-web-enmienda-1.md §3.3 (R-F1–R-F7);
+// plan-fase7-fidelidad.md D-F2 (día y noche con el modo Auto / Noche / Día, no con el tema de la app), D-F4 (etiquetas
+// del mapa) y F-A1 (desenfoque al llegar a las convocatorias, como `#world.blurred` del prototipo).
 // Ilustración decorativa: aria-hidden, fuera del orden de foco, detrás del contenido; no comunica estados (R-F5).
-// La guía el scroll de la landing: cada bloque marcado con `data-world-view` es una vista del recorrido.
+// La guía el scroll de la landing: cada bloque marcado con `data-world-view` es una vista del recorrido. Con `fixedView`
+// (el acceso, D-F5) la vista no sigue al scroll.
 import React, { useEffect, useRef } from 'react';
 import { WorldRenderer } from './worldDraw';
-import { clampDpr, createWorldScene, viewForScroll, type ScreenRect } from './worldScene';
+import { clampDpr, createWorldScene, scrollProgress, viewForScroll, type ScreenRect } from './worldScene';
+import { getWorldNight, setWorldProgress, subscribeWorld } from './worldMode';
 import { loopMode } from '../background/animationPreference';
 import { usePausedPreference } from '../background/usePausedPreference';
-import { isDarkTheme, watchTheme } from '../../lib/theme/theme';
 import s from './world.module.css';
 
-/** 1 si el tema efectivo es oscuro (C-1). El control Auto/Noche/Día de la landing (D-F2) llega en F-A1. */
-function nightFor(root: HTMLElement): number {
-  return isDarkTheme(root.getAttribute('data-theme'), window.matchMedia('(prefers-color-scheme: dark)').matches) ? 1 : 0;
-}
+const getStorage = () => window.localStorage;
 
-/** Vista objetivo según el scroll: el centro de la ventana frente al centro de cada bloque del recorrido. */
-function targetView(): number {
+/** Centros verticales de los bloques del recorrido y el centro de la ventana. */
+function scrollGeometry(): { centers: number[]; y: number } {
   const centers = [...document.querySelectorAll<HTMLElement>('[data-world-view]')].map((el) => {
     const r = el.getBoundingClientRect();
     return r.top + window.scrollY + r.height / 2;
   });
-  return viewForScroll(centers, window.scrollY + window.innerHeight / 2);
+  return { centers, y: window.scrollY + window.innerHeight / 2 };
 }
 
 /** Bloques de contenido a la vista (marcados con `data-world-avoid`): las nubes no se dibujan por detrás (R-F1). */
@@ -32,7 +32,19 @@ function contentRects(): ScreenRect[] {
     .map((r) => ({ left: r.left, top: r.top, right: r.right, bottom: r.bottom }));
 }
 
-export function WorldScene() {
+/** El bloque `blurUnder` ya asoma por la ventana (prototipo: su borde superior por encima del 82 % de la altura). */
+function blurredBy(id: string | undefined): boolean {
+  if (!id) return false;
+  const el = document.getElementById(id);
+  return !!el && el.getBoundingClientRect().top <= window.innerHeight * 0.82;
+}
+
+/** La familia de `--font-mono` (next/font la autoaloja, enmienda §6): el canvas no puede leer la variable CSS. */
+function monoFamily(): string {
+  return getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim() || 'ui-monospace, monospace';
+}
+
+export function WorldScene({ fixedView, blurUnder }: { fixedView?: number; blurUnder?: string }) {
   const paused = usePausedPreference();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pausedRef = useRef(paused);
@@ -42,23 +54,31 @@ export function WorldScene() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !canvas.getContext('2d')) return;
-    const renderer = new WorldRenderer(canvas, createWorldScene());
+    const renderer = new WorldRenderer(canvas, createWorldScene(), monoFamily());
     const reduceMq = window.matchMedia('(prefers-reduced-motion: reduce)');
     let raf: number | null = null;
     let last = performance.now();
     let worldTime = 0;
-    let view = targetView();
-    let target = view;
-    let painted: number | null = null;
+    const read = () => {
+      if (fixedView !== undefined) { setWorldProgress(fixedView, reduceMq.matches); return fixedView; }
+      const { centers, y } = scrollGeometry();
+      setWorldProgress(scrollProgress(centers, y), reduceMq.matches);
+      return viewForScroll(centers, y);
+    };
+    let target = read();
+    let view = target;
+    let painted: string | null = null;
     let frames = 0;
     const current = () => ({ paused: pausedRef.current, reducedMotion: reduceMq.matches, hidden: document.hidden });
 
     const paint = (drift: boolean) => {
-      renderer.draw(view, nightFor(document.documentElement), worldTime, drift, contentRects());
-      painted = view;
+      const night = getWorldNight(getStorage);
+      renderer.draw(view, night, worldTime, drift, contentRects());
+      painted = `${view}|${night}`;
       frames++;
       canvas.setAttribute('data-frames', String(frames));
       canvas.setAttribute('data-view', view.toFixed(2));
+      canvas.setAttribute('data-night', night.toFixed(2));
     };
     const tick = (now: number) => {
       raf = null;
@@ -73,8 +93,9 @@ export function WorldScene() {
     /** Sin bucle (pausa o "reducir movimiento", R-F2 y R-F3): la vista salta de parada en parada, sin transición. */
     const still = () => {
       view = Math.round(target);
-      if (painted !== view) paint(false);
+      if (painted !== `${view}|${getWorldNight(getStorage)}`) paint(false);
     };
+    const blur = () => canvas.setAttribute('data-blurred', blurredBy(blurUnder) ? 'true' : 'false');
     const sync = () => {
       const mode = loopMode(current());
       canvas.setAttribute('data-loop', mode);
@@ -87,14 +108,15 @@ export function WorldScene() {
       if (mode === 'still') still();
     };
     const onScroll = () => {
-      target = targetView();
+      target = read();
+      blur();
       if (loopMode(current()) === 'still') still();
     };
     const resize = () => {
       renderer.resize(window.innerWidth, window.innerHeight, clampDpr(window.devicePixelRatio));
-      target = targetView();
-      const mode = loopMode(current());
-      if (mode === 'still') { painted = null; still(); }
+      target = read();
+      blur();
+      if (loopMode(current()) === 'still') { painted = null; still(); }
     };
 
     wakeRef.current = sync;
@@ -103,23 +125,23 @@ export function WorldScene() {
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', resize);
     document.addEventListener('visibilitychange', sync);
+    reduceMq.addEventListener('change', onScroll);
     reduceMq.addEventListener('change', sync);
-    // En marcha, cada fotograma lee el tema; quieto (pausa o "reducir movimiento"), se repinta al cambiarlo
-    const unwatchTheme = watchTheme(document.documentElement, () => {
-      if (loopMode(current()) === 'still') { painted = null; still(); }
-    });
+    // El modo Día / Noche: en marcha, cada fotograma lo lee; quieto, se repinta al cambiar (sin mezcla animada)
+    const unsubscribe = subscribeWorld(() => { if (loopMode(current()) === 'still') still(); });
     return () => {
-      unwatchTheme();
+      unsubscribe();
       if (raf !== null) cancelAnimationFrame(raf);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', sync);
+      reduceMq.removeEventListener('change', onScroll);
       reduceMq.removeEventListener('change', sync);
       wakeRef.current = () => {};
     };
-  }, []);
+  }, [fixedView, blurUnder]);
 
   useEffect(() => { wakeRef.current(); }, [paused]);
 
-  return <canvas ref={canvasRef} className={s.world} aria-hidden="true" data-testid="world-background" />;
+  return <canvas ref={canvasRef} className={s.world} aria-hidden="true" data-testid="world-background" data-blurred="false" />;
 }

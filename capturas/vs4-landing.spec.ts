@@ -19,7 +19,7 @@ for (const width of [390, 1280]) {
     await shot(page, 'inicio', width);
     await page.locator('#parada-4').evaluate((el) => el.scrollIntoView({ block: 'center' }));
     await shot(page, 'sello', width);
-    await page.getByTestId('example-toggle').click();
+    await page.getByTestId('example-chip').first().click();
     await page.locator('#seguir').evaluate((el) => el.scrollIntoView({ block: 'start' }));
     await shot(page, 'seguimiento', width);
     await page.locator('#convocatorias').evaluate((el) => el.scrollIntoView({ block: 'start' }));

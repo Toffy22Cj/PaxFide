@@ -74,8 +74,8 @@ test.describe('Landing (VS-4)', () => {
     // Peticiones de datos al backend (fetch/XHR). No cuentan el logo (carga diferida al desplazarse) ni la precarga
     // de enlaces de Next.js, que va al propio origen
     page.on('request', (r) => { if (r.url().startsWith(API) && ['fetch', 'xhr'].includes(r.resourceType())) after.push(r.url()); });
-    await page.getByTestId('example-toggle').click();
-    await expect(page.getByTestId('tracking-example')).toContainText('Ejemplo');
+    await page.getByTestId('example-chip').first().click();
+    await expect(page.getByTestId('tracking-example')).toContainText('EJEMPLO ILUSTRATIVO');
     await idle(page, 400);
     expect(after).toEqual([]);
     await expect(page.getByText('20.000.000')).toHaveCount(0);
@@ -143,9 +143,9 @@ test.describe('Landing (VS-4)', () => {
       await expect(page.getByTestId('landing-campaigns')).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
       // En estrecho, las secciones y los accesos van en el menú de la cabecera
-      if (width < 1100) await page.getByRole('button', { name: 'Abrir menú de navegación' }).click();
-      for (const name of ['Ingresar', 'Seguir una donación', 'Donar']) {
-        const b = (await page.getByRole('navigation', { name: 'Secciones de la página de inicio' }).getByRole('link', { name, exact: true }).boundingBox())!;
+      if (width < 1180) await page.getByRole('button', { name: 'Abrir menú de navegación' }).click();
+      for (const name of ['Ingresar', 'Seguir donación', 'Donar']) {
+        const b = (await page.getByRole('banner').getByRole('link', { name, exact: true }).filter({ visible: true }).boundingBox())!;
         expect(b.height, name).toBeGreaterThanOrEqual(44);
         expect(b.x + b.width, name).toBeLessThanOrEqual(width);
       }
@@ -156,7 +156,7 @@ test.describe('Landing (VS-4)', () => {
     await page.goto('/');
     await expect(page.getByRole('banner')).toHaveCount(1);
     const header = page.getByRole('banner');
-    await expect(header.getByRole('link', { name: 'PaxFide, inicio' })).toHaveAttribute('href', '/');
+    await expect(header.getByRole('link', { name: 'PaxFide, inicio' })).toHaveAttribute('href', '#parada-1');
     await expect(header.getByTestId('city-pause')).toHaveAccessibleName('Pausar animación');
     await expect(page.getByRole('navigation', { name: 'Principal' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Seguimiento', exact: true })).toHaveCount(1);

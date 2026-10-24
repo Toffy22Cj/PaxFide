@@ -151,19 +151,65 @@ export function cloudAt(c: WorldCloud, t: number): [number, number] {
 }
 
 /**
- * Del avance del scroll a la vista objetivo (prototipo `readScroll`): `centers` son los centros verticales de las
- * secciones del recorrido y `y` el centro de la ventana. Entre dos paradas la vista solo se mueve en el tramo
- * central (de 0,28 a 0,72), para que cada tarjeta se lea con su escena quieta.
+ * Avance del scroll (prototipo `readScroll`, `sRaw`): `centers` son los centros verticales de las secciones del
+ * recorrido y `y` el centro de la ventana. 0 en la primera parada, 1 en la segunda… y entre medias, la fracción.
+ */
+export function scrollProgress(centers: readonly number[], y: number): number {
+  if (centers.length === 0) return 0;
+  if (y <= centers[0]) return 0;
+  if (y >= centers[centers.length - 1]) return centers.length - 1;
+  for (let i = 0; i < centers.length - 1; i++) if (y < centers[i + 1]) return i + (y - centers[i]) / (centers[i + 1] - centers[i]);
+  return centers.length - 1;
+}
+
+/**
+ * Del avance del scroll a la vista objetivo (prototipo `readScroll`). Entre dos paradas la vista solo se mueve en el
+ * tramo central (de 0,28 a 0,72), para que cada tarjeta se lea con su escena quieta.
  */
 export function viewForScroll(centers: readonly number[], y: number): number {
-  if (centers.length === 0) return 0;
-  let raw = 0;
-  if (y <= centers[0]) raw = 0;
-  else if (y >= centers[centers.length - 1]) raw = centers.length - 1;
-  else for (let i = 0; i < centers.length - 1; i++) if (y < centers[i + 1]) { raw = i + (y - centers[i]) / (centers[i + 1] - centers[i]); break; }
+  const raw = scrollProgress(centers, y);
   const i = Math.floor(raw);
   return Math.min(VIEW_COUNT - 1, i + smooth(0.28, 0.72, raw - i));
 }
+
+/**
+ * Opacidad de la tarjeta de la parada `j` con el avance `raw` (prototipo: `1 - ss(.22, .44, |sRaw - j|)`): la de la
+ * parada en curso se ve entera y las demás se desvanecen al alejarse.
+ */
+export function stopCardOpacity(raw: number, j: number): number {
+  return 1 - smooth(0.22, 0.44, Math.abs(raw - j));
+}
+
+/**
+ * Mezcla de noche del modo "Auto" (plan-fase7-fidelidad.md D-F2; prototipo `getAutoNight`): día en la parada 1,
+ * ocaso, noche en la 4 y vuelta al día en la 5.
+ */
+export function autoNight(u: number): number {
+  if (u <= 1) return lerp(0, 0.12, u);
+  if (u <= 2) return lerp(0.12, 0.65, u - 1);
+  if (u <= 3) return lerp(0.65, 1.0, u - 2);
+  if (u <= 4) return lerp(1.0, 0.15, u - 3);
+  return lerp(0.15, 0, clamp01(u - 4));
+}
+
+/**
+ * Textos de las etiquetas del mapa (plan-fase7-fidelidad.md D-F4 y §2.1): las del prototipo, en el mismo sitio, sin
+ * cifras ni lugares reales. Son los únicos textos que se dibujan en el mundo.
+ */
+export const WORLD_LABELS = {
+  gateway: 'Pasarela de pago',
+  donate: 'Donar',
+  fund: 'Fondo de la convocatoria',
+  lot: 'Lote · QR',
+  warehouse: 'Bodega',
+  split: 'Lote dividido',
+  sublot: 'Sublote',
+  route: 'Ruta de entrega',
+  root: 'Raíz anclada',
+  anchor: 'Anclaje en blockchain',
+  delivered: 'Entrega confirmada',
+  community: 'Centro comunitario',
+} as const;
 
 export const TW = 34, TH = 17, HZ = 36;
 

@@ -1,17 +1,22 @@
 'use client';
 // Ref: plan-fase7-pantallas.md A-2 y D-P5; prompts-agentes-estilo-v2.md VS-4 y §3.3; referencia-api-v1.md §5
-// (GET /public/campaigns). Referencia visual: paxfide-landing.html. Textos del recorrido tal cual, sin cifras ni
-// nombres concretos (montos, organizaciones, ciudades). Fuera: búsqueda y filtros (R-1), "Escanear QR", métricas
-// globales, el acceso con Google o billetera y el selector Día / Noche del prototipo. D-P13: en `/` la app no pone su
-// cabecera ni su barra; esta cabecera (la del prototipo) es la única, con el botón de pausa (R-F2).
-import React, { useEffect, useState, useSyncExternalStore } from 'react';
+// (GET /public/campaigns). plan-fase7-fidelidad.md D-F1 (paxfide-landing.html es el contrato visual), D-F2 (Auto /
+// Noche / Día; las superficies toman los tokens oscuros con data-theme="dark" cuando la noche pasa de 0,5) y F-A1.
+// Desviaciones (§3 del plan): X-10 cifras, lugares y fechas de ejemplo; X-11 filtros por causa y búsqueda; X-12 el
+// muestrario de variantes de tarjeta (y su conmutador Grilla / Móvil); X-15 huellas en el seguimiento de ejemplo.
+// D-P13: en `/` la app no pone su cabecera ni su barra; esta cabecera (la del prototipo) es la única, con la pausa (R-F2).
+import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import * as session from '../lib/auth/session';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { fetchDiscovery, type DiscoveryItem } from '../lib/api/publicCampaigns';
-import { custodianLabel, eventLabel, intentStatusLabel } from '../lib/labels';
+import { lifecycleLabel } from '../lib/labels';
+import { handOffTrackingCode } from '../lib/tracking/handoff';
 import { CampaignCard } from '../components/campaign/CampaignCard';
 import { WorldScene } from '../components/landing/WorldScene';
+import { WorldModeToggle, useSurfaceTheme } from '../components/landing/WorldModeToggle';
+import { scrollProgress, stopCardOpacity } from '../components/landing/worldScene';
 import { PauseButton } from '../components/background/PauseButton';
 import { BrandMark } from '../components/shell/BrandMark';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
@@ -29,6 +34,8 @@ interface Stop {
   facts: { strong: string; span: string }[];
 }
 
+/** Las cinco paradas del prototipo. Sin las cifras ni el lugar de ejemplo (X-10): "120 kits", "100 → 60 + 40", "Lorica,
+ * Córdoba" y "5 de 5 pasos". */
 const STOPS: Stop[] = [
   {
     id: 'parada-1', index: '01 / 05 · DONAS', event: 'PAGO CONFIRMADO', title: ['Tu donación, ', 'de principio a fin'],
@@ -57,13 +64,29 @@ const STOPS: Stop[] = [
   },
 ];
 
-/** Seguimiento demostrativo (D-P5, §3.3): datos ficticios rotulados "Ejemplo", solo con categorías del enumerado. */
+/**
+ * Seguimiento de ejemplo (prototipo `DEMO_CODES` y `.trk-result`; D-P5, §3.3): datos ficticios rotulados "Ejemplo".
+ * Los pasos son los del prototipo; el estado sale de labels.ts. Sin horas, lugares ni huellas (X-10, X-15).
+ */
+export const EXAMPLE_CODES = ['EJEMPLO-1', 'EJEMPLO-2'] as const;
+type ExampleCode = (typeof EXAMPLE_CODES)[number];
+const EXAMPLES: Record<ExampleCode, { status: string; done: number }> = {
+  'EJEMPLO-1': { status: 'DELIVERED', done: 5 },
+  'EJEMPLO-2': { status: 'DISPATCHED', done: 3 },
+};
 const EXAMPLE_STEPS = [
-  { event: 'ASSET_REGISTERED', custodian: 'REGIONAL_WAREHOUSE', text: 'Compra de insumos y registro del lote en la bodega.' },
-  { event: 'ASSET_DISPATCHED', custodian: 'LAST_MILE_CARRIER', text: 'QR escaneado al salir de la bodega.' },
-  { event: 'ASSET_RECEIVED', custodian: 'LOCAL_ALLY', text: 'QR escaneado en un punto de control de la ruta.' },
-  { event: 'ASSET_DELIVERED', custodian: 'LOCAL_ALLY', text: 'Recibido en el centro comunitario, sin exponer datos personales.' },
+  { title: '01 · Recepción de fondos', text: 'Pago confirmado por la pasarela. Se abre el historial de la donación.' },
+  { title: '02 · Registro de lote y QR', text: 'Compra de insumos y registro del lote en la bodega.' },
+  { title: '03 · Despachado hacia el destino', text: 'QR escaneado al salir de la bodega.' },
+  { title: '04 · Sello en blockchain (Merkle)', text: 'Las huellas del lote se agrupan y la raíz se ancla para verificación pública.' },
+  { title: '05 · Entrega confirmada', text: 'Recibido en el centro comunitario, sin exponer datos personales.' },
 ] as const;
+
+/** El código escrito es uno de los ejemplos (sin distinguir mayúsculas, como el prototipo). */
+export function exampleFor(code: string): ExampleCode | null {
+  const key = code.trim().toUpperCase();
+  return (EXAMPLE_CODES as readonly string[]).includes(key) ? (key as ExampleCode) : null;
+}
 
 function useSessionState(): session.MachineState {
   return useSyncExternalStore(session.subscribe, session.getState, () => 'RESTORING' as session.MachineState);
@@ -75,9 +98,31 @@ const ANCHORS = [
   { href: '#convocatorias', label: 'Convocatorias' }, { href: '#seguir', label: 'Seguimiento' },
 ];
 
+function PersonIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"
+      strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+  );
+}
+
+/** Accesos de la cabecera (prototipo `.acts` y `.nav-mobile-acts`): Ingresar, Seguir donación y Donar. */
+function HeaderActs({ signedIn, onPick }: { signedIn: boolean; onPick: () => void }) {
+  return (
+    <>
+      {signedIn && isSurfaceEnabled('/home') && <Link className={s.btnPrimary} href="/home">Ir a mi inicio</Link>}
+      {!signedIn && isSurfaceEnabled('/login') && (
+        <Link className={s.btnSecondary} href="/login"><PersonIcon /><span>Ingresar</span></Link>
+      )}
+      <a className={s.btnSecondary} href="#seguir" onClick={onPick}>Seguir donación</a>
+      {isSurfaceEnabled('/campaigns') && <a className={s.btnPrimary} href="#convocatorias" onClick={onPick}>Donar</a>}
+    </>
+  );
+}
+
 /**
- * Cabecera de la landing (prototipo `header.nav`): marca → `/`, anclas de la página, pausa de la animación y accesos
- * a Ingresar, Seguir una donación y Donar. En estrecho, las anclas y los accesos van en un menú que se despliega.
+ * Cabecera de la landing (prototipo `header.nav`): marca, anclas de la página, el botón Día / Noche (D-F2), la pausa
+ * (R-F2) y los accesos. Cada control tiene su propio sitio en la fila (F-A1: la pausa ya no pisa "Donar"). En estrecho,
+ * las anclas, el botón Día / Noche y los accesos van en el menú que se despliega, como en el prototipo.
  */
 function LandingHeader() {
   const signedIn = useSessionState() === 'AUTHENTICATED';
@@ -85,25 +130,27 @@ function LandingHeader() {
   const close = () => setOpen(false);
   return (
     <header className={s.header} data-world-avoid="">
-      <Link className={s.brand} href="/" aria-label="PaxFide, inicio">
+      <a className={s.brand} href="#parada-1" aria-label="PaxFide, inicio">
         <BrandMark size={30} /><span aria-hidden="true">Pax<span className={s.brandFide}>Fide</span><span className={s.brandDot}>.</span></span>
-      </Link>
-      <PauseButton className={s.pause} textClassName={s.pauseText} />
-      <button type="button" className={s.menuToggle} aria-expanded={open} aria-controls="landing-menu"
-        aria-label={open ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'} onClick={() => setOpen((o) => !o)}>
-        <span /><span /><span />
-      </button>
+      </a>
       <nav id="landing-menu" className={open ? `${s.menu} ${s.menuOpen}` : s.menu} aria-label="Secciones de la página de inicio">
         <ul className={s.anchors}>
           {ANCHORS.map((a) => <li key={a.href}><a href={a.href} onClick={close}>{a.label}</a></li>)}
         </ul>
-        <div className={s.acts}>
-          {signedIn && isSurfaceEnabled('/home') && <Link className={s.btnPrimary} href="/home">Ir a mi inicio</Link>}
-          {!signedIn && isSurfaceEnabled('/login') && <Link className={s.btnSecondary} href="/login">Ingresar</Link>}
-          {isSurfaceEnabled('/tracking') && <Link className={s.btnSecondary} href="/tracking">Seguir una donación</Link>}
-          {isSurfaceEnabled('/campaigns') && <Link className={s.btnPrimary} href="/campaigns">Donar</Link>}
+        <div className={s.mobileActs}>
+          <WorldModeToggle className={s.modeToggle} testId="world-mode-mobile" />
+          <HeaderActs signedIn={signedIn} onPick={close} />
         </div>
       </nav>
+      <div className={s.tools}>
+        <WorldModeToggle className={`${s.modeToggle} ${s.modeDesktop}`} />
+        <PauseButton className={s.pause} textClassName={s.pauseText} />
+      </div>
+      <div className={s.acts}><HeaderActs signedIn={signedIn} onPick={close} /></div>
+      <button type="button" className={s.menuToggle} aria-expanded={open} aria-controls="landing-menu"
+        aria-label={open ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'} onClick={() => setOpen((o) => !o)}>
+        <span /><span /><span />
+      </button>
     </header>
   );
 }
@@ -152,6 +199,21 @@ function StopDots() {
   );
 }
 
+/**
+ * Las tarjetas de las paradas se desvanecen al alejarse de su parada (prototipo `readScroll`: `cards[j].style.opacity`).
+ * Sigue al scroll, no al tiempo: con "reducir movimiento" pasa igual, sin transición.
+ */
+function useStopCardFade() {
+  useScroll(() => {
+    const views = [...document.querySelectorAll<HTMLElement>('[data-world-view]')];
+    const centers = views.map((el) => { const r = el.getBoundingClientRect(); return r.top + window.scrollY + r.height / 2; });
+    const raw = scrollProgress(centers, window.scrollY + window.innerHeight / 2);
+    document.querySelectorAll<HTMLElement>('[data-stop-card]').forEach((card) => {
+      card.style.opacity = stopCardOpacity(raw, Number(card.dataset.stopCard)).toFixed(3);
+    });
+  });
+}
+
 const MANIFESTO = 'Cada paso queda registrado. Nadie lo puede cambiar sin que se note. Y tú lo puedes comprobar cuando quieras.';
 const HIGHLIGHT = new Set(['registrado.', 'cambiar', 'comprobar']);
 
@@ -185,11 +247,12 @@ function Manifesto() {
   );
 }
 
-function StopCard({ stop, first }: { stop: Stop; first: boolean }) {
+function StopCard({ stop, index }: { stop: Stop; index: number }) {
+  const first = index === 0;
   const Heading = first ? 'h1' : 'h2';
   return (
     <section className={first ? `${s.stop} ${s.stopFirst}` : s.stop} id={stop.id} data-world-view="">
-      <article className={s.card} data-world-avoid="">
+      <article className={s.card} data-world-avoid="" data-stop-card={index}>
         <div className={s.idx}><b>{stop.index}</b><span className={s.ev}>{stop.event}</span></div>
         <Heading className={first ? s.h1 : s.h2}>{stop.title[0]}<em>{stop.title[1]}</em>.</Heading>
         <p className={s.text}>{stop.text}</p>
@@ -210,25 +273,75 @@ function StopCard({ stop, first }: { stop: Stop; first: boolean }) {
   );
 }
 
-function TrackingExample() {
-  const [open, setOpen] = useState(false);
+function CodeIcon() {
   return (
-    <div className={s.example}>
-      <p className={s.exampleLead}>
-        ¿No tienes código?{' '}
-        <button type="button" className={s.linkButton} aria-expanded={open} aria-controls="seguimiento-ejemplo"
-          onClick={() => setOpen((o) => !o)} data-testid="example-toggle">
-          {open ? 'Ocultar el ejemplo' : 'Ver un ejemplo'}
-        </button>
-      </p>
-      {open && (
-        <div id="seguimiento-ejemplo" className={s.exampleBox} data-testid="tracking-example">
-          <p className={s.exampleBadge}><span className={s.ev}>Ejemplo</span> Datos ficticios. No es una consulta a la plataforma.</p>
-          <p className={s.exampleIntro}>Donación {intentStatusLabel('CONFIRMED').toLocaleLowerCase('es')}: el pago llegó por la pasarela y se abre su historial.</p>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+      strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" /><path d="M14 14h3v3M21 14v.01M14 21h7v-4" />
+    </svg>
+  );
+}
+
+/**
+ * Buscador del prototipo (`form.trk` y `.trk-demo-chips`). Un código de ejemplo muestra el resultado ilustrativo;
+ * cualquier otro se lleva a `/tracking` en memoria (DW-16, D2: nunca por la URL) y allí se consulta.
+ */
+function TrackingSearch() {
+  const router = useRouter();
+  const [code, setCode] = useState('');
+  const [msg, setMsg] = useState('');
+  const [example, setExample] = useState<ExampleCode | null>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!example) return;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    resultRef.current?.scrollIntoView?.({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
+  }, [example]);
+  const show = (value: string) => {
+    if (!value.trim()) { setMsg('Escribe tu código o pulsa uno de los ejemplos.'); setExample(null); return; }
+    const ex = exampleFor(value);
+    if (ex) { setMsg(''); setExample(ex); return; }
+    if (!isSurfaceEnabled('/tracking')) { setMsg('El seguimiento no está disponible en este momento.'); setExample(null); return; }
+    handOffTrackingCode(value.trim());
+    router.push('/tracking');
+  };
+  const current = example ? EXAMPLES[example] : null;
+  return (
+    <>
+      <form className={s.trk} autoComplete="off" role="search" onSubmit={(e) => { e.preventDefault(); show(code); }}>
+        <label htmlFor="landing-trk" className={s.srOnly}>Código de seguimiento</label>
+        <div className={s.capsule}>
+          <CodeIcon />
+          <input id="landing-trk" name="trk" placeholder="Código de seguimiento" spellCheck={false} autoCapitalize="characters"
+            value={code} onChange={(e) => setCode(e.target.value)} data-testid="landing-trk" />
+          <button type="submit" className={s.btnYellow}>Ver recorrido <span aria-hidden="true">→</span></button>
+        </div>
+      </form>
+      <div className={s.demoChips}>
+        <span className={s.demoLabel}>¿No tienes código? Prueba:</span>
+        {EXAMPLE_CODES.map((c) => (
+          <button key={c} type="button" className={s.demoChip} data-testid="example-chip"
+            onClick={() => { setCode(c); show(c); }}>{c} <span aria-hidden="true">↗</span></button>
+        ))}
+      </div>
+      <p className={s.trkMsg} role="status">{msg}</p>
+      {current && (
+        <div ref={resultRef} className={s.result} data-testid="tracking-example" aria-live="polite">
+          <div className={s.resultBadge}>
+            <span className={s.evExample}>EJEMPLO ILUSTRATIVO</span>
+            <small>Datos ficticios. No es una consulta a la plataforma.</small>
+          </div>
+          <dl className={s.summary}>
+            <div><dt>Lote</dt><dd>Lote de ejemplo</dd></div>
+            <div><dt>Destino</dt><dd>Centro comunitario</dd></div>
+            <div><dt>Estado</dt><dd><span className={s.statusTag} data-testid="example-status">{lifecycleLabel(current.status)} ({current.done}/5)</span></dd></div>
+          </dl>
           <ol className={s.timeline}>
-            {EXAMPLE_STEPS.map((st) => (
-              <li key={st.event}>
-                <b>{eventLabel(st.event)}</b> · <span>{custodianLabel(st.custodian)}</span>
+            {EXAMPLE_STEPS.map((st, i) => (
+              <li key={st.title} className={i < current.done ? undefined : s.stepPending} data-done={i < current.done ? 'true' : 'false'}>
+                <span className={s.tlDot} aria-hidden="true" />
+                <b>{st.title}</b>
                 <p>{st.text}</p>
               </li>
             ))}
@@ -236,7 +349,14 @@ function TrackingExample() {
           <p className={s.disclaimer}>En la plataforma real, el código de seguimiento es una credencial privada: no lo compartas ni lo publiques.</p>
         </div>
       )}
-    </div>
+    </>
+  );
+}
+
+function OrgIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+      strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M3 21h18" /><path d="M5 21V9l7-5 7 5v12" /><path d="M9 21v-6h6v6" /></svg>
   );
 }
 
@@ -256,9 +376,11 @@ function OpenCampaigns({ client }: { client: typeof fetchDiscovery }) {
   return (
     <section className={s.campaigns} id="convocatorias" aria-labelledby="convocatorias-titulo">
       <div className={s.panel} data-world-avoid="">
-        <span className={s.ev}>CONVOCATORIAS</span>
-        <h2 id="convocatorias-titulo" className={s.h2}>Convocatorias <em>abiertas</em></h2>
-        <p className={s.text}>Explora convocatorias activas con trazabilidad lote a lote.</p>
+        <div className={s.convHead}>
+          <span className={s.ev}>CATÁLOGO OFICIAL DE CONVOCATORIAS</span>
+          <h2 id="convocatorias-titulo" className={s.h2}>Causas abiertas con <em>trazabilidad garantizada</em></h2>
+          <p className={s.text}>Explora convocatorias activas con trazabilidad lote a lote. Cada donación genera un recibo digital enlazado a kits físicos verificados en blockchain.</p>
+        </div>
         {state === 'loading' && <LoadingState />}
         {state === 'error' && <ErrorState onRetry={() => void load()} />}
         {state === 'ready' && items.length === 0 && <EmptyState text="No hay convocatorias abiertas en este momento." />}
@@ -270,20 +392,26 @@ function OpenCampaigns({ client }: { client: typeof fetchDiscovery }) {
         {state === 'ready' && isSurfaceEnabled('/campaigns') && (
           <p className={s.more}><Link className={s.btnSecondary} href="/campaigns">Ver todas</Link></p>
         )}
+        <footer className={s.footer}>
+          <p>PaxFide · plataforma de trazabilidad de donaciones</p>
+        </footer>
       </div>
     </section>
   );
 }
 
 export function LandingScreen({ client = fetchDiscovery }: { client?: typeof fetchDiscovery }) {
+  // D-F2: las superficies de la landing siguen el modo Día / Noche, no el tema de la app
+  const theme = useSurfaceTheme();
+  useStopCardFade();
   return (
-    <div className={s.landing}>
-      <WorldScene />
+    <div className={s.landing} data-theme={theme} data-testid="landing-root">
+      <WorldScene blurUnder="convocatorias" />
       <LandingHeader />
       <StopDots />
       {/* D-P13: en `/` la estructura no pone su <main>; la landing lo abre tras su cabecera */}
       <main className={s.content} id="contenido">
-      {STOPS.map((st, i) => <StopCard key={st.id} stop={st} first={i === 0} />)}
+      {STOPS.map((st, i) => <StopCard key={st.id} stop={st} index={i} />)}
       <section className={s.overview} id="recorrido" data-world-view="">
         <div className={s.mani} data-world-avoid="">
           <span className={s.ev}>TODO EL RECORRIDO</span>
@@ -294,16 +422,13 @@ export function LandingScreen({ client = fetchDiscovery }: { client?: typeof fet
       <section className={s.cta} id="seguir" aria-labelledby="seguir-titulo">
         <div className={s.island} data-world-avoid="">
           <div className={s.ctaMain}>
-            <span className={s.ev}>SEGUIMIENTO DE DONACIÓN</span>
+            <span className={`${s.ev} ${s.ctaEv}`}><i className={s.liveDot} aria-hidden="true" />SEGUIMIENTO DE DONACIÓN</span>
             <h2 id="seguir-titulo" className={s.h2}>¿Ya donaste? <em>Sigue tu donación.</em></h2>
             <p className={s.text}>Escribe el código que recibiste al donar. Verás en qué punto va y cuándo quedó sellada.</p>
-            <div className={s.ctas}>
-              {isSurfaceEnabled('/tracking') && <Link className={s.btnPrimary} href="/tracking">Seguir una donación</Link>}
-              {isSurfaceEnabled('/campaigns') && <Link className={s.btnSecondary} href="/campaigns">Donar</Link>}
-            </div>
-            <TrackingExample />
+            <TrackingSearch />
           </div>
           <aside className={s.org} aria-labelledby="organizacion-titulo">
+            <div className={s.orgIcon}><OrgIcon /></div>
             <h3 id="organizacion-titulo" className={s.h3}>¿Eres una organización?</h3>
             <p>Crea tu cuenta y registra la organización. Un administrador la verifica antes de que publique convocatorias.</p>
             <ul className={s.checks}>
@@ -311,17 +436,13 @@ export function LandingScreen({ client = fetchDiscovery }: { client?: typeof fet
               <li>Lotes con QR y recorrido visible</li>
               <li>Historial que cualquiera puede verificar</li>
             </ul>
-            {isSurfaceEnabled('/register') && <Link className={s.btnSecondary} href="/register">Registrar mi organización</Link>}
+            {isSurfaceEnabled('/register') && <Link className={s.btnSecondary} href="/register">Registrar mi organización <span aria-hidden="true">→</span></Link>}
           </aside>
         </div>
       </section>
 
       <OpenCampaigns client={client} />
-
       </main>
-      <footer className={s.footer} data-world-avoid="">
-        <p><b>PaxFide</b> · Donaciones que llegan: trazabilidad verificable de donaciones.</p>
-      </footer>
     </div>
   );
 }

@@ -2,8 +2,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   VIEW_COUNT, cameraFor, clampDpr, cloudAt, createWorldScene, rectFade, road, stopProgress, viewForScroll, STOPS,
+  WORLD_LABELS, autoNight, scrollProgress, stopCardOpacity,
 } from '../src/components/landing/worldScene';
 import { WORLD_DAY, WORLD_NIGHT, worldPalette } from '../src/components/landing/worldPalette';
+import {
+  WORLD_MODE_KEY, nextWorldMode, parseWorldMode, readWorldMode, surfaceTheme, worldModeLook, worldNight, writeWorldMode,
+} from '../src/components/landing/worldMode';
 import { backgroundFor, hasAppChrome } from '../src/lib/routing/backgroundRoutes';
 import {
   getPausedSnapshot, resetPausedSnapshot, setPausedPreference, subscribePaused, CITY_PAUSE_KEY,
@@ -149,4 +153,107 @@ describe('Ruta / (A-2)', () => {
     expect(off.classifyRoute('/')).toBe('NOT_APPROVED');
     vi.unstubAllEnvs();
   });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// F-A1 (plan-fase7-fidelidad.md D-F2 y D-F4): día y noche, desvanecido de tarjetas y etiquetas del mapa
+// ---------------------------------------------------------------------------------------------------------------
+
+describe('autoNight (prototipo getAutoNight)', () => {
+  it('día en la parada 1, ocaso, noche en la 4 y vuelta al día en la 5', () => {
+    expect(autoNight(0)).toBe(0);
+    expect(autoNight(1)).toBeCloseTo(0.12, 6);
+    expect(autoNight(2)).toBeCloseTo(0.65, 6);
+    expect(autoNight(3)).toBeCloseTo(1, 6);
+    expect(autoNight(4)).toBeCloseTo(0.15, 6);
+    expect(autoNight(5)).toBe(0);
+    expect(autoNight(9)).toBe(0);
+  });
+});
+
+describe('scrollProgress y stopCardOpacity (prototipo readScroll)', () => {
+  const centers = [100, 300, 500];
+  it('el avance es lineal entre centros y se queda en los extremos', () => {
+    expect(scrollProgress(centers, 0)).toBe(0);
+    expect(scrollProgress(centers, 200)).toBeCloseTo(0.5, 6);
+    expect(scrollProgress(centers, 400)).toBeCloseTo(1.5, 6);
+    expect(scrollProgress(centers, 9000)).toBe(2);
+    expect(scrollProgress([], 10)).toBe(0);
+  });
+  it('la tarjeta de la parada en curso se ve entera; a media parada de distancia, ya no', () => {
+    expect(stopCardOpacity(2, 2)).toBe(1);
+    expect(stopCardOpacity(2.2, 2)).toBe(1);
+    expect(stopCardOpacity(2.5, 2)).toBe(0);
+    expect(stopCardOpacity(2.33, 2)).toBeGreaterThan(0);
+    expect(stopCardOpacity(2.33, 2)).toBeLessThan(1);
+  });
+});
+
+describe('modo Día / Noche (D-F2)', () => {
+  const mem = (init: Record<string, string> = {}) => {
+    const data = { ...init };
+    return { data, getItem: (k: string) => data[k] ?? null, setItem: (k: string, v: string) => { data[k] = v; }, removeItem: (k: string) => { delete data[k]; } };
+  };
+  it('ciclo Auto → Noche → Día → Auto', () => {
+    expect(nextWorldMode('auto')).toBe('night');
+    expect(nextWorldMode('night')).toBe('day');
+    expect(nextWorldMode('day')).toBe('auto');
+  });
+  it('se guarda con su clave; Auto borra la clave; un almacenamiento que falla no lanza', () => {
+    const st = mem();
+    expect(writeWorldMode(() => st, 'night')).toEqual({ ok: true });
+    expect(st.data[WORLD_MODE_KEY]).toBe('night');
+    expect(readWorldMode(() => st)).toBe('night');
+    writeWorldMode(() => st, 'auto');
+    expect(st.data[WORLD_MODE_KEY]).toBeUndefined();
+    expect(readWorldMode(() => { throw new Error('bloqueado'); })).toBe('auto');
+    expect(writeWorldMode(() => { throw new Error('bloqueado'); }, 'day')).toEqual({ ok: false, error: 'StorageUnavailable' });
+    expect(parseWorldMode('sepia')).toBe('auto');
+  });
+  it('la mezcla: fija en Noche y Día; en Auto sigue el recorrido; con "reducir movimiento" salta de parada en parada', () => {
+    expect(worldNight('night', 0, false)).toBe(1);
+    expect(worldNight('day', 3, false)).toBe(0);
+    expect(worldNight('auto', 2.5, false)).toBeCloseTo(autoNight(2.5), 6);
+    expect(worldNight('auto', 2.4, true)).toBeCloseTo(autoNight(2), 6);
+    expect(worldNight('auto', 2.6, true)).toBeCloseTo(autoNight(3), 6);
+  });
+  it('textos e iconos del prototipo (updateThemeUI)', () => {
+    expect(worldModeLook('auto', 0.29)).toEqual({ text: 'Auto (Día)', icon: 'sun' });
+    expect(worldModeLook('auto', 0.3)).toEqual({ text: 'Auto (Ocaso)', icon: 'dusk' });
+    expect(worldModeLook('auto', 0.69)).toEqual({ text: 'Auto (Ocaso)', icon: 'dusk' });
+    expect(worldModeLook('auto', 0.7)).toEqual({ text: 'Auto (Noche)', icon: 'moon' });
+    expect(worldModeLook('night', 0)).toEqual({ text: 'Noche', icon: 'moon' });
+    expect(worldModeLook('day', 1)).toEqual({ text: 'Día', icon: 'sun' });
+  });
+  it('las superficies pasan a oscuro cuando la noche pasa de 0,5 (negativa en 0,5)', () => {
+    expect(surfaceTheme(0.5)).toBe('light');
+    expect(surfaceTheme(0.51)).toBe('dark');
+  });
+});
+
+describe('etiquetas del mapa (D-F4, §2.1)', () => {
+  const texts = Object.values(WORLD_LABELS);
+  it('son las de §2.1, en el orden del recorrido', () => {
+    expect(texts).toEqual(['Pasarela de pago', 'Donar', 'Fondo de la convocatoria', 'Lote · QR', 'Bodega', 'Lote dividido',
+      'Sublote', 'Ruta de entrega', 'Raíz anclada', 'Anclaje en blockchain', 'Entrega confirmada', 'Centro comunitario']);
+  });
+  it('ninguna cifra ni ningún lugar real (negativas)', () => {
+    for (const t of texts) {
+      expect(t, t).not.toMatch(/\d/);
+      for (const place of ['Lorica', 'Montería', 'Cereté', 'Córdoba', 'Bolívar', 'kits']) expect(t, t).not.toContain(place);
+    }
+  });
+  const L = (h: string) => {
+    const c = [1, 3, 5].map((i) => parseInt(h.substr(i, 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const ratio = (a: string, b: string) => (Math.max(L(a), L(b)) + 0.05) / (Math.min(L(a), L(b)) + 0.05);
+  for (const [name, pal] of [['día', WORLD_DAY], ['noche', WORLD_NIGHT]] as const) {
+    it(`en ${name}, cada píldora es opaca y su texto cumple 4,5 (R-F1)`, () => {
+      for (const look of [pal.label, pal.labelCompleted, pal.labelBadge]) {
+        expect(look.bg).toMatch(/^#[0-9A-F]{6}$/i);
+        expect(ratio(look.text, look.bg)).toBeGreaterThanOrEqual(4.5);
+      }
+    });
+  }
 });

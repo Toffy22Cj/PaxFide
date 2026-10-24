@@ -1,7 +1,7 @@
 // Ref: plan-fase7-pantallas.md D-P1 (el mundo de la landing es una ilustración: sus colores viven SOLO en este
-// archivo, con paleta de día y de noche; excepción de DF7-11 con ese motivo) y D-P4 (la de noche, cuando el tema sea
-// oscuro); sistema-visual-paxfide-web-enmienda-1.md R-F6. Sin texto encima (R-F1), así que la regla de pares de
-// contraste no aplica. Valores tomados de paxfide-landing.html.
+// archivo, con paleta de día y de noche; excepción de DF7-11 con ese motivo) y plan-fase7-fidelidad.md D-F2 (la de
+// noche, con el modo Auto / Noche / Día); sistema-visual-paxfide-web-enmienda-1.md R-F6. El único texto son las
+// etiquetas del mapa (D-F4), en píldoras opacas con sus pares probados. Valores tomados de paxfide-landing.html.
 
 type Box = readonly [string, string, string];
 type Alpha = (a: number) => string;
@@ -34,6 +34,11 @@ export interface WorldPalette {
   house: Box; houseRoof: string; houseRoofSide: string; houseRoofBack: string; door: string; houseWindow: string;
   check: string; checkMark: string;
   cloudBase: string; cloudBody: string; cloudHighlight: string; cloudAlpha: number; cloudShadow: Alpha;
+  /** Etiquetas del mapa (D-F4): píldoras opacas (R-F1); texto ≥ 5:1 sobre su fondo (test en world-scene.test.ts). */
+  label: { bg: string; border: string; text: string };
+  labelCompleted: { bg: string; border: string; text: string };
+  labelBadge: { bg: string; border: string; text: string };
+  labelGuide: string; labelAnchor: string; labelShadow: string;
 }
 
 const SHARED = {
@@ -73,6 +78,10 @@ export const WORLD_DAY: WorldPalette = {
   warehouseFloor: '#E4EAE4', houseWindow: '#CDE7EE',
   cloudBase: '#C4DCD3', cloudBody: '#F6FAF7', cloudHighlight: '#FFFFFF', cloudAlpha: 0.95,
   cloudShadow: (a) => `rgba(18, 55, 36, ${a})`,
+  label: { bg: '#FFFFFF', border: 'rgba(27, 81, 65, 0.22)', text: '#1B5141' },
+  labelCompleted: { bg: '#1B5141', border: '#2D8F62', text: '#F3B544' },
+  labelBadge: { bg: '#FDF4E2', border: '#F3B544', text: '#785008' },
+  labelGuide: 'rgba(27, 81, 65, 0.35)', labelAnchor: '#1B5141', labelShadow: 'rgba(18, 38, 28, 0.12)',
 };
 
 export const WORLD_NIGHT: WorldPalette = {
@@ -93,7 +102,12 @@ export const WORLD_NIGHT: WorldPalette = {
   warehouseFloor: '#1C3028', houseWindow: '#FFE3A3',
   cloudBase: '#142C3D', cloudBody: '#224760', cloudHighlight: '#6EACD4', cloudAlpha: 0.86,
   cloudShadow: (a) => `rgba(18, 55, 36, ${a})`,
+  // El prototipo pinta el fondo de noche al 94 % y la insignia al 22 %: aquí, opacos (R-F1), mezclados sobre #102A1F
+  label: { bg: '#102A1F', border: 'rgba(82, 183, 136, 0.35)', text: '#E8F5EE' },
+  labelCompleted: { bg: '#1C4A36', border: '#52B788', text: '#F3B544' },
+  labelBadge: { bg: '#424927', border: 'rgba(243, 181, 68, 0.55)', text: '#F8CF7E' },
+  labelGuide: 'rgba(140, 195, 222, 0.45)', labelAnchor: '#8CC3DE', labelShadow: 'rgba(18, 38, 28, 0.12)',
 };
 
-/** Paleta para la mezcla `night` (0 día, 1 noche): sigue el tema efectivo (C-1). */
+/** Paleta para la mezcla `night` (0 día, 1 noche): la del modo Auto / Noche / Día (D-F2). */
 export const worldPalette = (night: number): WorldPalette => (night > 0.5 ? WORLD_NIGHT : WORLD_DAY);

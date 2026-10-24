@@ -107,22 +107,36 @@ test.describe('Tema (C-1: sin tema forzado)', () => {
     expect(await probe('light')).toEqual({ token: '#1B5141', color: 'rgb(27, 81, 65)', page: '#EEF6EF' });
   });
 
-  for (const [route, testId] of [['/campaigns', 'city-background'], ['/', 'world-background']] as const) {
-    test(`la ilustración de ${route} toma la paleta de noche con el tema oscuro, también quieta (reducir movimiento)`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
-      await page.goto(route);
-      await expect(page.getByTestId(testId)).toHaveAttribute('data-loop', 'still');
-      await expect.poll(() => page.getByTestId(testId).getAttribute('data-frames')).not.toBeNull();
-      const day = await canvasLuma(page, testId);
-      const framesBefore = Number(await page.getByTestId(testId).getAttribute('data-frames'));
-      await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
-      // Quieta no hay bucle: se repinta una vez por el cambio de tema, sin mezcla animada
-      await expect.poll(() => page.getByTestId(testId).getAttribute('data-frames').then(Number)).toBeGreaterThan(framesBefore);
-      const night = await canvasLuma(page, testId);
-      expect(night).toBeLessThan(day * 0.7);
-      await expect(page.getByTestId(testId)).toHaveAttribute('data-loop', 'still');
-    });
-  }
+  test('la ciudad toma la paleta de noche con el tema oscuro, también quieta (reducir movimiento)', async ({ page }) => {
+    const testId = 'city-background';
+    await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+    await page.goto('/campaigns');
+    await expect(page.getByTestId(testId)).toHaveAttribute('data-loop', 'still');
+    await expect.poll(() => page.getByTestId(testId).getAttribute('data-frames')).not.toBeNull();
+    const day = await canvasLuma(page, testId);
+    const framesBefore = Number(await page.getByTestId(testId).getAttribute('data-frames'));
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    // Quieta no hay bucle: se repinta una vez por el cambio de tema, sin mezcla animada
+    await expect.poll(() => page.getByTestId(testId).getAttribute('data-frames').then(Number)).toBeGreaterThan(framesBefore);
+    const night = await canvasLuma(page, testId);
+    expect(night).toBeLessThan(day * 0.7);
+    await expect(page.getByTestId(testId)).toHaveAttribute('data-loop', 'still');
+  });
+
+  test('D-F2: el mundo de la landing no sigue el tema de la app sino su botón Día / Noche (quieto, también)', async ({ page }) => {
+    const testId = 'world-background';
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    await page.goto('/');
+    await expect(page.getByTestId(testId)).toHaveAttribute('data-loop', 'still');
+    // Sistema oscuro, pero Auto en la parada 1 es de día: el tema de la app no manda aquí (negativa)
+    await expect(page.getByTestId(testId)).toHaveAttribute('data-night', '0.00');
+    await expect(page.getByTestId('landing-root')).toHaveAttribute('data-theme', 'light');
+    const day = await canvasLuma(page, testId);
+    await page.getByTestId('world-mode').click();
+    await expect(page.getByTestId(testId)).toHaveAttribute('data-night', '1.00');
+    await expect(page.getByTestId('landing-root')).toHaveAttribute('data-theme', 'dark');
+    expect(await canvasLuma(page, testId)).toBeLessThan(day * 0.7);
+  });
 
   for (const width of [390, 1280, 1920]) {
     test(`cabecera a ${width} px: cada control recibe el toque en su centro y no hay scroll horizontal`, async ({ page }) => {

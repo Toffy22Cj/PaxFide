@@ -14,55 +14,77 @@
   box-shadow: var(--shadow-float);
 }
 
-/* Cabecera de la landing (prototipo `header.nav`, D-P13: es la única de la página). Fija arriba, sobre el mundo. */
+/* Cabecera de la landing (prototipo `header.nav`, D-P13: es la única de la página). Fija arriba, sobre el mundo.
+   F-A1: cada control ocupa su propia celda de la fila (marca · anclas · Día/Noche y pausa · accesos), en todos los
+   anchos: nada se monta encima de "Donar". Por debajo de 1180 px, anclas, Día/Noche y accesos van en el menú (el
+   prototipo plegaba a 900 y entre 900 y 1100 la fila no cabía: de ahí la pausa encima de "Donar"). */
 .header {
   composes: surface;
   position: sticky; top: var(--space-3); z-index: 20;
   max-width: 1120px; margin: var(--space-3) auto 0; padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
-  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4);
-  border: 1px solid var(--color-divider);
+  display: flex; flex-wrap: nowrap; align-items: center; gap: var(--space-4);
+  border: 1px solid var(--color-divider); border-radius: var(--radius-button);
 }
 .brand {
-  display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; text-decoration: none;
+  display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; text-decoration: none; flex: none;
   font-family: var(--font-display); font-weight: 800; font-size: var(--font-size-display-4); letter-spacing: -0.02em;
   color: var(--color-text);
 }
 .brandFide { color: var(--color-link); }
 .brandDot { color: var(--brand-yellow-400); } /* un punto decorativo: el nombre se lee en el aria-label */
 .brand:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 8px; }
-.menu { display: flex; align-items: center; gap: var(--space-4); flex: 1; min-width: 0; order: 2; }
-.anchors { list-style: none; margin: 0 auto; padding: 0; display: flex; flex-wrap: nowrap; gap: var(--space-1) var(--space-6); white-space: nowrap; }
+.menu { display: flex; align-items: center; flex: 1 1 auto; min-width: 0; justify-content: center; }
+.anchors { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: nowrap; gap: var(--space-1) var(--space-4); white-space: nowrap; }
 .anchors a {
   display: inline-flex; align-items: center; min-height: 44px;
   color: var(--color-text-secondary); font-weight: var(--weight-semibold); font-size: var(--font-size-body-3); text-decoration: none;
 }
 .anchors a:hover { color: var(--color-text); text-decoration: underline; }
-.acts { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--space-2); white-space: nowrap; }
+.mobileActs { display: none; }
+.tools, .acts { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--space-2); white-space: nowrap; flex: none; }
+/* Botón Día / Noche (prototipo `.theme-toggle`): fuente mono, píldora. En la fila, el texto se ve desde 1280 px (con la
+   cabecera a 1200 px); por debajo, el icono y el mismo nombre accesible. En el menú estrecho, siempre con texto. */
+.modeToggle {
+  min-height: 44px; min-width: 44px; padding: 0 var(--space-3);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  border-radius: var(--radius-button); cursor: pointer;
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--font-size-mono-3);
+  background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control);
+}
+.modeDesktop > span { display: none; }
+@media (min-width: 1280px) {
+  .header { max-width: 1200px; }
+  .modeDesktop > span { display: inline; }
+}
 .pause {
-  order: 3; min-height: 44px; min-width: 44px; padding: 0 var(--space-3);
+  min-height: 44px; min-width: 44px; padding: 0 var(--space-3);
   display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
   border-radius: var(--radius-button); cursor: pointer; font: inherit; font-weight: var(--weight-semibold); font-size: var(--font-size-body-3);
   background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control);
 }
+/* La pausa va en icono en esta cabecera (su nombre accesible es el mismo, R-F2): con texto, la fila no cabe */
 .pauseText { display: none; }
-@media (min-width: 1400px) { .pauseText { display: inline; } }
 .menuToggle {
-  display: none; margin-left: auto; width: 44px; height: 44px; border-radius: var(--radius-control); cursor: pointer;
+  display: none; width: 44px; height: 44px; border-radius: var(--radius-control); cursor: pointer; flex: none;
   flex-direction: column; align-items: center; justify-content: center; gap: 4px;
   background: transparent; border: 1px solid var(--color-border-control);
 }
 .menuToggle span { display: block; width: 20px; height: 2px; border-radius: 2px; background: var(--color-text); }
-.pause:focus-visible, .menuToggle:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
-@media (max-width: 1099.98px) {
-  .menuToggle { display: inline-flex; order: 2; }
-  .pause { order: 1; margin-left: auto; }
+.pause:focus-visible, .menuToggle:focus-visible, .modeToggle:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+@media (max-width: 1179.98px) {
+  .header { flex-wrap: wrap; gap: var(--space-2); border-radius: var(--radius-surface); }
+  .brand { order: 1; }
+  .tools { order: 2; margin-left: auto; }
+  .modeDesktop { display: none; }
+  .menuToggle { display: inline-flex; order: 3; }
+  .acts { display: none; }
   .menu { order: 4; display: none; flex: 1 1 100%; flex-direction: column; align-items: stretch; gap: var(--space-2); }
   .menuOpen { display: flex; }
   .anchors { flex-direction: column; margin: 0; gap: 0; white-space: normal; }
   .anchors a { width: 100%; font-size: var(--font-size-body-2); }
-  .acts { flex-wrap: wrap; white-space: normal; padding-top: var(--space-2); border-top: 1px solid var(--color-divider); }
-  .acts > * { flex: 1 1 140px; }
-  }
+  .mobileActs { display: flex; flex-wrap: wrap; gap: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--color-divider); }
+  .mobileActs > * { flex: 1 1 140px; }
+}
 
 /* Puntos del recorrido (prototipo `nav.dots`): a la derecha, solo en pantallas anchas */
 .dots {
@@ -83,7 +105,7 @@
 }
 .btnPrimary { background: var(--color-action); color: var(--color-on-action); border: 1px solid var(--color-action); }
 .btnSecondary { background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control); }
-.btnPrimary:focus-visible, .btnSecondary:focus-visible, .anchors a:focus-visible, .linkButton:focus-visible {
+.btnPrimary:focus-visible, .btnSecondary:focus-visible, .anchors a:focus-visible {
   outline: 2px solid var(--color-focus); outline-offset: 2px;
 }
 
@@ -162,23 +184,83 @@
 }
 .org a { align-self: flex-start; }
 
-.example { margin-top: var(--space-6); }
-.exampleLead { margin: 0; color: var(--color-text-secondary); font-size: var(--font-size-body-2); }
-.linkButton {
-  background: none; border: 0; padding: 0; min-height: 44px; cursor: pointer;
-  font: inherit; font-weight: var(--weight-semibold); color: var(--color-link); text-decoration: underline;
+/* Buscador del seguimiento (prototipo `form.trk`, `.trk-capsule`, `.trk-demo-chips`, `.trk-result`) */
+.ctaEv { display: inline-flex; align-items: center; gap: var(--space-2); }
+.liveDot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--color-success-icon); box-shadow: 0 0 0 3px var(--color-success-bg);
 }
-.exampleBox {
-  margin-top: var(--space-3); padding: var(--space-4); border-radius: var(--radius-card);
-  background: var(--color-surface); border: 1px dashed var(--color-border-control);
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.trk { margin-top: var(--space-6); }
+.capsule {
+  display: flex; align-items: center; gap: var(--space-2); padding: 6px 6px 6px var(--space-4);
+  border-radius: var(--radius-button); background: var(--color-field); border: 1.5px solid var(--color-border-control);
+  color: var(--color-text);
 }
-.exampleBadge { margin: 0 0 var(--space-3); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
-.exampleIntro { margin: 0 0 var(--space-3); color: var(--color-text); font-size: var(--font-size-body-3); }
-.timeline { margin: 0; padding-left: var(--space-6); display: flex; flex-direction: column; gap: var(--space-3); }
-.timeline li { color: var(--color-text); font-size: var(--font-size-body-3); }
-.timeline li span { color: var(--color-text-secondary); }
-.timeline li p { margin: var(--space-1) 0 0; color: var(--color-text-secondary); }
-.disclaimer { margin: var(--space-4) 0 0; font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.capsule:focus-within { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.capsule svg { flex: none; }
+.capsule input {
+  flex: 1 1 auto; min-width: 0; height: 44px; border: 0; background: transparent; color: var(--color-text);
+  padding: 0 4px; font-family: var(--font-mono); font-weight: 500; font-size: var(--font-size-body-1); outline: none;
+}
+.capsule input::placeholder { color: var(--color-text-secondary); }
+/* Amarillo con texto verde 900 (par de la enmienda §5): el mismo color en claro y en oscuro */
+.btnYellow {
+  flex: none; min-height: 44px; padding: 0 var(--space-6); border-radius: var(--radius-button); cursor: pointer;
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font: inherit; font-weight: 700; font-size: var(--font-size-body-3);
+  background: var(--brand-yellow-400); color: var(--brand-green-900); border: 0;
+}
+.btnYellow:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+@media (max-width: 899.98px) { .capsule { padding-left: var(--space-3); } .btnYellow { padding: 0 var(--space-4); } }
+.demoChips { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+.demoLabel { font-family: var(--font-mono); font-size: var(--font-size-mono-3); color: var(--color-text-secondary); }
+.demoChip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 var(--space-3); cursor: pointer;
+  border-radius: var(--radius-button); font-family: var(--font-mono); font-weight: 500; font-size: var(--font-size-mono-3);
+  background: var(--color-success-bg); color: var(--color-success-text); border: 1px solid var(--color-divider);
+}
+.demoChip:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.trkMsg { margin: var(--space-2) 0 0; min-height: 20px; font-size: var(--font-size-body-3); color: var(--color-text); }
+.result {
+  margin-top: var(--space-3); padding: var(--space-6); border-radius: var(--radius-card);
+  background: var(--color-surface); border: 1px solid var(--color-divider); color: var(--color-text);
+}
+.resultBadge { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); }
+.resultBadge small { font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.evExample {
+  display: inline-block; font-family: var(--font-mono); font-size: var(--font-size-mono-3); font-weight: 500;
+  padding: 4px 8px; border-radius: 7px; background: var(--color-ambiguous-bg); color: var(--color-ambiguous-title);
+}
+.summary {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--space-3); margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4); border-radius: var(--radius-control);
+  background: var(--color-bg); border: 1px solid var(--color-divider); font-size: var(--font-size-body-4);
+}
+.summary dt { display: inline; font-family: var(--font-mono); color: var(--color-text-secondary); }
+.summary dt::after { content: ": "; }
+.summary dd { display: inline; margin: 0; color: var(--color-text); }
+.statusTag {
+  display: inline-block; padding: 2px 8px; border-radius: 6px; font-family: var(--font-mono); font-size: var(--font-size-mono-3);
+  background: var(--color-success-bg); color: var(--color-success-text);
+}
+.timeline { list-style: none; margin: 0; padding: 0 0 0 var(--space-4); position: relative; display: flex; flex-direction: column; gap: var(--space-4); }
+.timeline::before { content: ""; position: absolute; left: 6px; top: 6px; bottom: 12px; width: 2px; background: var(--color-divider); }
+.timeline li { position: relative; padding-left: var(--space-4); color: var(--color-text); font-size: var(--font-size-body-3); }
+.timeline li b { font-family: var(--font-display); font-weight: 700; }
+.timeline li p { margin: var(--space-1) 0 0; color: var(--color-text-secondary); font-size: var(--font-size-body-4); line-height: 1.4; }
+.tlDot {
+  position: absolute; left: -14px; top: 5px; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--color-success-icon); box-shadow: 0 0 0 3px var(--color-success-bg);
+}
+/* Un paso que aún no ocurre (prototipo: opacidad .35). Aquí con un punto hueco y el texto en su color, legible (R-F1) */
+.stepPending .tlDot { background: var(--color-surface); box-shadow: inset 0 0 0 2px var(--color-border-control); }
+.stepPending b { color: var(--color-text-secondary); }
+.disclaimer { margin: var(--space-4) 0 0; padding-top: var(--space-3); border-top: 1px solid var(--color-divider); font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.orgIcon {
+  width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+  background: var(--color-action); color: var(--color-on-action);
+}
 
 /* Convocatorias abiertas */
 .campaigns { max-width: 1120px; margin: 0 auto var(--space-12); }
@@ -192,6 +274,7 @@
 .grid > li > * { flex: 1; }
 .more { margin: var(--space-6) 0 0; }
 
-.footer { composes: surface; max-width: 1120px; margin: 0 auto; padding: var(--space-4) var(--space-6); }
-.footer p { margin: 0; color: var(--color-text-secondary); font-size: var(--font-size-body-3); }
-.footer b { color: var(--color-text); }
+.convHead { max-width: 720px; }
+/* Pie de la página (prototipo: dentro de la sección de convocatorias) */
+.footer { margin-top: var(--space-8); padding-top: var(--space-4); border-top: 1px solid var(--color-divider); }
+.footer p { margin: 0; color: var(--color-text-secondary); font-size: var(--font-size-body-4); }

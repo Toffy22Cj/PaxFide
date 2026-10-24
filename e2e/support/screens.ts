@@ -91,6 +91,18 @@ export const TOURS: Tour[] = [
     account: 'none',
     screens: [
       visit('landing', '/', h1),
+      {
+        // D-F2: la landing de noche (botón en "Noche"), con el seguimiento de ejemplo abierto
+        name: 'landing-noche',
+        go: async (page) => {
+          await page.addInitScript(() => window.localStorage.setItem('paxfide.world-mode', 'night'));
+          await page.goto('/');
+          await expect(page.getByTestId('landing-root')).toHaveAttribute('data-theme', 'dark');
+          await page.getByTestId('example-chip').first().click();
+          await expect(page.getByTestId('tracking-example')).toBeVisible();
+          await page.evaluate(() => window.localStorage.removeItem('paxfide.world-mode'));
+        },
+      },
       visit('campaigns', '/campaigns', (p) => expect(p.getByTestId('discovery-item').first()).toBeVisible()),
       visit('campaign-public', '/c/01JDEMOPUBLICC0DEMONETARY1', h1),
       {

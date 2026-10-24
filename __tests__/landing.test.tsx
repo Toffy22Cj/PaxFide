@@ -7,12 +7,16 @@ import type { DiscoveryItem, DiscoveryOutcome } from '../src/lib/api/publicCampa
 vi.mock('next/link', () => ({
   default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => <a href={href} {...rest}>{children}</a>,
 }));
+const push = vi.fn();
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 let enabled = new Set<string>();
 vi.mock('../src/lib/routing/surfaces', () => ({ isSurfaceEnabled: (s: string) => enabled.has(s) }));
 const apiRequest = vi.fn();
 vi.mock('../src/lib/api/http', () => ({ apiRequest: (...a: unknown[]) => apiRequest(...a) }));
 
 import * as session from '../src/lib/auth/session';
+import { resetWorldStateForTests } from '../src/components/landing/worldMode';
+import { consumeHandedOffTrackingCode } from '../src/lib/tracking/handoff';
 import { LandingScreen, LANDING_CAMPAIGNS, litWords, nearestSection } from '../src/screens/LandingScreen';
 import { CampaignCard, organizationInitial } from '../src/components/campaign/CampaignCard';
 import { fetchDiscovery } from '../src/lib/api/publicCampaigns';
@@ -32,6 +36,8 @@ beforeEach(() => {
   enabled = new Set(BASE);
   session._resetForTest();
   apiRequest.mockReset();
+  push.mockReset();
+  resetWorldStateForTests();
 });
 
 describe('Landing (A-2) — convocatorias abiertas', () => {
@@ -159,33 +165,81 @@ describe('Landing (A-2) — recorrido, ejemplo y cabecera (D-P5)', () => {
     await screen.findByTestId('empty-state');
     const text = container.textContent ?? '';
     for (const banned of ['20.000.000', '18.000.000', '120 kits', '100 → 60 + 40', 'Lorica', 'Córdoba', 'Montería', 'Cereté',
-      '5 de 5 pasos', 'Lote 142', '#142', 'Fundación Caribe', 'EJEMPLO-1', 'Hash:', 'a3f9']) {
+      '5 de 5 pasos', 'Lote 142', '#142', 'Fundación Caribe', 'Hash:', 'a3f9', '14:02', 'Kits de Nutrición']) {
       expect(text, banned).not.toContain(banned);
     }
   });
 
-  it('el seguimiento demostrativo lleva "Ejemplo", usa categorías del enumerado y no hace ninguna petición', async () => {
+  it('F-A1: los ejemplos del prototipo (EJEMPLO-1 y -2) muestran el resultado ilustrativo, sin peticiones, horas ni huellas', async () => {
     const client = vi.fn(ok([]));
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     render(<LandingScreen client={client} />);
     await screen.findByTestId('empty-state');
     expect(screen.queryByTestId('tracking-example')).toBeNull();
-    fireEvent.click(screen.getByTestId('example-toggle'));
-    const box = screen.getByTestId('tracking-example');
-    expect(within(box).getByText('Ejemplo')).toBeInTheDocument();
-    for (const t of ['Registrado', 'Despachado', 'Recibido', 'Entregado', 'Bodega regional', 'Transporte de última milla']) {
-      expect(box).toHaveTextContent(t);
-    }
+    const chips = screen.getAllByTestId('example-chip');
+    expect(chips.map((c) => c.textContent?.replace(/\s*↗/, ''))).toEqual(['EJEMPLO-1', 'EJEMPLO-2']);
+    fireEvent.click(chips[0]);
+    let box = screen.getByTestId('tracking-example');
+    expect(within(box).getByText('EJEMPLO ILUSTRATIVO')).toBeInTheDocument();
+    expect(within(box).getByTestId('example-status')).toHaveTextContent('Entregado (5/5)');
+    expect(box.querySelectorAll('li[data-done="true"]')).toHaveLength(5);
+    fireEvent.click(chips[1]);
+    box = screen.getByTestId('tracking-example');
+    expect(within(box).getByTestId('example-status')).toHaveTextContent('Despachado (3/5)');
+    expect(box.querySelectorAll('li[data-done="false"]')).toHaveLength(2);
+    expect(box.textContent).not.toMatch(/\d{1,2}:\d{2}|Hash|Raíz Merkle:/);
     expect(client).toHaveBeenCalledTimes(1);
     expect(apiRequest).not.toHaveBeenCalled();
     expect(fetchSpy).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
+  });
+
+  it('F-A1: un código que no es de ejemplo va a /tracking en memoria (nunca en la URL); vacío, el aviso del prototipo', async () => {
+    render(<LandingScreen client={ok([])} />);
+    await screen.findByTestId('empty-state');
+    fireEvent.click(screen.getByRole('button', { name: 'Ver recorrido' }));
+    expect(screen.getByText('Escribe tu código o pulsa uno de los ejemplos.')).toHaveAttribute('role', 'status');
+    expect(push).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('Código de seguimiento'), { target: { value: 'ejemplo-2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ver recorrido' }));
+    expect(screen.getByTestId('example-status')).toHaveTextContent('Despachado (3/5)');
+    fireEvent.change(screen.getByLabelText('Código de seguimiento'), { target: { value: '  TRK.codigo-real  ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ver recorrido' }));
+    expect(push).toHaveBeenCalledWith('/tracking');
+    expect(consumeHandedOffTrackingCode()).toBe('TRK.codigo-real');
+  });
+
+  it('F-A1 (D-F2): el botón Día / Noche recorre Auto → Noche → Día → Auto, se recuerda y pinta la landing en oscuro de noche', async () => {
+    window.localStorage.removeItem('paxfide.world-mode');
+    render(<LandingScreen client={ok([])} />);
+    await screen.findByTestId('empty-state');
+    const root = screen.getByTestId('landing-root');
+    const toggle = screen.getByTestId('world-mode');
+    expect(toggle).toHaveTextContent('Auto (Día)');
+    expect(toggle).toHaveAccessibleName('Modo de iluminación: Auto (Día)');
+    expect(root).toHaveAttribute('data-theme', 'light');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveTextContent('Noche');
+    expect(root).toHaveAttribute('data-theme', 'dark');
+    expect(window.localStorage.getItem('paxfide.world-mode')).toBe('night');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveTextContent('Día');
+    expect(root).toHaveAttribute('data-theme', 'light');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveTextContent('Auto (Día)');
+    expect(window.localStorage.getItem('paxfide.world-mode')).toBeNull();
+    // El del menú estrecho es el mismo control
+    expect(screen.getByTestId('world-mode-mobile')).toHaveTextContent('Auto (Día)');
   });
 
   it('sin sesión: "Ingresar", sin "Ir a mi inicio"', async () => {
     render(<LandingScreen client={ok([])} />);
     await screen.findByTestId('empty-state');
-    expect(screen.getByRole('link', { name: 'Ingresar' })).toHaveAttribute('href', '/login');
+    // En la fila y en el menú estrecho (el CSS muestra uno u otro, como el prototipo)
+    const links = screen.getAllByRole('link', { name: 'Ingresar' });
+    expect(links).toHaveLength(2);
+    for (const a of links) expect(a).toHaveAttribute('href', '/login');
     expect(screen.queryByRole('link', { name: 'Ir a mi inicio' })).toBeNull();
   });
 
@@ -201,7 +255,8 @@ describe('Landing (A-2) — recorrido, ejemplo y cabecera (D-P5)', () => {
     enabled.add('/home');
     act(() => session.login('tok'));
     render(<LandingScreen client={ok([])} />);
-    await waitFor(() => expect(screen.getByRole('link', { name: 'Ir a mi inicio' })).toHaveAttribute('href', '/home'));
+    await waitFor(() => expect(screen.getAllByRole('link', { name: 'Ir a mi inicio' })).toHaveLength(2));
+    for (const a of screen.getAllByRole('link', { name: 'Ir a mi inicio' })) expect(a).toHaveAttribute('href', '/home');
   });
 
   it('"Registrar mi organización" lleva a crear cuenta (/register)', async () => {
@@ -212,14 +267,18 @@ describe('Landing (A-2) — recorrido, ejemplo y cabecera (D-P5)', () => {
 });
 
 describe('Landing (D-P13) — su propia cabecera, puntos del recorrido y manifiesto', () => {
-  it('una sola cabecera: la marca lleva a /, anclas de la página y accesos; nada de la barra de la app', async () => {
+  it('una sola cabecera: la marca lleva al principio, anclas de la página y accesos; nada de la barra de la app', async () => {
     render(<LandingScreen client={ok([])} />);
     await screen.findByTestId('empty-state');
     expect(screen.getAllByRole('banner')).toHaveLength(1);
-    expect(screen.getByRole('link', { name: 'PaxFide, inicio' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'PaxFide, inicio' })).toHaveAttribute('href', '#parada-1');
+    // Prototipo: "Seguir donación" y "Donar" son anclas de la página; "Ingresar" va al acceso
     const nav = screen.getByRole('navigation', { name: 'Secciones de la página de inicio' });
     expect(within(nav).getAllByRole('link').map((a) => a.getAttribute('href')))
-      .toEqual(['#parada-1', '#parada-4', '#convocatorias', '#seguir', '/login', '/tracking', '/campaigns']);
+      .toEqual(['#parada-1', '#parada-4', '#convocatorias', '#seguir', '/login', '#seguir', '#convocatorias']);
+    const banner = screen.getByRole('banner');
+    expect(within(banner).getAllByRole('link', { name: 'Seguir donación' })).toHaveLength(2);
+    expect(within(banner).getByRole('button', { name: /^Pausar animación$|^Reanudar animación$/ })).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Principal' })).toBeNull();
   });
 

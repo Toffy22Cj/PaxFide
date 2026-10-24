@@ -1,2 +1,9 @@
-/* Ref: plan-fase7-pantallas.md A-2; R-F1 y R-F7: detrás de todo, sin eventos de puntero, fuera del orden de foco. */
-.world { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; pointer-events: none; }
+/* Ref: plan-fase7-pantallas.md A-2; R-F1 y R-F7: detrás de todo, sin eventos de puntero, fuera del orden de foco.
+   plan-fase7-fidelidad.md F-A1: al llegar a las convocatorias el mundo se desenfoca (prototipo `#world.blurred`, 0,8 s →
+   --duration-slow, el token más cercano); con "reducir movimiento", sin transición. */
+.world {
+  position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; pointer-events: none;
+  transition: filter var(--duration-slow) var(--ease-out), transform var(--duration-slow) var(--ease-out);
+}
+.world[data-blurred="true"] { filter: blur(5px) brightness(1.02) saturate(1.28); transform: scale(1.02); }
+@media (prefers-reduced-motion: reduce) { .world { transition: none; } }

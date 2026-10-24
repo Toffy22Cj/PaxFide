@@ -1,9 +1,9 @@
-// Ref: plan-fase7-pantallas.md A-2, D-P1–D-P5; prototipo paxfide-landing.html (motor isométrico: solo forma).
-// Dibuja una escena de worldScene.ts en un canvas 2D (R-F4). Sin colores propios: todos salen de worldPalette.ts.
-// Fuera, por D-P3, D-P5 y R-F1: las etiquetas con texto del mapa (y con ellas los nombres de lugares y las cifras de
-// ejemplo), el ciclo día/noche que seguía al scroll (R-F5: el fondo no comunica nada) y la cámara movible.
+// Ref: plan-fase7-pantallas.md A-2, D-P1–D-P5; prototipo paxfide-landing.html (motor isométrico). Dibuja una escena de
+// worldScene.ts en un canvas 2D (R-F4). Sin colores propios: todos salen de worldPalette.ts.
+// plan-fase7-fidelidad.md D-F4 y §2.1: las etiquetas del mapa (`drawMapLabel` del prototipo) con los textos genéricos
+// de WORLD_LABELS, sin cifras ni lugares; D-F2: la mezcla de noche llega del modo Auto / Noche / Día.
 import {
-  HZ, STOPS, TH, TW, cameraFor, clamp01, cloudAt, ease, lerp, rectFade, road, smooth, stopProgress,
+  HZ, STOPS, TH, TW, WORLD_LABELS, cameraFor, clamp01, cloudAt, ease, lerp, rectFade, road, smooth, stopProgress,
   type ScreenRect, type WorldCamera, type WorldScene,
 } from './worldScene';
 import { worldPalette, type WorldPalette } from './worldPalette';
@@ -24,7 +24,7 @@ export class WorldRenderer {
   private v = 0;
   private avoid: readonly ScreenRect[] = [];
 
-  constructor(private readonly canvas: HTMLCanvasElement, private readonly scene: WorldScene) {
+  constructor(private readonly canvas: HTMLCanvasElement, private readonly scene: WorldScene, private readonly mono = 'ui-monospace, monospace') {
     this.ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
   }
 
@@ -408,6 +408,7 @@ export class WorldRenderer {
         this.box(sx - 1.5, sy - 2.3, 0, 0.32, 1.6, 2.7, P.terminal);
         this.face(sx - 1.5, sy - 2.3, 0, 0.32, 1.6, 2.7, 0.08, 0.92, 0.06, 0.94, P.terminalScreen);
         const [p, q] = this.p(sx - 1.18, sy - 1.5, 1.75); this.heart(p, q, 30 * k(), P.heart);
+        this.label(sx - 1.18, sy - 1.5, 1.75, sx - 1.18, sy - 1.5, 3.1, WORLD_LABELS.donate, 'completed', 1);
       }]);
       D.push([sx + 0.6 + sy - 2.3 + 0.7, () => {
         this.shadow(sx + 1.3, sy - 1.6, 1.1, soft);
@@ -419,6 +420,7 @@ export class WorldRenderer {
           this.ctx.fillStyle = j % 2 ? P.coinEdge : P.coinFace;
           this.ctx.beginPath(); this.ctx.ellipse(p, q, 0.32 * TW * k(), 0.16 * TW * k(), 0, 0, 7); this.ctx.fill();
         }
+        this.label(sx + 1.3, sy - 1.7, 1.2, sx + 2.6, sy - 1.8, 3.1, WORLD_LABELS.fund, 'default', a);
       }]);
       D.push([sx + sy + 1, () => {
         if (a < 0.2) return;
@@ -429,6 +431,7 @@ export class WorldRenderer {
           this.ctx.globalAlpha = a * Math.sin(Math.PI * qd); this.coin(p, q, 0.2 * TW * k(), Math.cos(T * 5 + j)); this.ctx.globalAlpha = 1;
         }
       }]);
+      D.push([sx - 2.8 + sy - 2.5, () => this.label(sx - 1.5, sy - 2.3, 0.8, sx - 3.4, sy - 2.6, 2.4, WORLD_LABELS.gateway, 'default', 1)]);
     }
 
     // 1 · Se convierte en ayuda: la bodega se llena de cajas con QR
@@ -448,6 +451,8 @@ export class WorldRenderer {
           if (p > 0) this.crate(s[0], s[1], s[2] + (1 - p) * 0.8, 0.62, true, false, clamp01(p * 2));
         });
       }]);
+      D.push([bx + 3.2 + by + 2.9, () => this.label(bx + 1.8, by + 1.2, 1.8, bx + 1.8, by + 1.2, 3.4, WORLD_LABELS.lot, 'default', a)]);
+      D.push([bx + 3.8 + by + 2.8, () => this.label(bx + 1.8, by + 1.2, 0, bx + 3.8, by + 2.8, 2.2, WORLD_LABELS.warehouse, 'default', 1)]);
     }
 
     // 2 · Viaja y se reparte: una caja se divide en dos y cada parte sigue su camino
@@ -458,7 +463,12 @@ export class WorldRenderer {
         const sp = ease.inOut(smooth(0.25, 0.85, a));
         this.crate(px, py, 0.14, 1.0, true, true);
         this.crate(px + 1.0 * sp + 0.05, py + 0.15 + sp * 1.6, 0.14, 0.78, true, false, clamp01(sp * 3));
+        // §2.1: la caja entera va sin etiqueta; al dividirse, cada parte es un "Sublote" (sin cifras)
+        if (sp > 0.5) this.label(px + 0.5, py + 0.5, 0.14, px + 0.5, py + 0.5, 1.35, WORLD_LABELS.sublot, 'default', clamp01((sp - 0.5) * 3));
+        if (sp > 0.05) this.label(px + 1.0 * sp + 0.45, py + 0.55 + sp * 1.6, 0.14, px + 1.0 * sp + 0.45, py + 0.55 + sp * 1.6, 1.15, WORLD_LABELS.sublot, 'badge', clamp01(sp * 2));
+        if (sp > 0.5) this.label(px + 0.5, py + 0.5, 0.4, px + 0.4, py + 0.5, 2.35, WORLD_LABELS.split, 'default', clamp01((sp - 0.5) * 3));
       }]);
+      D.push([sx + 3.6 + sy + 2.8, () => this.label(sx + 1.8, sy + 1.4, 0, sx + 3.6, sy + 2.8, 1.8, WORLD_LABELS.route, 'default', 1)]);
     }
 
     // 3 · Queda sellado: la cadena de bloques se ilumina y el árbol de huellas sube hasta la raíz anclada
@@ -504,7 +514,9 @@ export class WorldRenderer {
           const [q1, q2] = this.p(R[0] + 0.3, R[1] + 0.3, R[2] + 0.3);
           this.lock(q1, q2, 14 * k() * Math.max(0.5, p), smooth(0.85, 1, a));
         }
+        this.label(cx, cy, 3.95, cx, cy, 5.3, WORLD_LABELS.root, 'default', pb);
       }]);
+      D.push([cx + 2.4 + cy + 2.0, () => this.label(cx, cy, 0.45, cx + 2.4, cy + 2.0, 2.6, WORLD_LABELS.anchor, 'default', 1)]);
     }
 
     // 4 · Llega: la caja entra al centro comunitario, la gente se acerca y aparece la marca de entregado
@@ -540,7 +552,9 @@ export class WorldRenderer {
         ctx.fillStyle = P.check; ctx.beginPath(); ctx.arc(q1, q2, r, 0, 7); ctx.fill();
         ctx.strokeStyle = P.checkMark; ctx.lineWidth = Math.max(2, 3 * k() * p); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         ctx.beginPath(); ctx.moveTo(q1 - r * 0.4, q2); ctx.lineTo(q1 - r * 0.1, q2 + r * 0.32); ctx.lineTo(q1 + r * 0.42, q2 - r * 0.3); ctx.stroke();
+        this.label(hx + 1.4, hy + 1.05, 2.4, hx + 1.4, hy + 1.05, 5.1, WORLD_LABELS.delivered, 'completed', clamp01(p));
       }]);
+      D.push([hx + 3.4 + hy + 3.0, () => this.label(hx + 1.4, hy + 2.1, 0, hx + 3.4, hy + 3.0, 2.2, WORLD_LABELS.community, 'default', 1)]);
     }
 
     // El camión que recorre la ruta: guiado por el scroll en las paradas; en el panorama, va y viene solo
@@ -580,6 +594,43 @@ export class WorldRenderer {
     const [x, y] = road(Math.min(4, Math.max(1, v)));
     const delivered = v > 3.5 && smooth(0.3, 0.75, act(4)) > 0.02;
     D.push([x + y, () => this.truck(x, y + 0.15, !delivered)]);
+  }
+
+  // ---------------------------------------------------------------- etiquetas del mapa (D-F4)
+
+  /**
+   * Una etiqueta (prototipo `drawMapLabel`): píldora opaca en (lx, ly, lz), unida con una guía discontinua al objeto
+   * en (ax, ay, az). `variant`: la normal, la de un paso cumplido o la insignia de un sublote.
+   */
+  private label(ax: number, ay: number, az: number, lx: number, ly: number, lz: number, text: string,
+    variant: 'default' | 'completed' | 'badge', alpha: number): void {
+    if (alpha <= 0) return;
+    const ctx = this.ctx, P = this.P, k = this.cam.k;
+    const [lp, lq] = this.p(lx, ly, lz);
+    if (!this.visible(lx, ly, 220)) return;
+    const fs = Math.round(Math.max(10.5, Math.min(13.5, 9.8 * k)));
+    ctx.font = `600 ${fs}px ${this.mono}`;
+    const w = ctx.measureText(text).width + fs * 2.1, h = fs * 1.95;
+    // R-F1 (como `isLabelUnderAuthBox` del prototipo): una etiqueta bajo un bloque de contenido no se dibuja, para que
+    // su texto no se trasluzca por una superficie translúcida
+    const [l, t, r, b] = [lp - w / 2, lq - h / 2, lp + w / 2, lq + h / 2];
+    if (this.avoid.some((a) => l < a.right && r > a.left && t < a.bottom && b > a.top)) return;
+    const [ap, aq] = this.p(ax, ay, az);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    if (Math.hypot(lp - ap, lq - aq) > 8) {
+      ctx.strokeStyle = P.labelGuide; ctx.lineWidth = Math.max(1.2, 1.5 * k);
+      ctx.setLineDash([3 * k, 2.5 * k]); ctx.beginPath(); ctx.moveTo(ap, aq); ctx.lineTo(lp, lq + h * 0.42); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = P.labelAnchor; ctx.beginPath(); ctx.arc(ap, aq, Math.max(2, 2.8 * k), 0, Math.PI * 2); ctx.fill();
+    }
+    const look = variant === 'completed' ? P.labelCompleted : variant === 'badge' ? P.labelBadge : P.label;
+    ctx.shadowColor = P.labelShadow; ctx.shadowBlur = 8 * k; ctx.shadowOffsetY = 2 * k;
+    ctx.fillStyle = look.bg; ctx.strokeStyle = look.border; ctx.lineWidth = Math.max(1, 1.2 * k);
+    this.rr(lp - w / 2, lq - h / 2, w, h, h / 2); ctx.fill(); ctx.stroke();
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    ctx.fillStyle = look.text; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, lp, lq + 0.5);
+    ctx.restore();
   }
 
   // ---------------------------------------------------------------- nubes (con sombra en el suelo)
