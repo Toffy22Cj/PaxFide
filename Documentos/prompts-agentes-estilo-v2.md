@@ -64,6 +64,8 @@ Los HTML se hicieron para explorar el aspecto, con datos inventados. **Del proto
 
 **Si un bloque del prototipo necesita un dato que no está en §3, el bloque se implementa sin ese dato o no se implementa, y el agente lo reporta.** Nunca se inventa un campo, un endpoint ni un valor "de relleno".
 
+*Nota (2026-10-24, `plan-fase7-fidelidad.md` D-F1, APROBADO):* el boceto pasa a ser el **contrato visual y de interacción**. Todo lo que se ve o se mueve en él se implementa, salvo lo que esté en la tabla de desviaciones (§3 de ese plan). Las excepciones de esta sección (datos, colores, fuentes) no cambian.
+
 ---
 
 ## 3. Tabla de campos: prototipo → contrato
