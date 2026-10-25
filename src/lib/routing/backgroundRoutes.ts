@@ -1,8 +1,25 @@
-// Ref: plan-fase7-pantallas.md D-P2 (rutas con fondo animado); sistema-visual-paxfide-web-enmienda-1.md §3.1 (solo
-// pantallas del donante; nunca en la parte administrativa) y R-F7.
+// Ref: plan-fase7-pantallas.md D-P2 (rutas con fondo animado); plan-fase7-fidelidad.md D-F5 (acceso sobre el mundo),
+// D-F17 (rutas legales con barra de acceso y sin chrome); sistema-visual-paxfide-web-enmienda-1.md §3.1 y R-F7.
 
-/** Rutas exactas o con parámetro (`/c/:publicCode`) con fondo animado (la ciudad, o el mundo en `/`). */
-const EXACT = new Set(['/', '/home', '/campaigns', '/tracking', '/account/donations']);
+/** Rutas de acceso y legales que se muestran sobre el mundo y sin estructura de app (D-F5, D-F17). */
+const ACCESS_ROUTES = new Set([
+  '/login',
+  '/register',
+  '/invitaciones',
+  '/terminos',
+  '/privacidad',
+  '/terminos-organizacion',
+]);
+
+/** Rutas exactas o con parámetro (`/c/:publicCode`) con fondo animado (la ciudad, o el mundo en `/` y acceso). */
+const EXACT = new Set([
+  '/',
+  '/home',
+  '/campaigns',
+  '/tracking',
+  '/account/donations',
+  ...ACCESS_ROUTES,
+]);
 const PREFIXES = ['/c/'];
 
 export function hasAnimatedBackground(pathname: string): boolean {
@@ -13,18 +30,18 @@ export function hasAnimatedBackground(pathname: string): boolean {
 export type AnimatedBackground = 'city' | 'world';
 
 /**
- * Qué ilustración va detrás (A-2): en `/` el mundo del recorrido de la landing, que monta la propia landing porque lo
- * guía su scroll; en las demás rutas de D-P2, la ciudad. Fuera de D-P2, ninguna.
+ * Qué ilustración va detrás: en `/` y en las rutas de acceso/legales (D-F5, D-F17) el mundo del recorrido;
+ * en las demás rutas de donante, la ciudad. Fuera de ellas, ninguna (R-F7).
  */
 export function backgroundFor(pathname: string): AnimatedBackground | null {
   if (!hasAnimatedBackground(pathname)) return null;
-  return pathname === '/' ? 'world' : 'city';
+  return pathname === '/' || ACCESS_ROUTES.has(pathname) ? 'world' : 'city';
 }
 
 /**
- * D-P13 (Carlos, 2026-10-23): en `/` la estructura de la app no pone su cabecera ni su barra de navegación (lateral ni
- * inferior); la landing usa solo su propia cabecera. En el resto de rutas, la estructura de siempre.
+ * D-P13, D-F5, D-F17: en `/`, `/login`, `/register`, `/invitaciones` y las rutas legales, la estructura de la app
+ * no pone cabecera ni barra de navegación de la app. Esas páginas usan su propia cabecera/barra de acceso.
  */
 export function hasAppChrome(pathname: string): boolean {
-  return pathname !== '/';
+  return pathname !== '/' && !ACCESS_ROUTES.has(pathname);
 }

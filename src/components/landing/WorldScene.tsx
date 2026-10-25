@@ -32,19 +32,22 @@ function contentRects(): ScreenRect[] {
 export interface WorldSceneProps {
   mode?: WorldMode;
   onViewChange?: (view: number) => void;
+  fixedView?: number;
 }
 
-export function WorldScene({ mode = 'auto', onViewChange }: WorldSceneProps) {
+export function WorldScene({ mode = 'auto', onViewChange, fixedView }: WorldSceneProps) {
   const paused = usePausedPreference();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pausedRef = useRef(paused);
   const modeRef = useRef<WorldMode>(mode);
   const onViewChangeRef = useRef(onViewChange);
+  const fixedViewRef = useRef(fixedView);
   const wakeRef = useRef<() => void>(() => {});
 
   pausedRef.current = paused;
   modeRef.current = mode;
   onViewChangeRef.current = onViewChange;
+  fixedViewRef.current = fixedView;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -54,7 +57,8 @@ export function WorldScene({ mode = 'auto', onViewChange }: WorldSceneProps) {
     let raf: number | null = null;
     let last = performance.now();
     let worldTime = 0;
-    let view = targetView();
+    const isFixed = fixedViewRef.current !== undefined;
+    let view = isFixed ? (fixedViewRef.current as number) : targetView();
     let target = view;
     let painted: number | null = null;
     let frames = 0;
@@ -77,15 +81,19 @@ export function WorldScene({ mode = 'auto', onViewChange }: WorldSceneProps) {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       worldTime += dt;
-      view += (target - view) * Math.min(1, dt * 5.5);
-      if (Math.abs(target - view) < 1e-4) view = target;
+      if (!isFixed) {
+        view += (target - view) * Math.min(1, dt * 5.5);
+        if (Math.abs(target - view) < 1e-4) view = target;
+      } else {
+        view = fixedViewRef.current as number;
+      }
       paint(true);
       if (loopMode(current()) === 'animate') raf = requestAnimationFrame(tick);
     };
 
     /** Sin bucle (pausa o "reducir movimiento", R-F2 y R-F3): la vista salta de parada en parada, sin transición. */
     const still = () => {
-      view = Math.round(target);
+      view = isFixed ? (fixedViewRef.current as number) : Math.round(target);
       if (painted !== view) paint(false);
     };
 
@@ -102,13 +110,14 @@ export function WorldScene({ mode = 'auto', onViewChange }: WorldSceneProps) {
     };
 
     const onScroll = () => {
+      if (isFixed) return;
       target = targetView();
       if (loopMode(current()) === 'still') still();
     };
 
     const resize = () => {
       renderer.resize(window.innerWidth, window.innerHeight, clampDpr(window.devicePixelRatio));
-      target = targetView();
+      if (!isFixed) target = targetView();
       const loop = loopMode(current());
       if (loop === 'still') { painted = null; still(); }
     };

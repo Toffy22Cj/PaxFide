@@ -30,7 +30,9 @@ describe('Pantallas de acceso v2 (B-4)', () => {
     expect(card).toHaveTextContent('PaxFide');
     // La marca es decorativa: el nombre va en texto y el SVG queda oculto a lectores de pantalla
     expect(card!.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
-    // Sin fondo animado (D-P2)
-    expect(container.querySelector('canvas')).toBeNull();
+    // Con fondo del mundo (D-F5, cambia D-P2)
+    expect(container.querySelector('canvas')).not.toBeNull();
+    // Píldora del boceto (D-F5)
+    expect(card).toHaveTextContent('TU CUENTA PAXFIDE');
   });
 });

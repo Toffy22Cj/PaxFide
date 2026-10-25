@@ -7,6 +7,8 @@ let currentState: MachineState = 'RESTORING';
 let jwt: string | null = null;
 let postLoginDestination: string | null = null;
 let lastLogoutReason: LogoutReason | null = null;
+// D-F10: aviso en memoria tras crear cuenta en la pestaña para mostrar la bienvenida en el primer login
+let justRegistered = false;
 // Último principal leído de GET /me (ficha N1). Solo en memoria y solo para no parpadear entre páginas
 // (D-N1-3): cada página que lo necesita lo vuelve a pedir. Nunca autoriza nada.
 let lastPrincipal: unknown = null;
@@ -103,10 +105,26 @@ export function setPostLoginDestination(path: string) {
   postLoginDestination = path;
 }
 
+export function getPostLoginDestination(): string | null {
+  return postLoginDestination;
+}
+
 export function consumePostLoginDestination() {
   const dest = postLoginDestination;
   postLoginDestination = null;
   return dest;
+}
+
+export function markJustRegistered(): void {
+  justRegistered = true;
+}
+
+export function isJustRegistered(): boolean {
+  return justRegistered;
+}
+
+export function clearJustRegistered(): void {
+  justRegistered = false;
 }
 
 export function _resetForTest() {
@@ -115,6 +133,7 @@ export function _resetForTest() {
   postLoginDestination = null;
   lastLogoutReason = null;
   lastPrincipal = null;
+  justRegistered = false;
   if (typeof window !== 'undefined') {
     currentState = 'LOGGED_OUT';
   }

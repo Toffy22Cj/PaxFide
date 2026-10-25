@@ -1,29 +1,60 @@
 'use client';
 
+// Ref: P2; POST /auth/register; DD-56; H-P2-1 (PasswordTooShort >= 12).
+// Documentos/plan-fase7-fidelidad.md §2 D-F5 (acceso sobre el mundo), D-F10 (bienvenida), D-F14 (fundación), X-4..X-7;
+// Documentos/paxfide-landing.html (.auth-card, #formRegister, checkPassStrength).
 import React, { useState } from 'react';
 import Link from 'next/link';
+import * as session from '../lib/auth/session';
 import { registerAccount, RegisterOutcome } from '../lib/api/identity';
-import { PageHeader } from '../components/ui/Layout';
-import { TextField, PasswordField } from '../components/ui/Field';
-import { Button } from '../components/ui/Button';
-import { StatusNotice } from '../components/States';
+import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { BrandMark } from '../components/shell/BrandMark';
+import { BrandDots } from '../components/loaders/BrandDots';
+import { AccessLayout } from '../components/access/AccessLayout';
 import s from './access.module.css';
 
-/**
- * Registro de cuenta (P2; `POST /auth/register`, DD-56). No inicia sesión ni guarda nada: tras crear la cuenta se
- * entra por `/login`. El backend no fija política de contraseña (H-P2-1); la web solo exige que coincidan.
- */
-/** Política del backend (H-P2-1, `PasswordTooShort`): al menos 12 caracteres. El backend valida igual. */
 const MIN_PASSWORD = 12;
+
+interface StrengthInfo {
+  score: number;
+  width: string;
+  color: string;
+  label: string;
+}
+
+function calculateStrength(val: string): StrengthInfo {
+  if (!val) {
+    return { score: 0, width: '0%', color: 'var(--color-divider)', label: 'Seguridad de contraseña' };
+  }
+  let score = 0;
+  if (val.length >= MIN_PASSWORD) score++;
+  if (/[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+
+  if (val.length < MIN_PASSWORD || score <= 1) {
+    return { score: 1, width: '25%', color: 'var(--color-danger-text)', label: 'Seguridad: Débil (al menos 12 caracteres)' };
+  }
+  if (score === 2) {
+    return { score: 2, width: '50%', color: 'var(--color-ambiguous-title)', label: 'Seguridad: Media' };
+  }
+  if (score === 3) {
+    return { score: 3, width: '75%', color: 'var(--color-action)', label: 'Seguridad: Segura' };
+  }
+  return { score: 4, width: '100%', color: 'var(--color-success-text)', label: 'Seguridad: ¡Excelente y robusta!' };
+}
 
 export function RegisterScreen({ client = registerAccount }: { client?: (e: string, p: string) => Promise<RegisterOutcome> }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [repeat, setRepeat] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRepeat, setShowRepeat] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; repeat?: string }>({});
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<RegisterOutcome | null>(null);
+
+  const strength = calculateStrength(password);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,23 +71,14 @@ export function RegisterScreen({ client = registerAccount }: { client?: (e: stri
     const r = await client(email.trim(), password);
     setSending(false);
     setResult(r);
-    if (r.kind === 'ok') { setPassword(''); setRepeat(''); }
+    if (r.kind === 'ok') {
+      setPassword('');
+      setRepeat('');
+      session.markJustRegistered();
+    }
     if (r.kind === 'invalid-email') setErrors({ email: 'El correo no es válido.' });
     if (r.kind === 'password-too-short') setErrors({ password: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.` });
   };
-
-  if (result?.kind === 'ok') {
-    return (
-      <div className={s.page}>
-        <div className={s.card}>
-          <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
-          <PageHeader title="Crear cuenta" />
-          <StatusNotice variant="success" title="Cuenta creada" text="Ya puedes iniciar sesión con tu correo y tu contraseña." />
-          <p className={s.alt}><Link href="/login">Iniciar sesión</Link></p>
-        </div>
-      </div>
-    );
-  }
 
   const failure: Record<string, string> = {
     'duplicate-email': 'Ya existe una cuenta con ese correo.',
@@ -66,22 +88,210 @@ export function RegisterScreen({ client = registerAccount }: { client?: (e: stri
   };
 
   return (
-    <div className={s.page}>
-      <div className={s.card}>
-        <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
-        <PageHeader title="Crear cuenta" />
-        {result && failure[result.kind] && <StatusNotice variant="rejected" text={failure[result.kind]} />}
-        <form onSubmit={submit} noValidate>
-          <TextField label="Correo electrónico" type="email" autoComplete="email" value={email}
-            onChange={(e) => setEmail(e.target.value)} error={errors.email} disabled={sending} />
-          <PasswordField label="Contraseña" autoComplete="new-password" value={password} hint={`Al menos ${MIN_PASSWORD} caracteres.`}
-            onChange={(e) => setPassword(e.target.value)} error={errors.password} disabled={sending} />
-          <PasswordField label="Repite la contraseña" autoComplete="new-password" value={repeat}
-            onChange={(e) => setRepeat(e.target.value)} error={errors.repeat} disabled={sending} />
-          <Button type="submit" block sending={sending}>Crear cuenta</Button>
-        </form>
-        <p className={s.alt}><Link href="/login">Ya tengo cuenta</Link></p>
+    <AccessLayout>
+      <div className={s.page}>
+        <div className={s.card} data-world-avoid="">
+          <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
+          <div className={s.badgePill}>
+            <span className={s.badgeDot} />
+            <span>TU CUENTA PAXFIDE</span>
+          </div>
+          <h1 id="authCardTitle" className={s.title}>Crear cuenta</h1>
+          <p id="authCardSub" className={s.subtitle}>Únete para apoyar causas verificadas y seguir el impacto real de cada donación.</p>
+
+          {/* Conmutador de pestañas */}
+          <div className={s.tabs} role="tablist" aria-label="Acceso">
+            {isSurfaceEnabled('/login') && (
+              <Link href="/login" role="tab" id="tabBtnLogin" aria-selected="false" className={s.tabBtn}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                  <polyline points="10 17 15 12 10 7" />
+                  <line x1="15" y1="12" x2="3" y2="12" />
+                </svg>
+                <span>Iniciar sesión</span>
+              </Link>
+            )}
+            <Link href="/register" role="tab" id="tabBtnRegister" aria-selected="true" className={[s.tabBtn, s.tabActive].join(' ')}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="8.5" cy="7" r="4" />
+                <line x1="20" y1="8" x2="20" y2="14" />
+                <line x1="23" y1="11" x2="17" y2="11" />
+              </svg>
+              <span>Crear cuenta</span>
+            </Link>
+          </div>
+
+          {result?.kind === 'ok' ? (
+            <div>
+              <div className={[s.feedbackMsg, s.feedbackSuccess].join(' ')} role="status">
+                <b>Cuenta creada</b>. Ya puedes iniciar sesión con tu correo y tu contraseña.
+              </div>
+              <div className={s.foot}>
+                <p>
+                  <Link href="/login" className={s.switchLink}>Iniciar sesión</Link>
+                </p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {result && failure[result.kind] && (
+                <div className={[s.feedbackMsg, s.feedbackError].join(' ')} role="alert">
+                  {failure[result.kind]}
+                </div>
+              )}
+
+              <form onSubmit={submit} className={s.form} noValidate>
+                <div className={s.field}>
+                  <label htmlFor="regEmail" className={s.label}>Correo electrónico</label>
+                  <div className={s.inputWrap}>
+                    <svg className={s.fieldIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                      <polyline points="22,6 12,13 2,6" />
+                    </svg>
+                    <input
+                      id="regEmail"
+                      type="email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={sending}
+                      placeholder="tu@correo.com"
+                      className={s.input}
+                    />
+                  </div>
+                  {errors.email && <span className={s.fieldError}>{errors.email}</span>}
+                </div>
+
+                <div className={s.field}>
+                  <label htmlFor="regPass" className={s.label}>Contraseña</label>
+                  <div className={s.inputWrap}>
+                    <svg className={s.fieldIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <input
+                      id="regPass"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={sending}
+                      placeholder="Mínimo 12 caracteres"
+                      className={s.input}
+                    />
+                    <button
+                      type="button"
+                      className={s.toggleEye}
+                      aria-label={showPassword ? 'Ocultar clave' : 'Mostrar clave'}
+                      onClick={() => setShowPassword((p) => !p)}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        {showPassword ? (
+                          <>
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </>
+                        ) : (
+                          <>
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </>
+                        )}
+                      </svg>
+                    </button>
+                  </div>
+                  <span className={s.hint}>Al menos 12 caracteres.</span>
+                  {errors.password && <span className={s.fieldError}>{errors.password}</span>}
+
+                  {/* Barra de seguridad de la contraseña (X-6) */}
+                  <div className={s.passStrengthBar}>
+                    <div className={s.strengthTrack}>
+                      <div className={s.strengthMeter} style={{ width: strength.width, backgroundColor: strength.color }} />
+                    </div>
+                    <span className={s.strengthLabel} style={{ color: strength.color }}>{strength.label}</span>
+                  </div>
+                </div>
+
+                <div className={s.field}>
+                  <label htmlFor="regRepeat" className={s.label}>Repite la contraseña</label>
+                  <div className={s.inputWrap}>
+                    <svg className={s.fieldIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <input
+                      id="regRepeat"
+                      type={showRepeat ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      value={repeat}
+                      onChange={(e) => setRepeat(e.target.value)}
+                      disabled={sending}
+                      placeholder="Repite tu contraseña"
+                      className={s.input}
+                    />
+                    <button
+                      type="button"
+                      className={s.toggleEye}
+                      aria-label={showRepeat ? 'Ocultar clave' : 'Mostrar clave'}
+                      onClick={() => setShowRepeat((p) => !p)}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        {showRepeat ? (
+                          <>
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </>
+                        ) : (
+                          <>
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </>
+                        )}
+                      </svg>
+                    </button>
+                  </div>
+                  {errors.repeat && <span className={s.fieldError}>{errors.repeat}</span>}
+                </div>
+
+                {/* Nota plegable sobre registro de fundaciones (D-F14) */}
+                <details className={s.foundationDetails}>
+                  <summary className={s.foundationSummary}>¿Representas una fundación?</summary>
+                  <div className={s.foundationBody}>
+                    <ol>
+                      <li>Crea tu cuenta aquí, como cualquier donante.</li>
+                      <li>Inicia sesión.</li>
+                      <li>En Inicio, en la tarjeta &ldquo;¿Tienes una fundación?&rdquo;, pulsa &ldquo;Registrar organización&rdquo; y llena sus datos.</li>
+                      <li>La plataforma la revisa (estado &ldquo;Pendiente de verificación&rdquo;); puede pedirte más información.</li>
+                      <li>Cuando esté &ldquo;Verificada&rdquo;, puedes crear convocatorias.</li>
+                    </ol>
+                  </div>
+                </details>
+
+                <button type="submit" className={s.submitBtn} disabled={sending} aria-busy={sending || undefined}>
+                  <span>Crear cuenta</span>
+                  {sending ? (
+                    <BrandDots aria-hidden="true" />
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </button>
+              </form>
+
+              {isSurfaceEnabled('/login') && (
+                <div className={s.foot}>
+                  <p>
+                    ¿Ya tienes cuenta?{' '}
+                    <Link href="/login" className={s.switchLink} aria-label="Iniciar sesión">Ya tengo cuenta</Link>
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </AccessLayout>
   );
 }

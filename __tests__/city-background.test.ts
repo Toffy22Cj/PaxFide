@@ -7,13 +7,16 @@ import { CITY_DAY, CITY_NIGHT, cityPalette } from '../src/components/background/
 import { CITY_PAUSE_KEY, loopMode, readPaused, writePaused } from '../src/components/background/animationPreference';
 import type { PreferenceStorage } from '../src/lib/theme/theme';
 
-describe('hasAnimatedBackground (D-P2)', () => {
-  it('rutas del donante', () => {
-    for (const p of ['/', '/home', '/campaigns', '/c/ABC123', '/tracking', '/account/donations']) expect(hasAnimatedBackground(p), p).toBe(true);
+describe('hasAnimatedBackground (D-P2, D-F5, D-F17)', () => {
+  it('rutas del donante y de acceso sobre el mundo', () => {
+    for (const p of ['/', '/home', '/campaigns', '/c/ABC123', '/tracking', '/account/donations', '/login', '/register', '/invitaciones', '/terminos', '/privacidad', '/terminos-organizacion']) {
+      expect(hasAnimatedBackground(p), p).toBe(true);
+    }
   });
-  it('negativas: acceso, parte administrativa y activos', () => {
-    for (const p of ['/login', '/register', '/invitaciones', '/panel', '/panel/campaigns', '/panel/assets', '/assets/x', '/c/', '/c/a/b', '/campaigns/x', '/tracking/x', '/homes'])
+  it('negativas: parte administrativa, activos y rutas no coincidentes', () => {
+    for (const p of ['/panel', '/panel/campaigns', '/panel/assets', '/assets/x', '/c/', '/c/a/b', '/campaigns/x', '/tracking/x', '/homes']) {
       expect(hasAnimatedBackground(p), p).toBe(false);
+    }
   });
 });
 

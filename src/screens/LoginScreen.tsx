@@ -1,18 +1,23 @@
 'use client';
 
+// Ref: diseno-ux-contractual-web-v1.md §5.2; ID-01; ADR-038 §2.6; ADR-046 D2;
+// Documentos/plan-fase7-fidelidad.md §2 D-F5 (acceso sobre el mundo), D-F10 (bienvenida), D-F2;
+// Documentos/paxfide-landing.html (.auth-card, #formLogin).
 import React, { useState } from 'react';
 import Link from 'next/link';
 import * as session from '../lib/auth/session';
-import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { login as loginRequest, LoginOutcome } from '../lib/api/identity';
-import { PageHeader } from '../components/ui/Layout';
-import { TextField, PasswordField } from '../components/ui/Field';
-import { Button } from '../components/ui/Button';
-import { StatusNotice } from '../components/States';
+import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { BrandMark } from '../components/shell/BrandMark';
+import { BrandDots } from '../components/loaders/BrandDots';
+import { AccessLayout } from '../components/access/AccessLayout';
+import { defaultDestination } from '../app/RouteGuard';
 import s from './access.module.css';
 
-type Props = { loginClient?: (email: string, password: string) => Promise<LoginOutcome> };
+type Props = {
+  loginClient?: (email: string, password: string) => Promise<LoginOutcome>;
+  onContinueWelcome?: () => void;
+};
 
 const REASON_TEXT: Record<session.LogoutReason, string | null> = {
   EXPIRED: 'Tu sesión expiró. Vuelve a iniciar sesión.',
@@ -20,18 +25,15 @@ const REASON_TEXT: Record<session.LogoutReason, string | null> = {
   MANUAL: null,
 };
 
-/**
- * Login (`diseno-ux-contractual-web-v1.md` §5.2; ID-01). Un único texto para los tres fallos de autenticación
- * (ADR-038 §2.6). El token pasa directamente a la sesión en memoria (ADR-046 D2); tras el éxito, el guard navega al
- * destino retenido o a `/panel` (G-W2).
- */
-export function LoginScreen({ loginClient = loginRequest }: Props) {
+export function LoginScreen({ loginClient = loginRequest, onContinueWelcome }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [sending, setSending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [reason] = useState(() => session.getLastLogoutReason());
+  const [showWelcome, setShowWelcome] = useState(() => session.isJustRegistered() && !session.getPostLoginDestination() && session.getState() === 'AUTHENTICATED');
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +51,10 @@ export function LoginScreen({ loginClient = loginRequest }: Props) {
       case 'ok':
         setPassword('');
         session.login(outcome.token);
+        if (session.isJustRegistered() && !session.getPostLoginDestination()) {
+          setShowWelcome(true);
+          return;
+        }
         return;
       case 'invalid-credentials':
         setFailure('Correo o contraseña incorrectos.');
@@ -65,24 +71,228 @@ export function LoginScreen({ loginClient = loginRequest }: Props) {
     }
   };
 
+  const handleContinueWelcome = () => {
+    if (onContinueWelcome) {
+      onContinueWelcome();
+    } else {
+      session.clearJustRegistered();
+      setShowWelcome(false);
+      const dest = session.consumePostLoginDestination();
+      if (typeof window !== 'undefined') {
+        window.location.href = dest || defaultDestination();
+      }
+    }
+  };
+
   const reasonText = reason ? REASON_TEXT[reason] : null;
 
   return (
-    <div className={s.page}>
-      <div className={s.card}>
-        <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
-        <PageHeader title="Iniciar sesión" />
-        {reasonText && <StatusNotice variant="info" text={reasonText} />}
-        {failure && <StatusNotice variant="rejected" text={failure} />}
-        <form onSubmit={onSubmit} noValidate>
-          <TextField label="Correo electrónico" type="email" autoComplete="username" value={email}
-            onChange={(e) => setEmail(e.target.value)} error={errors.email} disabled={sending} />
-          <PasswordField label="Contraseña" autoComplete="current-password" value={password}
-            onChange={(e) => setPassword(e.target.value)} error={errors.password} disabled={sending} />
-          <Button type="submit" block sending={sending}>Iniciar sesión</Button>
-        </form>
-        {isSurfaceEnabled('/register') && <p className={s.alt}><Link href="/register">Crear cuenta</Link></p>}
+    <AccessLayout>
+      <div className={s.page}>
+        <div className={s.card} data-world-avoid="">
+          {showWelcome ? (
+            /* ============ Bienvenida (D-F10; paxfide-home.html §1) ============ */
+            <div className={s.welcomeGate} data-testid="welcome-gate">
+              <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
+              <div className={s.chain} aria-hidden="true">
+                <svg className={s.chainCube} viewBox="0 0 56 56">
+                  <path d="M28 6l20 11-20 11L8 17z" className={s.cubeBlueTop} />
+                  <path d="M8 17l20 11v22L8 39z" className={s.cubeBlueLeft} />
+                  <path d="M48 17L28 28v22l20-11z" className={s.cubeBlueRight} />
+                </svg>
+                <span className={s.chainLink} />
+                <svg className={s.chainCube} viewBox="0 0 56 56">
+                  <path d="M28 6l20 11-20 11L8 17z" className={s.cubeGreenTop} />
+                  <path d="M8 17l20 11v22L8 39z" className={s.cubeGreenLeft} />
+                  <path d="M48 17L28 28v22l20-11z" className={s.cubeGreenRight} />
+                </svg>
+                <span className={s.chainLink} />
+                <svg className={s.chainCube} viewBox="0 0 56 56">
+                  <path d="M28 6l20 11-20 11L8 17z" className={s.cubeYellowTop} />
+                  <path d="M8 17l20 11v22L8 39z" className={s.cubeYellowLeft} />
+                  <path d="M48 17L28 28v22l20-11z" className={s.cubeYellowRight} />
+                </svg>
+                <span className={s.seal}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="5" y="11" width="14" height="10" rx="2" />
+                    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                  </svg>
+                </span>
+              </div>
+              <h1 className={s.welcomeTitle}>Te damos la bienvenida a PaxFide</h1>
+              <p className={s.welcomeLead}>Ya iniciaste sesión. Esto es lo que puedes hacer aquí:</p>
+              <ul className={s.featuresList}>
+                <li className={s.featureItem}>
+                  <span className={`${s.featureIcon} ${s.featureIconGreen}`}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z" />
+                    </svg>
+                  </span>
+                  <div className={s.featureText}>
+                    <b>Dona a convocatorias verificadas</b>
+                    <span>Cada organización pasa por una revisión antes de publicar.</span>
+                  </div>
+                </li>
+                <li className={s.featureItem}>
+                  <span className={`${s.featureIcon} ${s.featureIconBlue}`}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="6" cy="18" r="2" />
+                      <circle cx="18" cy="6" r="2" />
+                      <path d="M8 18h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6" />
+                    </svg>
+                  </span>
+                  <div className={s.featureText}>
+                    <b>Sigue el recorrido de tu ayuda</b>
+                    <span>Del pago a la compra, el despacho y la entrega.</span>
+                  </div>
+                </li>
+                <li className={s.featureItem}>
+                  <span className={`${s.featureIcon} ${s.featureIconYellow}`}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
+                      <path d="M4 7.5l8 4.5 8-4.5M12 12v9" />
+                    </svg>
+                  </span>
+                  <div className={s.featureText}>
+                    <b>Cada paso queda sellado</b>
+                    <span>Se registra de forma que no se puede cambiar sin que se note.</span>
+                  </div>
+                </li>
+              </ul>
+              <button type="button" className={s.submitBtn} onClick={handleContinueWelcome}>
+                <span>Continuar</span>
+              </button>
+              <div className={s.welcomeDots} aria-hidden="true">
+                <span className={[s.welcomeDot, s.welcomeDotActive].join(' ')} />
+                <span className={s.welcomeDot} />
+                <span className={s.welcomeDot} />
+              </div>
+            </div>
+          ) : (
+            /* ============ Tarjeta de Iniciar Sesión (D-F5) ============ */
+            <>
+              <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
+              <div className={s.badgePill}>
+                <span className={s.badgeDot} />
+                <span>TU CUENTA PAXFIDE</span>
+              </div>
+              <h1 id="authCardTitle" className={s.title}>Iniciar sesión</h1>
+              <p id="authCardSub" className={s.subtitle}>Gestiona tus donaciones, verifica lotes en blockchain y apoya convocatorias.</p>
+
+              {/* Conmutador de pestañas */}
+              <div className={s.tabs} role="tablist" aria-label="Acceso">
+                <Link href="/login" role="tab" id="tabBtnLogin" aria-selected="true" className={[s.tabBtn, s.tabActive].join(' ')}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                    <polyline points="10 17 15 12 10 7" />
+                    <line x1="15" y1="12" x2="3" y2="12" />
+                  </svg>
+                  <span>Iniciar sesión</span>
+                </Link>
+                {isSurfaceEnabled('/register') && (
+                  <Link href="/register" role="tab" id="tabBtnRegister" aria-selected="false" className={s.tabBtn}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="8.5" cy="7" r="4" />
+                      <line x1="20" y1="8" x2="20" y2="14" />
+                      <line x1="23" y1="11" x2="17" y2="11" />
+                    </svg>
+                    <span>Crear cuenta</span>
+                  </Link>
+                )}
+              </div>
+
+              {reasonText && <div className={[s.feedbackMsg, s.feedbackInfo].join(' ')} role="status">{reasonText}</div>}
+              {failure && <div className={[s.feedbackMsg, s.feedbackError].join(' ')} role="alert">{failure}</div>}
+
+              <form onSubmit={onSubmit} className={s.form} noValidate>
+                <div className={s.field}>
+                  <label htmlFor="loginEmail" className={s.label}>Correo electrónico</label>
+                  <div className={s.inputWrap}>
+                    <svg className={s.fieldIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                      <polyline points="22,6 12,13 2,6" />
+                    </svg>
+                    <input
+                      id="loginEmail"
+                      type="email"
+                      autoComplete="username"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={sending}
+                      placeholder="ejemplo@correo.com"
+                      className={s.input}
+                    />
+                  </div>
+                  {errors.email && <span className={s.fieldError}>{errors.email}</span>}
+                </div>
+
+                <div className={s.field}>
+                  <label htmlFor="loginPass" className={s.label}>Contraseña</label>
+                  <div className={s.inputWrap}>
+                    <svg className={s.fieldIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <input
+                      id="loginPass"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={sending}
+                      placeholder="Tu contraseña"
+                      className={s.input}
+                    />
+                    <button
+                      type="button"
+                      className={s.toggleEye}
+                      aria-label={showPassword ? 'Ocultar clave' : 'Mostrar clave'}
+                      onClick={() => setShowPassword((p) => !p)}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        {showPassword ? (
+                          <>
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </>
+                        ) : (
+                          <>
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </>
+                        )}
+                      </svg>
+                    </button>
+                  </div>
+                  {errors.password && <span className={s.fieldError}>{errors.password}</span>}
+                </div>
+
+                <button type="submit" className={s.submitBtn} disabled={sending} aria-busy={sending || undefined}>
+                  <span>Iniciar sesión</span>
+                  {sending ? (
+                    <BrandDots aria-hidden="true" />
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  )}
+                </button>
+              </form>
+
+              {isSurfaceEnabled('/register') && (
+                <div className={s.foot}>
+                  <p>
+                    ¿No tienes una cuenta aún?{' '}
+                    <Link href="/register" className={s.switchLink} aria-label="Crear cuenta">Regístrate gratis</Link>
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </AccessLayout>
   );
 }

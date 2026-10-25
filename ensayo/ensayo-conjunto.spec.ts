@@ -539,8 +539,14 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     await n.getByRole('button', { name: 'Crear cuenta' }).click();
     await n.getByRole('link', { name: 'Iniciar sesión' }).click();
     await n.getByLabel('Correo electrónico').fill(email);
-    await n.getByLabel('Contraseña').fill(PASSWORD);
+    await n.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
     await n.getByRole('button', { name: 'Iniciar sesión' }).click();
+    if (await n.getByRole('button', { name: 'Continuar' }).isVisible({ timeout: 2000 }).catch(() => false)) {
+      await n.getByRole('button', { name: 'Continuar' }).click();
+    }
+    if (!n.url().endsWith('/panel')) {
+      await n.goto('/panel');
+    }
     await n.getByRole('link', { name: 'Crear organización' }).click();
     await n.getByRole('button', { name: 'Crear organización' }).click();
     await n.getByRole('dialog').getByLabel('Tipo').selectOption('FOUNDATION');

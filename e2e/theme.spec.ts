@@ -12,7 +12,7 @@ const cssVar = (page: Page, name: string) =>
 test.describe('Tema oscuro activado (F-A0, D-F11)', () => {
   test('sistema oscuro (prefers-color-scheme: dark) sin data-theme → tokens oscuros y barra oscura', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark' });
-    await page.goto('/login');
+    await page.goto('/campaigns');
     // Sin data-theme forzado, manda el sistema
     await expect(page.locator('html')).not.toHaveAttribute('data-theme');
     expect(await cssVar(page, '--color-bg')).toBe('#0E1B16');
@@ -27,7 +27,7 @@ test.describe('Tema oscuro activado (F-A0, D-F11)', () => {
 
   test('sistema claro + data-theme="dark" forzado → tokens oscuros', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'light' });
-    await page.goto('/login');
+    await page.goto('/campaigns');
     expect(await cssVar(page, '--color-bg')).toBe('#F8FAFA');
 
     // Cambiar vía ThemeSelect
@@ -39,7 +39,7 @@ test.describe('Tema oscuro activado (F-A0, D-F11)', () => {
 
   test('sistema oscuro + data-theme="light" forzado → tokens claros', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark' });
-    await page.goto('/login');
+    await page.goto('/campaigns');
     expect(await cssVar(page, '--color-bg')).toBe('#0E1B16');
 
     // Cambiar vía ThemeSelect
@@ -90,7 +90,7 @@ test.describe('Tema oscuro activado (F-A0, D-F11)', () => {
   });
 
   test('ThemeSelect en la cabecera fina interactúa, actualiza data-theme y guarda en localStorage', async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/campaigns');
     const select = page.getByTestId('theme-select');
     await expect(select).toBeVisible();
 
@@ -112,7 +112,7 @@ test.describe('Tema oscuro activado (F-A0, D-F11)', () => {
 
   test('C-1 contraste en oscuro: los textos visibles en pantalla cumplen contraste WCAG >= 4.5', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark' });
-    await page.goto('/login');
+    await page.goto('/campaigns');
 
     const issues = await page.evaluate(() => {
       function rgbToLum(rgbStr: string): number {
@@ -229,7 +229,7 @@ test.describe('Fuentes autoalojadas (VS-0)', () => {
   test('sin preload: la primera carga de una pantalla existente no descarga fuentes (DF7-12)', async ({ page }) => {
     const fonts: string[] = [];
     page.on('request', (r) => { if (r.resourceType() === 'font') fonts.push(r.url()); });
-    await page.goto('/login');
+    await page.goto('/tracking');
     await page.waitForLoadState('networkidle');
     expect(fonts).toEqual([]);
   });

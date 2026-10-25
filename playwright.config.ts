@@ -74,7 +74,10 @@ export default defineConfig({
           'action:configuration-edit',
           'action:configuration-request',
           'action:configuration-approve',
-          'action:configuration-reject'
+          'action:configuration-reject',
+          '/terminos',
+          '/privacidad',
+          '/terminos-organizacion'
         ])
       }
     },
