@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Ref: Documentos/plan-fase7-fidelidad.md §1 (punto 2 y 4), §5 F-B1.
+// Ref: Documentos/plan-fase7-fidelidad.md §1 (punto 2 y 4), §5 F-B1, F-B2.
 // Capturas de fidelidad lado a lado (boceto vs app) en claro y oscuro a 390 y 1280 px.
 // Comprobación de superposición con elementFromPoint a 390, 1280 y 1920 px.
 
@@ -13,8 +13,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
 
-const OUT_DIR = path.join(ROOT, 'Documentos', 'evidencia-web', 'capturas', 'fidelidad', 'panel');
-fs.mkdirSync(OUT_DIR, { recursive: true });
+const SCREENS = [
+  { id: 'panel', path: '/panel', sketchView: 'org', role: 'ADMINISTRATOR' },
+  { id: 'campaigns', path: '/panel/campaigns', sketchView: 'campaigns', role: 'ADMINISTRATOR' },
+  { id: 'assets', path: '/panel/assets', sketchView: 'assets', role: 'EMPLOYEE' },
+];
 
 async function isPortOpen(port) {
   try {
@@ -38,7 +41,7 @@ async function waitForServer(url, timeoutMs = 30000) {
 }
 
 async function main() {
-  console.log('Iniciando captura de fidelidad...');
+  console.log('Iniciando capturas de fidelidad para Pista B...');
   let fakeBackendProc = null;
   let nextProc = null;
 
@@ -68,6 +71,7 @@ async function main() {
         '/panel/funds',
         '/account/donations',
         'action:register-asset',
+        'action:create-campaign',
       ]);
       nextProc = spawn('pnpm', ['dev', '--port', '3000'], {
         cwd: ROOT,
@@ -89,143 +93,148 @@ async function main() {
     const sketchPath = path.join(ROOT, 'Documentos', 'paxfide-panel.html');
     const sketchUrl = `file://${sketchPath}`;
 
-    // A. Capturar Boceto (paxfide-panel.html)
-    console.log('Capturando boceto...');
-    for (const theme of ['claro', 'oscuro']) {
-      for (const width of [390, 1280]) {
-        const page = await browser.newPage({
-          viewport: { width, height: 860 },
-        });
-        await page.goto(sketchUrl);
-        // Configurar tema y rol en el prototipo
-        await page.evaluate(
-          ({ th }) => {
-            const dRole = document.querySelector('#dRole');
-            if (dRole) {
-              dRole.value = 'ADMINISTRATOR';
-              dRole.dispatchEvent(new Event('change'));
-            }
-            if (typeof window.showPanelView === 'function') {
-              window.showPanelView('org');
-            }
-            if (th === 'oscuro') {
-              document.documentElement.dataset.theme = 'dark';
-            } else {
-              delete document.documentElement.dataset.theme;
-            }
-          },
-          { th: theme }
-        );
-        await page.waitForTimeout(400);
-        const out = path.join(OUT_DIR, `boceto__${theme}__${width}.png`);
-        await page.screenshot({ path: out, fullPage: true });
-        console.log(`Boceto guardado: ${out}`);
-        await page.close();
-      }
-    }
+    for (const screenInfo of SCREENS) {
+      const outDir = path.join(ROOT, 'Documentos', 'evidencia-web', 'capturas', 'fidelidad', screenInfo.id);
+      fs.mkdirSync(outDir, { recursive: true });
 
-    // B. Capturar App en localhost:3000/panel
-    console.log('Capturando app...');
-    for (const theme of ['claro', 'oscuro']) {
-      for (const width of [390, 1280]) {
-        const context = await browser.newContext({
-          viewport: { width, height: 860 },
-        });
-        const page = await context.newPage();
+      console.log(`\n=== Procesando pantalla: ${screenInfo.id} (${screenInfo.path}) ===`);
 
-        // Iniciar sesión como administrador
-        await page.goto('http://localhost:3000/panel');
-        await page.getByLabel('Correo electrónico').waitFor({ timeout: 10000 });
-        await page.getByLabel('Correo electrónico').fill('admin@demo.test');
-        await page.getByLabel('Contraseña').fill('demo-admin');
-        await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-
-        await page.waitForURL(/\/panel$/, { timeout: 10000 });
-        await page.getByTestId('panel-content').waitFor({ timeout: 10000 });
-
-        // Aplicar tema
-        if (theme === 'oscuro') {
-          await page.evaluate(() => {
-            document.documentElement.setAttribute('data-theme', 'dark');
+      // A. Capturar Boceto (paxfide-panel.html)
+      console.log(`Capturando boceto para ${screenInfo.id}...`);
+      for (const theme of ['claro', 'oscuro']) {
+        for (const width of [390, 1280]) {
+          const page = await browser.newPage({
+            viewport: { width, height: 860 },
           });
-        } else {
-          await page.evaluate(() => {
-            document.documentElement.removeAttribute('data-theme');
-          });
+          await page.goto(sketchUrl);
+          await page.evaluate(
+            ({ th, role, view }) => {
+              const dRole = document.querySelector('#dRole');
+              if (dRole) {
+                dRole.value = role;
+                dRole.dispatchEvent(new Event('change'));
+              }
+              if (typeof window.showPanelView === 'function') {
+                window.showPanelView(view);
+              }
+              if (th === 'oscuro') {
+                document.documentElement.dataset.theme = 'dark';
+              } else {
+                delete document.documentElement.dataset.theme;
+              }
+            },
+            { th: theme, role: screenInfo.role, view: screenInfo.sketchView }
+          );
+          await page.waitForTimeout(400);
+          const out = path.join(outDir, `boceto__${theme}__${width}.png`);
+          await page.screenshot({ path: out, fullPage: true });
+          console.log(`Boceto guardado: ${out}`);
+          await page.close();
         }
-        await page.waitForTimeout(500);
-
-        const out = path.join(OUT_DIR, `app__${theme}__${width}.png`);
-        await page.screenshot({ path: out, fullPage: true });
-        console.log(`App guardada: ${out}`);
-        await context.close();
       }
-    }
 
-    // C. Verificación de superposiciones (§1.4)
-    console.log('Comprobando no-superposición (elementFromPoint) a 390, 1280 y 1920 px...');
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    await page.goto('http://localhost:3000/panel');
-    await page.getByLabel('Correo electrónico').waitFor({ timeout: 10000 });
-    await page.getByLabel('Correo electrónico').fill('admin@demo.test');
-    await page.getByLabel('Contraseña').fill('demo-admin');
-    await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-    await page.waitForURL(/\/panel$/);
-    await page.getByTestId('panel-content').waitFor();
+      // B. Capturar App en localhost:3000
+      console.log(`Capturando app para ${screenInfo.id}...`);
+      const user = screenInfo.role === 'ADMINISTRATOR' ? 'admin@demo.test' : 'empleado@demo.test';
+      const pass = screenInfo.role === 'ADMINISTRATOR' ? 'demo-admin' : 'demo-empleado';
 
-    for (const width of [390, 1280, 1920]) {
-      await page.setViewportSize({ width, height: 900 });
-      await page.waitForTimeout(300);
+      for (const theme of ['claro', 'oscuro']) {
+        for (const width of [390, 1280]) {
+          const context = await browser.newContext({
+            viewport: { width, height: 860 },
+          });
+          const page = await context.newPage();
 
-      const overlapIssues = await page.evaluate(() => {
-        const controls = Array.from(document.querySelectorAll('button, a, input, select'));
-        const issues = [];
-        for (const el of controls) {
-          if (el.offsetParent === null) continue; // no visible
-          el.scrollIntoView({ block: 'center', inline: 'center' });
-          const rect = el.getBoundingClientRect();
-          if (rect.width === 0 || rect.height === 0) continue;
-          const cx = Math.floor(rect.left + rect.width / 2);
-          const cy = Math.floor(rect.top + rect.height / 2);
-          const topEl = document.elementFromPoint(cx, cy);
-          if (topEl && topEl.tagName && topEl.tagName.toUpperCase().includes('NEXTJS')) {
-            continue; // ignora el indicador dev de Turbopack/Next.js
-          }
-          if (topEl !== el && !el.contains(topEl)) {
-            issues.push({
-              tag: el.tagName,
-              text: el.textContent?.trim().slice(0, 30),
-              topElTag: topEl?.tagName,
-              topElClass: topEl?.className,
-              cx,
-              cy,
+          // Iniciar sesión y navegar al destino
+          await page.goto(`http://localhost:3000${screenInfo.path}`);
+          await page.getByLabel('Correo electrónico').waitFor({ timeout: 10000 });
+          await page.getByLabel('Correo electrónico').fill(user);
+          await page.getByLabel('Contraseña').fill(pass);
+          await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+
+          await page.waitForURL(new RegExp(`${screenInfo.path}$`), { timeout: 10000 });
+          await page.getByTestId('panel-content').waitFor({ timeout: 10000 });
+
+          // Aplicar tema
+          if (theme === 'oscuro') {
+            await page.evaluate(() => {
+              document.documentElement.setAttribute('data-theme', 'dark');
+            });
+          } else {
+            await page.evaluate(() => {
+              document.documentElement.removeAttribute('data-theme');
             });
           }
-        }
-        return issues;
-      });
+          await page.waitForTimeout(500);
 
-      if (overlapIssues.length > 0) {
-        console.error(`Superposiciones a ${width}px:`, overlapIssues);
-        throw new Error(`Controles interactivos superpuestos detectados a ${width}px`);
+          const out = path.join(outDir, `app__${theme}__${width}.png`);
+          await page.screenshot({ path: out, fullPage: true });
+          console.log(`App guardada: ${out}`);
+          await context.close();
+        }
       }
-      console.log(`✓ Sin superposiciones a ${width}px.`);
+
+      // C. Verificación de superposiciones (§1.4)
+      console.log(`Comprobando no-superposición (elementFromPoint) para ${screenInfo.id} a 390, 1280 y 1920 px...`);
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      await page.goto(`http://localhost:3000${screenInfo.path}`);
+      await page.getByLabel('Correo electrónico').waitFor({ timeout: 10000 });
+      await page.getByLabel('Correo electrónico').fill(user);
+      await page.getByLabel('Contraseña').fill(pass);
+      await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+      await page.waitForURL(new RegExp(`${screenInfo.path}$`));
+      await page.getByTestId('panel-content').waitFor();
+
+      for (const width of [390, 1280, 1920]) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.waitForTimeout(300);
+
+        const overlapIssues = await page.evaluate(() => {
+          const controls = Array.from(document.querySelectorAll('button, a, input, select'));
+          const issues = [];
+          for (const el of controls) {
+            if (el.offsetParent === null) continue; // no visible
+            el.scrollIntoView({ block: 'center', inline: 'center' });
+            const rect = el.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) continue;
+            const cx = Math.floor(rect.left + rect.width / 2);
+            const cy = Math.floor(rect.top + rect.height / 2);
+            const topEl = document.elementFromPoint(cx, cy);
+            if (topEl && topEl.tagName && topEl.tagName.toUpperCase().includes('NEXTJS')) {
+              continue; // ignora indicador dev de Turbopack/Next.js
+            }
+            if (topEl !== el && !el.contains(topEl)) {
+              issues.push({
+                tag: el.tagName,
+                text: el.textContent?.trim().slice(0, 30),
+                topElTag: topEl?.tagName,
+                topElClass: topEl?.className,
+              });
+            }
+          }
+          return issues;
+        });
+
+        if (overlapIssues.length > 0) {
+          console.error(`ERROR: Elementos superpuestos a ${width}px en ${screenInfo.id}:`, overlapIssues);
+          throw new Error(`Se detectaron superposiciones a ${width}px en ${screenInfo.id}`);
+        } else {
+          console.log(`✓ Sin superposiciones a ${width}px en ${screenInfo.id}.`);
+        }
+      }
+      await context.close();
     }
 
     await browser.close();
-    console.log('✅ Capturas y comprobación de superposición completadas con éxito.');
+    console.log('\n✅ Todas las capturas y comprobaciones de superposición completadas con éxito.');
   } finally {
-    if (nextProc) {
-      nextProc.kill('SIGTERM');
-    }
-    if (fakeBackendProc) {
-      fakeBackendProc.kill('SIGTERM');
-    }
+    if (nextProc) nextProc.kill();
+    if (fakeBackendProc) fakeBackendProc.kill();
   }
 }
 
 main().catch((err) => {
-  console.error(err);
+  console.error('Fallo en la captura de fidelidad:', err);
   process.exit(1);
 });
