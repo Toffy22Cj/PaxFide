@@ -57,7 +57,7 @@ test('golden path por la interfaz: convocatoria → donaciones (sin y con cuenta
 
   // Paso 2 — la organización crea la convocatoria (PUBLIC, FLEXIBLE) y asigna un EMPLOYEE (criterio 2)
   const admin = await login(browser, 'admin@demo.test', 'demo-admin');
-  await admin.getByRole('link', { name: 'Convocatorias de mi organización' }).click();
+  await admin.getByTestId('new-campaign-button').click();
   await admin.getByRole('button', { name: 'Crear convocatoria' }).click();
   await admin.getByLabel('Título').fill('Mercados golden path');
   await admin.getByLabel(/Visibilidad/).selectOption('PUBLIC');

@@ -1,20 +1,19 @@
 import { test, expect, Page, Browser } from '@playwright/test';
 
-async function login(browser: Browser, email: string, password: string): Promise<Page> {
+async function login(browser: Browser, email: string, password: string, destination = '/panel/configuration'): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
-  // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
-  await page.goto('/panel');
+  // A-3: el inicio por defecto es /home; pedir la ruta sin sesión la guarda como destino y se vuelve ahí tras entrar
+  await page.goto(destination);
   await page.getByLabel('Correo electrónico').fill(email);
   await page.getByLabel('Contraseña').fill(password);
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-  await expect(page).toHaveURL(/\/panel$/);
+  await expect(page).toHaveURL(new RegExp(`${destination}$`));
   return page;
 }
 
 test.describe('P3-C — configuración de convocatorias con solicitud y aprobación', () => {
   test('editar sin aprobación (sin donaciones), solicitar otro cambio y que el representante lo apruebe; la propia no se aprueba', async ({ browser }) => {
     const admin = await login(browser, 'admin@demo.test', 'demo-admin');
-    await admin.getByRole('link', { name: 'Configuración de convocatorias' }).click();
     await admin.getByLabel('Convocatoria').selectOption({ label: 'Ropa de abrigo' });
     await admin.getByRole('button', { name: 'Ver configuración' }).click();
     await expect(admin.getByTestId('configuration-version')).toContainText('1');
@@ -46,7 +45,6 @@ test.describe('P3-C — configuración de convocatorias con solicitud y aprobaci
 
     // El representante (sin listado de convocatorias) escribe la referencia y la aprueba
     const rep = await login(browser, 'representante@demo.test', 'demo-representante');
-    await rep.getByRole('link', { name: 'Configuración de convocatorias' }).click();
     await rep.getByLabel('Referencia de la convocatoria').fill('camp-demo-3');
     await rep.getByRole('button', { name: 'Ver configuración' }).click();
     const pending = rep.getByTestId('change-request').filter({ hasText: 'Pendiente' });

@@ -11,7 +11,7 @@ test.describe('Session Guards (T-4)', () => {
     await expect(page.locator('data-testid=panel-content')).toBeVisible();
 
     // 2. Navegar a otra página protegida para guardar /panel en el historial
-    await page.click('data-testid=campaigns-link');
+    await page.click('data-testid=new-campaign-button');
     await expect(page).toHaveURL(/\/panel\/campaigns/);
     await expect(page.locator('data-testid=campaigns-title')).toBeVisible();
 

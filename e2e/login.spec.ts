@@ -16,7 +16,7 @@ test.describe('Login por la interfaz (ID-01) y PanelHome con /me (N1)', () => {
 
     await expect(page).toHaveURL(/\/panel$/);
     await expect(page.getByRole('heading', { level: 1, name: /Tu organización|Fundación Demo|Panel/ })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Convocatorias de mi organización' })).toBeVisible();
+    await expect(page.getByTestId('new-campaign-button')).toBeVisible();
     expect(nextRequestsWithAuth).toEqual([]);
     // El JWT no aparece en la URL ni en ningún almacenamiento
     expect(page.url()).not.toContain('tok-');
@@ -44,7 +44,7 @@ test.describe('Login por la interfaz (ID-01) y PanelHome con /me (N1)', () => {
     await page.getByLabel('Contraseña').fill('demo-sin-me');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
     await expect(page.getByTestId('unavailable-state')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Convocatorias de mi organización' })).toHaveCount(0);
+    await expect(page.getByTestId('new-campaign-button')).toHaveCount(0);
   });
 
   test('cerrar sesión desde el Shell → /login', async ({ page }) => {

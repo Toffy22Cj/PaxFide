@@ -530,7 +530,19 @@ export function PanelHomeScreen({
           <p>Regístrala, la revisamos y luego puedes publicar convocatorias.</p>
           <Actions>
             <Link href="/panel/organization" className={[ui.button, ui.secondary].join(' ')}>
-              Registrar organización
+              Crear organización
+            </Link>
+          </Actions>
+        </Surface>
+      )}
+
+      {/* Si es autoridad de plataforma */}
+      {principal?.platformAuthority && isSurfaceEnabled('/panel/platform') && (
+        <Surface title="Plataforma">
+          <p>Verificación de organizaciones y administradores de la plataforma.</p>
+          <Actions>
+            <Link href="/panel/platform" className={[ui.button, ui.secondary].join(' ')}>
+              Plataforma: verificación y administradores
             </Link>
           </Actions>
         </Surface>

@@ -56,8 +56,8 @@ test.describe('P2-A — registro, descubrimiento y narrativa', () => {
     await page.getByLabel('Contraseña').fill('clave-demo-larga');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
     await expect(page).toHaveURL(/\/panel$/);
-    await expect(page.getByRole('link', { name: 'Mis donaciones' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Convocatorias de mi organización' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Donaciones' })).toBeVisible();
+    await expect(page.getByTestId('new-campaign-button')).toHaveCount(0);
   });
 
   test('descubrimiento: aparece la convocatoria pública y nunca la de enlace privado', async ({ page, browser }) => {
@@ -67,7 +67,7 @@ test.describe('P2-A — registro, descubrimiento y narrativa', () => {
     await page.getByLabel('Correo electrónico').fill('admin@demo.test');
     await page.getByLabel('Contraseña').fill('demo-admin');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-    await page.getByRole('link', { name: 'Convocatorias de mi organización' }).click();
+    await page.getByTestId('new-campaign-button').click();
     await createCampaign(page, `Pública ${stamp}`, 'PUBLIC');
     await createCampaign(page, `Privada ${stamp}`, 'PRIVATE_LINK');
 

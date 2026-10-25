@@ -779,7 +779,14 @@ const server = http.createServer(async (req, res) => {
   if (p === '/platform/administrators' && req.method === 'GET') {
     if (!actor) { problem(res, 401, 'Unauthorized'); return; }
     if (!actor.platformAuthority) { problem(res, 403, 'Forbidden'); return; }
-    const items = Object.values(accounts).filter((a) => a.platformAuthority).map((a) => ({ accountId: a.accountId, status: 'ACTIVE' }));
+    const seen = new Set();
+    const items = [];
+    for (const a of Object.values(accounts)) {
+      if (a.platformAuthority && !seen.has(a.accountId)) {
+        seen.add(a.accountId);
+        items.push({ accountId: a.accountId, status: 'ACTIVE' });
+      }
+    }
     send(res, 200, { items }, { 'Cache-Control': 'no-store' });
     return;
   }
