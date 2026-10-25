@@ -102,12 +102,18 @@ export function WorldScene() {
     wakeRef.current = sync;
     resize();
     sync();
+    const themeMq = window.matchMedia('(prefers-color-scheme: dark)');
+    const observer = new MutationObserver(sync);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    themeMq.addEventListener('change', sync);
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', resize);
     document.addEventListener('visibilitychange', sync);
     reduceMq.addEventListener('change', sync);
     return () => {
       if (raf !== null) cancelAnimationFrame(raf);
+      observer.disconnect();
+      themeMq.removeEventListener('change', sync);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', sync);

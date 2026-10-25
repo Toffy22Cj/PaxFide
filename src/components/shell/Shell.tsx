@@ -16,6 +16,7 @@ import { CityBackground } from '../background/CityBackground';
 import { usePausedPreference } from '../background/usePausedPreference';
 import { PauseButton } from '../background/PauseButton';
 import { BrandMark } from './BrandMark';
+import { ThemeSelect } from '../theme/ThemeSelect';
 import { backgroundFor, hasAppChrome } from '../../lib/routing/backgroundRoutes';
 import s from './Shell.module.css';
 
@@ -85,7 +86,7 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
           <div className={s.bar}>
             <span className={s.brand}><BrandMark />PaxFide</span>
             <div className={s.actions}>
-              {/* Aquí va el selector de tema en VS-8, al retirar el tema claro forzado (DF7-17). */}
+              <ThemeSelect className={s.themeSelect} />
               {background && <PauseButton className={s.pause} textClassName={s.pauseText} />}
               {state === 'AUTHENTICATED' && (
                 <button type="button" className={s.logout} data-testid="logout-btn" onClick={() => session.logout()}>
