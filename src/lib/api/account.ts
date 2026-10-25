@@ -47,3 +47,29 @@ export async function fetchAccountDonations(): Promise<AccountDonationsOutcome> 
   if (r.kind === 'error' && r.status === 403) return { kind: 'forbidden' };
   return { kind: 'error' };
 }
+
+/** `GET /account` (D-F9): datos básicos de la cuenta autenticada. */
+export interface AccountProfile {
+  accountId: string;
+  email: string;
+}
+
+export type FetchAccountOutcome =
+  | { kind: 'ok'; account: AccountProfile }
+  | { kind: 'unauthorized' }
+  | { kind: 'error' };
+
+export async function fetchAccount(): Promise<FetchAccountOutcome> {
+  const r = await apiRequest<{ accountId?: unknown; email?: unknown }>({ path: '/account', auth: 'required' });
+  if (r.kind === 'ok' && r.data && typeof r.data.email === 'string') {
+    return {
+      kind: 'ok',
+      account: {
+        accountId: typeof r.data.accountId === 'string' ? r.data.accountId : '',
+        email: r.data.email,
+      },
+    };
+  }
+  if (r.kind === 'error' && r.status === 401) return { kind: 'unauthorized' };
+  return { kind: 'error' };
+}

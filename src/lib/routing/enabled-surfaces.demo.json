@@ -49,5 +49,6 @@
   "action:configuration-reject",
   "/terminos",
   "/privacidad",
-  "/terminos-organizacion"
+  "/terminos-organizacion",
+  "/account"
 ]

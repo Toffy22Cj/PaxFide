@@ -4,21 +4,29 @@
   --nav-inset-top: 56px;
   --nav-width-side: 108px;
   --nav-height-bottom: 66px;
+  --nav-height-top: 66px;
   --nav-inset-bottom: 0px;
   --nav-inset-left: 0px;
+  --nav-inset-right: 0px;
 }
 .app[data-has-nav="true"][data-nav-position="bottom"] { --nav-inset-bottom: calc(var(--nav-height-bottom) + env(safe-area-inset-bottom, 0px)); }
-.app[data-has-nav="true"][data-nav-position="side"] { --nav-inset-left: var(--nav-width-side); }
+.app[data-has-nav="true"][data-nav-position="side"],
+.app[data-has-nav="true"][data-nav-position="left"] { --nav-inset-left: var(--nav-width-side); }
+.app[data-has-nav="true"][data-nav-position="right"] { --nav-inset-right: var(--nav-width-side); }
+.app[data-has-nav="true"][data-nav-position="top"] { --nav-inset-top: calc(56px + var(--nav-height-top)); }
 @media (max-width: 767.98px) {
   .app[data-has-nav="true"][data-nav-position="auto"] { --nav-inset-bottom: calc(var(--nav-height-bottom) + env(safe-area-inset-bottom, 0px)); }
 }
 @media (min-width: 768px) {
   .app[data-has-nav="true"][data-nav-position="auto"] { --nav-inset-left: var(--nav-width-side); }
+  :global(html[data-nav-position="top"]) .app[data-has-nav="true"][data-nav-position="auto"] { --nav-inset-top: calc(56px + var(--nav-height-top)); --nav-inset-left: 0px; }
+  :global(html[data-nav-position="bottom"]) .app[data-has-nav="true"][data-nav-position="auto"] { --nav-inset-bottom: calc(var(--nav-height-bottom) + env(safe-area-inset-bottom, 0px)); --nav-inset-left: 0px; }
+  :global(html[data-nav-position="right"]) .app[data-has-nav="true"][data-nav-position="auto"] { --nav-inset-right: var(--nav-width-side); --nav-inset-left: 0px; }
 }
 
 .header {
   position: sticky; top: 0; z-index: 30;
-  height: var(--nav-inset-top);
+  height: 56px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-divider);
 }
@@ -104,6 +112,22 @@
 }
 .app[data-has-nav="true"] .main { margin-left: max(var(--nav-inset-left), calc((100% - var(--width-detail)) / 2)); }
 .app[data-has-nav="true"] .main.wide { margin-left: max(var(--nav-inset-left), calc((100% - 1120px) / 2)); }
+.app[data-has-nav="true"][data-nav-position="right"] .main {
+  margin-left: auto;
+  margin-right: max(var(--nav-inset-right), calc((100% - var(--width-detail)) / 2));
+}
+.app[data-has-nav="true"][data-nav-position="right"] .main.wide {
+  margin-left: auto;
+  margin-right: max(var(--nav-inset-right), calc((100% - 1120px) / 2));
+}
+.app[data-has-nav="true"][data-nav-position="top"] .main,
+.app[data-has-nav="true"][data-nav-position="bottom"] .main {
+  margin-left: auto;
+  margin-right: auto;
+}
+.app[data-has-nav="true"][data-nav-position="top"] .main {
+  margin-top: calc(var(--nav-height-top) + var(--space-4));
+}
 .wide { max-width: 1120px; }
 /* Rutas con ciudad (R-F1): ningún texto directamente sobre el fondo animado; el contenido va en una superficie
    translúcida con la opacidad mínima. El canvas está detrás (z-index 0). */
@@ -119,3 +143,48 @@
    contenedor no pone ni ancho máximo ni superficie. */
 .main.onWorld { max-width: none; margin: 0; padding: 0 0 calc(var(--space-12) + var(--nav-inset-bottom)); }
 .app[data-has-nav="true"] .main.onWorld { margin-left: var(--nav-inset-left); }
+
+/* Transiciones suaves entre rutas (D-F6) */
+.viewIn {
+  animation: viewIn var(--duration-normal) var(--ease-out);
+}
+.viewPn {
+  animation: pnIn var(--duration-fast) var(--ease-out);
+}
+
+@keyframes viewIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pnIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewIn,
+  .viewPn {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* Modo Ver ciudad despejada (D-F3) */
+.peeking {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: scale(0.98);
+  transition: opacity var(--duration-normal) var(--ease-out), transform var(--duration-normal) var(--ease-out);
+}

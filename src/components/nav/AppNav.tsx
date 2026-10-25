@@ -8,7 +8,15 @@ import { activeEntry, type NavEntry } from '../../lib/nav/navEntries';
 import { NavIconSvg } from './icons';
 import s from './AppNav.module.css';
 
-export function AppNav({ entries, pathname }: { entries: readonly NavEntry[]; pathname: string }) {
+export function AppNav({
+  entries,
+  pathname,
+  onOpenTune,
+}: {
+  entries: readonly NavEntry[];
+  pathname: string;
+  onOpenTune?: () => void;
+}) {
   if (entries.length === 0) return null;
   const active = activeEntry(pathname, entries);
   return (
@@ -23,6 +31,28 @@ export function AppNav({ entries, pathname }: { entries: readonly NavEntry[]; pa
             </Link>
           </li>
         ))}
+        {onOpenTune && (
+          <li className={s.tuneItem}>
+            <button
+              type="button"
+              className={s.tune}
+              data-open-tune=""
+              aria-label="Personalizar la barra"
+              data-testid="nav-tune-btn"
+              onClick={onOpenTune}
+            >
+              <span className={s.pill}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" focusable="false">
+                  <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" />
+                  <circle cx="15" cy="6" r="2" />
+                  <circle cx="9" cy="12" r="2" />
+                  <circle cx="17" cy="18" r="2" />
+                </svg>
+              </span>
+              <span className={s.label}>Barra</span>
+            </button>
+          </li>
+        )}
       </ul>
     </nav>
   );

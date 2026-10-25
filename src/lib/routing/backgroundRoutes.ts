@@ -18,6 +18,7 @@ const EXACT = new Set([
   '/campaigns',
   '/tracking',
   '/account/donations',
+  '/account',
   ...ACCESS_ROUTES,
 ]);
 const PREFIXES = ['/c/'];

@@ -149,6 +149,44 @@ export function ringPoint(u: number): [number, number] {
 
 /** Cámara fija (D-P3: sin cámara movible): panorama del valle. */
 export const CAMERA = { x: 0, y: 0.5, k: 0.9 } as const;
-/** Densidad de píxeles como mucho 1,5 (D-P3). */
+
+export type DistrictKey = 'welcome' | 'home' | 'explore' | 'donations' | 'track' | 'org' | 'assets' | 'profile';
+
+export interface DistrictInfo {
+  x: number;
+  y: number;
+  k: number;
+  name: string;
+  type: string;
+  orbit?: boolean;
+}
+
+/**
+ * Distritos de la ciudad isométrica (D-F3, plan-fase7-fidelidad.md §2.1; prototipo paxfide-home.html).
+ */
+export const DISTRICTS: Record<DistrictKey, DistrictInfo> = {
+  welcome:   { x: 0,    y: 0.5,  k: 0.9,  name: 'Ciudad PaxFide', type: 'Panorama', orbit: true },
+  home:      { x: -0.5, y: -0.8, k: 1.08, name: 'Plaza central', type: 'Centro cívico' },
+  explore:   { x: -6.8, y: 6.2,  k: 1.16, name: 'Barrio escolar', type: 'Causas y educación' },
+  donations: { x: 2.2,  y: 6.0,  k: 1.15, name: 'Ronda del río', type: 'Impacto' },
+  track:     { x: 7.2,  y: -4.8, k: 1.16, name: 'Hub de trazabilidad', type: 'Anclaje' },
+  org:       { x: -6.5, y: -5.5, k: 1.15, name: 'Sede de organizaciones', type: 'Organizaciones' },
+  assets:    { x: 7.2,  y: -4.8, k: 1.16, name: 'Bodega de lotes', type: 'Logística' },
+  profile:   { x: 5.5,  y: 1.8,  k: 1.22, name: 'Barrio residencial', type: 'Tu perfil' },
+};
+
+/** Mapeo oficial de ruta a distrito (D-F3, plan-fase7-fidelidad.md §2.1). */
+export function districtForRoute(pathname: string): DistrictKey {
+  if (pathname === '/home') return 'home';
+  if (pathname === '/campaigns' || pathname.startsWith('/c/')) return 'explore';
+  if (pathname === '/account/donations') return 'donations';
+  if (pathname === '/tracking') return 'track';
+  if (pathname === '/account') return 'profile';
+  if (pathname.startsWith('/assets')) return 'assets';
+  if (pathname.startsWith('/panel')) return 'org';
+  return 'welcome';
+}
+
+/** Densidad de píxeles como mucho 1,5 (D-P3, D-F3). */
 export const MAX_DPR = 1.5;
 export const clampDpr = (dpr: number | undefined) => Math.min(MAX_DPR, Math.max(1, dpr || 1));

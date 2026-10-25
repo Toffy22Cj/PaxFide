@@ -1,5 +1,6 @@
-/* Ref: sistema-visual-paxfide-web-enmienda-1.md §8 (E4). Los estilos de cada posición viven aquí; la posición la pone
-   el contenedor (Shell) en data-nav-position="auto|bottom|side". Solo tokens semánticos. */
+/* Ref: sistema-visual-paxfide-web-enmienda-1.md §8 (E4); Documentos/plan-fase7-fidelidad.md §2 D-F8.
+   Los estilos de cada posición viven aquí; la posición la pone el contenedor (Shell) en
+   data-nav-position="auto|bottom|side|left|right|top". Solo tokens semánticos. */
 .nav {
   position: fixed;
   z-index: 20;
@@ -27,7 +28,22 @@
 .item:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .label { display: block; }
 
-/* Barra inferior (< 768 px) */
+/* Botón de personalizar barra (D-F8) */
+.tuneItem { display: none; }
+.tune {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-width: 64px; min-height: 56px; padding: var(--space-1);
+  border: 0; background: none; cursor: pointer;
+  border-radius: var(--radius-card);
+  color: var(--color-text-secondary);
+  font-family: var(--font-body); font-size: var(--font-size-body-4); font-weight: var(--weight-semibold);
+  line-height: 1.15; text-align: center;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.tune:hover .pill { background: var(--color-bg); }
+.tune:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
+/* Barra inferior (< 768 px o forzada) */
 [data-nav-position="bottom"] .nav {
   left: 0; right: 0; bottom: 0;
   border-top: 1px solid var(--color-divider);
@@ -37,17 +53,45 @@
 [data-nav-position="bottom"] .items > li { flex: 0 1 auto; min-width: 0; display: flex; justify-content: center; }
 [data-nav-position="bottom"] .label { white-space: nowrap; }
 [data-nav-position="bottom"] .item { min-width: 44px; padding-left: 0; padding-right: 0; }
+[data-nav-position="bottom"] .tuneItem { display: none; }
 
-/* Barra lateral (≥ 768 px) */
-[data-nav-position="side"] .nav {
+/* Barra lateral izquierda (side / left, ≥ 768 px) */
+[data-nav-position="side"] .nav,
+[data-nav-position="left"] .nav {
   top: var(--nav-inset-top); bottom: 0; left: 0; width: var(--nav-width-side);
   border-right: 1px solid var(--color-divider);
   padding: var(--space-3) var(--space-2) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
 }
-[data-nav-position="side"] .items { flex-direction: column; align-items: center; }
+[data-nav-position="side"] .items,
+[data-nav-position="left"] .items { flex-direction: column; align-items: center; min-height: 100%; }
+[data-nav-position="side"] .tuneItem,
+[data-nav-position="left"] .tuneItem { display: flex; margin-top: auto; }
 
-/* Antes de hidratar (auto): la misma decisión por media query, para que la primera pintura ya sea correcta */
+/* Barra lateral derecha (right, ≥ 768 px) */
+[data-nav-position="right"] .nav {
+  top: var(--nav-inset-top); bottom: 0; right: 0; width: var(--nav-width-side);
+  border-left: 1px solid var(--color-divider);
+  padding: var(--space-3) var(--space-2) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+}
+[data-nav-position="right"] .items { flex-direction: column; align-items: center; min-height: 100%; }
+[data-nav-position="right"] .tuneItem { display: flex; margin-top: auto; }
+
+/* Barra superior (top, ≥ 768 px) */
+[data-nav-position="top"] .nav {
+  top: var(--nav-inset-top); left: 0; right: 0;
+  border-bottom: 1px solid var(--color-divider);
+  padding: var(--space-1) var(--space-4);
+}
+[data-nav-position="top"] .items {
+  max-width: 1120px; margin: 0 auto;
+  align-items: center; justify-content: flex-start;
+  overflow-x: auto;
+}
+[data-nav-position="top"] .tuneItem { display: flex; margin-left: auto; }
+
+/* Antes de hidratar (auto): por defecto media query */
 @media (max-width: 767.98px) {
   [data-nav-position="auto"] .nav {
     left: 0; right: 0; bottom: 0;
@@ -58,17 +102,43 @@
   [data-nav-position="auto"] .items > li { flex: 0 1 auto; min-width: 0; display: flex; justify-content: center; }
   [data-nav-position="auto"] .label { white-space: nowrap; }
   [data-nav-position="auto"] .item { min-width: 44px; padding-left: 0; padding-right: 0; }
+  [data-nav-position="auto"] .tuneItem { display: none; }
 }
 @media (min-width: 768px) {
   [data-nav-position="auto"] .nav {
-    top: var(--nav-inset-top); bottom: 0; left: 0; width: var(--nav-width-side);
+    top: 56px; bottom: 0; left: 0; width: var(--nav-width-side);
     border-right: 1px solid var(--color-divider);
     padding: var(--space-3) var(--space-2) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
     overflow-y: auto;
   }
-  [data-nav-position="auto"] .items { flex-direction: column; align-items: center; }
+  [data-nav-position="auto"] .items { flex-direction: column; align-items: center; min-height: 100%; }
+  [data-nav-position="auto"] .tuneItem { display: flex; margin-top: auto; }
+
+  :global(html[data-nav-position="top"]) [data-nav-position="auto"] .nav {
+    top: 56px; left: 0; right: 0; bottom: auto; width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--color-divider);
+    padding: var(--space-1) var(--space-4);
+    overflow-y: visible;
+  }
+  :global(html[data-nav-position="top"]) [data-nav-position="auto"] .items {
+    max-width: 1120px; margin: 0 auto;
+    flex-direction: row;
+    align-items: center; justify-content: flex-start;
+    min-height: auto;
+    overflow-x: auto;
+  }
+  :global(html[data-nav-position="top"]) [data-nav-position="auto"] .tuneItem {
+    display: flex; margin-left: auto; margin-top: 0;
+  }
+
+  :global(html[data-nav-position="right"]) [data-nav-position="auto"] .nav {
+    left: auto; right: 0;
+    border-right: none;
+    border-left: 1px solid var(--color-divider);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .item, .pill { transition: none; }
+  .item, .pill, .tune { transition: none; }
 }

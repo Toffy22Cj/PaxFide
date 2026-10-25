@@ -3,7 +3,7 @@
 // Ilustración decorativa: aria-hidden, fuera del orden de foco, detrás del contenido; no comunica estados (R-F5).
 import React, { useEffect, useRef } from 'react';
 import { CityRenderer } from './cityDraw';
-import { clampDpr, createCityScene, stepCityScene } from './cityScene';
+import { clampDpr, createCityScene, stepCityScene, type DistrictKey } from './cityScene';
 import { loopMode } from './animationPreference';
 import s from './background.module.css';
 
@@ -15,11 +15,14 @@ function nightFor(root: HTMLElement): number {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 1 : 0;
 }
 
-export function CityBackground({ paused }: { paused: boolean }) {
+export function CityBackground({ paused, district = 'welcome' }: { paused: boolean; district?: DistrictKey }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pausedRef = useRef(paused);
+  const districtRef = useRef(district);
   const wakeRef = useRef<() => void>(() => {});
+  const setDistrictRef = useRef<(d: DistrictKey) => void>(() => {});
   pausedRef.current = paused;
+  districtRef.current = district;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -33,10 +36,17 @@ export function CityBackground({ paused }: { paused: boolean }) {
     let night = nightFor(document.documentElement);
     let frames = 0;
 
+    renderer.setDistrict(districtRef.current, true);
+
     const paint = () => {
       renderer.draw(night, worldTime);
       frames++;
       canvas.setAttribute('data-frames', String(frames));
+      const cam = renderer.getCam();
+      canvas.setAttribute('data-district', renderer.getDistrict());
+      canvas.setAttribute('data-cam-x', cam.x.toFixed(2));
+      canvas.setAttribute('data-cam-y', cam.y.toFixed(2));
+      canvas.setAttribute('data-cam-k', cam.k.toFixed(2));
     };
     const tick = (now: number) => {
       raf = null;
@@ -44,6 +54,7 @@ export function CityBackground({ paused }: { paused: boolean }) {
       last = now;
       worldTime += dt;
       night += (nightFor(document.documentElement) - night) * Math.min(1, dt * 4);
+      renderer.updateCamera(dt, reduceMq.matches, worldTime);
       stepCityScene(scene, dt);
       paint();
       if (loopMode(current()) === 'animate') raf = requestAnimationFrame(tick);
@@ -64,6 +75,11 @@ export function CityBackground({ paused }: { paused: boolean }) {
       if (loopMode(current()) !== 'off') paint();
     };
 
+    setDistrictRef.current = (nextDistrict: DistrictKey) => {
+      renderer.setDistrict(nextDistrict, reduceMq.matches);
+      if (loopMode(current()) === 'still') paint();
+    };
+
     wakeRef.current = sync;
     resize();
     sync();
@@ -82,10 +98,12 @@ export function CityBackground({ paused }: { paused: boolean }) {
       document.removeEventListener('visibilitychange', sync);
       reduceMq.removeEventListener('change', sync);
       wakeRef.current = () => {};
+      setDistrictRef.current = () => {};
     };
   }, []);
 
   useEffect(() => { wakeRef.current(); }, [paused]);
+  useEffect(() => { setDistrictRef.current(district); }, [district]);
 
   return <canvas ref={canvasRef} className={s.city} aria-hidden="true" data-testid="city-background" />;
 }

@@ -10,7 +10,7 @@ vi.mock('next/link', () => ({
   default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => <a href={href} {...rest}>{children}</a>,
 }));
 vi.mock('../src/lib/routing/surfaces', () => ({
-  isSurfaceEnabled: (s: string) => ['/campaigns', '/account/donations', '/tracking', '/panel', '/panel/campaigns', '/panel/assets'].includes(s),
+  isSurfaceEnabled: (s: string) => ['/campaigns', '/account/donations', '/tracking', '/panel', '/panel/campaigns', '/panel/assets', '/account'].includes(s),
 }));
 
 import * as session from '../src/lib/auth/session';
@@ -49,7 +49,8 @@ describe('Shell (VS-2)', () => {
     act(() => { session.login('tok'); session.setLastPrincipal(admin); });
     const { container } = render(<Shell me={async () => ({ kind: 'ok', principal: admin })}>x</Shell>);
     await waitFor(() => expect(container.firstElementChild).toHaveAttribute('data-nav-position', 'bottom'));
-    expect(within(nav()).getAllByRole('link').map((a) => a.textContent)).toEqual(['Explorar', 'Donaciones', 'Seguimiento', 'Organización']);
+    expect(within(nav()).getAllByRole('link').map((a) => a.textContent)).toEqual(['Explorar', 'Donaciones', 'Organización', 'Perfil']);
+    expect(container.querySelector('[data-testid="nav-seguimiento"]')).toBeNull();
     expect(container.querySelector('[data-testid="nav-convocatorias"]')).toBeNull();
     expect(container.querySelector('[data-testid="nav-lotes"]')).toBeNull();
   });

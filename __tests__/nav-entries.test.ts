@@ -4,7 +4,7 @@ import { activeEntry, navEntriesFor, positionForWidth, routeFor, MAX_BOTTOM_ENTR
 import { nextNavPrincipal } from '../src/lib/nav/navPrincipal';
 import type { Principal } from '../src/lib/api/identity';
 
-const ALL = new Set(['/home', '/campaigns', '/account/donations', '/tracking', '/panel', '/panel/campaigns', '/panel/assets']);
+const ALL = new Set(['/home', '/campaigns', '/account/donations', '/tracking', '/panel', '/panel/campaigns', '/panel/assets', '/account']);
 const allEnabled = (s: string) => ALL.has(s);
 const ids = (ctx: Parameters<typeof navEntriesFor>[0], en = allEnabled) => navEntriesFor(ctx, en).map((e) => e.id);
 
@@ -18,32 +18,33 @@ describe('navEntriesFor — entradas según sesión, rol y superficies', () => {
     expect(ids({ authenticated: false, principal: null })).toEqual(['explorar', 'seguimiento']);
   });
 
-  it('cuenta sin organización: Inicio, Explorar, Donaciones, Seguimiento; nunca "Organización"', () => {
+  it('cuenta sin organización: Inicio, Explorar, Donaciones, Seguimiento y Perfil; nunca "Organización"', () => {
     const r = ids({ authenticated: true, principal: donor });
-    expect(r).toEqual(['inicio', 'explorar', 'donaciones', 'seguimiento']);
+    expect(r).toEqual(['inicio', 'explorar', 'donaciones', 'seguimiento', 'perfil']);
     expect(r).not.toContain('organizacion');
   });
 
-  it('ADMINISTRATOR: también Organización, Convocatorias y Lotes; los miembros ven Donaciones y Seguimiento (C)', () => {
+  it('ADMINISTRATOR: también Organización, Convocatorias y Lotes; los miembros ven Donaciones, Seguimiento y Perfil (C)', () => {
     expect(ids({ authenticated: true, principal: admin })).toEqual(
-      ['inicio', 'explorar', 'donaciones', 'seguimiento', 'organizacion', 'convocatorias', 'lotes']);
+      ['inicio', 'explorar', 'donaciones', 'seguimiento', 'organizacion', 'convocatorias', 'lotes', 'perfil']);
   });
 
   it('EMPLOYEE: Organización y Lotes, sin Convocatorias', () => {
     const r = ids({ authenticated: true, principal: employee });
-    expect(r).toEqual(['inicio', 'explorar', 'donaciones', 'seguimiento', 'organizacion', 'lotes']);
+    expect(r).toEqual(['inicio', 'explorar', 'donaciones', 'seguimiento', 'organizacion', 'lotes', 'perfil']);
     expect(r).not.toContain('convocatorias');
   });
 
-  it('REPRESENTATIVE: Organización, sin Convocatorias ni Lotes', () => {
+  it('REPRESENTATIVE: Organización y Perfil, sin Convocatorias ni Lotes', () => {
     const r = ids({ authenticated: true, principal: rep });
     expect(r).toContain('organizacion');
+    expect(r).toContain('perfil');
     expect(r).not.toContain('convocatorias');
     expect(r).not.toContain('lotes');
   });
 
   it('con sesión y /me sin datos (DW-06): solo las entradas que no dependen del rol', () => {
-    expect(ids({ authenticated: true, principal: null })).toEqual(['inicio', 'explorar', 'donaciones', 'seguimiento']);
+    expect(ids({ authenticated: true, principal: null })).toEqual(['inicio', 'explorar', 'donaciones', 'seguimiento', 'perfil']);
   });
 
   it('una superficie deshabilitada no aparece (D5), aunque el rol la permita', () => {
@@ -54,12 +55,14 @@ describe('navEntriesFor — entradas según sesión, rol y superficies', () => {
     expect(ids({ authenticated: true, principal: admin }, () => false)).toEqual([]);
   });
 
-  it('perfil, ajustes y QR nunca aparecen: no tienen ruta aprobada', () => {
+  it('ajustes y QR nunca aparecen: no tienen ruta aprobada (D5); perfil sí (D-F9)', () => {
     const r = ids({ authenticated: true, principal: admin }, () => true);
-    for (const id of ['perfil', 'ajustes', 'qr'] as NavIcon[]) {
+    for (const id of ['ajustes', 'qr'] as NavIcon[]) {
       expect(r).not.toContain(id);
       expect(routeFor(id).href).toBeNull();
     }
+    expect(routeFor('perfil')).toEqual({ label: 'Perfil', href: '/account' });
+    expect(r).toContain('perfil');
   });
 
   it('con la lista de demo de hoy, Inicio no aparece (llega con VS-5)', () => {
@@ -75,16 +78,21 @@ describe('navEntriesFor — entradas según sesión, rol y superficies', () => {
 describe('barra inferior: máximo 5 entradas (DF7-20)', () => {
   const bottom = (ctx: Parameters<typeof navEntriesFor>[0], en = allEnabled) => navEntriesFor(ctx, en, 'bottom').map((e) => e.id);
 
-  it('ADMINISTRATOR por debajo de 768 px: Explorar, Donaciones, Seguimiento y Organización; sin Convocatorias ni Lotes', () => {
+  it('ADMINISTRATOR por debajo de 768 px con D-F15: Explorar, Donaciones, Organización y Perfil (4 sin Inicio)', () => {
     const today = (x: string) => allEnabled(x) && x !== '/home';
     const r = bottom({ authenticated: true, principal: admin }, today);
-    expect(r).toEqual(['explorar', 'donaciones', 'seguimiento', 'organizacion']);
+    expect(r).toEqual(['explorar', 'donaciones', 'organizacion', 'perfil']);
+    expect(r).not.toContain('seguimiento');
     expect(r).not.toContain('convocatorias');
     expect(r).not.toContain('lotes');
   });
 
-  it('con Inicio (VS-5), el ADMINISTRATOR queda justo en 5', () => {
-    expect(bottom({ authenticated: true, principal: admin })).toEqual(['inicio', 'explorar', 'donaciones', 'seguimiento', 'organizacion']);
+  it('con Inicio (A-3) y Perfil (D-F9), el ADMINISTRATOR queda justo en 5 (D-F15, DF7-20)', () => {
+    expect(bottom({ authenticated: true, principal: admin })).toEqual(['inicio', 'explorar', 'donaciones', 'organizacion', 'perfil']);
+  });
+
+  it('cuenta sin organización por debajo de 768 px mantiene Seguimiento y Perfil (D-F15)', () => {
+    expect(bottom({ authenticated: true, principal: null })).toEqual(['inicio', 'explorar', 'donaciones', 'seguimiento', 'perfil']);
   });
 
   it('antes de hidratar (auto) se usa el conjunto de la barra inferior', () => {

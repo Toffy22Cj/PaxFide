@@ -9,7 +9,7 @@ import { usePathname } from 'next/navigation';
 import * as session from '../../lib/auth/session';
 import { isSurfaceEnabled } from '../../lib/routing/surfaces';
 import { fetchMe, parsePrincipal, type Principal } from '../../lib/api/identity';
-import { navEntriesFor, positionForWidth, NAV_BREAKPOINT_PX, type NavPosition } from '../../lib/nav/navEntries';
+import { navEntriesFor, positionForWidth, NAV_BREAKPOINT_PX, type NavPosition, readSavedNavPosition, saveNavPosition } from '../../lib/nav/navEntries';
 import { nextNavPrincipal } from '../../lib/nav/navPrincipal';
 import { AppNav } from '../nav/AppNav';
 import { CityBackground } from '../background/CityBackground';
@@ -18,6 +18,10 @@ import { PauseButton } from '../background/PauseButton';
 import { BrandMark } from './BrandMark';
 import { ThemeSelect } from '../theme/ThemeSelect';
 import { backgroundFor, hasAppChrome } from '../../lib/routing/backgroundRoutes';
+import { districtForRoute } from '../background/cityScene';
+import { CityHud } from './CityHud';
+import { PanelPortal } from './PanelPortal';
+import { NavPositionSheet } from '../nav/NavPositionSheet';
 import s from './Shell.module.css';
 
 /**
@@ -47,17 +51,38 @@ function useNavPrincipal(state: session.MachineState, pathname: string, me: type
   return principal;
 }
 
-/** `auto` hasta hidratar (el CSS decide por media query); después, la posición por ancho (enmienda §8, E4). */
-function useNavPosition(): NavPosition | 'auto' {
+/** `auto` hasta hidratar (el CSS decide por media query); después, la posición por ancho y preferencia (D-F8; enmienda §8, E4). */
+function useNavPosition(): [NavPosition | 'auto', boolean, (pos: NavPosition) => void] {
   const [position, setPosition] = useState<NavPosition | 'auto'>('auto');
+  const [isDesktop, setIsDesktop] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia(`(min-width: ${NAV_BREAKPOINT_PX}px)`);
-    const update = () => setPosition(positionForWidth(mq.matches ? NAV_BREAKPOINT_PX : 0));
+    const update = () => {
+      const saved = readSavedNavPosition();
+      const desktop = mq.matches;
+      setIsDesktop(desktop);
+      const width = desktop ? NAV_BREAKPOINT_PX : 0;
+      const pos = positionForWidth(width, saved);
+      setPosition(pos);
+      if (width >= NAV_BREAKPOINT_PX && saved) {
+        document.documentElement.setAttribute('data-nav-position', saved);
+      } else {
+        document.documentElement.removeAttribute('data-nav-position');
+      }
+    };
     update();
     mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
+    window.addEventListener('paxfide:nav-position-change', update);
+    return () => {
+      mq.removeEventListener('change', update);
+      window.removeEventListener('paxfide:nav-position-change', update);
+    };
   }, []);
-  return position;
+  const changePosition = (pos: NavPosition) => {
+    saveNavPosition(pos);
+    setPosition(pos);
+  };
+  return [position, isDesktop, changePosition];
 }
 
 /**
@@ -70,7 +95,12 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
   const pathname = usePathname() ?? '';
   const wide = pathname.startsWith('/panel/prediction');
   const principal = useNavPrincipal(state, pathname, me);
-  const position = useNavPosition();
+  const [position, isDesktop, setNavPosition] = useNavPosition();
+  const [isTuneOpen, setIsTuneOpen] = useState(false);
+  const [isPeeking, setIsPeeking] = useState(false);
+  const [portalMode, setPortalMode] = useState<'enter' | 'exit' | null>(null);
+  const prevPathRef = useRef<string | null>(null);
+
   // D-P13: en `/` ni cabecera ni barra de la app; la landing pone la suya
   const chrome = hasAppChrome(pathname);
   const entries = chrome ? navEntriesFor({ authenticated: state === 'AUTHENTICATED', principal }, isSurfaceEnabled, position) : [];
@@ -78,9 +108,44 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
   const city = background === 'city';
   const paused = usePausedPreference();
 
+  const currentDistrictKey = districtForRoute(pathname);
+  const effectiveDistrictKey = isPeeking ? 'welcome' : currentDistrictKey;
+  const isPanel = pathname.startsWith('/panel') || pathname.startsWith('/assets');
+
+  useEffect(() => {
+    if (prevPathRef.current !== null && prevPathRef.current !== pathname) {
+      const prevWasCity = backgroundFor(prevPathRef.current) === 'city';
+      const curIsPanel = pathname.startsWith('/panel') || pathname.startsWith('/assets');
+      const prevWasPanel = prevPathRef.current.startsWith('/panel') || prevPathRef.current.startsWith('/assets');
+      const curIsCity = backgroundFor(pathname) === 'city';
+      if (prevWasCity && curIsPanel) {
+        setPortalMode('enter');
+      } else if (prevWasPanel && curIsCity) {
+        setPortalMode('exit');
+      }
+    }
+    prevPathRef.current = pathname;
+    setIsPeeking(false);
+  }, [pathname]);
+
   return (
     <div className={s.app} data-nav-position={position} data-has-nav={entries.length > 0 ? 'true' : 'false'}>
-      {city && <CityBackground paused={paused} />}
+      {city && <CityBackground paused={paused} district={effectiveDistrictKey} />}
+      {city && (
+        <CityHud
+          districtKey={currentDistrictKey}
+          isPeeking={isPeeking}
+          onTogglePeek={() => setIsPeeking((v) => !v)}
+        />
+      )}
+      <PanelPortal mode={portalMode} onComplete={() => setPortalMode(null)} />
+      <NavPositionSheet
+        isOpen={isTuneOpen}
+        currentPosition={position === 'auto' ? 'side' : position}
+        isCustom={readSavedNavPosition() !== null}
+        onSelectPosition={(pos) => setNavPosition(pos)}
+        onClose={() => setIsTuneOpen(false)}
+      />
       {chrome && (
         <header className={s.header}>
           <div className={s.bar}>
@@ -97,10 +162,29 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
           </div>
         </header>
       )}
-      {chrome && <AppNav entries={entries} pathname={pathname} />}
-      {chrome
-        ? <main className={[s.main, wide ? s.wide : '', city ? s.onCity : ''].join(' ')}>{children}</main>
-        : <div className={[s.main, s.onWorld].join(' ')}>{children}</div>}
+      {chrome && (
+        <AppNav
+          entries={entries}
+          pathname={pathname}
+          onOpenTune={isDesktop ? () => setIsTuneOpen(true) : undefined}
+        />
+      )}
+      {chrome ? (
+        <main
+          className={[s.main, wide ? s.wide : '', city ? s.onCity : '', isPeeking ? s.peeking : ''].filter(Boolean).join(' ')}
+          inert={isPeeking ? true : undefined}
+        >
+          <div key={pathname} className={isPanel ? s.viewPn : s.viewIn}>
+            {children}
+          </div>
+        </main>
+      ) : (
+        <div className={[s.main, s.onWorld].join(' ')}>
+          <div key={pathname} className={s.viewIn}>
+            {children}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

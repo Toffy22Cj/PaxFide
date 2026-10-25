@@ -49,8 +49,9 @@ export function classifyRoute(pathname: string): RouteCategory {
     return isValidParam(b) ? when('/assets/:assetRef', 'AUTHENTICATED') : 'NOT_APPROVED';
   }
 
-  if (parts.length === 2 && a === 'account' && b === 'donations') {
-    return when('/account/donations', 'AUTHENTICATED');
+  if (a === 'account') {
+    if (parts.length === 1) return when('/account', 'AUTHENTICATED');
+    if (parts.length === 2 && b === 'donations') return when('/account/donations', 'AUTHENTICATED');
   }
 
   if (a === 'panel') {

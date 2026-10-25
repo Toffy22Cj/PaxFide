@@ -1,0 +1,68 @@
+/* Ref: Documentos/plan-fase7-fidelidad.md §2 D-F7; Documentos/paxfide-panel.html (.portal) */
+.wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.greenLayer,
+.panelLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.greenLayer {
+  background: radial-gradient(circle at 50% 50%, var(--brand-green-700) 0%, var(--brand-green-900) 60%);
+}
+
+.panelLayer {
+  background: var(--color-bg);
+}
+
+/* Modo Enter (ciudad -> panel) */
+.enter .greenLayer {
+  animation: irisOpen calc(2 * var(--duration-normal)) var(--ease-in-out) forwards;
+}
+
+.enter .panelLayer {
+  animation: irisOpen calc(2 * var(--duration-normal)) var(--ease-in-out) var(--duration-normal) forwards;
+}
+
+/* Modo Exit (panel -> ciudad) */
+.exit .panelLayer {
+  animation: irisClose calc(2 * var(--duration-normal)) var(--ease-in-out) forwards;
+}
+
+.exit .greenLayer {
+  animation: irisClose calc(2 * var(--duration-normal)) var(--ease-in-out) var(--duration-fast) forwards;
+}
+
+@keyframes irisOpen {
+  from {
+    clip-path: circle(0px at 50% 50%);
+  }
+  to {
+    clip-path: circle(150vmax at 50% 50%);
+  }
+}
+
+@keyframes irisClose {
+  from {
+    clip-path: circle(150vmax at 50% 50%);
+  }
+  to {
+    clip-path: circle(0px at 50% 50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrap {
+    display: none !important;
+  }
+  .greenLayer,
+  .panelLayer {
+    animation: none !important;
+  }
+}

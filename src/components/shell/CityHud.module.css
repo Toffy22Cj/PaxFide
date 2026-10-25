@@ -1,0 +1,113 @@
+/* Ref: Documentos/plan-fase7-fidelidad.md §2 D-F3; Documentos/paxfide-home.html (.city-hud) */
+.hud {
+  position: fixed;
+  top: calc(var(--nav-inset-top, 56px) + var(--space-3));
+  left: calc(var(--nav-inset-left, 0px) + var(--space-4));
+  z-index: 25;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px var(--space-2) 6px var(--space-3);
+  background: var(--color-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border-card);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-body-4);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
+  pointer-events: auto;
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-action);
+  box-shadow: 0 0 8px var(--color-action);
+  animation: pulseDot calc(var(--duration-slow) * 4) infinite ease-in-out;
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.65;
+  }
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.label b {
+  font-weight: var(--weight-bold);
+}
+
+.type {
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-medium);
+}
+
+.btn {
+  border: 1px solid var(--color-border-control);
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+}
+
+.btn:hover {
+  background: var(--color-surface);
+  transform: translateY(-1px);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.btn[aria-pressed="true"] {
+  background: var(--brand-yellow-400);
+  color: var(--brand-green-900);
+  border-color: var(--brand-yellow-400);
+}
+
+@media (max-width: 600px) {
+  .hud {
+    font-size: 11px;
+    gap: var(--space-2);
+    padding: 5px 6px 5px var(--space-3);
+    max-width: calc(100% - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+    left: calc(12px + env(safe-area-inset-left, 0px));
+  }
+  .type {
+    display: none;
+  }
+  .label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    animation: none;
+  }
+  .btn, .hud {
+    transition: none;
+  }
+}

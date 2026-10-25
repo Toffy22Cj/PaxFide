@@ -1,7 +1,7 @@
 // Ref: plan-fase7-pantallas.md A-1 y D-P1–D-P4; prototipo paxfide-home.html (motor isométrico: solo forma).
 // Dibuja una escena de cityScene.ts en un canvas 2D (R-F4). Sin colores propios: todos salen de cityPalette.ts.
 // Fuera, por D-P3 y R-F1: cámara movible o que orbita, arrastrar, "Ver ciudad" y las etiquetas con texto.
-import { CAMERA, PATHS, ROADS, mod, riverY, ringPoint, vehiclePos, type CityScene, type TreeType, type Vehicle } from './cityScene';
+import { CAMERA, DISTRICTS, type DistrictKey, PATHS, ROADS, mod, riverY, ringPoint, vehiclePos, type CityScene, type TreeType, type Vehicle } from './cityScene';
 import { cityPalette, type CityPalette } from './cityPalette';
 
 type Pt = [number, number];
@@ -16,6 +16,8 @@ const TREE_SIZE: Record<'shade' | 'guayacan' | 'jacaranda' | 'pine', { h: number
 export class CityRenderer {
   private ctx: CanvasRenderingContext2D;
   private cam: { x: number; y: number; k: number } = { x: CAMERA.x, y: CAMERA.y, k: CAMERA.k };
+  private camTarget: { x: number; y: number; k: number } = { x: CAMERA.x, y: CAMERA.y, k: CAMERA.k };
+  private currentDistrictKey: DistrictKey = 'welcome';
   private ox = 0;
   private oy = 0;
   private W = 0;
@@ -32,8 +34,53 @@ export class CityRenderer {
     this.W = width; this.H = height; this.dpr = dpr;
     this.canvas.width = Math.round(width * dpr); this.canvas.height = Math.round(height * dpr);
     this.ox = width / 2; this.oy = height / 2 + 35;
-    // La cámara se acerca un poco en pantallas estrechas para que la ciudad no quede diminuta
-    this.cam.k = width < 768 ? CAMERA.k * 0.8 : CAMERA.k;
+    const d = DISTRICTS[this.currentDistrictKey] || DISTRICTS.welcome;
+    const scale = width < 768 ? 0.8 : 1;
+    this.camTarget.k = d.k * scale;
+    if (this.cam.k === CAMERA.k || this.cam.k === CAMERA.k * 0.8) {
+      this.cam.k = d.k * scale;
+    }
+  }
+
+  setDistrict(key: DistrictKey, jump = false): void {
+    this.currentDistrictKey = key;
+    const d = DISTRICTS[key] || DISTRICTS.welcome;
+    const scale = this.W > 0 && this.W < 768 ? 0.8 : 1;
+    this.camTarget.x = d.x;
+    this.camTarget.y = d.y;
+    this.camTarget.k = d.k * scale;
+    if (jump) {
+      this.cam.x = d.x;
+      this.cam.y = d.y;
+      this.cam.k = d.k * scale;
+    }
+  }
+
+  getDistrict(): DistrictKey {
+    return this.currentDistrictKey;
+  }
+
+  getCam(): { x: number; y: number; k: number } {
+    return { ...this.cam };
+  }
+
+  updateCamera(dt: number, reducedMotion: boolean, t: number): void {
+    const d = DISTRICTS[this.currentDistrictKey] || DISTRICTS.welcome;
+    const scale = this.W > 0 && this.W < 768 ? 0.8 : 1;
+    if (reducedMotion) {
+      this.cam.x = d.x;
+      this.cam.y = d.y;
+      this.cam.k = d.k * scale;
+      return;
+    }
+    if (d.orbit) {
+      this.camTarget.x = Math.sin(t * 0.22) * 2.2;
+      this.camTarget.y = 0.5 + Math.cos(t * 0.22) * 1.6;
+    }
+    const e = Math.min(1, dt * 3.8);
+    this.cam.x += (this.camTarget.x - this.cam.x) * e;
+    this.cam.y += (this.camTarget.y - this.cam.y) * e;
+    this.cam.k += (this.camTarget.k - this.cam.k) * e;
   }
 
   /** Un fotograma: `n` es la mezcla día/noche (0 día, 1 noche) y `t` el tiempo del mundo en segundos. */
@@ -482,5 +529,37 @@ export class CityRenderer {
       ctx.fillStyle = P.cloud;
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.arc(cx + r * 0.75, cy - r * 0.2, r * 0.75, 0, 7); ctx.arc(cx - r * 0.65, cy - r * 0.1, r * 0.7, 0, 7); ctx.arc(cx + r * 0.3, cy - r * 0.55, r * 0.65, 0, 7); ctx.fill();
     }
+    const on = (k: DistrictKey) => this.currentDistrictKey === k;
+    this.drawLandmarkTag(-6.9, -6.7, 2.4, 'Sede de organizaciones', this.P.tagGreen, on('org') || on('assets'), t);
+    this.drawLandmarkTag(7.4, -6.2, 2.4, 'Hub de trazabilidad', this.P.tagBlue, on('track'), t);
+    this.drawLandmarkTag(0, -1.5, 3.5, 'Plaza central', this.P.tagYellow, on('home'), t);
+    this.drawLandmarkTag(6.2, 1.2, 2.1, 'Barrio residencial', this.P.tagGreen, on('profile'), t);
+    this.drawLandmarkTag(-7.8, 7.2, 2.2, 'Barrio escolar', this.P.tagYellow, on('explore'), t);
+    this.drawLandmarkTag(2.7, 7.8, 2.0, 'Ronda del río', this.P.tagBlue, on('donations'), t);
+  }
+
+  private drawLandmarkTag(x: number, y: number, z: number, text: string, color: string, on: boolean, t: number): void {
+    const ctx = this.ctx;
+    const [px, py] = this.iso(x, y, z + (on ? Math.sin(t * 2.4) * 0.08 : 0));
+    ctx.save();
+    ctx.font = '700 11px ui-monospace, "SF Mono", Menlo, Consolas, monospace';
+    const pw = ctx.measureText(text).width + 22;
+    const ph = 22;
+    ctx.fillStyle = on ? color : this.P.tagDarkBg;
+    if (typeof (ctx as any).roundRect === 'function') {
+      ctx.beginPath();
+      (ctx as any).roundRect(px - pw / 2, py - ph / 2, pw, ph, 11);
+      ctx.fill();
+    } else {
+      ctx.fillRect(px - pw / 2, py - ph / 2, pw, ph);
+    }
+    ctx.strokeStyle = on ? this.P.tagTextLight : this.P.tagBorder;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = on && color === this.P.tagYellow ? this.P.tagTextDark : this.P.tagTextLight;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, px, py + 1);
+    ctx.restore();
   }
 }

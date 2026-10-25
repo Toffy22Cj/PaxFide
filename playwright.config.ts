@@ -5,7 +5,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : (process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : 4),
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:3000',
@@ -77,7 +77,8 @@ export default defineConfig({
           'action:configuration-reject',
           '/terminos',
           '/privacidad',
-          '/terminos-organizacion'
+          '/terminos-organizacion',
+          '/account'
         ])
       }
     },
