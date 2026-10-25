@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
 import * as session from '../src/lib/auth/session';
 import { fetchTracking, fetchAssetHistory, fetchIntegrity, fetchNarrative, parseIntegrity, parseTracking } from '../src/lib/api/tracking';
 import { TrackingScreen } from '../src/screens/TrackingScreen';
@@ -99,7 +99,7 @@ describe('TrackingScreen (formulario)', () => {
     global.fetch = vi.fn().mockRejectedValue(new TypeError('sin red')) as any;
     vi.stubEnv('NEXT_PUBLIC_API_BASE_URL', 'http://api.paxfide.test/api/v1');
   });
-  afterEach(() => vi.unstubAllEnvs());
+  afterAll(() => vi.unstubAllEnvs());
 
   function submit(code: string) {
     fireEvent.change(screen.getByLabelText('Código de seguimiento'), { target: { value: code } });
@@ -143,7 +143,7 @@ describe('TrackingScreen (formulario)', () => {
       .mockResolvedValueOnce({ kind: 'ok', data: { status: 'PENDING' } })
       .mockResolvedValueOnce({ kind: 'ok', data: { status: 'AVAILABLE', content: 'Relato', source: 'LLM_GENERATED' } });
     const history = vi.fn().mockResolvedValue({ kind: 'ok', data: [{ eventType: 'ASSET_DISPATCHED', timestamp: '2026-10-07T10:00:00Z', custodianCategory: 'LOCAL_ALLY' }] });
-    render(<TrackingScreen clients={{ tracking: async () => ok, narrative, history }} />);
+    render(<TrackingScreen clients={{ tracking: async () => ok, narrative, history, integrity: async () => ({ kind: 'not-found' }) }} />);
     submit('TRK.1');
     expect(await screen.findByTestId('tracking-original')).toHaveTextContent('50.000 COP');
     expect(screen.getByTestId('tracking-status')).toHaveTextContent('En proceso');

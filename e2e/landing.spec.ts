@@ -226,5 +226,183 @@ test.describe('Landing (VS-4)', () => {
     await page.locator('#recorrido').evaluate((el) => el.scrollIntoView({ block: 'center' }));
     await expect.poll(async () => Number(await page.getByTestId('manifesto').getAttribute('data-lit'))).toBeGreaterThan(10);
   });
+
+  // F-A1: Fallo de superposición resuelto (§1.4 y §4 F-A1)
+  for (const width of [390, 1100, 1280, 1400, 1920]) {
+    test(`F-A1: a ${width} px ninguna superposición en la cabecera (elementFromPoint devuelve cada control)`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 860 });
+      await page.goto('/');
+      await expect(page.getByTestId('landing-campaigns')).toBeVisible();
+
+      // Botón de pausa: siempre visible en la fila de la cabecera sin solaparse
+      const pause = page.getByTestId('city-pause');
+      await expect(pause).toBeVisible();
+      const pb = (await pause.boundingBox())!;
+      const hitPause = await page.evaluate(([cx, cy]) => {
+        const el = document.elementFromPoint(cx, cy);
+        return el ? (el === document.querySelector('[data-testid="city-pause"]') || el.closest('[data-testid="city-pause"]') !== null) : false;
+      }, [pb.x + pb.width / 2, pb.y + pb.height / 2]);
+      expect(hitPause, `elementFromPoint en el centro de Pause a ${width}px`).toBe(true);
+
+      // Marca
+      const brand = page.getByRole('banner').getByRole('link', { name: 'PaxFide, inicio' });
+      await expect(brand).toBeVisible();
+      const bb = (await brand.boundingBox())!;
+      const hitBrand = await page.evaluate(([cx, cy]) => {
+        const el = document.elementFromPoint(cx, cy);
+        return el ? el.closest('a[aria-label="PaxFide, inicio"]') !== null : false;
+      }, [bb.x + bb.width / 2, bb.y + bb.height / 2]);
+      expect(hitBrand, `elementFromPoint en el centro de Brand a ${width}px`).toBe(true);
+
+      if (width >= 1100) {
+        // En escritorio: selector de iluminación y Donar
+        const toggle = page.getByTestId('landing-theme-toggle');
+        await expect(toggle).toBeVisible();
+        const tb = (await toggle.boundingBox())!;
+        const hitToggle = await page.evaluate(([cx, cy]) => {
+          const el = document.elementFromPoint(cx, cy);
+          return el ? el.closest('[data-testid="landing-theme-toggle"]') !== null : false;
+        }, [tb.x + tb.width / 2, tb.y + tb.height / 2]);
+        expect(hitToggle, `elementFromPoint en theme-toggle a ${width}px`).toBe(true);
+
+        const donar = page.getByRole('navigation', { name: 'Secciones de la página de inicio' }).getByRole('link', { name: 'Donar', exact: true });
+        await expect(donar).toBeVisible();
+        const db = (await donar.boundingBox())!;
+        const hitInfo = await page.evaluate(([cx, cy]) => {
+          const el = document.elementFromPoint(cx, cy);
+          return {
+            tag: el?.tagName,
+            id: el?.id,
+            className: el?.className,
+            text: el?.textContent,
+            match: el ? el.closest('a[href="/campaigns"]') !== null : false,
+          };
+        }, [db.x + db.width / 2, db.y + db.height / 2]);
+        expect(hitInfo.match, `elementFromPoint en Donar a ${width}px: returned ${JSON.stringify(hitInfo)} at [${db.x + db.width / 2}, ${db.y + db.height / 2}] with donar box ${JSON.stringify(db)}`).toBe(true);
+      } else {
+        // En móvil (< 1100 px): botón de menú hamburguesa
+        const menuToggle = page.getByRole('button', { name: 'Abrir menú de navegación' });
+        await expect(menuToggle).toBeVisible();
+        const mb = (await menuToggle.boundingBox())!;
+        const hitMenu = await page.evaluate(([cx, cy]) => {
+          const el = document.elementFromPoint(cx, cy);
+          return el ? el.closest('button[aria-label="Abrir menú de navegación"]') !== null : false;
+        }, [mb.x + mb.width / 2, mb.y + mb.height / 2]);
+        expect(hitMenu, `elementFromPoint en menuToggle a ${width}px`).toBe(true);
+      }
+    });
+  }
+
+  // F-A1: Día y noche (D-F2)
+  test('D-F2: ciclo de día y noche en Auto (cambia a Auto Noche en la parada 4 y añade data-theme="dark")', async ({ page }) => {
+    await page.goto('/');
+    const root = page.getByTestId('landing-root');
+    const text = page.getByTestId('landing-theme-text');
+
+    // Al inicio (parada 1): Auto (Día), sin data-theme="dark"
+    await expect(text).toHaveText('Auto (Día)');
+    await expect(root).not.toHaveAttribute('data-theme', 'dark');
+
+    // Bajar a la parada 4: Auto (Noche) y data-theme="dark"
+    await page.locator('#parada-4').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await expect(text).toHaveText('Auto (Noche)');
+    await expect(root).toHaveAttribute('data-theme', 'dark');
+  });
+
+  test('D-F2: con "Día", la raíz no lleva data-theme="dark" incluso en la parada 4 (negativa)', async ({ page }) => {
+    await page.goto('/');
+    const root = page.getByTestId('landing-root');
+    const toggle = page.getByTestId('landing-theme-toggle');
+    const text = page.getByTestId('landing-theme-text');
+
+    // Ciclo: auto -> night -> day
+    await toggle.click(); // -> Noche
+    await expect(text).toHaveText('Noche');
+    await expect(root).toHaveAttribute('data-theme', 'dark');
+
+    await toggle.click(); // -> Día
+    await expect(text).toHaveText('Día');
+    await expect(root).not.toHaveAttribute('data-theme', 'dark');
+
+    // Bajar a la parada 4: sigue en Día y sin data-theme="dark"
+    await page.locator('#parada-4').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await idle(page, 300);
+    await expect(text).toHaveText('Día');
+    await expect(root).not.toHaveAttribute('data-theme', 'dark');
+  });
+
+  test('D-F2: la elección de modo se guarda en paxfide.world-mode y se mantiene al recargar', async ({ page }) => {
+    await page.goto('/');
+    const toggle = page.getByTestId('landing-theme-toggle');
+    const text = page.getByTestId('landing-theme-text');
+
+    await toggle.click(); // -> Noche
+    await expect(text).toHaveText('Noche');
+    const stored = await page.evaluate(() => localStorage.getItem('paxfide.world-mode'));
+    expect(stored).toBe('night');
+
+    await page.reload();
+    await expect(page.getByTestId('landing-theme-text')).toHaveText('Noche');
+    await expect(page.getByTestId('landing-root')).toHaveAttribute('data-theme', 'dark');
+  });
+
+  test('D-F2 con reduce: cambio inmediato de tema y modo sin mezcla animada', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    const root = page.getByTestId('landing-root');
+    const text = page.getByTestId('landing-theme-text');
+
+    await expect(text).toHaveText('Auto (Día)');
+    await expect(root).not.toHaveAttribute('data-theme', 'dark');
+
+    await page.locator('#parada-4').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    // Inmediato: sin transición animada
+    await expect(text).toHaveText('Auto (Noche)');
+    await expect(root).toHaveAttribute('data-theme', 'dark');
+  });
+
+  // F-A1: Recorrido por scroll y cámara
+  test('recorrido por scroll sin reduce: al bajar de parada 1 a 2 cambia el fotograma del canvas y el texto de la tarjeta', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#parada-1')).toBeVisible();
+    await expect(page.locator('#parada-1 div b')).toHaveText('01 / 05 · DONAS');
+
+    const p1Snap = await world(page).evaluate((c) => {
+      const ctx = (c as HTMLCanvasElement).getContext('2d');
+      if (!ctx) return '';
+      const data = ctx.getImageData(100, 100, 50, 50).data;
+      return Array.from(data.slice(0, 20)).join(',');
+    });
+
+    // Bajar a la parada 2
+    await page.locator('#parada-2').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await expect(page.locator('#parada-2 div b')).toHaveText('02 / 05 · SE CONVIERTE EN AYUDA');
+    await expect.poll(() => view(page), { timeout: 5000 }).toBeCloseTo(1, 1);
+
+    // El fotograma del canvas ha cambiado
+    await expect.poll(async () => {
+      return world(page).evaluate((c) => {
+        const ctx = (c as HTMLCanvasElement).getContext('2d');
+        if (!ctx) return '';
+        const data = ctx.getImageData(100, 100, 50, 50).data;
+        return Array.from(data.slice(0, 20)).join(',');
+      });
+    }).not.toBe(p1Snap);
+  });
+
+  test('recorrido por scroll con reduce: parada 1 a 2 sin bucle de animación continua', async ({ page }) => {
+    await countRaf(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/');
+    await expect(world(page)).toHaveAttribute('data-loop', 'still');
+    await expect(page.locator('#parada-1 div b')).toHaveText('01 / 05 · DONAS');
+
+    const r0 = await rafCalls(page);
+    await page.locator('#parada-2').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await expect(page.locator('#parada-2 div b')).toHaveText('02 / 05 · SE CONVIERTE EN AYUDA');
+    await expect.poll(() => view(page)).toBe(1);
+
+    expect(await rafCalls(page)).toBe(r0);
+  });
 });
 

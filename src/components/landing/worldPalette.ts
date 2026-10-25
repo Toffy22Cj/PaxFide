@@ -34,6 +34,10 @@ export interface WorldPalette {
   house: Box; houseRoof: string; houseRoofSide: string; houseRoofBack: string; door: string; houseWindow: string;
   check: string; checkMark: string;
   cloudBase: string; cloudBody: string; cloudHighlight: string; cloudAlpha: number; cloudShadow: Alpha;
+  labelGuide: string; labelAnchorDot: string; labelShadow: string;
+  labelDefaultBg: string; labelDefaultBorder: string; labelDefaultFg: string;
+  labelCompletedBg: string; labelCompletedBorder: string; labelCompletedFg: string;
+  labelBadgeBg: string; labelBadgeBorder: string; labelBadgeFg: string;
 }
 
 const SHARED = {
@@ -73,6 +77,10 @@ export const WORLD_DAY: WorldPalette = {
   warehouseFloor: '#E4EAE4', houseWindow: '#CDE7EE',
   cloudBase: '#C4DCD3', cloudBody: '#F6FAF7', cloudHighlight: '#FFFFFF', cloudAlpha: 0.95,
   cloudShadow: (a) => `rgba(18, 55, 36, ${a})`,
+  labelGuide: 'rgba(27, 81, 65, 0.35)', labelAnchorDot: '#1B5141', labelShadow: 'rgba(18, 38, 28, 0.12)',
+  labelDefaultBg: 'rgba(255, 255, 255, 0.95)', labelDefaultBorder: 'rgba(27, 81, 65, 0.22)', labelDefaultFg: '#1B5141',
+  labelCompletedBg: '#1B5141', labelCompletedBorder: '#2D8F62', labelCompletedFg: '#F3B544',
+  labelBadgeBg: '#FDF4E2', labelBadgeBorder: '#F3B544', labelBadgeFg: '#785008',
 };
 
 export const WORLD_NIGHT: WorldPalette = {
@@ -93,6 +101,10 @@ export const WORLD_NIGHT: WorldPalette = {
   warehouseFloor: '#1C3028', houseWindow: '#FFE3A3',
   cloudBase: '#142C3D', cloudBody: '#224760', cloudHighlight: '#6EACD4', cloudAlpha: 0.86,
   cloudShadow: (a) => `rgba(18, 55, 36, ${a})`,
+  labelGuide: 'rgba(140, 195, 222, 0.45)', labelAnchorDot: '#8CC3DE', labelShadow: 'rgba(18, 38, 28, 0.12)',
+  labelDefaultBg: 'rgba(16, 42, 31, 0.94)', labelDefaultBorder: 'rgba(82, 183, 136, 0.35)', labelDefaultFg: '#E8F5EE',
+  labelCompletedBg: '#1C4A36', labelCompletedBorder: '#52B788', labelCompletedFg: '#F3B544',
+  labelBadgeBg: 'rgba(243, 181, 68, 0.22)', labelBadgeBorder: 'rgba(243, 181, 68, 0.55)', labelBadgeFg: '#F8CF7E',
 };
 
 /** Paleta para la mezcla `night` (0 día, 1 noche). Con el claro forzado (DF7-17) siempre es la de día. */
