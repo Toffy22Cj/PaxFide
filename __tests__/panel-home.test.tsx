@@ -26,7 +26,7 @@ const ALL = [
   'action:register-asset',
 ];
 
-describe('PanelHome (§5.6, D-N1-1)', () => {
+describe('PanelHome (§5.6, D-N1-1, D-F13)', () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it('cargando mientras /me está en curso', async () => {
@@ -35,18 +35,15 @@ describe('PanelHome (§5.6, D-N1-1)', () => {
     expect(screen.getByText('Cargando…')).toBeInTheDocument();
   });
 
-  it('ADMINISTRATOR: "Convocatorias de mi organización" y "Mis donaciones"', async () => {
-    const { PanelHomeScreen } = await load(ALL);
-    render(<PanelHomeScreen meClient={async () => ({ kind: 'ok', principal: { accountId: 'a', organizationId: 'o', roles: ['ADMINISTRATOR'] } })} />);
-    expect(await screen.findByText('Convocatorias de mi organización')).toHaveAttribute('href', '/panel/campaigns');
-    expect(screen.getByText('Mis donaciones')).toHaveAttribute('href', '/account/donations');
-  });
+  it('panelEntries (D-N1-1): ADMINISTRATOR genera convocatorias; EMPLOYEE no (representa, no autoriza)', async () => {
+    const { panelEntries } = await load(ALL);
+    const adminEntries = panelEntries({ accountId: 'a', organizationId: 'o', roles: ['ADMINISTRATOR'] });
+    expect(adminEntries.some((e) => e.id === 'campaigns' && e.href === '/panel/campaigns')).toBe(true);
+    expect(adminEntries.some((e) => e.id === 'donations' && e.href === '/account/donations')).toBe(true);
 
-  it('EMPLOYEE no ve la entrada de convocatorias (representa, no autoriza)', async () => {
-    const { PanelHomeScreen } = await load(ALL);
-    render(<PanelHomeScreen meClient={async () => ({ kind: 'ok', principal: { accountId: 'a', organizationId: 'o', roles: ['EMPLOYEE'] } })} />);
-    await screen.findByText('Mis donaciones');
-    expect(screen.queryByText('Convocatorias de mi organización')).toBeNull();
+    const empEntries = panelEntries({ accountId: 'a', organizationId: 'o', roles: ['EMPLOYEE'] });
+    expect(empEntries.some((e) => e.id === 'campaigns')).toBe(false);
+    expect(empEntries.some((e) => e.id === 'donations')).toBe(true);
   });
 
   it('vacío: sin entradas aplicables → EmptyState con el texto aprobado', async () => {
@@ -55,11 +52,10 @@ describe('PanelHome (§5.6, D-N1-1)', () => {
     expect(await screen.findByText('No hay opciones disponibles para tu cuenta en este panel.')).toBeInTheDocument();
   });
 
-  it('una superficie deshabilitada no aparece aunque el rol la permita', async () => {
-    const { PanelHomeScreen } = await load(['/panel']);
-    render(<PanelHomeScreen meClient={async () => ({ kind: 'ok', principal: { accountId: 'a', organizationId: 'o', roles: ['ADMINISTRATOR'] } })} />);
-    await screen.findByTestId('empty-state');
-    expect(screen.queryByText('Convocatorias de mi organización')).toBeNull();
+  it('una superficie deshabilitada no aparece en panelEntries aunque el rol la permita', async () => {
+    const { panelEntries } = await load(['/panel']);
+    const adminEntries = panelEntries({ accountId: 'a', organizationId: 'o', roles: ['ADMINISTRATOR'] });
+    expect(adminEntries.some((e) => e.id === 'campaigns')).toBe(false);
   });
 
   it('error → ErrorState con Reintentar, que vuelve a pedir /me', async () => {
@@ -68,7 +64,7 @@ describe('PanelHome (§5.6, D-N1-1)', () => {
       .mockResolvedValueOnce({ kind: 'ok', principal: { accountId: 'a', roles: [] } });
     render(<PanelHomeScreen meClient={client} />);
     fireEvent.click(await screen.findByText('Reintentar'));
-    await screen.findByText('Mis donaciones');
+    expect(await screen.findByText('¿Tienes una fundación?')).toBeInTheDocument();
     expect(client).toHaveBeenCalledTimes(2);
   });
 
@@ -169,7 +165,7 @@ describe('Panel v2 (VS-6, B-2): lógica pura y utilidades', () => {
   });
 });
 
-describe('Panel v2 (VS-6, B-2): vistas por rol y comportamiento de componentes', () => {
+describe('Panel v2 fidelidad (F-B1, D-F12, D-F13): vistas por rol y comportamiento de componentes', () => {
   afterEach(() => vi.unstubAllEnvs());
 
   const NOW = 1761234567000;
@@ -224,7 +220,7 @@ describe('Panel v2 (VS-6, B-2): vistas por rol y comportamiento de componentes',
     {
       assetRef: 'AS-0142',
       lifecycleStatus: 'RECEIVED',
-      assetType: 'Kits de higiene', // G-4b con assetType
+      assetType: 'Kits de higiene',
       quantity: '60',
       unitOfMeasure: 'kit',
       currentLocation: 'Riohacha',
@@ -232,14 +228,14 @@ describe('Panel v2 (VS-6, B-2): vistas por rol y comportamiento de componentes',
     {
       assetRef: 'AS-0140',
       lifecycleStatus: 'DISPATCHED',
-      assetType: undefined, // G-4b sin assetType
+      assetType: undefined,
       quantity: '40',
       unitOfMeasure: 'und',
-      currentLocation: 'Bodega Central', // no debe mostrarse: en DISPATCHED debe ser '—'
+      currentLocation: 'Bodega Central',
     },
   ];
 
-  it('ADMINISTRATOR: ve cabecera con nombre y logo, los 3 KPIs, pendientes, tabla de convocatorias y tabla de lotes', async () => {
+  it('ADMINISTRATOR: ve cabecera con nombre y logo, los 3 KPIs, pendientes en orden de urgencia y aserciones negativas', async () => {
     const { PanelHomeScreen } = await load(ALL);
     const orgClient = vi.fn().mockResolvedValue({ kind: 'ok', organization: mockOrg });
     const campaignsClient = vi.fn().mockResolvedValue({ kind: 'ok', items: mockCampaigns });
@@ -258,47 +254,47 @@ describe('Panel v2 (VS-6, B-2): vistas por rol y comportamiento de componentes',
       />
     );
 
-    // Cabecera con nombre de la organización y logo
+    // Cabecera con nombre de la organización, subtítulo con rol y verificación, y logo
     expect(await screen.findByText('Fundación Manos Unidas')).toBeInTheDocument();
+    expect(screen.getByText('Organización verificada · Tu rol: Administrador')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Fundación Manos Unidas' })).toHaveAttribute('src', 'https://cdn.example.test/logo.png');
 
-    // 3 KPIs
+    // Botón de acción en la cabecera
+    expect(screen.getByTestId('new-campaign-button')).toHaveAttribute('href', '/panel/campaigns');
+
+    // 3 KPIs con valores reales (X-13)
     expect(await screen.findByTestId('kpi-open-campaigns')).toHaveTextContent('2');
     expect(screen.getByTestId('kpi-cleared-amount')).toHaveTextContent('1.700.000 COP');
     expect(screen.getByTestId('kpi-assets-dispatch')).toHaveTextContent('1'); // AS-0142 es RECEIVED, AS-0140 es DISPATCHED
 
-    // Pendientes (Por hacer)
-    // 1. Comando ambiguo en amarillo con icono y texto
-    const ambTodo = await screen.findByTestId('ambiguous-todo');
-    expect(ambTodo).toHaveTextContent('No pudimos confirmar la operación');
-    expect(ambTodo).toHaveTextContent('Revísalo antes de repetirla.');
-    expect(ambTodo.className).toContain('todoAmbiguous');
-    expect(ambTodo.className).not.toContain('danger');
+    // Pendientes (Por hacer) ordenados por urgencia: 1) ambiguos, 2) fondos por aplicar, 3) convocatorias sin empleado
+    const todoList = screen.getByTestId('panel-todos');
+    const todos = todoList.children;
+    expect(todos).toHaveLength(3);
 
-    // 2. Convocatoria sin empleado
-    expect(screen.getByTestId('unassigned-campaign-todo')).toHaveTextContent('Asignar responsable a «Kits escolares Urgentes»');
+    // 1. Comando ambiguo en amarillo con clase todoAmbiguous, icono y acción Revisar
+    expect(todos[0]).toHaveAttribute('data-testid', 'ambiguous-todo');
+    expect(todos[0]).toHaveTextContent('No pudimos confirmar la operación');
+    expect(todos[0]).toHaveTextContent('Revísalo antes de repetirla.');
+    expect(todos[0].className).toContain('todoAmbiguous');
+    expect(todos[0].className).not.toContain('danger');
 
-    // 3. Fondos con availableAmount > 0
-    expect(screen.getByTestId('available-fund-todo')).toHaveTextContent('800.000 COP por aplicar');
+    // 2. Fondos con availableAmount > 0
+    expect(todos[1]).toHaveAttribute('data-testid', 'available-fund-todo');
+    expect(todos[1]).toHaveTextContent('800.000 COP por aplicar');
 
-    // Tabla de convocatorias: "Cierra pronto" en la que cierra en 4 días, pero no en la que cierra en 20 días
-    expect(screen.getByTestId('panel-campaigns-table')).toBeInTheDocument();
-    const rows = screen.getAllByTestId('panel-campaign-row');
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toHaveTextContent('Kits escolares Urgentes');
-    expect(rows[0]).toHaveTextContent('Cierra pronto');
-    expect(rows[1]).toHaveTextContent('Agua potable en la Guajira');
-    expect(rows[1]).not.toHaveTextContent('Cierra pronto');
+    // 3. Convocatoria sin empleado
+    expect(todos[2]).toHaveAttribute('data-testid', 'unassigned-campaign-todo');
+    expect(todos[2]).toHaveTextContent('Asignar responsable a «Kits escolares Urgentes»');
 
-    // Tabla de lotes con G-4b assetType y currentLocation ausente en DISPATCHED
-    expect(screen.getByTestId('panel-assets-table')).toBeInTheDocument();
-    const assetTypes = screen.getAllByTestId('asset-type');
-    expect(assetTypes[0]).toHaveTextContent('Kits de higiene');
-    expect(assetTypes[1]).toHaveTextContent('—'); // sin assetType
-
-    const locations = screen.getAllByTestId('asset-location');
-    expect(locations[0]).toHaveTextContent('Riohacha');
-    expect(locations[1]).toHaveTextContent('—'); // en DISPATCHED siempre '—'
+    // Aserciones negativas de fidelidad (D-F12, D-F13):
+    // 1. No existe "Secciones del panel"
+    expect(screen.queryByText('Secciones del panel')).toBeNull();
+    // 2. No existen tablas de convocatorias ni de lotes en /panel (pertenecen a /panel/campaigns y /panel/assets en F-B2)
+    expect(screen.queryByTestId('panel-campaigns-table')).toBeNull();
+    expect(screen.queryByTestId('panel-assets-table')).toBeNull();
+    // 3. "Datos de ejemplo" no aparece
+    expect(screen.queryByText(/Datos de ejemplo/i)).toBeNull();
 
     expect(orgClient).toHaveBeenCalledTimes(1);
     expect(campaignsClient).toHaveBeenCalledTimes(1);
@@ -324,25 +320,29 @@ describe('Panel v2 (VS-6, B-2): vistas por rol y comportamiento de componentes',
       />
     );
 
-    // Título estándar "Tu organización" (D-P8), pero sin pedir GET /organizations/{id}
+    // Título estándar "Tu organización", subtítulo con rol Empleado
     expect(await screen.findByTestId('panel-title')).toHaveTextContent('Tu organización');
+    expect(screen.getByText('Organización · Tu rol: Empleado')).toBeInTheDocument();
+
+    // Negativas cruzadas de cliente: EMPLOYEE no puede consultar org ni convocatorias
     expect(orgClient).not.toHaveBeenCalled();
     expect(campaignsClient).not.toHaveBeenCalled();
 
-    // Aserciones negativas de convocatorias para EMPLOYEE
+    // Aserciones negativas visuales
     expect(screen.queryByTestId('kpi-open-campaigns')).toBeNull();
     expect(screen.queryByTestId('panel-campaigns-table')).toBeNull();
+    expect(screen.queryByTestId('panel-assets-table')).toBeNull();
+    expect(screen.queryByText('Secciones del panel')).toBeNull();
 
-    // Sí ve KPIs autorizados (recaudado y lotes por despachar) y tabla de lotes
+    // Sí ve KPIs autorizados (recaudado y lotes por despachar)
     expect(await screen.findByTestId('kpi-cleared-amount')).toBeInTheDocument();
     expect(screen.getByTestId('kpi-assets-dispatch')).toBeInTheDocument();
-    expect(await screen.findByTestId('panel-assets-table')).toBeInTheDocument();
 
     // Ve botón "Registrar activo"
     expect(screen.getByRole('button', { name: 'Registrar activo' })).toBeInTheDocument();
   });
 
-  it('REPRESENTATIVE: pide org (nombre/logo); aserciones negativas: no pide ni muestra convocatorias, fondos, activos ni KPIs', async () => {
+  it('REPRESENTATIVE: pide org (nombre/logo); aserciones negativas: no pide ni muestra convocatorias, fondos, activos ni KPIs; Por hacer vacío', async () => {
     const { PanelHomeScreen } = await load(ALL);
     const orgClient = vi.fn().mockResolvedValue({ kind: 'ok', organization: { ...mockOrg, logoUrl: undefined } });
     const campaignsClient = vi.fn();
@@ -362,7 +362,8 @@ describe('Panel v2 (VS-6, B-2): vistas por rol y comportamiento de componentes',
 
     // Representante sí ve el nombre de la organización
     expect(await screen.findByText('Fundación Manos Unidas')).toBeInTheDocument();
-    expect(screen.getByTestId('org-initial')).toHaveTextContent('F'); // Inicial de la organización (DF7-22)
+    expect(screen.getByText('Organización verificada · Tu rol: Representante')).toBeInTheDocument();
+    expect(screen.getByTestId('org-initial')).toHaveTextContent('F'); // Inicial de la organización
     expect(orgClient).toHaveBeenCalledTimes(1);
 
     // Aserciones negativas: REPRESENTATIVE no puede leer campañas, fondos ni activos
@@ -379,7 +380,11 @@ describe('Panel v2 (VS-6, B-2): vistas por rol y comportamiento de componentes',
     expect(screen.queryByTestId('panel-campaigns-table')).toBeNull();
     expect(screen.queryByTestId('panel-assets-table')).toBeNull();
 
-    // Tampoco ve el botón de registrar activo
+    // Tampoco ve el botón de registrar activo ni "Secciones del panel"
     expect(screen.queryByRole('button', { name: 'Registrar activo' })).toBeNull();
+    expect(screen.queryByText('Secciones del panel')).toBeNull();
+
+    // "Por hacer" muestra el texto aprobado de estado vacío (D-F13)
+    expect(screen.getByTestId('empty-todos')).toHaveTextContent('No tienes tareas pendientes.');
   });
 });

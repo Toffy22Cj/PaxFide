@@ -1,55 +1,78 @@
-/* Ref: Documentos/plan-fase7-pantallas.md §5 B-2; Documentos/sistema-visual-paxfide-web-enmienda-1.md §4–§7. */
-/* Estilo del panel de la organización (v2), sin fondo animado (D-P2). */
+/* Ref: Documentos/plan-fase7-fidelidad.md §5 F-B1; Documentos/sistema-visual-paxfide-web-enmienda-1.md §4–§7. */
+/* Estilo del panel de la organización (v2 fidelidad al boceto paxfide-panel.html), sin fondo animado (R-F7). */
 
 .container {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-4, 16px);
   width: 100%;
 }
 
-.orgHead {
+/* Cabecera del panel (.pn-head del boceto) */
+.pnHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4, 16px);
   background: var(--color-surface);
   border: 1px solid var(--color-divider);
-  border-radius: var(--radius-surface);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-5);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  flex-wrap: wrap;
+  border-radius: var(--radius-surface, 20px);
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-card-light, 0 12px 32px rgba(27, 81, 65, 0.08));
 }
 
-.headMain {
+.pnHead::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  top: -40px;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: var(--color-ambiguous-bg, rgba(243, 181, 68, 0.15));
+  opacity: 0.7;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.headLeft {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-4, 16px);
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 
-.logoInitial {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-surface);
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-  font-family: var(--font-display, inherit);
-  font-size: var(--text-xl);
-  font-weight: var(--weight-bold);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+.emb {
+  flex: none;
+  width: 78px;
+  height: 62px;
 }
 
 .logoImg {
   width: 56px;
   height: 56px;
-  border-radius: var(--radius-surface);
+  border-radius: var(--radius-card, 18px);
   object-fit: cover;
   flex-shrink: 0;
   border: 1px solid var(--color-divider);
+}
+
+.logoInitial {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-card, 18px);
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  font-family: var(--font-mono, monospace);
+  font-size: var(--font-size-display-4, 21px);
+  font-weight: var(--weight-bold, 700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .headText {
@@ -59,171 +82,339 @@
 }
 
 .headTitle {
-  font-size: var(--text-xl);
-  font-weight: var(--weight-bold);
-  color: var(--color-text);
   margin: 0;
-  line-height: var(--line-height-heading);
+  font-size: clamp(20px, 3.4vw, 26px);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  font-weight: var(--weight-bold, 700);
+  color: var(--color-text);
 }
 
 .headSub {
-  font-size: var(--text-sm);
+  margin: 2px 0 0;
   color: var(--color-text-secondary);
-  margin: var(--space-1) 0 0;
+  font-size: 14px;
 }
 
-.headActions {
+.acts {
+  margin-left: auto;
   display: flex;
-  gap: var(--space-3);
-  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
 }
 
-/* KPI Cards */
-.kpiGrid {
+/* Botones del panel (.pn-btn del boceto) */
+.pnBtnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: var(--radius-button, 999px);
+  font-weight: var(--weight-bold, 700);
+  font-size: 14px;
+  cursor: pointer;
+  background: var(--color-action);
+  color: var(--color-on-action);
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition: opacity var(--duration-fast) ease;
+}
+
+.pnBtnPrimary:hover {
+  opacity: 0.9;
+}
+
+.pnBtnSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: var(--radius-button, 999px);
+  font-weight: var(--weight-semibold, 600);
+  font-size: 13.5px;
+  cursor: pointer;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-control);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: background-color var(--duration-fast) ease;
+}
+
+.pnBtnSecondary:hover {
+  background: var(--color-bg);
+}
+
+/* Grid del panel (.pn-grid del boceto) */
+.pnGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 14px;
 }
 
-.kpiCard {
+/* Tarjeta del panel (.pn-card del boceto) */
+.pnCard {
   background: var(--color-surface);
   border: 1px solid var(--color-divider);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-4);
+  border-radius: var(--radius-card, 18px);
+  padding: 16px;
+  box-shadow: var(--shadow-card-light, 0 12px 32px rgba(27, 81, 65, 0.08));
+}
+
+/* Tarjeta KPI (.kpi del boceto) */
+.kpi {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
+  grid-column: span 4;
+}
+
+.kpi .ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
 }
 
 .kpiLabel {
-  font-size: var(--text-sm);
+  font-size: 13px;
   color: var(--color-text-secondary);
-  font-weight: var(--weight-medium);
-  margin: 0;
 }
 
 .kpiValue {
   font-family: var(--font-mono, monospace);
-  font-size: var(--text-xl);
-  font-weight: var(--weight-bold);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--color-text);
-  margin: var(--space-1) 0;
-  word-break: break-word;
 }
 
 .kpiSub {
-  font-size: var(--text-sm);
+  font-size: 12.5px;
   color: var(--color-text-secondary);
-  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-/* Pendientes (Por hacer) */
+/* Sección Por hacer (.pn-card.c12) */
+.cFull {
+  grid-column: span 12;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 2px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: var(--weight-bold, 700);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subText {
+  margin: 0 0 12px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+/* Lista de tareas pendientes (.todo del boceto) */
 .todoList {
   list-style: none;
-  padding: 0;
   margin: 0;
+  padding: 0;
+}
+
+.todoItem {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-divider);
 }
 
 .todoAmbiguous {
-  background: var(--color-ambiguous-bg);
-  color: var(--color-ambiguous-text);
-  border: 1.5px solid var(--color-ambiguous-title);
-  border-radius: var(--radius-surface);
-  padding: var(--space-4);
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
+  background: var(--color-surface-raised, rgba(243, 181, 68, 0.05));
+  border-radius: var(--radius-card, 14px);
+  padding: 10px 12px;
 }
 
-.todoAmbiguous .todoIcon {
-  color: var(--color-ambiguous-title);
-  margin-top: 2px;
+.todoItem:last-child {
+  border-bottom: 0;
 }
 
-.todoAmbiguousTitle {
-  font-size: var(--font-size-body-1);
-  font-weight: var(--weight-bold);
-  color: var(--color-ambiguous-title);
-  margin: 0 0 var(--space-1);
-}
-
-.todoAmbiguousDetail {
-  font-size: var(--text-sm);
-  color: var(--color-ambiguous-text);
-  margin: 0;
-}
-
-.todoRegular {
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-surface);
-  padding: var(--space-4);
+.ti {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  justify-content: center;
 }
 
-.todoContent {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  min-width: 0;
+.stAmb,
+.stWait {
+  background: var(--color-ambiguous-bg);
+  color: var(--color-ambiguous-title);
+}
+
+.stInfo {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+/* Clases de colores para iconos de KPI (sin hex inline en TSX) */
+.kpiOpenIco {
+  background: var(--color-badge-open-bg);
+  color: var(--color-badge-open-text);
+}
+
+.kpiClearedIco {
+  background: var(--color-ambiguous-bg);
+  color: var(--color-ambiguous-title);
+}
+
+.kpiAssetsIco {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+/* Estilos de partes del emblema isométrico */
+.embBase {
+  fill: var(--color-success-bg);
+  opacity: 0.55;
+}
+
+.embOrgTop {
+  fill: var(--brand-green-500);
+}
+
+.embOrgLeft {
+  fill: var(--color-success-bg);
+}
+
+.embOrgRight {
+  fill: var(--brand-ground);
+}
+
+.embOrgRoof {
+  fill: var(--color-action);
+}
+
+.embWindow {
+  fill: var(--color-info-bg);
+  opacity: 0.95;
+}
+
+.embFlagPole {
+  stroke: var(--white);
+  stroke-width: 2.5;
+}
+
+.embFlag {
+  stroke: var(--white);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.embDot {
+  fill: var(--brand-yellow-400);
+}
+
+.embCampTop {
+  fill: var(--brand-blue-800);
+}
+
+.embCampLeft {
+  fill: var(--brand-yellow-50);
+}
+
+.embCampRight {
+  fill: var(--brand-ground);
+}
+
+.embCampRoof {
+  fill: var(--brand-blue-500);
+}
+
+.embAssetTop {
+  fill: var(--brand-blue-700);
+}
+
+.embAssetLeft {
+  fill: var(--brand-blue-50);
+}
+
+.embAssetRight {
+  fill: var(--brand-ground);
+}
+
+.embAssetRoof {
+  fill: var(--brand-blue-500);
+}
+
+.embBoxTop {
+  fill: var(--color-ambiguous-bg);
+}
+
+.embBoxLeft {
+  fill: var(--color-ambiguous-title);
+}
+
+.embBoxRight {
+  fill: var(--brand-yellow-400);
+}
+
+.tt {
   flex: 1;
+  min-width: 0;
 }
 
-.todoTitle {
-  font-size: var(--font-size-body-1);
-  font-weight: var(--weight-semibold);
+.ttTitle {
+  display: block;
+  font-size: 14.5px;
+  font-weight: var(--weight-semibold, 600);
   color: var(--color-text);
-  margin: 0 0 var(--space-1);
-}
-
-.todoDetail {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
   margin: 0;
 }
 
-/* Badges & Tables */
-.closingSoon {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  background: var(--color-ambiguous-bg);
-  color: var(--color-ambiguous-title);
-  border: 1px solid var(--color-ambiguous-title);
-  border-radius: var(--radius-button);
-  padding: 2px var(--space-2);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  white-space: nowrap;
-}
-
-.progressBar {
-  width: 50px;
-  height: 6px;
-  background: var(--color-divider);
-  border-radius: 999px;
-  overflow: hidden;
-  display: inline-block;
-  vertical-align: middle;
-  margin-right: var(--space-2);
-}
-
-.progressFill {
-  height: 100%;
-  background: var(--color-action);
-  border-radius: 999px;
-}
-
-.emptyText {
+.ttSub {
+  display: block;
   color: var(--color-text-secondary);
-  font-size: var(--font-size-body-1);
-  margin: 0;
+  font-size: 12.5px;
+  margin: 2px 0 0;
+}
+
+.emptyTodo {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  margin: 8px 0;
+}
+
+@media (max-width: 768px) {
+  .pnHead {
+    flex-wrap: wrap;
+  }
+  .acts {
+    margin-left: 0;
+    width: 100%;
+  }
+  .kpi {
+    grid-column: span 12;
+  }
 }
