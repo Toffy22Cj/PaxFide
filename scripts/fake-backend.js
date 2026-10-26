@@ -22,6 +22,14 @@ const accounts = {
   'representante@demo.test': { password: 'demo-representante', accountId: 'acc-rep', organizationId: 'org-1', roles: ['REPRESENTATIVE'] },
   'admin-sin-verificar@demo.test': { password: 'demo-admin2', accountId: 'acc-admin-2', organizationId: 'org-2', roles: ['ADMINISTRATOR'] },
   'donante@demo.test': { password: 'demo-donante', accountId: 'acc-donor', roles: [] },
+  // Cuentas con dominio demo.paxfide.local (como en la semilla del backend real y credenciales-locales.md)
+  'representante@demo.paxfide.local': { password: 'demo-local-password', accountId: 'acc-rep', organizationId: 'org-1', roles: ['REPRESENTATIVE'] },
+  'administrador@demo.paxfide.local': { password: 'demo-local-password', accountId: 'acc-admin', organizationId: 'org-1', roles: ['ADMINISTRATOR'] },
+  'empleado@demo.paxfide.local': { password: 'demo-local-password', accountId: 'acc-employee', organizationId: 'org-1', roles: ['EMPLOYEE'] },
+  'empleado1@demo.paxfide.local': { password: 'demo-local-password', accountId: 'acc-employee', organizationId: 'org-1', roles: ['EMPLOYEE'] },
+  'empleado2@demo.paxfide.local': { password: 'demo-local-password', accountId: 'acc-employee-2', organizationId: 'org-1', roles: ['EMPLOYEE'] },
+  'donante@demo.paxfide.local': { password: 'demo-local-password', accountId: 'acc-donor', roles: [] },
+  'plataforma@demo.paxfide.local': { password: 'demo-local-password', accountId: 'acc-platform', roles: [], platformAuthority: 'ADMINISTRATOR' },
   // Para probar el backend real de hoy, que todavía no expone /me (S-01): para esta cuenta /me responde 404
   'sin-me@demo.test': { password: 'demo-sin-me', accountId: 'acc-no-me', organizationId: 'org-1', roles: ['ADMINISTRATOR'], noMe: true },
 };
@@ -313,7 +321,12 @@ const server = http.createServer(async (req, res) => {
     const body = await readBody(req);
     if (!body || !body.email || !body.password) { problem(res, 400, 'Bad Request'); return; }
     const acc = accounts[body.email];
-    if (!acc || acc.password !== body.password) { problem(res, 401, 'Unauthorized'); return; }
+    const passwordMatches = acc && (
+      acc.password === body.password ||
+      (body.password === 'demo-local-password' && acc.password) ||
+      (acc.password === 'demo-local-password' && (body.password === 'demo-representante' || body.password === 'demo-admin' || body.password === 'demo-empleado'))
+    );
+    if (!acc || !passwordMatches) { problem(res, 401, 'Unauthorized'); return; }
     const token = 'tok-' + crypto.randomUUID();
     tokens.set(token, body.email);
     send(res, 200, { token });
@@ -766,7 +779,14 @@ const server = http.createServer(async (req, res) => {
   if (p === '/platform/administrators' && req.method === 'GET') {
     if (!actor) { problem(res, 401, 'Unauthorized'); return; }
     if (!actor.platformAuthority) { problem(res, 403, 'Forbidden'); return; }
-    const items = Object.values(accounts).filter((a) => a.platformAuthority).map((a) => ({ accountId: a.accountId, status: 'ACTIVE' }));
+    const seen = new Set();
+    const items = [];
+    for (const a of Object.values(accounts)) {
+      if (a.platformAuthority && !seen.has(a.accountId)) {
+        seen.add(a.accountId);
+        items.push({ accountId: a.accountId, status: 'ACTIVE' });
+      }
+    }
     send(res, 200, { items }, { 'Cache-Control': 'no-store' });
     return;
   }

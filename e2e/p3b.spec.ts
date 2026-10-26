@@ -2,18 +2,18 @@ import { test, expect, Page, Browser } from '@playwright/test';
 
 const API = 'http://localhost:3002';
 
-async function login(page: Page, email: string, password: string) {
-  // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
-  await page.goto('/panel');
+async function login(page: Page, email: string, password: string, destination = '/panel') {
+  // A-3: el inicio por defecto es /home; pedir el destino sin sesión lo guarda como destino y se vuelve ahí tras entrar
+  await page.goto(destination);
   await page.getByLabel('Correo electrónico').fill(email);
   await page.getByLabel('Contraseña').fill(password);
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
 }
 
-async function adminPage(browser: Browser): Promise<Page> {
+async function adminPage(browser: Browser, destination = '/panel/members'): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
-  await login(page, 'admin@demo.test', 'demo-admin');
-  await expect(page).toHaveURL(/\/panel$/);
+  await login(page, 'admin@demo.test', 'demo-admin', destination);
+  await expect(page).toHaveURL(new RegExp(`${destination}$`));
   return page;
 }
 
@@ -21,7 +21,6 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
   test('invitar → el enlace del correo (#token) → crear cuenta e iniciar sesión → aceptar; el token nunca en una URL ni en almacenamiento', async ({ browser, request }) => {
     const email = `invitada-${Date.now()}@demo.test`;
     const admin = await adminPage(browser);
-    await admin.getByRole('link', { name: 'Personas de mi organización' }).click();
     await admin.getByRole('button', { name: 'Invitar' }).click();
     const dialog = admin.getByRole('dialog');
     await dialog.getByLabel('Correo electrónico').fill(email);
@@ -65,7 +64,8 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
 
     // Ya es miembro: el panel lo refleja
     await invitee.getByRole('link', { name: 'Ir al panel' }).click();
-    await expect(invitee.getByRole('link', { name: 'Mis convocatorias' })).toBeVisible();
+    await expect(invitee.getByText(/Tu rol: Empleado/)).toBeVisible();
+    await expect(invitee.getByRole('button', { name: 'Registrar activo' })).toBeVisible();
 
     // La misma invitación otra vez: el mismo 403
     const again = await (await browser.newContext()).newPage();
@@ -81,7 +81,6 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
   test('personas: asignar a la persona invitada, verla en "Mis convocatorias", cambiar su papel, 409 al quitarla; revocar una invitación', async ({ browser, request }) => {
     const email = `empleada-${Date.now()}@demo.test`;
     const admin = await adminPage(browser);
-    await admin.getByRole('link', { name: 'Personas de mi organización' }).click();
     await admin.getByRole('button', { name: 'Invitar' }).click();
     await admin.getByRole('dialog').getByLabel('Correo electrónico').fill(email);
     await admin.getByRole('dialog').getByLabel('Papel').selectOption('EMPLOYEE');
@@ -100,8 +99,7 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
     await expect(emp.getByText('Invitación aceptada')).toBeVisible();
 
     // El administrador la ve como miembro y la asigna a una convocatoria
-    await admin.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
-    await admin.getByRole('link', { name: 'Convocatorias de mi organización' }).click();
+    await admin.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Convocatorias' }).click();
     const row = admin.getByTestId('org-campaign').filter({ hasText: 'camp-demo-1' });
     await row.getByRole('button', { name: 'Asignar empleado' }).click();
     await admin.getByLabel('Empleado', { exact: true }).selectOption(accountId);
@@ -109,11 +107,10 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
     await expect(admin.getByText('Empleado asignado.')).toBeVisible();
 
     await emp.getByRole('link', { name: 'Ir al panel' }).click();
-    await emp.getByRole('link', { name: 'Mis convocatorias' }).click();
+    await emp.evaluate((p) => (window as any).__TEST_ROUTER__.push(p), '/panel/my-campaigns');
     await expect(emp.getByTestId('my-campaign').filter({ hasText: 'Mercados para adultos mayores' })).toContainText('Empleado');
 
-    await admin.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
-    await admin.getByRole('link', { name: 'Personas de mi organización' }).click();
+    await admin.evaluate((p) => (window as any).__TEST_ROUTER__.push(p), '/panel/members');
     const member = admin.getByTestId('member').filter({ hasText: accountId });
     await expect(member).toContainText('Empleado');
     await member.getByRole('button', { name: 'Hacer administrador' }).click();

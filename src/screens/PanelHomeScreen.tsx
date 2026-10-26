@@ -1,16 +1,15 @@
 'use client';
 
-// Ref: Documentos/plan-fase7-pantallas.md §5 B-2; Documentos/prompts-agentes-estilo-v2.md §3.2, §6 VS-6;
-// Documentos/sistema-visual-paxfide-web-enmienda-1.md §3.1, §4–§7.
+// Ref: Documentos/plan-fase7-fidelidad.md §5 F-B1 (D-F12, D-F13);
+// Documentos/prompts-agentes-estilo-v2.md §3.2, §6 VS-6;
+// Documentos/sistema-visual-paxfide-web-enmienda-1.md §3.1, §4–§7;
+// Documentos/paxfide-panel.html (boceto vPanel('org')).
 
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Button } from '../components/ui/Button';
-import { Icon } from '../components/ui/Icons';
 import { Surface, Actions, uiClasses as ui } from '../components/ui/Layout';
 import { EmptyState, ErrorState, LoadingState, UnavailableState } from '../components/States';
-import { LocalDate } from '../components/LocalDate';
 import { RegisterAssetForm } from '../components/asset/RegisterAssetForm';
 import { fetchMe, Principal } from '../lib/api/identity';
 import { usePrincipal } from '../lib/auth/usePrincipal';
@@ -33,14 +32,191 @@ import {
   getAmbiguousSessionCommands,
 } from '../lib/commands/ambiguousSession';
 import {
-  campaignStatusLabel,
-  lifecycleLabel,
   roleLabel,
   verificationStatusLabel,
 } from '../lib/labels';
-import { formatMinorUnits, percentOf } from '../lib/money';
-import { formatQuantity } from '../lib/quantity';
+import { formatMinorUnits } from '../lib/money';
 import s from './panel.module.css';
+
+export type PanelIconName =
+  | 'home'
+  | 'explore'
+  | 'heart'
+  | 'route'
+  | 'org'
+  | 'campaign'
+  | 'box'
+  | 'user'
+  | 'lock'
+  | 'x'
+  | 'info'
+  | 'warning'
+  | 'plus'
+  | 'truck'
+  | 'qr';
+
+export function PanelIcon({ name, className }: { name: PanelIconName; className?: string }) {
+  const content = (() => {
+    switch (name) {
+      case 'home':
+        return <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />;
+      case 'explore':
+        return (
+          <>
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20l-4-4" />
+          </>
+        );
+      case 'heart':
+        return <path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z" />;
+      case 'route':
+        return (
+          <>
+            <circle cx="6" cy="18" r="2" />
+            <circle cx="18" cy="6" r="2" />
+            <path d="M8 18h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6" />
+          </>
+        );
+      case 'org':
+        return <path d="M4 21V9l8-5 8 5v12M9 21v-5h6v5M3 21h18" />;
+      case 'campaign':
+        return (
+          <>
+            <path d="M4 10v4a1 1 0 0 0 1 1h2l5 4V5L7 9H5a1 1 0 0 0-1 1z" />
+            <path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12" />
+          </>
+        );
+      case 'box':
+        return (
+          <>
+            <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
+            <path d="M4 7.5l8 4.5 8-4.5M12 12v9" />
+          </>
+        );
+      case 'user':
+        return (
+          <>
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21a8 8 0 0 1 16 0" />
+          </>
+        );
+      case 'lock':
+        return (
+          <>
+            <rect x="5" y="11" width="14" height="10" rx="2" />
+            <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+          </>
+        );
+      case 'x':
+        return <path d="M6 6l12 12M18 6L6 18" />;
+      case 'info':
+        return (
+          <>
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v5M12 8v.01" />
+          </>
+        );
+      case 'warning':
+        return (
+          <>
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </>
+        );
+      case 'plus':
+        return <path d="M12 5v14M5 12h14" />;
+      case 'truck':
+        return (
+          <>
+            <path d="M3 7h11v9H3zM14 10h4l3 3v3h-7" />
+            <circle cx="7" cy="17.5" r="1.8" />
+            <circle cx="17" cy="17.5" r="1.8" />
+          </>
+        );
+      case 'qr':
+        return (
+          <>
+            <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2" />
+          </>
+        );
+      default: {
+        const _exhaustiveCheck: never = name;
+        return _exhaustiveCheck;
+      }
+    }
+  })();
+
+  return (
+    <svg
+      className={className ?? s.icoSvg}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {content}
+    </svg>
+  );
+}
+
+/**
+ * Emblema isométrico estático de cada distrito (el eco de la ciudad dentro del panel, de paxfide-panel.html).
+ */
+export function IsometricEmblem({ district = 'org' }: { district?: 'org' | 'campaigns' | 'assets' }) {
+  const e = {
+    org: {
+      topClass: s.embOrgTop,
+      lClass: s.embOrgLeft,
+      rClass: s.embOrgRight,
+      roofClass: s.embOrgRoof,
+      extra: (
+        <>
+          <path d="M70 8v28" className={s.embFlagPole} />
+          <path d="M70 8l-9-4M70 8l9-4M70 8v9" className={s.embFlag} />
+          <circle cx="70" cy="8" r="2.5" className={s.embDot} />
+        </>
+      ),
+    },
+    campaigns: {
+      topClass: s.embCampTop,
+      lClass: s.embCampLeft,
+      rClass: s.embCampRight,
+      roofClass: s.embCampRoof,
+      extra: <circle cx="68" cy="44" r="4" className={s.embDot} />,
+    },
+    assets: {
+      topClass: s.embAssetTop,
+      lClass: s.embAssetLeft,
+      rClass: s.embAssetRight,
+      roofClass: s.embAssetRoof,
+      extra: (
+        <>
+          <path d="M64 30l8 4-8 4-8-4z" className={s.embBoxTop} />
+          <path d="M56 34l8 4v8l-8-4z" className={s.embBoxLeft} />
+          <path d="M72 34l-8 4v8l8-4z" className={s.embBoxRight} />
+        </>
+      ),
+    },
+  }[district];
+
+  return (
+    <svg className={s.emb} viewBox="0 0 96 78" aria-hidden="true">
+      <path d="M48 46l40 20-40 12L8 66z" className={s.embBase} />
+      <path d="M48 14l30 15-30 15-30-15z" className={e.topClass} />
+      <path d="M18 29l30 15v22L18 51z" className={e.lClass} />
+      <path d="M78 29L48 44v22l30-15z" className={e.rClass} />
+      <path d="M48 10l18 9-18 9-18-9z" className={e.roofClass} />
+      <g className={s.embWindow}>
+        <path d="M23 40l5 2.5v5l-5-2.5zM31 44l5 2.5v5l-5-2.5zM39 48l5 2.5v5l-5-2.5z" />
+      </g>
+      {e.extra}
+    </svg>
+  );
+}
 
 export interface PanelEntry {
   id: string;
@@ -77,11 +253,9 @@ export function panelEntries(principal: Principal | null): PanelEntry[] {
   if ((roles.includes('ADMINISTRATOR') || roles.includes('REPRESENTATIVE')) && isSurfaceEnabled('/panel/members')) {
     entries.push({ id: 'members', label: 'Personas de mi organización', href: '/panel/members' });
   }
-  // Cualquier miembro puede ser responsable (EMPLOYEE o ADMINISTRATOR); la lista dice si lo es
   if ((roles.includes('EMPLOYEE') || roles.includes('ADMINISTRATOR')) && isSurfaceEnabled('/panel/my-campaigns')) {
     entries.push({ id: 'my-campaigns', label: 'Mis convocatorias', href: '/panel/my-campaigns' });
   }
-  // Con `/me` leído: sin organización, para crearla; con organización, para ver la cuenta en ella (R9)
   if (principal && isSurfaceEnabled('/panel/organization')) {
     entries.push(principal.organizationId
       ? { id: 'organization', label: 'Mi organización', href: '/panel/organization' }
@@ -222,16 +396,9 @@ export function PanelHomeScreen({
     return { status: 'ready', data: r.kind === 'ok' ? r.items : null };
   }, [canFetchAssets, orgId]);
 
-  if (state.status === 'loading') {
+  if (state.status === 'loading' || (canFetchOrg && orgRead.state.status === 'loading')) {
     return (
-      <div data-testid="panel-content">
-        <header className={s.orgHead}>
-          <div className={s.headMain}>
-            <div className={s.headText}>
-              <h1 className={s.headTitle} data-testid="panel-title">Tu organización</h1>
-            </div>
-          </div>
-        </header>
+      <div data-testid="panel-content" className={s.container}>
         <LoadingState />
       </div>
     );
@@ -239,14 +406,7 @@ export function PanelHomeScreen({
 
   if (state.status === 'error') {
     return (
-      <div data-testid="panel-content">
-        <header className={s.orgHead}>
-          <div className={s.headMain}>
-            <div className={s.headText}>
-              <h1 className={s.headTitle} data-testid="panel-title">Tu organización</h1>
-            </div>
-          </div>
-        </header>
+      <div data-testid="panel-content" className={s.container}>
         <ErrorState onRetry={reload} />
       </div>
     );
@@ -254,9 +414,10 @@ export function PanelHomeScreen({
 
   if (state.status === 'unavailable') {
     return (
-      <div data-testid="panel-content">
-        <header className={s.orgHead}>
-          <div className={s.headMain}>
+      <div data-testid="panel-content" className={s.container}>
+        <header className={s.pnHead}>
+          <div className={s.headLeft}>
+            <IsometricEmblem district="org" />
             <div className={s.headText}>
               <h1 className={s.headTitle} data-testid="panel-title">Tu organización</h1>
             </div>
@@ -274,9 +435,10 @@ export function PanelHomeScreen({
   // Si no hay superficies ni opciones para este usuario, mostrar EmptyState directo
   if (entries.length === 0 && !canFetchCampaigns && !canFetchFunds && !canFetchAssets && !register) {
     return (
-      <div data-testid="panel-content">
-        <header className={s.orgHead}>
-          <div className={s.headMain}>
+      <div data-testid="panel-content" className={s.container}>
+        <header className={s.pnHead} data-testid="panel-header">
+          <div className={s.headLeft}>
+            <IsometricEmblem district="org" />
             <div className={s.headText}>
               <h1 className={s.headTitle} data-testid="panel-title">Tu organización</h1>
             </div>
@@ -301,19 +463,30 @@ export function PanelHomeScreen({
   // Pendientes: Fondos con saldo disponible por aplicar (availableAmount > 0)
   const availableFunds = (isAdmin || isEmployee) && funds ? funds.filter((f) => BigInt(f.availableAmount || '0') > BigInt(0)) : [];
 
-  const hasTodos = currentAmbiguous.length > 0 || unassignedCampaigns.length > 0 || availableFunds.length > 0;
+  // Urgencia de Por hacer: 1) ambiguos, 2) fondos por aplicar, 3) convocatorias sin empleado
+  const hasTodos = currentAmbiguous.length > 0 || availableFunds.length > 0 || unassignedCampaigns.length > 0;
 
-  // KPIs
+  // KPIs (máximo 3, Integridad se omite según X-13)
   const openCampaignsCount = isAdmin && campaigns ? campaigns.filter((c) => c.status === 'OPEN').length : null;
   const clearedTotals = (isAdmin || isEmployee) && funds ? computeTotalClearedByCurrency(funds) : null;
   const assetsToDispatchCount = (isAdmin || isEmployee) && assets ? countDispatcheableAssets(assets) : null;
   const hasKpis = openCampaignsCount !== null || clearedTotals !== null || assetsToDispatchCount !== null;
 
+  const roleText = roles.map(roleLabel).join(', ') || 'Organización';
+  const orgName = canFetchOrg && orgDetails?.name ? orgDetails.name : 'Tu organización';
+  const verifStatusText = orgDetails?.verificationStatus === 'VERIFIED'
+    ? 'Organización verificada'
+    : orgDetails?.verificationStatus
+    ? `Organización (${verificationStatusLabel(orgDetails.verificationStatus)})`
+    : 'Organización';
+  const subtitle = canFetchOrg ? `${verifStatusText} · Tu rol: ${roleText}` : `Organización · Tu rol: ${roleText}`;
+
   return (
     <div data-testid="panel-content" className={s.container}>
-      {/* Cabecera: Nombre y logo si el rol lo permite (ADMINISTRATOR o REPRESENTATIVE); D-P8 */}
-      <header className={s.orgHead} data-testid="panel-header">
-        <div className={s.headMain}>
+      {/* Cabecera del panel: Emblema isométrico, logo/inicial si el rol lo autoriza, nombre y rol */}
+      <header className={s.pnHead} data-testid="panel-header">
+        <div className={s.headLeft}>
+          <IsometricEmblem district="org" />
           {canFetchOrg && (
             orgDetails?.logoUrl ? (
               <img src={orgDetails.logoUrl} alt={orgDetails.name ?? 'Logo'} className={s.logoImg} />
@@ -325,19 +498,28 @@ export function PanelHomeScreen({
           )}
           <div className={s.headText}>
             <h1 className={s.headTitle} data-testid="panel-title">
-              {canFetchOrg && orgDetails?.name ? orgDetails.name : 'Tu organización'}
+              {orgName}
             </h1>
             <p className={s.headSub}>
-              {roles.map(roleLabel).join(', ') || 'Organización'}
-              {orgDetails?.verificationStatus ? ` · ${verificationStatusLabel(orgDetails.verificationStatus)}` : ''}
+              {subtitle}
             </p>
           </div>
         </div>
-        <div className={s.headActions}>
+        <div className={s.acts}>
+          {isAdmin && isSurfaceEnabled('/panel/campaigns') && (
+            <Link href="/panel/campaigns" className={s.pnBtnPrimary} data-testid="new-campaign-button">
+              <PanelIcon name="plus" /> Nueva convocatoria
+            </Link>
+          )}
           {register && !registering && (
-            <Button variant="secondary" onClick={() => setRegistering(true)}>
-              Registrar activo
-            </Button>
+            <button
+              type="button"
+              className={s.pnBtnPrimary}
+              onClick={() => setRegistering(true)}
+              data-testid="register-asset-button"
+            >
+              <PanelIcon name="plus" /> Registrar activo
+            </button>
           )}
         </div>
       </header>
@@ -348,206 +530,126 @@ export function PanelHomeScreen({
           <p>Regístrala, la revisamos y luego puedes publicar convocatorias.</p>
           <Actions>
             <Link href="/panel/organization" className={[ui.button, ui.secondary].join(' ')}>
-              Registrar organización
+              Crear organización
             </Link>
           </Actions>
         </Surface>
       )}
 
-      {/* KPIs según rol */}
+      {/* Si es autoridad de plataforma */}
+      {principal?.platformAuthority && isSurfaceEnabled('/panel/platform') && (
+        <Surface title="Plataforma">
+          <p>Verificación de organizaciones y administradores de la plataforma.</p>
+          <Actions>
+            <Link href="/panel/platform" className={[ui.button, ui.secondary].join(' ')}>
+              Plataforma: verificación y administradores
+            </Link>
+          </Actions>
+        </Surface>
+      )}
+
+      {/* KPIs según rol (X-13) */}
       {hasKpis && (
-        <section aria-label="Indicadores clave" className={s.kpiGrid} data-testid="panel-kpis">
+        <section aria-label="Indicadores clave" className={s.pnGrid} data-testid="panel-kpis">
           {openCampaignsCount !== null && (
-            <div className={s.kpiCard} data-testid="kpi-open-campaigns">
+            <div className={`${s.pnCard} ${s.kpi}`} data-testid="kpi-open-campaigns">
+              <span className={`${s.ico} ${s.kpiOpenIco}`}>
+                <PanelIcon name="campaign" />
+              </span>
               <span className={s.kpiLabel}>Convocatorias abiertas</span>
-              <span className={s.kpiValue}>{openCampaignsCount}</span>
-              <span className={s.kpiSub}>Convocatorias activas</span>
+              <b className={s.kpiValue}>{openCampaignsCount}</b>
+              <small className={s.kpiSub}>Convocatorias activas</small>
             </div>
           )}
           {clearedTotals !== null && (
-            <div className={s.kpiCard} data-testid="kpi-cleared-amount">
-              <span className={s.kpiLabel}>Recaudado total</span>
-              <span className={s.kpiValue}>
-                {clearedTotals.map((t) => t.formatted).join(' · ')}
+            <div className={`${s.pnCard} ${s.kpi}`} data-testid="kpi-cleared-amount">
+              <span className={`${s.ico} ${s.kpiClearedIco}`}>
+                <PanelIcon name="heart" />
               </span>
-              <span className={s.kpiSub}>Confirmado en fondos</span>
+              <span className={s.kpiLabel}>Recaudado total</span>
+              <b className={s.kpiValue}>
+                {clearedTotals.map((t) => t.formatted).join(' · ')}
+              </b>
+              <small className={s.kpiSub}>Confirmado en fondos</small>
             </div>
           )}
           {assetsToDispatchCount !== null && (
-            <div className={s.kpiCard} data-testid="kpi-assets-dispatch">
+            <div className={`${s.pnCard} ${s.kpi}`} data-testid="kpi-assets-dispatch">
+              <span className={`${s.ico} ${s.kpiAssetsIco}`}>
+                <PanelIcon name="box" />
+              </span>
               <span className={s.kpiLabel}>Lotes por despachar</span>
-              <span className={s.kpiValue}>{assetsToDispatchCount}</span>
-              <span className={s.kpiSub}>Listos para salida</span>
+              <b className={s.kpiValue}>{assetsToDispatchCount}</b>
+              <small className={s.kpiSub}>Listos para salida</small>
             </div>
           )}
         </section>
       )}
 
-      {/* Pendientes (Por hacer) */}
-      {hasTodos && (
-        <Surface title="Por hacer" headingLevel={2}>
+      {/* Por hacer (ordenado por urgencia: 1. ambiguos, 2. fondos por aplicar, 3. convocatorias sin empleado) */}
+      <section className={`${s.pnCard} ${s.cFull}`} aria-label="Tareas pendientes" data-testid="panel-todos-section">
+        <div className={s.sectionHeader}>
+          <h2 className={s.sectionTitle}>
+            <PanelIcon name="info" /> Por hacer
+          </h2>
+        </div>
+        <p className={s.subText}>Ordenado por urgencia.</p>
+        {hasTodos ? (
           <ul className={s.todoList} data-testid="panel-todos">
             {currentAmbiguous.map((amb) => (
-              <li key={amb.id} className={s.todoAmbiguous} role="alert" data-testid="ambiguous-todo">
-                <div className={s.todoIcon}>
-                  <Icon name="warning" />
+              <li key={amb.id} className={`${s.todoItem} ${s.todoAmbiguous}`} role="alert" data-testid="ambiguous-todo">
+                <div className={`${s.ti} ${s.stAmb}`}>
+                  <PanelIcon name="truck" />
                 </div>
-                <div className={s.todoContent}>
-                  <h3 className={s.todoAmbiguousTitle}>{amb.title}</h3>
-                  <p className={s.todoAmbiguousDetail}>{amb.detail}</p>
+                <div className={s.tt}>
+                  <b className={s.ttTitle}>{amb.title}</b>
+                  <small className={s.ttSub}>{amb.detail}</small>
                 </div>
-              </li>
-            ))}
-            {unassignedCampaigns.map((c) => (
-              <li key={c.campaignRef} className={s.todoRegular} data-testid="unassigned-campaign-todo">
-                <div className={s.todoContent}>
-                  <Icon name="info" />
-                  <div>
-                    <h3 className={s.todoTitle}>Asignar responsable a «{c.title}»</h3>
-                    <p className={s.todoDetail}>La convocatoria no tiene empleado asignado.</p>
-                  </div>
-                </div>
-                <Link href="/panel/campaigns" className={[ui.button, ui.secondary].join(' ')}>
-                  Asignar
+                <Link href="/panel/assets" className={s.pnBtnSecondary}>
+                  Revisar
                 </Link>
               </li>
             ))}
             {availableFunds.map((f) => (
-              <li key={f.fundId} className={s.todoRegular} data-testid="available-fund-todo">
-                <div className={s.todoContent}>
-                  <Icon name="info" />
-                  <div>
-                    <h3 className={s.todoTitle}>Registrar aplicación de fondos</h3>
-                    <p className={s.todoDetail}>
-                      {f.campaignRef ? `Convocatoria «${f.campaignRef}» · ` : ''}
-                      {formatMinorUnits(f.availableAmount, f.currency)} por aplicar
-                    </p>
-                  </div>
+              <li key={f.fundId} className={s.todoItem} data-testid="available-fund-todo">
+                <div className={`${s.ti} ${s.stWait}`}>
+                  <PanelIcon name="box" />
                 </div>
-                <Link href="/panel/funds" className={[ui.button, ui.secondary].join(' ')}>
-                  Ver fondos
+                <div className={s.tt}>
+                  <b className={s.ttTitle}>Registrar aplicación de fondos</b>
+                  <small className={s.ttSub}>
+                    {f.campaignRef ? `Convocatoria «${f.campaignRef}» · ` : ''}
+                    {formatMinorUnits(f.availableAmount, f.currency)} por aplicar
+                  </small>
+                </div>
+                <Link href="/panel/funds" className={s.pnBtnSecondary}>
+                  Registrar
+                </Link>
+              </li>
+            ))}
+            {unassignedCampaigns.map((c) => (
+              <li key={c.campaignRef} className={s.todoItem} data-testid="unassigned-campaign-todo">
+                <div className={`${s.ti} ${s.stInfo}`}>
+                  <PanelIcon name="org" />
+                </div>
+                <div className={s.tt}>
+                  <b className={s.ttTitle}>Asignar responsable a «{c.title}»</b>
+                  <small className={s.ttSub}>La convocatoria no tiene empleado asignado.</small>
+                </div>
+                <Link href="/panel/campaigns" className={s.pnBtnSecondary}>
+                  Asignar
                 </Link>
               </li>
             ))}
           </ul>
-        </Surface>
-      )}
+        ) : (
+          <p className={s.emptyTodo} data-testid="empty-todos">
+            No tienes tareas pendientes.
+          </p>
+        )}
+      </section>
 
-      {/* Tabla de convocatorias (solo ADMINISTRATOR) */}
-      {canFetchCampaigns && (
-        <Surface title="Convocatorias" headingLevel={2}>
-          {campaignsRead.state.status === 'loading' && <LoadingState />}
-          {campaigns && campaigns.length === 0 && (
-            <p className={s.emptyText}>Tu organización todavía no tiene convocatorias.</p>
-          )}
-          {campaigns && campaigns.length > 0 && (
-            <div className={ui.tableWrap}>
-              <table className={ui.table} data-testid="panel-campaigns-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Convocatoria</th>
-                    <th scope="col">Estado</th>
-                    <th scope="col">Recaudado</th>
-                    <th scope="col">Meta</th>
-                    <th scope="col">Cierre</th>
-                    <th scope="col"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {campaigns.map((c) => {
-                    const closing = isClosingSoon(c, now);
-                    const pct = c.targetAmount && c.clearedAmount ? percentOf(c.clearedAmount, c.targetAmount) : null;
-                    return (
-                      <tr key={c.campaignRef} data-testid="panel-campaign-row">
-                        <td>
-                          <strong>{c.title}</strong>
-                          {closing && (
-                            <div style={{ marginTop: 4 }}>
-                              <span className={s.closingSoon} data-testid="closing-soon-badge">
-                                <Icon name="warning" /> Cierra pronto
-                              </span>
-                            </div>
-                          )}
-                        </td>
-                        <td>{campaignStatusLabel(c.status)}</td>
-                        <td>
-                          {pct !== null && (
-                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 2 }}>
-                              <span className={s.progressBar} aria-hidden="true">
-                                <span className={s.progressFill} style={{ width: `${Math.min(pct, 100)}%` }} />
-                              </span>
-                              <span className={ui.mono}>{pct}%</span>
-                            </div>
-                          )}
-                          <small className={ui.mono} style={{ color: 'var(--color-text-secondary)' }}>
-                            {c.clearedAmount ? formatMinorUnits(c.clearedAmount, c.currency) : '—'}
-                          </small>
-                        </td>
-                        <td className={ui.mono}>{c.targetAmount ? formatMinorUnits(c.targetAmount, c.currency) : '—'}</td>
-                        <td>{c.endDate ? <LocalDate iso={c.endDate} /> : '—'}</td>
-                        <td>
-                          <Link href="/panel/campaigns" className={[ui.button, ui.secondary].join(' ')} style={{ minHeight: 36, padding: '0 12px' }}>
-                            Ver
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Surface>
-      )}
-
-      {/* Tabla de lotes (ADMINISTRATOR o EMPLOYEE) */}
-      {canFetchAssets && (
-        <Surface title="Lotes" headingLevel={2}>
-          {assetsRead.state.status === 'loading' && <LoadingState />}
-          {assets && assets.length === 0 && (
-            <p className={s.emptyText}>Tu organización todavía no tiene activos registrados.</p>
-          )}
-          {assets && assets.length > 0 && (
-            <div className={ui.tableWrap}>
-              <table className={ui.table} data-testid="panel-assets-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Lote</th>
-                    <th scope="col">Tipo</th>
-                    <th scope="col">Cantidad</th>
-                    <th scope="col">Estado</th>
-                    <th scope="col">Ubicación</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {assets.map((a) => {
-                    const location = a.lifecycleStatus === 'DISPATCHED' ? '—' : (a.currentLocation ?? '—');
-                    return (
-                      <tr key={a.assetRef} data-testid="panel-asset-row">
-                        <td className={ui.mono}>
-                          {isSurfaceEnabled('/assets/:assetRef') ? (
-                            <Link href={`/assets/${encodeURIComponent(a.assetRef)}`}>{a.assetRef}</Link>
-                          ) : (
-                            a.assetRef
-                          )}
-                        </td>
-                        <td data-testid="asset-type">{a.assetType ?? '—'}</td>
-                        <td className={ui.mono}>
-                          {a.quantity ? formatQuantity(a.quantity) : '—'} {a.unitOfMeasure ?? ''}
-                        </td>
-                        <td>{lifecycleLabel(a.lifecycleStatus)}</td>
-                        <td data-testid="asset-location">{location}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Surface>
-      )}
-
-      {/* Formulario de registro de activo para EMPLOYEE */}
+      {/* Formulario de registro de activo para EMPLOYEE si se activa */}
       {register && registering && (
         <Surface title="Registrar activo">
           <RegisterAssetForm
@@ -557,11 +659,6 @@ export function PanelHomeScreen({
           />
         </Surface>
       )}
-
-      {/* Secciones del panel (accesos directos) */}
-      <Surface title="Secciones del panel" headingLevel={2}>
-        <Entries entries={entries} />
-      </Surface>
     </div>
   );
 }

@@ -102,7 +102,7 @@ for (const width of [390, 1280]) {
       } else {
         // DF7-20: en pantalla estrecha, Convocatorias y Lotes no están en la página; se abren desde el panel
         await expect(page.locator('[data-testid="nav-convocatorias"], [data-testid="nav-lotes"]')).toHaveCount(0);
-        await page.getByRole('main').getByRole('link', { name: 'Convocatorias de mi organización' }).click();
+        await page.getByRole('main').getByTestId('new-campaign-button').click();
         await expect(page).toHaveURL(/\/panel\/campaigns$/);
         await expect(nav(page).getByRole('link', { name: 'Organización' })).toHaveAttribute('aria-current', 'page');
       }
