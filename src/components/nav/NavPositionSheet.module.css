@@ -1,0 +1,186 @@
+/* Ref: Documentos/plan-fase7-fidelidad.md §2 D-F8; Documentos/paxfide-home.html (.sheet, .pos, .mini) */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(10, 20, 16, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.panel {
+  width: min(520px, 100%);
+  background: var(--color-surface);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border-radius: var(--radius-surface) var(--radius-surface) 0 0;
+  padding: var(--space-3) var(--space-5) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+  animation: slideUp var(--duration-normal) var(--ease-out);
+}
+
+@media (min-width: 700px) {
+  .backdrop {
+    align-items: center;
+  }
+  .panel {
+    border-radius: var(--radius-surface);
+    padding-bottom: var(--space-5);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.grab {
+  width: 40px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-divider);
+  margin: 0 auto var(--space-3);
+}
+
+.title {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-h2);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+}
+
+.sub {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-2);
+}
+
+.posGroup {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}
+
+.posBtn {
+  border: 1.5px solid var(--color-divider);
+  background: var(--color-bg);
+  border-radius: var(--radius-card);
+  padding: 10px 6px 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-body-3);
+  font-weight: var(--weight-bold);
+  color: var(--color-text);
+  transition: border-color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out);
+}
+
+.posBtn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.posBtn[aria-checked="true"] {
+  border-color: var(--color-action);
+  box-shadow: inset 0 0 0 1px var(--color-action);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.mini {
+  width: 54px;
+  height: 76px;
+  border-radius: var(--radius-control);
+  border: 2px solid currentColor;
+  position: relative;
+  opacity: 0.85;
+}
+
+.mini i {
+  position: absolute;
+  background: var(--color-action);
+  border-radius: 3px;
+}
+
+.mini[data-p="bottom"] i {
+  left: 3px;
+  right: 3px;
+  bottom: 3px;
+  height: 11px;
+}
+
+.mini[data-p="top"] i {
+  left: 3px;
+  right: 3px;
+  top: 3px;
+  height: 11px;
+}
+
+.mini[data-p="left"] i {
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: 11px;
+}
+
+.mini[data-p="right"] i {
+  top: 3px;
+  bottom: 3px;
+  right: 3px;
+  width: 11px;
+}
+
+.foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.hint {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-4);
+}
+
+.doneBtn {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-button);
+  background: var(--color-action);
+  color: var(--color-on-action);
+  font-weight: var(--weight-semibold);
+  border: none;
+  cursor: pointer;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.doneBtn:hover {
+  opacity: 0.9;
+}
+
+.doneBtn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+  .posBtn, .doneBtn {
+    transition: none;
+  }
+}

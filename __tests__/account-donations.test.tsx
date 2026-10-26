@@ -76,4 +76,12 @@ describe('Mis donaciones (/account/donations)', () => {
     expect(items[1]).not.toHaveTextContent('Fecha');
     expect(items[1]).toHaveTextContent('Pasarela de pago');
   });
+
+  it('D-F15: muestra enlace "Seguir con un código" hacia /tracking', async () => {
+    const { AccountDonationsScreen } = await load();
+    render(<AccountDonationsScreen client={async () => ({ kind: 'ok', items: [] })} />);
+    const link = await screen.findByTestId('link-track-code');
+    expect(link).toHaveAttribute('href', '/tracking');
+    expect(link).toHaveTextContent('Seguir con un código');
+  });
 });

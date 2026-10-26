@@ -26,6 +26,10 @@ export function classifyRoute(pathname: string): RouteCategory {
   if (parts.length === 1 && a === 'login') return when('/login', 'AUTH');
   if (parts.length === 1 && a === 'register') return when('/register', 'AUTH');
   if (parts.length === 1 && a === 'campaigns') return when('/campaigns', 'PUBLIC');
+  // Rutas legales públicas (D-F17)
+  if (parts.length === 1 && a === 'terminos') return when('/terminos', 'PUBLIC');
+  if (parts.length === 1 && a === 'privacidad') return when('/privacidad', 'PUBLIC');
+  if (parts.length === 1 && a === 'terminos-organizacion') return when('/terminos-organizacion', 'PUBLIC');
   // Inicio del donante (plan-fase7-pantallas.md A-3): con sesión
   if (parts.length === 1 && a === 'home') return when('/home', 'AUTHENTICATED');
   // Aceptar invitación (DW-48): pública para poder leer y borrar el token del fragmento antes de pedir sesión
@@ -45,8 +49,9 @@ export function classifyRoute(pathname: string): RouteCategory {
     return isValidParam(b) ? when('/assets/:assetRef', 'AUTHENTICATED') : 'NOT_APPROVED';
   }
 
-  if (parts.length === 2 && a === 'account' && b === 'donations') {
-    return when('/account/donations', 'AUTHENTICATED');
+  if (a === 'account') {
+    if (parts.length === 1) return when('/account', 'AUTHENTICATED');
+    if (parts.length === 2 && b === 'donations') return when('/account/donations', 'AUTHENTICATED');
   }
 
   if (a === 'panel') {

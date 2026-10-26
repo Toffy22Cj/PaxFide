@@ -10,7 +10,7 @@ vi.mock('next/link', () => ({
   default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => <a href={href} {...rest}>{children}</a>,
 }));
 vi.mock('../src/lib/routing/surfaces', () => ({
-  isSurfaceEnabled: (s: string) => ['/campaigns', '/account/donations', '/tracking', '/panel', '/panel/campaigns', '/panel/assets'].includes(s),
+  isSurfaceEnabled: (s: string) => ['/campaigns', '/account/donations', '/tracking', '/panel', '/panel/campaigns', '/panel/assets', '/account'].includes(s),
 }));
 
 import * as session from '../src/lib/auth/session';
@@ -36,12 +36,12 @@ afterEach(() => vi.restoreAllMocks());
 const nav = () => screen.getByRole('navigation', { name: 'Principal' });
 
 describe('Shell (VS-2)', () => {
-  it('landmarks: banner, navigation "Principal" y main; la cabecera no monta el selector de tema (D)', async () => {
+  it('landmarks: banner, navigation "Principal" y main; la cabecera monta ThemeSelect (F-A0, DF7-10)', async () => {
     render(<Shell me={async () => ({ kind: 'error' })}><p>contenido</p></Shell>);
     expect(screen.getByRole('banner')).toBeInTheDocument();
     expect(nav()).toBeInTheDocument();
     expect(screen.getByRole('main')).toHaveTextContent('contenido');
-    expect(screen.queryByLabelText('Tema')).toBeNull();
+    expect(screen.getByLabelText('Tema')).toBeInTheDocument();
   });
 
   it('a 390 (bottom), Convocatorias y Lotes no están en la página (DF7-20)', async () => {
@@ -49,7 +49,8 @@ describe('Shell (VS-2)', () => {
     act(() => { session.login('tok'); session.setLastPrincipal(admin); });
     const { container } = render(<Shell me={async () => ({ kind: 'ok', principal: admin })}>x</Shell>);
     await waitFor(() => expect(container.firstElementChild).toHaveAttribute('data-nav-position', 'bottom'));
-    expect(within(nav()).getAllByRole('link').map((a) => a.textContent)).toEqual(['Explorar', 'Donaciones', 'Seguimiento', 'Organización']);
+    expect(within(nav()).getAllByRole('link').map((a) => a.textContent)).toEqual(['Explorar', 'Donaciones', 'Organización', 'Perfil']);
+    expect(container.querySelector('[data-testid="nav-seguimiento"]')).toBeNull();
     expect(container.querySelector('[data-testid="nav-convocatorias"]')).toBeNull();
     expect(container.querySelector('[data-testid="nav-lotes"]')).toBeNull();
   });

@@ -1056,6 +1056,14 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // GET /account — JWT obligatorio; datos básicos de la cuenta (D-F9)
+  if (p === '/account' && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const email = tokens.get(req.headers['authorization'].slice(7));
+    send(res, 200, { accountId: actor.accountId, email }, { 'Cache-Control': 'no-store' });
+    return;
+  }
+
   // GET /account/donations — JWT obligatorio; sin seudónimo ni donorRef
   if (p === '/account/donations' && req.method === 'GET') {
     if (!actor) { problem(res, 401, 'Unauthorized'); return; }

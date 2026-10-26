@@ -1,0 +1,358 @@
+# CI local de paxfide-web (réplica de .github/workflows/ci.yml)
+commit:     354144f5b67f11ec3d74c4e259efab086c84eaf2
+rama:       feat/web-landing-fidelity
+fecha UTC:  2026-10-25T18:19:35Z
+node:       v22.14.0
+pnpm:       11.26.0
+workflow:   .github/workflows/ci.yml sha256 58be251021d385529aa74b0f1b0dd601c37705e160a32f4e3a79302944b8992c
+
+===== PASO: Checkout repository =====
+$ git cat-file -e 354144f5b67f11ec3d74c4e259efab086c84eaf2 && echo 'Árbol limpio en 354144f5b67f11ec3d74c4e259efab086c84eaf2'
+Árbol limpio en 354144f5b67f11ec3d74c4e259efab086c84eaf2
+RESULTADO: OK (0 s)
+
+===== PASO: Check for .skip or .only in tests =====
+$ if grep -E '\.(skip|only)\(' -r __tests__/ e2e/; then echo 'Error: Found .skip() or .only() in tests. Please remove them.'; exit 1; fi
+RESULTADO: OK (0 s)
+
+===== PASO: Setup Node.js 22 =====
+$ node -v | grep -Eq '^v22\.' || { echo 'Se exige Node 22.x'; exit 1; }; node -v
+v22.14.0
+RESULTADO: OK (0 s)
+
+===== PASO: Install pnpm =====
+$ [ "$(pnpm -v)" = '11.26.0' ] || { echo 'Se exige pnpm 11.26.0 (npm install -g pnpm@11.26.0)'; exit 1; }; pnpm -v
+11.26.0
+RESULTADO: OK (2 s)
+
+===== PASO: Install dependencies =====
+$ pnpm install --frozen-lockfile
+Already up to date
+Done in 89ms using pnpm v11.26.0
+RESULTADO: OK (1 s)
+
+===== PASO: Typecheck =====
+$ pnpm typecheck
+$ tsc --noEmit
+RESULTADO: OK (4 s)
+
+===== PASO: Vitest =====
+$ pnpm vitest run
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.2 /home/carlos/Proyectos/PaxFide
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ __tests__/panel-home.test.tsx (22 tests) 1083ms
+   ✓ Panel v2 (VS-6, B-2): vistas por rol y comportamiento de componentes (3)
+     ✓ ADMINISTRATOR: ve cabecera con nombre y logo, los 3 KPIs, pendientes, tabla de convocatorias y tabla de lotes 361ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ __tests__/tracking.test.tsx (12 tests) 1356ms
+   ✓ TrackingScreen (formulario) (7)
+     ✓ validación: vacío no consulta 343ms
+     ✓ contenido: hechos, bienes con recorrido y relato separado (PENDING → Actualizar) 373ms
+ ✓ __tests__/prediction.test.tsx (14 tests) 1514ms
+   ✓ Predicción (P3) (14)
+     ✓ con datos: etiqueta permanente, bloque separado, avisos del backend y dos gráficos con tabla 390ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ __tests__/app-shell.test.tsx (9 tests) 1496ms
+   ✓ Shell (VS-2) (9)
+     ✓ landmarks: banner, navigation "Principal" y main; la cabecera monta ThemeSelect (F-A0, DF7-10) 359ms
+     ✓ GET /me en cada cambio de ruta: si pierde organizationId, "Organización" desaparece en la segunda 324ms
+ ✓ __tests__/p2a.test.tsx (10 tests) 1506ms
+   ✓ Registro de cuenta (POST /auth/register) (4)
+     ✓ validación local: vacíos y contraseñas distintas no llaman al backend 451ms
+     ✓ 409 DuplicateEmail, correo inválido, 5xx y red 305ms
+ ✓ __tests__/home.test.tsx (15 tests) 1607ms
+   ✓ Home (A-3) — tarjetas por cuenta (D-P6) (5)
+     ✓ en pantalla: las tarjetas de cada cuenta, con negativas cruzadas 531ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ __tests__/tracking-timeline.test.tsx (21 tests) 1739ms
+   ✓ Pasos del recorrido (VS-7) (6)
+     ✓ pasos con evento, fecha, zona (o "sin zona pública") y categoría del custodio, incluida UNCATEGORIZED 494ms
+ ✓ __tests__/p2c.test.tsx (9 tests) 2247ms
+   ✓ Rutas y entradas de P2-C (2)
+     ✓ rutas solo con la lista; /panel/platform/<x> no existe nunca 504ms
+   ✓ /panel/funds (4)
+     ✓ ADMINISTRATOR: solicitar asignación (importe a unidades mínimas, Command-Id); 409 con su texto 533ms
+   ✓ Registrar activo — camino A con fondos leídos (2)
+     ✓ elige fondo y asignación de la lectura; envía sus ids 305ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ __tests__/p3c.test.tsx (8 tests) 2681ms
+   ✓ Configuración — composición y versión (D-10) (2)
+     ✓ compone la configuración actual con CV-07 y el listado; CLOSE_ON_TARGET con dinero → sin configuración 574ms
+   ✓ /panel/configuration (6)
+     ✓ sin papel de gestión: nada; listado 403 (representante): escribe la referencia y ve solo las solicitudes 489ms
+     ✓ actual y edición directa: cuerpo {expectedConfigurationVersion, configuration} con las condiciones monetarias intactas; 409 con su texto 444ms
+     ✓ solicitar cambio: añadir dinero a una de especie exige moneda, meta (a unidades mínimas) y política 351ms
+     ✓ con una solicitud pendiente no se ofrece otra; aprobar (nunca la propia), 403 SelfApprovalNotAllowed, retirar la propia 316ms
+     ✓ regresión: tras guardar, la configuración actual se recompone con el listado releído (la política nueva solo la trae él) 331ms
+ ✓ __tests__/p3a.test.tsx (11 tests) 2642ms
+   ✓ /panel/platform — cola de verificación (6)
+     ✓ cliente: filtro y cursor en la query; 403 602ms
+     ✓ lista con nombre, tipo, estado e información pedida; "Cargar más" añade la página siguiente; el filtro pide de nuevo 566ms
+ ✓ __tests__/campaign-public.test.tsx (19 tests) 2558ms
+   ✓ CampaignPublicPage (/c/:publicCode, CV-07) (4)
+     ✓ contenido: organización, título, recaudado/meta en unidades mínimas y medios de pago 953ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ __tests__/p3b.test.tsx (14 tests) 2739ms
+   ✓ /invitaciones — token del fragmento (8)
+     ✓ al cargar: lee el token, lo borra de la barra con replaceState y lo guarda solo en memoria 826ms
+   ✓ /panel/members (4)
+     ✓ revocar, hacer administrador y quitar; 409 ActiveCampaignResponsible con su texto 384ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ __tests__/campaigns-screen.test.tsx (11 tests) 3363ms
+   ✓ /panel/campaigns (11)
+     ✓ cargando / error / no disponible / sin organización / sin rol de administrador 718ms
+     ✓ crear: POST con Command-Id al organizationId de /me; luego enlace público y "creadas en esta sesión" 524ms
+     ✓ 409 OrganizationNotVerified y 403 → rechazo con su texto, sin reintento 321ms
+     ✓ asignar empleado: elige entre miembros con papel de empleado; 409 con su texto; éxito recarga el listado 309ms
+     ✓ retirar responsable: sin reemplazo no hay cuerpo; reemplazo exige papel; 409 último responsable 323ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ __tests__/landing.test.tsx (22 tests) 3177ms
+   ✓ Landing (A-2) — convocatorias abiertas (4)
+     ✓ error de red → el texto aprobado y Reintentar vuelve a pedir 609ms
+     ✓ como mucho 6 tarjetas, cada una enlaza a /c/:publicCode, y "Ver todas" lleva a /campaigns 478ms
+ ✓ __tests__/asset-actions.test.tsx (16 tests) 3957ms
+   ✓ Acciones del activo (7)
+     ✓ DELIVERED → sin acciones (solo lectura) 408ms
+     ✓ una acción no habilitada no se renderiza 334ms
+     ✓ despachar: modal con su campo, Command-Id, éxito → aviso y relectura 407ms
+     ✓ dividir: cantidad normalizada; 202 → se consulta el estado hasta que existe el hijo 1643ms
+ ✓ __tests__/ui-primitives.test.tsx (8 tests) 593ms
+   ✓ UI Primitives (B-1 estilo v2) (8)
+     ✓ Button (2)
+       ✓ renderiza variantes primary, secondary y emphasis 302ms
+ ✓ __tests__/command.test.tsx (8 tests) 93ms
+ ✓ __tests__/states.test.tsx (14 tests) 524ms
+ ✓ __tests__/loaders.test.tsx (16 tests) 533ms
+ ✓ __tests__/world-scene.test.ts (15 tests) 328ms
+ ✓ __tests__/login-screen.test.tsx (6 tests) 868ms
+   ✓ LoginScreen (§5.2) (6)
+     ✓ validación local: campos vacíos → "Este campo es obligatorio." sin llamar al backend 347ms
+ ✓ __tests__/access-screens.test.tsx (3 tests) 407ms
+   ✓ Pantallas de acceso v2 (B-4) (3)
+     ✓ login: marca y un único h1 dentro de la superficie centrada 310ms
+ ✓ __tests__/account-donations.test.tsx (6 tests) 887ms
+   ✓ Mis donaciones (/account/donations) (6)
+     ✓ cargando 502ms
+ ✓ __tests__/guards.test.tsx (14 tests) 198ms
+ ✓ __tests__/nav-entries.test.ts (18 tests) 154ms
+ ✓ __tests__/design-tokens.test.ts (101 tests) 159ms
+ ✓ __tests__/asset-page.test.tsx (10 tests) 1029ms
+ ✓ __tests__/theme-select.test.tsx (4 tests) 142ms
+ ✓ __tests__/city-background.test.ts (12 tests) 76ms
+ ✓ __tests__/qr.test.ts (4 tests) 35ms
+ ✓ __tests__/session.test.ts (9 tests) 16ms
+ ✓ __tests__/identity.test.ts (6 tests) 17ms
+ ✓ __tests__/landing-world-mode.test.ts (7 tests) 11ms
+ ✓ __tests__/assetClient.test.ts (6 tests) 11ms
+ ✓ __tests__/classifier.test.ts (6 tests) 40ms
+ ✓ __tests__/theme.test.ts (10 tests) 14ms
+ ✓ __tests__/campaign-form.test.ts (6 tests) 10ms
+ ✓ __tests__/money.test.ts (5 tests) 6ms
+ ✓ __tests__/http.test.ts (8 tests) 10ms
+ ✓ __tests__/quantity.test.ts (3 tests) 5ms
+ ✓ __tests__/landing-map-labels.test.ts (3 tests) 6ms
+ ✓ __tests__/currency-exponent.test.ts (4 tests) 4ms
+
+ Test Files  42 passed (42)
+      Tests  525 passed (525)
+   Start at  13:19:44
+   Duration  9.62s (environment 51%, tests 31%, setup 10%, transform 6%, import 1%, worker 1%)
+
+Environment  jsdom was created 42 times · 65.37s total, 51% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
+RESULTADO: OK (11 s)
+
+===== PASO: Check Server Imports =====
+$ pnpm check:server
+$ node scripts/check-server-imports.js
+(node:295936) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/carlos/Proyectos/PaxFide/scripts/check-server-imports.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/carlos/Proyectos/PaxFide/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✅ Chequeo estático de imports en servidor: OK.
+RESULTADO: OK (0 s)
+
+===== PASO: Install Playwright Chromium =====
+$ test -x "$PW_CHROMIUM_PATH" && echo "Chromium local (PW_CHROMIUM_PATH=$PW_CHROMIUM_PATH); no se descarga" && "$PW_CHROMIUM_PATH" --version
+Chromium local (PW_CHROMIUM_PATH=/home/carlos/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome); no se descarga
+Google Chrome for Testing 153.0.8010.12 
+RESULTADO: OK (1 s)
+
+===== PASO: Playwright E2E Tests =====
+$ pnpm test:e2e
+$ playwright test --reporter=list && playwright test -c playwright.empty.config.ts --reporter=list && playwright test -c playwright.prod.config.ts --reporter=list
+[WebServer] $ next build
+[WebServer] $ next start
+
+Running 114 tests using 8 workers
+
+  ✓    2 [chromium] › e2e/campaigns.spec.ts:138:7 › Panel de convocatorias (CV-01, CV-02) › un empleado no ve las acciones de convocatoria (representa; el backend autoriza) (2.0s)
+  ✓    8 [chromium] › e2e/assets.spec.ts:93:7 › Panel de activos (registrar, dividir, despachar, recibir, entregar) › activo inexistente o de otra organización → 403 como estado de pantalla, sin redirigir (2.3s)
+  ✓    6 [chromium] › e2e/assets.spec.ts:75:7 › Panel de activos (registrar, dividir, despachar, recibir, entregar) › una transición imposible → 409 con su texto; el activo no cambia (2.6s)
+  ✓    5 [chromium] › e2e/campaigns.spec.ts:122:7 › Panel de convocatorias (CV-01, CV-02) › representante: estimación con la referencia escrita (el listado no le está permitido) (2.8s)
+  ✓    4 [chromium] › e2e/campaigns.spec.ts:131:7 › Panel de convocatorias (CV-01, CV-02) › organización sin verificar → 409 con su texto (3.2s)
+  ✓   10 [chromium] › e2e/city.spec.ts:43:7 › Fondo animado (VS-3) › R-F1: el contenido va sobre la superficie translúcida, no directamente sobre la ciudad (1.3s)
+  ✓    7 [chromium] › e2e/campaigns.spec.ts:33:7 › Panel de convocatorias (CV-01, CV-02) › crear por la interfaz → página pública con los medios aceptados → asignar responsable (4.0s)
+  ✓    3 [chromium] › e2e/campaigns.spec.ts:68:7 › Panel de convocatorias (CV-01, CV-02) › listado real: designar administrador, retirar responsable con reemplazo, cerrar y estimación (4.4s)
+  ✓    9 [chromium] › e2e/city.spec.ts:29:7 › Fondo animado (VS-3) › está en /campaigns, animado y decorativo; no está en /login ni en /panel (D-P2) (2.4s)
+  ✓   17 [chromium] › e2e/donate.spec.ts:11:7 › /c/:publicCode — SSR (P-W2, P-W3) › SSR con noindex y Open Graph, sin og:url (157ms)
+  ✓   15 [chromium] › e2e/city.spec.ts:116:9 › Fondo animado (VS-3) › a 390 px el botón de pausa mide al menos 44 px y la cabecera no se desborda (904ms)
+  ✓   11 [chromium] › e2e/city.spec.ts:49:7 › Fondo animado (VS-3) › R-F3: con "reducir movimiento", un fotograma quieto y ninguna llamada a requestAnimationFrame (2.3s)
+  ✓   16 [chromium] › e2e/city.spec.ts:116:9 › Fondo animado (VS-3) › a 1280 px el botón de pausa mide al menos 44 px y la cabecera no se desborda (966ms)
+  ✓   18 [chromium] › e2e/donate.spec.ts:22:7 › /c/:publicCode — SSR (P-W2, P-W3) › código inexistente → HTTP 404 con el estado "no encontrada" (698ms)
+  ✓   13 [chromium] › e2e/city.spec.ts:84:7 › Fondo animado (VS-3) › R-F4: con la pestaña oculta no hay bucle; al volver, sigue (2.6s)
+  ✓   14 [chromium] › e2e/city.spec.ts:106:7 › Fondo animado (VS-3) › R-F7: el canvas no recibe foco con Tab (2.5s)
+  ✓   21 [chromium] › e2e/donate.spec.ts:104:7 › Donar sin cuenta (CV-11) → pago simulado → trackingCode › convocatoria cerrada → sin formulario de donación (696ms)
+  ✓   12 [chromium] › e2e/city.spec.ts:63:7 › Fondo animado (VS-3) › R-F2: la pausa detiene el bucle y se recuerda al recargar (3.3s)
+  ✓   22 [chromium] › e2e/donate.spec.ts:112:7 › A3 — aviso antes de salir con una donación sin confirmar › recargar pide confirmación (beforeunload) y no se pierde la donación si se cancela (1.8s)
+  ✓   25 [chromium] › e2e/donor-screens.spec.ts:33:9 › Pantallas del donante v2 (VS-8a) › /account/donations: el esqueleto de carga está detenido con "reducir movimiento" (1.4s)
+  ✓   19 [chromium] › e2e/donate.spec.ts:31:7 › Donar sin cuenta (CV-11) → pago simulado → trackingCode › recorrido completo; ningún secreto en URLs ni almacenamiento; Intent-Token solo en cabecera (2.7s)
+  ✓    1 [chromium] › e2e/assets.spec.ts:26:7 › Panel de activos (registrar, dividir, despachar, recibir, entregar) › recorrido del activo y de su hijo hasta DELIVERED, con Command-Id en cada comando (7.7s)
+  ✓   20 [chromium] › e2e/donate.spec.ts:76:7 › Donar sin cuenta (CV-11) → pago simulado → trackingCode › 5xx tras aplicar → ambiguo; Reintentar reenvía el MISMO Command-Id y recibe la misma intención (3.6s)
+  ✓   27 [chromium] › e2e/donor-screens.spec.ts:33:9 › Pantallas del donante v2 (VS-8a) › /account/donations: el esqueleto de carga se anima sin "reducir movimiento" (1.6s)
+  ✓   23 [chromium] › e2e/donate.spec.ts:127:7 › A3 — aviso antes de salir con una donación sin confirmar › con sesión: un enlace de la barra pide confirmación; al cancelar se queda en la donación (3.0s)
+  ✓   29 [chromium] › e2e/guards.spec.ts:4:7 › Session Guards (T-4) › logout → atrás ⇒ sin contenido autenticado (bfcache invariant) (1.5s)
+  ✓   30 [chromium] › e2e/guards.spec.ts:30:7 › Session Guards (T-4) › logout en la pestaña A ⇒ la pestaña B pasa a LOGGED_OUT (1.8s)
+  ✓   31 [chromium] › e2e/guards.spec.ts:56:7 › Session Guards (T-4) › superficie deshabilitada ⇒ 404 también con sesión (1.3s)
+  ✓   24 [chromium] › e2e/donor-screens.spec.ts:21:9 › Pantallas del donante v2 (VS-8a) › /campaigns: el esqueleto de carga está detenido con "reducir movimiento" (4.1s)
+  ✓   33 [chromium] › e2e/home.spec.ts:24:7 › Inicio del donante (VS-5) › un destino guardado gana: /account/donations sin sesión → login → /account/donations (1.5s)
+  ✓   32 [chromium] › e2e/home.spec.ts:11:7 › Inicio del donante (VS-5) › sin destino guardado, iniciar sesión lleva a /home: saludo sin nombre, ciudad detrás y tarjetas del donante (1.7s)
+  ✓   26 [chromium] › e2e/donor-screens.spec.ts:21:9 › Pantallas del donante v2 (VS-8a) › /campaigns: el esqueleto de carga se anima sin "reducir movimiento" (4.4s)
+  ✓   34 [chromium] › e2e/home.spec.ts:31:7 › Inicio del donante (VS-5) › con organización: "Ir a tu organización" lleva al panel (2.0s)
+  ✓   37 [chromium] › e2e/home.spec.ts:64:7 › Inicio del donante (VS-5) › a 390 px: el ADMINISTRATOR ve exactamente 5 entradas (DF7-20) y la página no se desborda (1.4s)
+  ✓   35 [chromium] › e2e/home.spec.ts:40:7 › Inicio del donante (VS-5) › DF7-21: la cuenta de plataforma llega a /panel/platform desde el inicio (2.3s)
+  ✓   38 [chromium] › e2e/landing.spec.ts:21:7 › Landing (VS-4) › el mundo del recorrido va detrás, animado y decorativo; en / no hay ciudad (D-P2) (1.8s)
+  ✓   36 [chromium] › e2e/home.spec.ts:48:7 › Inicio del donante (VS-5) › "Seguir una donación": el código va a /tracking en memoria, nunca en la URL ni en el almacenamiento (2.5s)
+  ✓   40 [chromium] › e2e/landing.spec.ts:40:7 › Landing (VS-4) › ninguna petición sale del propio origen o del backend (sin fuentes ni imágenes externas) (2.2s)
+  ✓   39 [chromium] › e2e/landing.spec.ts:33:7 › Landing (VS-4) › el scroll guía la vista: arriba la primera parada, en la tercera la vista llega a 2 (2.5s)
+  ✓   42 [chromium] › e2e/landing.spec.ts:70:7 › Landing (VS-4) › el seguimiento demostrativo lleva "Ejemplo" y no hace ninguna petición (2.6s)
+  ✓   47 [chromium] › e2e/landing.spec.ts:140:9 › Landing (VS-4) › a 390 px: sin scroll horizontal y las acciones miden al menos 44 px (1.5s)
+  ✓   43 [chromium] › e2e/landing.spec.ts:84:7 › Landing (VS-4) › R-F3: con "reducir movimiento", ningún requestAnimationFrame; la vista salta de parada en parada (2.8s)
+  ✓   46 [chromium] › e2e/landing.spec.ts:131:7 › Landing (VS-4) › R-F7: el canvas no recibe foco con Tab (1.7s)
+  ✓   45 [chromium] › e2e/landing.spec.ts:116:7 › Landing (VS-4) › R-F4: con la pestaña oculta no hay bucle (2.4s)
+  ✓   41 [chromium] › e2e/landing.spec.ts:50:7 › Landing (VS-4) › convocatorias abiertas del backend: logo del backend, "Verificada", enlace a /c/:publicCode; nunca PRIVATE_LINK (4.2s)
+  ✓   44 [chromium] › e2e/landing.spec.ts:100:7 › Landing (VS-4) › R-F2: la pausa es la misma que la de la ciudad y se recuerda (3.9s)
+  ✓   48 [chromium] › e2e/landing.spec.ts:140:9 › Landing (VS-4) › a 1280 px: sin scroll horizontal y las acciones miden al menos 44 px (2.1s)
+  ✓   49 [chromium] › e2e/landing.spec.ts:155:7 › Landing (VS-4) › D-P13: en / una sola cabecera, la de la landing, con la pausa; sin la barra de la app; en /campaigns, la de siempre (2.1s)
+  ✓   51 [chromium] › e2e/landing.spec.ts:181:7 › Landing (VS-4) › R-F1: el canvas está detrás de cada bloque (nada del mundo por encima del contenido) (2.1s)
+  ✓   50 [chromium] › e2e/landing.spec.ts:168:7 › Landing (VS-4) › a 390 px: menú desplegable con las secciones; un ancla lleva a su sección y cierra el menú (2.4s)
+  ✓   53 [chromium] › e2e/landing.spec.ts:223:7 › Landing (VS-4) › sin "reducir movimiento", el manifiesto se enciende al llegar (negativa: arriba está apagado) (2.0s)
+  ✓   52 [chromium] › e2e/landing.spec.ts:199:7 › Landing (VS-4) › R-F3: con "reducir movimiento", cada parada es un fotograma quieto: a mitad de camino, ninguna vista intermedia ni transición (2.9s)
+  ✓   54 [chromium] › e2e/landing.spec.ts:232:9 › Landing (VS-4) › F-A1: a 390 px ninguna superposición en la cabecera (elementFromPoint devuelve cada control) (2.2s)
+  ✓   55 [chromium] › e2e/landing.spec.ts:232:9 › Landing (VS-4) › F-A1: a 1100 px ninguna superposición en la cabecera (elementFromPoint devuelve cada control) (2.6s)
+  ✓   56 [chromium] › e2e/landing.spec.ts:232:9 › Landing (VS-4) › F-A1: a 1280 px ninguna superposición en la cabecera (elementFromPoint devuelve cada control) (2.8s)
+  ✓   59 [chromium] › e2e/landing.spec.ts:297:7 › Landing (VS-4) › D-F2: ciclo de día y noche en Auto (cambia a Auto Noche en la parada 4 y añade data-theme="dark") (2.2s)
+  ✓   57 [chromium] › e2e/landing.spec.ts:232:9 › Landing (VS-4) › F-A1: a 1400 px ninguna superposición en la cabecera (elementFromPoint devuelve cada control) (2.9s)
+  ✓   58 [chromium] › e2e/landing.spec.ts:232:9 › Landing (VS-4) › F-A1: a 1920 px ninguna superposición en la cabecera (elementFromPoint devuelve cada control) (2.9s)
+  ✓   62 [chromium] › e2e/landing.spec.ts:349:7 › Landing (VS-4) › D-F2 con reduce: cambio inmediato de tema y modo sin mezcla animada (1.9s)
+  ✓   61 [chromium] › e2e/landing.spec.ts:334:7 › Landing (VS-4) › D-F2: la elección de modo se guarda en paxfide.world-mode y se mantiene al recargar (2.5s)
+  ✓   60 [chromium] › e2e/landing.spec.ts:312:7 › Landing (VS-4) › D-F2: con "Día", la raíz no lleva data-theme="dark" incluso en la parada 4 (negativa) (3.2s)
+  ✓   64 [chromium] › e2e/landing.spec.ts:393:7 › Landing (VS-4) › recorrido por scroll con reduce: parada 1 a 2 sin bucle de animación continua (1.8s)
+  ✓   66 [chromium] › e2e/login.spec.ts:27:7 › Login por la interfaz (ID-01) y PanelHome con /me (N1) › credenciales incorrectas y cuenta inexistente → el mismo mensaje (1.5s)
+  ✓   65 [chromium] › e2e/login.spec.ts:4:7 › Login por la interfaz (ID-01) y PanelHome con /me (N1) › credenciales correctas → /panel con las entradas del rol; JWT solo hacia el backend (1.9s)
+  ✓   67 [chromium] › e2e/login.spec.ts:40:7 › Login por la interfaz (ID-01) y PanelHome con /me (N1) › /me no disponible en el backend → aviso "No disponible", sin inventar roles (1.4s)
+  ✓   63 [chromium] › e2e/landing.spec.ts:365:7 › Landing (VS-4) › recorrido por scroll sin reduce: al bajar de parada 1 a 2 cambia el fotograma del canvas y el texto de la tarjeta (3.1s)
+  ✓   69 [chromium] › e2e/motion.spec.ts:5:7 › Tokens de movimiento y reducción de movimiento (VS-1 / B-1) › con prefers-reduced-motion: reduce, la animación de BrandDots en /login no corre (está pausada) (1.4s)
+  ✓   68 [chromium] › e2e/login.spec.ts:50:7 › Login por la interfaz (ID-01) y PanelHome con /me (N1) › cerrar sesión desde el Shell → /login (1.7s)
+  ✓   70 [chromium] › e2e/motion.spec.ts:46:7 › Tokens de movimiento y reducción de movimiento (VS-1 / B-1) › sin reduced-motion (no-preference): la animación de BrandDots en /login sí corre (aserción negativa) (1.5s)
+  ✓   71 [chromium] › e2e/motion.spec.ts:84:7 › Tokens de movimiento y reducción de movimiento (VS-1 / B-1) › con prefers-reduced-motion: reduce, la animación de LoadingState está pausada (1.6s)
+  ✓   72 [chromium] › e2e/motion.spec.ts:108:7 › Tokens de movimiento y reducción de movimiento (VS-1 / B-1) › sin reduced-motion (no-preference): la animación de LoadingState sí corre (aserción negativa) (1.7s)
+  ✓   75 [chromium] › e2e/nav.spec.ts:110:9 › Barra de navegación a 390 px › cada entrada queda entera dentro de la pantalla y sin solaparse (1.7s)
+  ✓   73 [chromium] › e2e/nav.spec.ts:57:9 › Barra de navegación a 390 px › landmarks, posición por ancho y objetivos de 44 px (2.1s)
+  ✓   76 [chromium] › e2e/nav.spec.ts:115:9 › Barra de navegación a 390 px › cuenta sin organización: no ve "Organización" (B) (1.7s)
+  ✓   77 [chromium] › e2e/nav.spec.ts:122:9 › Barra de navegación a 390 px › la barra no tapa el contenido (2.1s)
+  ✓   78 [chromium] › e2e/nav.spec.ts:57:9 › Barra de navegación a 1280 px › landmarks, posición por ancho y objetivos de 44 px (2.0s)
+  ✓   74 [chromium] › e2e/nav.spec.ts:87:9 › Barra de navegación a 390 px › ADMINISTRATOR: entradas, aria-current y orden de foco igual al visual (3.0s)
+  ✓   80 [chromium] › e2e/nav.spec.ts:110:9 › Barra de navegación a 1280 px › cada entrada queda entera dentro de la pantalla y sin solaparse (1.8s)
+  ✓   81 [chromium] › e2e/nav.spec.ts:115:9 › Barra de navegación a 1280 px › cuenta sin organización: no ve "Organización" (B) (1.7s)
+  ✓   82 [chromium] › e2e/nav.spec.ts:122:9 › Barra de navegación a 1280 px › la barra no tapa el contenido (1.9s)
+  ✓   84 [chromium] › e2e/nav.spec.ts:143:5 › al redimensionar, la barra cambia de posición (bottom ↔ side) (988ms)
+  ✓   79 [chromium] › e2e/nav.spec.ts:87:9 › Barra de navegación a 1280 px › ADMINISTRATOR: entradas, aria-current y orden de foco igual al visual (2.8s)
+  ✓   83 [chromium] › e2e/nav.spec.ts:136:5 › DF7-20: con Inicio (A-3) el ADMINISTRATOR tiene exactamente 5 entradas a 390 px y caben (2.2s)
+  ✓   85 [chromium] › e2e/nav.spec.ts:154:5 › las entradas sin ruta aprobada no aparecen en la barra (D5): Perfil, Ajustes y QR (1.8s)
+  ✓   88 [chromium] › e2e/p2a.spec.ts:82:7 › P2-A — registro, descubrimiento y narrativa › narrativa de la convocatoria: pendiente → Actualizar → disponible, con los hechos aparte (2.2s)
+  ✓   86 [chromium] › e2e/p2a.spec.ts:34:7 › P2-A — registro, descubrimiento y narrativa › crear cuenta por la interfaz y entrar con ella (sin organización: sin entradas de organización) (2.9s)
+  ✓   28 [chromium] › e2e/golden-path.spec.ts:55:5 › golden path por la interfaz: convocatoria → donaciones (sin y con cuenta) → activo → división → entrega → seguimiento (21.8s)
+  ✓   95 [chromium] › e2e/security.spec.ts:4:7 › Security constraints (W-4 d, e) › ninguna petición al origen Next lleva Authorization, pero al API sí (1.9s)
+  ✓   91 [chromium] › e2e/p3a.spec.ts:58:7 › P3-A — crear organización, cola de verificación y administradores de plataforma › administradores: añadir una cuenta, que ve la plataforma; retirarla; 409 al repetir (4.7s)
+  ✓   96 [chromium] › e2e/security.spec.ts:48:7 › Security constraints (W-4 d, e) › almacenamiento no contiene el token (1.6s)
+  ✓   87 [chromium] › e2e/p2a.spec.ts:63:7 › P2-A — registro, descubrimiento y narrativa › descubrimiento: aparece la convocatoria pública y nunca la de enlace privado (7.0s)
+  ✓   97 [chromium] › e2e/theme.spec.ts:13:7 › Tema oscuro activado (F-A0, D-F11) › sistema oscuro (prefers-color-scheme: dark) sin data-theme → tokens oscuros y barra oscura (1.5s)
+  ✓   90 [chromium] › e2e/p3a.spec.ts:15:7 › P3-A — crear organización, cola de verificación y administradores de plataforma › cuenta nueva → crea su organización (pendiente) → la plataforma la ve en la cola, pide información y la verifica (7.4s)
+  ✓   98 [chromium] › e2e/theme.spec.ts:28:7 › Tema oscuro activado (F-A0, D-F11) › sistema claro + data-theme="dark" forzado → tokens oscuros (1.4s)
+  ✓   99 [chromium] › e2e/theme.spec.ts:40:7 › Tema oscuro activado (F-A0, D-F11) › sistema oscuro + data-theme="light" forzado → tokens claros (1.1s)
+  ✓   89 [chromium] › e2e/p2c.spec.ts:28:7 › P2-C — fondos, activos de la organización y verificación › fondos: el administrador solicita y confirma una asignación; el empleado registra el camino A eligiéndolas (8.1s)
+  ✓  100 [chromium] › e2e/theme.spec.ts:52:7 › Tema oscuro activado (F-A0, D-F11) › preferencia guardada en localStorage se aplica antes de pintar sin parpadeo (THEME_INIT_SCRIPT) (1.2s)
+  ✓  101 [chromium] › e2e/theme.spec.ts:60:7 › Tema oscuro activado (F-A0, D-F11) › D-F11: selectores de tema por contenedor redefinen variables semánticas (1.1s)
+  ✓   92 [chromium] › e2e/p3b.spec.ts:21:7 › P3-B — invitaciones, personas y mis convocatorias › invitar → el enlace del correo (#token) → crear cuenta e iniciar sesión → aceptar; el token nunca en una URL ni en almacenamiento (7.7s)
+  ✓  103 [chromium] › e2e/theme.spec.ts:113:7 › Tema oscuro activado (F-A0, D-F11) › C-1 contraste en oscuro: los textos visibles en pantalla cumplen contraste WCAG >= 4.5 (1.2s)
+  ✓  102 [chromium] › e2e/theme.spec.ts:92:7 › Tema oscuro activado (F-A0, D-F11) › ThemeSelect en la cabecera fina interactúa, actualiza data-theme y guarda en localStorage (1.5s)
+fuentes: 2 archivos, 75948 bytes (presupuesto 150000)
+  ✓  105 [chromium] › e2e/theme.spec.ts:196:7 › Fuentes autoalojadas (VS-0) › cargar las dos familias cabe en el presupuesto y no pide nada fuera del propio origen (1.1s)
+  ✓  104 [chromium] › e2e/theme.spec.ts:165:7 › Tema oscuro activado (F-A0, D-F11) › no-superposición (§1.4): elementFromPoint en los controles de la cabecera devuelve el propio control (390, 1280, 1920 px) (1.9s)
+  ✓  106 [chromium] › e2e/theme.spec.ts:229:7 › Fuentes autoalojadas (VS-0) › sin preload: la primera carga de una pantalla existente no descarga fuentes (DF7-12) (1.6s)
+  ✓  108 [chromium] › e2e/tracking-timeline.spec.ts:61:7 › Línea de tiempo del seguimiento (VS-7) › con "reducir movimiento", el árbol de Merkle de la carga de integridad está detenido (2.0s)
+  ✓   93 [chromium] › e2e/p3b.spec.ts:81:7 › P3-B — invitaciones, personas y mis convocatorias › personas: asignar a la persona invitada, verla en "Mis convocatorias", cambiar su papel, 409 al quitarla; revocar una invitación (9.3s)
+  ✓   94 [chromium] › e2e/p3c.spec.ts:15:7 › P3-C — configuración de convocatorias con solicitud y aprobación › editar sin aprobación (sin donaciones), solicitar otro cambio y que el representante lo apruebe; la propia no se aprueba (9.0s)
+  ✓  114 [chromium] › e2e/tracking.spec.ts:84:7 › Donante con cuenta → Mis donaciones → seguimiento por formulario › /tracking lleva noindex (60ms)
+  ✓  109 [chromium] › e2e/tracking-timeline.spec.ts:75:7 › Línea de tiempo del seguimiento (VS-7) › sin "reducir movimiento", el árbol de Merkle sí se anima (negativa) (2.3s)
+  ✓  110 [chromium] › e2e/tracking-timeline.spec.ts:89:5 › a 390 px con varios bienes: una pestaña por bien y solo su carril a la vista (2.4s)
+  ✓  113 [chromium] › e2e/tracking.spec.ts:79:7 › Donante con cuenta → Mis donaciones → seguimiento por formulario › /tracking/<código> no existe (404) aunque /tracking esté habilitado (717ms)
+  ✓  112 [chromium] › e2e/tracking.spec.ts:70:7 › Donante con cuenta → Mis donaciones → seguimiento por formulario › sin sesión: el código escrito en el formulario; un código inválido da un único mensaje (1.9s)
+  ✓  107 [chromium] › e2e/tracking-timeline.spec.ts:27:7 › Línea de tiempo del seguimiento (VS-7) › cabecera con la convocatoria (G-1), insignia de integridad y código enmascarado (T1) (3.8s)
+  ✓  111 [chromium] › e2e/tracking.spec.ts:11:7 › Donante con cuenta → Mis donaciones → seguimiento por formulario › el trackingCode nunca aparece en una URL; viaja en Authorization; la sesión no se toca (3.2s)
+
+  114 passed (51.4s)
+[WebServer] $ next build
+[WebServer] $ next start
+
+Running 6 tests using 6 workers
+
+  ✓  6 [empty-list] › e2e/routing.spec.ts:12:9 › Route Enablement › Route /assets/abc should 404 when not enabled (799ms)
+  ✓  3 [empty-list] › e2e/routing.spec.ts:12:9 › Route Enablement › Route /tracking/123 should 404 when not enabled (927ms)
+  ✓  4 [empty-list] › e2e/routing.spec.ts:12:9 › Route Enablement › Route /panel/campaigns should 404 when not enabled (931ms)
+  ✓  1 [empty-list] › e2e/routing.spec.ts:12:9 › Route Enablement › Route /c/123 should 404 when not enabled (982ms)
+  ✓  5 [empty-list] › e2e/routing.spec.ts:20:9 › Route Enablement › 404 con la lista vacía › 404 para /login, /panel y /panel/platform/x con la lista vacía sin sesión (1.1s)
+  ✓  2 [empty-list] › e2e/routing.spec.ts:31:9 › Route Enablement › 404 con la lista vacía › 404 para /login, /panel y /panel/platform/x con la lista vacía con sesión (1.2s)
+
+  6 passed (11.7s)
+[WebServer] $ next build
+[WebServer] $ next start
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e/production.spec.ts:4:7 › Production build (Rule 7) › does not expose __TEST_SESSION__ or __TEST_ROUTER__ backdoors (281ms)
+
+  1 passed (8.0s)
+RESULTADO: OK (73 s)
+
+===== RESUMEN =====
+OK       Checkout repository
+OK       Check for .skip or .only in tests
+OK       Setup Node.js 22
+OK       Install pnpm
+OK       Install dependencies
+OK       Typecheck
+OK       Vitest
+OK       Check Server Imports
+OK       Install Playwright Chromium
+OK       Playwright E2E Tests
+CI LOCAL: OK
+
+sha256 (de todo lo anterior a la línea en blanco final; verificar con: head -n -2 <archivo> | sha256sum): ec4fbe7b1de177a73e3db1df49f40751d3a955dc3ccf7bf4918d38d02db5e940

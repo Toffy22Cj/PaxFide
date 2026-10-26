@@ -5,6 +5,8 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import type { Principal, MeOutcome } from '../src/lib/api/identity';
 import type { AccountDonation, AccountDonationsOutcome } from '../src/lib/api/account';
 import type { DiscoveryItem, DiscoveryOutcome } from '../src/lib/api/publicCampaigns';
+import type { AdminCampaign, ListOutcome } from '../src/lib/api/campaignAdmin';
+import type { OrgAsset } from '../src/lib/api/organization';
 
 const push = vi.fn();
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push, replace: vi.fn() }), usePathname: () => '/home' }));
@@ -15,11 +17,14 @@ vi.mock('next/link', () => ({
 let enabled = new Set<string>();
 vi.mock('../src/lib/routing/surfaces', () => ({ isSurfaceEnabled: (s: string) => enabled.has(s) }));
 
-import { HomeScreen, accountCards, greetingFor, HOME_ITEMS } from '../src/screens/HomeScreen';
+import { HomeScreen, accountCards, greetingFor, isClosingSoon, HOME_ITEMS } from '../src/screens/HomeScreen';
 import { defaultDestination } from '../src/app/RouteGuard';
 import { consumeHandedOffTrackingCode } from '../src/lib/tracking/handoff';
 
-const ALL = ['/home', '/tracking', '/campaigns', '/account/donations', '/c/:publicCode', '/panel', '/panel/organization', '/panel/platform'];
+const ALL = [
+  '/home', '/tracking', '/campaigns', '/account/donations', '/c/:publicCode',
+  '/panel', '/panel/campaigns', '/panel/assets', '/panel/organization', '/panel/platform',
+];
 const donor: Principal = { accountId: 'a', roles: [] };
 const member: Principal = { accountId: 'a', organizationId: 'org-1', roles: ['ADMINISTRATOR'] };
 const platform: Principal = { accountId: 'p', roles: [], platformAuthority: 'PLATFORM_ADMIN' };
@@ -35,8 +40,22 @@ function donation(over: Partial<AccountDonation> = {}): AccountDonation {
   };
 }
 
-function renderHome(p: Principal, items: AccountDonation[] = [], camps: DiscoveryItem[] = []) {
-  return render(<HomeScreen meClient={me(p)} donationsClient={donations(items)} campaignsClient={campaigns(camps)} />);
+function renderHome(
+  p: Principal,
+  items: AccountDonation[] = [],
+  camps: DiscoveryItem[] = [],
+  orgCamps: AdminCampaign[] = [],
+  orgAssets: OrgAsset[] = []
+) {
+  return render(
+    <HomeScreen
+      meClient={me(p)}
+      donationsClient={donations(items)}
+      campaignsClient={campaigns(camps)}
+      orgCampaignsClient={async () => ({ kind: 'ok', items: orgCamps })}
+      orgAssetsClient={async () => ({ kind: 'ok', items: orgAssets })}
+    />
+  );
 }
 
 beforeEach(() => {
@@ -97,11 +116,11 @@ describe('Home (A-3) — saludo, seguimiento y sellado (D-P7)', () => {
 
   it('"Seguir una donación": vacío → obligatorio; con código → /tracking por memoria, nunca en la URL ni en el almacenamiento', async () => {
     renderHome(donor);
-    fireEvent.click(screen.getByRole('button', { name: 'Ver recorrido' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ver ruta' }));
     expect(screen.getByText('Este campo es obligatorio.')).toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText('Código de seguimiento'), { target: { value: '  TRK.secreto-1  ' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Ver recorrido' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ver ruta' }));
     expect(push).toHaveBeenCalledWith('/tracking');
     expect(consumeHandedOffTrackingCode()).toBe('TRK.secreto-1');
     expect(screen.getByLabelText('Código de seguimiento')).toHaveValue('');
@@ -170,6 +189,151 @@ describe('Home (A-3) — tus donaciones (D-P11) y convocatorias', () => {
     await waitFor(() => expect(within(section).getAllByTestId('campaign-card')).toHaveLength(HOME_ITEMS));
     expect(within(section).getByRole('link', { name: 'Ver todas' })).toHaveAttribute('href', '/campaigns');
     expect(within(section).queryByText('Cierran pronto')).toBeNull();
+  });
+
+  it('D-F12: con una convocatoria a 3 días y otra a 20, se llama "Cierran pronto" y solo trae la de 3', async () => {
+    const now = new Date('2026-10-25T12:00:00Z').getTime();
+    const camps: DiscoveryItem[] = [
+      {
+        publicCode: 'PC-SOON', title: 'Cierra pronto', status: 'OPEN', startDate: 's',
+        endDate: new Date(now + 3 * 86400000).toISOString(), acceptedDonationTypes: [], organizationVerified: true,
+      },
+      {
+        publicCode: 'PC-FAR', title: 'Cierra tarde', status: 'OPEN', startDate: 's',
+        endDate: new Date(now + 20 * 86400000).toISOString(), acceptedDonationTypes: [], organizationVerified: true,
+      },
+    ];
+    render(
+      <HomeScreen
+        meClient={me(donor)}
+        donationsClient={donations([])}
+        campaignsClient={campaigns(camps)}
+        now={now}
+      />
+    );
+    const section = await screen.findByTestId('home-campaigns');
+    expect(await within(section).findByRole('heading', { level: 2, name: /Cierran pronto/ })).toBeInTheDocument();
+    expect(within(section).queryByRole('heading', { level: 2, name: /Convocatorias abiertas/ })).toBeNull();
+    const cards = within(section).getAllByTestId('campaign-card');
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toHaveTextContent('Cierra pronto');
+    expect(within(section).queryByText('Cierra tarde')).toBeNull();
+  });
+
+  it('D-F12: sin ninguna convocatoria próxima a cerrar, se llama "Convocatorias abiertas"', async () => {
+    const now = new Date('2026-10-25T12:00:00Z').getTime();
+    const camps: DiscoveryItem[] = [
+      {
+        publicCode: 'PC-FAR1', title: 'Cierra en 20 días', status: 'OPEN', startDate: 's',
+        endDate: new Date(now + 20 * 86400000).toISOString(), acceptedDonationTypes: [], organizationVerified: true,
+      },
+      {
+        publicCode: 'PC-FAR2', title: 'Cierra en 40 días', status: 'OPEN', startDate: 's',
+        endDate: new Date(now + 40 * 86400000).toISOString(), acceptedDonationTypes: [], organizationVerified: true,
+      },
+    ];
+    render(
+      <HomeScreen
+        meClient={me(donor)}
+        donationsClient={donations([])}
+        campaignsClient={campaigns(camps)}
+        now={now}
+      />
+    );
+    const section = await screen.findByTestId('home-campaigns');
+    expect(await within(section).findByRole('heading', { level: 2, name: /Convocatorias abiertas/ })).toBeInTheDocument();
+    expect(within(section).queryByRole('heading', { level: 2, name: /Cierran pronto/ })).toBeNull();
+    expect(within(section).getAllByTestId('campaign-card')).toHaveLength(2);
+  });
+});
+
+describe('Home (F-A4) — Tu organización hoy según rol (§3.2 prompts, D-F12)', () => {
+  const adminPrincipal: Principal = { accountId: 'a', organizationId: 'org-1', roles: ['ADMINISTRATOR'] };
+  const employeePrincipal: Principal = { accountId: 'e', organizationId: 'org-1', roles: ['EMPLOYEE'] };
+  const representativePrincipal: Principal = { accountId: 'r', organizationId: 'org-1', roles: ['REPRESENTATIVE'] };
+
+  const orgCamps: AdminCampaign[] = [
+    { campaignRef: 'c1', publicCode: 'P1', title: 'Camp 1', status: 'OPEN', responsibles: [], assignedEmployeeCount: 1 },
+    { campaignRef: 'c2', publicCode: 'P2', title: 'Camp 2', status: 'DRAFT', responsibles: [], assignedEmployeeCount: 0 },
+  ];
+  const orgAssets: OrgAsset[] = [
+    { assetRef: 'a1', lifecycleStatus: 'REGISTERED' },
+    { assetRef: 'a2', lifecycleStatus: 'RECEIVED' },
+    { assetRef: 'a3', lifecycleStatus: 'DISPATCHED' },
+    { assetRef: 'a4', lifecycleStatus: 'DELIVERED' },
+  ];
+
+  it('ADMINISTRATOR: 3 estadísticas reales (abiertas, por despachar, en camino) y acciones rápidas', async () => {
+    const orgCampFn = vi.fn().mockResolvedValue({ kind: 'ok', items: orgCamps });
+    const orgAssetFn = vi.fn().mockResolvedValue({ kind: 'ok', items: orgAssets });
+    render(
+      <HomeScreen
+        meClient={me(adminPrincipal)}
+        donationsClient={donations([])}
+        campaignsClient={campaigns([])}
+        orgCampaignsClient={orgCampFn}
+        orgAssetsClient={orgAssetFn}
+      />
+    );
+    const orgSection = await screen.findByTestId('home-card-organization');
+    expect(await within(orgSection).findByText('convocatorias abiertas')).toBeInTheDocument();
+    expect(within(orgSection).getByText('lotes por despachar')).toBeInTheDocument();
+    expect(within(orgSection).getByText('lotes en camino')).toBeInTheDocument();
+    // 1 abierta, 2 por despachar (REGISTERED + RECEIVED), 1 en camino (DISPATCHED)
+    expect(within(orgSection).getByText('convocatorias abiertas').parentElement).toHaveTextContent('1');
+    expect(within(orgSection).getByText('lotes por despachar').parentElement).toHaveTextContent('2');
+    expect(within(orgSection).getByText('lotes en camino').parentElement).toHaveTextContent('1');
+    // Acciones rápidas
+    expect(within(orgSection).getByRole('link', { name: /Nueva convocatoria/ })).toHaveAttribute('href', '/panel/campaigns');
+    expect(within(orgSection).getByRole('link', { name: /Registrar lote/ })).toHaveAttribute('href', '/panel/assets');
+    expect(within(orgSection).getByText('Despachar o recibir')).toBeInTheDocument();
+    expect(within(orgSection).getByText('Escanea el QR en la app')).toBeInTheDocument();
+    expect(orgCampFn).toHaveBeenCalledWith('org-1');
+    expect(orgAssetFn).toHaveBeenCalledWith('org-1');
+  });
+
+  it('EMPLOYEE: solo estadísticas de lotes (sin convocatorias), no llama a campañas', async () => {
+    const orgCampFn = vi.fn();
+    const orgAssetFn = vi.fn().mockResolvedValue({ kind: 'ok', items: orgAssets });
+    render(
+      <HomeScreen
+        meClient={me(employeePrincipal)}
+        donationsClient={donations([])}
+        campaignsClient={campaigns([])}
+        orgCampaignsClient={orgCampFn}
+        orgAssetsClient={orgAssetFn}
+      />
+    );
+    const orgSection = await screen.findByTestId('home-card-organization');
+    expect(await within(orgSection).findByText('lotes por despachar')).toBeInTheDocument();
+    expect(within(orgSection).queryByText('convocatorias abiertas')).toBeNull();
+    expect(within(orgSection).getByText('lotes en camino')).toBeInTheDocument();
+    expect(within(orgSection).queryByRole('link', { name: /Nueva convocatoria/ })).toBeNull();
+    expect(within(orgSection).getByRole('link', { name: /Registrar lote/ })).toHaveAttribute('href', '/panel/assets');
+    expect(orgCampFn).not.toHaveBeenCalled();
+    expect(orgAssetFn).toHaveBeenCalledWith('org-1');
+  });
+
+  it('REPRESENTATIVE: no lee campañas ni activos (omite estadísticas y acciones rápidas)', async () => {
+    const orgCampFn = vi.fn();
+    const orgAssetFn = vi.fn();
+    render(
+      <HomeScreen
+        meClient={me(representativePrincipal)}
+        donationsClient={donations([])}
+        campaignsClient={campaigns([])}
+        orgCampaignsClient={orgCampFn}
+        orgAssetsClient={orgAssetFn}
+      />
+    );
+    const orgSection = await screen.findByTestId('home-card-organization');
+    expect(within(orgSection).queryByText('convocatorias abiertas')).toBeNull();
+    expect(within(orgSection).queryByText('lotes por despachar')).toBeNull();
+    expect(within(orgSection).queryByRole('link', { name: /Nueva convocatoria/ })).toBeNull();
+    expect(within(orgSection).queryByRole('link', { name: /Registrar lote/ })).toBeNull();
+    expect(within(orgSection).getByRole('link', { name: 'Ir a tu organización' })).toHaveAttribute('href', '/panel');
+    expect(orgCampFn).not.toHaveBeenCalled();
+    expect(orgAssetFn).not.toHaveBeenCalled();
   });
 });
 

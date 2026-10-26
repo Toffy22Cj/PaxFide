@@ -95,18 +95,28 @@ describe('R-F1: las nubes se apartan del contenido', () => {
   });
 });
 
-describe('D-P13: estructura de la app', () => {
-  it('en / no hay cabecera ni barra de la app; en el resto, sí', () => {
-    expect(hasAppChrome('/')).toBe(false);
-    for (const r of ['/home', '/campaigns', '/c/x', '/tracking', '/login', '/panel', '/assets/a']) expect(hasAppChrome(r)).toBe(true);
+describe('D-P13 / D-F5: estructura de la app', () => {
+  it('en / y en las rutas de acceso no hay cabecera ni barra de la app (D-F5); en el resto, sí', () => {
+    for (const r of ['/', '/login', '/register', '/invitaciones', '/terminos', '/privacidad', '/terminos-organizacion']) {
+      expect(hasAppChrome(r)).toBe(false);
+    }
+    for (const r of ['/home', '/campaigns', '/c/x', '/tracking', '/panel', '/assets/a']) {
+      expect(hasAppChrome(r)).toBe(true);
+    }
   });
 });
 
-describe('Rutas con ilustración (D-P2, A-2)', () => {
-  it('en / el mundo; en las demás rutas del donante, la ciudad; fuera, nada', () => {
-    expect(backgroundFor('/')).toBe('world');
-    for (const r of ['/home', '/campaigns', '/c/ABC', '/tracking', '/account/donations']) expect(backgroundFor(r)).toBe('city');
-    for (const r of ['/login', '/register', '/invitaciones', '/panel', '/assets/x', '/c/x/y']) expect(backgroundFor(r)).toBeNull();
+describe('Rutas con ilustración (D-P2, A-2, D-F5, D-F17)', () => {
+  it('en / y acceso el mundo (D-F5); en las demás rutas del donante, la ciudad; fuera, nada', () => {
+    for (const r of ['/', '/login', '/register', '/invitaciones', '/terminos', '/privacidad', '/terminos-organizacion']) {
+      expect(backgroundFor(r)).toBe('world');
+    }
+    for (const r of ['/home', '/campaigns', '/c/ABC', '/tracking', '/account/donations']) {
+      expect(backgroundFor(r)).toBe('city');
+    }
+    for (const r of ['/panel', '/assets/x', '/c/x/y']) {
+      expect(backgroundFor(r)).toBeNull();
+    }
   });
 });
 

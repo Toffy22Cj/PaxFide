@@ -52,13 +52,43 @@ test.describe('Inicio del donante (VS-5)', () => {
     await signIn(page, 'donante@demo.test', 'demo-donante');
     await expect(page).toHaveURL(/\/home$/);
     await page.getByLabel('Código de seguimiento').fill('TRK.codigo-de-prueba');
-    await page.getByRole('button', { name: 'Ver recorrido' }).click();
+    await page.getByRole('button', { name: /Ver (ruta|recorrido)/ }).click();
     await expect(page).toHaveURL(/\/tracking$/);
     await expect(page.getByText('El código no es válido o expiró.')).toBeVisible();
     expect(page.url()).not.toContain('codigo-de-prueba');
     expect(urls.filter((u) => u.includes('codigo-de-prueba'))).toEqual([]);
     const stored = await page.evaluate(() => JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }));
     expect(stored).not.toContain('codigo-de-prueba');
+  });
+
+  test('F-A4 (D-F12): ADMINISTRATOR ve "Tu organización hoy" con estadísticas reales y acciones rápidas', async ({ page }) => {
+    await page.goto('/login');
+    await signIn(page, 'admin@demo.test', 'demo-admin');
+    await expect(page).toHaveURL(/\/home$/);
+    const orgCard = page.getByTestId('home-card-organization');
+    await expect(orgCard).toBeVisible();
+    await expect(orgCard.getByRole('heading', { level: 2, name: 'Tu organización hoy' })).toBeVisible();
+    await expect(orgCard.getByText('convocatorias abiertas')).toBeVisible();
+    await expect(orgCard.getByText('lotes por despachar')).toBeVisible();
+    await expect(orgCard.getByText('lotes en camino')).toBeVisible();
+    await expect(orgCard.getByRole('link', { name: /Nueva convocatoria/ })).toHaveAttribute('href', '/panel/campaigns');
+    await expect(orgCard.getByRole('link', { name: /Registrar lote/ })).toHaveAttribute('href', '/panel/assets');
+    await expect(orgCard.getByText('Despachar o recibir')).toBeVisible();
+    await expect(orgCard.getByText('Escanea el QR en la app')).toBeVisible();
+  });
+
+  test('F-A4: animación escalonada rise en tarjetas, desactivada con prefers-reduced-motion', async ({ page }) => {
+    await page.goto('/login');
+    await signIn(page, 'donante@demo.test', 'demo-donante');
+    await expect(page).toHaveURL(/\/home$/);
+    const donationsCard = page.getByTestId('home-donations');
+    await expect(donationsCard).toBeVisible();
+    const animName = await donationsCard.evaluate((el) => window.getComputedStyle(el).animationName);
+    expect(animName).toContain('rise');
+
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const reducedAnim = await donationsCard.evaluate((el) => window.getComputedStyle(el).animationName);
+    expect(reducedAnim).toBe('none');
   });
 
   test('a 390 px: el ADMINISTRATOR ve exactamente 5 entradas (DF7-20) y la página no se desborda', async ({ page }) => {

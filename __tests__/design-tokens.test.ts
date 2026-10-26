@@ -277,9 +277,9 @@ function solid(value: string): string | null {
 }
 
 const root = () => block(':root', 0);
-const light = () => block(':root', 1);
+const light = () => block(':root,\n[data-theme="light"]');
 const darkMedia = () => block('  :root:not([data-theme="light"])');
-const darkForced = () => block(':root[data-theme="dark"]');
+const darkForced = () => block(':root[data-theme="dark"],\n[data-theme="dark"]');
 
 describe('Archivo de tokens (enmienda §4–§7)', () => {
   it('cada token de la tabla tiene en globals.css exactamente el valor aprobado', () => {
@@ -337,6 +337,13 @@ describe('Archivo de tokens (enmienda §4–§7)', () => {
 
   it('el oscuro por sistema va dentro de prefers-color-scheme y respeta data-theme="light" (§4.1)', () => {
     expect(tokensCss).toMatch(/@media \(prefers-color-scheme: dark\) \{\s*:root:not\(\[data-theme="light"\]\) \{/);
+  });
+
+  it('D-F11: selectores de tema por contenedor permiten [data-theme="dark"] y [data-theme="light"] en cualquier elemento', () => {
+    expect(tokensCss).toMatch(/:root,\s*\[data-theme="light"\]\s*\{/);
+    expect(tokensCss).toMatch(/:root\[data-theme="dark"\],\s*\[data-theme="dark"\]\s*\{/);
+    expect(light()['color-text']).toBe('var(--brand-green-900)');
+    expect(darkForced()['color-text']).toBe('var(--dark-text)');
   });
 
   it('la capa semántica solo apunta a tokens (ningún hexadecimal)', () => {

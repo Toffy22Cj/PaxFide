@@ -29,6 +29,14 @@ export function AccountDonationsScreen({ client = fetchAccountDonations }: { cli
   return (
     <div>
       <PageHeader title="Mis donaciones" />
+      {/* D-F15: enlace "Seguir con un código" (→ /tracking) arriba de las donaciones */}
+      {isSurfaceEnabled('/tracking') && (
+        <p className={s.trackLink}>
+          <Link href="/tracking" className={s.linkAction} data-testid="link-track-code">
+            Seguir con un código
+          </Link>
+        </p>
+      )}
       {/* A-5: carga con el esqueleto de VS-1 (se detiene con "reducir movimiento") */}
       {state.status === 'loading' && <SkeletonList aria-label="Cargando tus donaciones" />}
       {state.status === 'error' && <ErrorState onRetry={reload} />}

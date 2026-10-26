@@ -43,6 +43,8 @@ export interface CityPalette {
   bird: string; butterflies: readonly [string, string, string, string];
   leaves: readonly [string, string, string];
   firefly: (a: number) => string; fireflyEnd: string;
+  tagBlue: string; tagGreen: string; tagYellow: string;
+  tagDarkBg: string; tagBorder: string; tagTextLight: string; tagTextDark: string;
 }
 
 const LIVERIES = [
@@ -91,6 +93,13 @@ const SHARED = {
   firefly: (a: number) => `rgba(255,235,120,${a})`, fireflyEnd: 'rgba(255,235,120,0)',
   tuftGlint: 'rgba(236,255,210,.85)',
   bushAlt: '#59B36C',
+  tagBlue: '#3688B0',
+  tagGreen: '#4E9155',
+  tagYellow: '#F3B544',
+  tagDarkBg: 'rgba(16,38,29,.85)',
+  tagBorder: 'rgba(255,255,255,.25)',
+  tagTextLight: '#FFFFFF',
+  tagTextDark: '#1B5141',
 } as const;
 
 const plaza = (top: string, left = '#20604C', right = '#1B5141'): Box => ({ top, left, right });

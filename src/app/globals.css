@@ -123,12 +123,13 @@
 }
 
 /*
- * Capa semántica (DF7-08; valores de la enmienda 1 §4.1–§4.3 y §5). Los componentes nuevos usan SOLO estos nombres; claro por defecto, oscuro con
- * prefers-color-scheme salvo data-theme="light", y oscuro forzado con data-theme="dark".
- * Las pantallas existentes siguen con los tokens de marca hasta su pasada de estilo (VS-8), por eso aquí no se
- * cambia color-scheme ni el fondo de body (DF7-09).
+ * Capa semántica (DF7-08, D-F11; valores de la enmienda 1 §4.1–§4.3 y §5).
+ * Los selectores funcionan a nivel de :root y en cualquier contenedor con [data-theme="..."] (D-F11).
+ * Claro por defecto y con [data-theme="light"]; oscuro con prefers-color-scheme salvo data-theme="light",
+ * y forzado en contenedor o raíz con [data-theme="dark"].
  */
-:root {
+:root,
+[data-theme="light"] {
   --color-bg: var(--neutral-50);
   --color-ground: var(--brand-ground);
   --color-surface: var(--white);
@@ -194,7 +195,8 @@
   }
 }
 
-:root[data-theme="dark"] {
+:root[data-theme="dark"],
+[data-theme="dark"] {
   --color-bg: var(--dark-bg);
   --color-ground: var(--dark-ground);
   --color-surface: var(--dark-surface);
@@ -227,7 +229,7 @@
 }
 
 *:focus-visible {
-  outline: 2px solid var(--brand-green-900);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -236,13 +238,13 @@ html { -webkit-text-size-adjust: 100%; }
 body {
   font-family: var(--font-family-sans);
   margin: 0;
-  background: var(--neutral-50);
-  color: var(--brand-green-900);
+  background: var(--color-bg);
+  color: var(--color-text);
   font-size: var(--text-md);
   line-height: 1.5;
 }
 
-/* Sobre neutral-50 los enlaces van en brand-blue-800 (diseno-ux §3.2) */
-a { color: var(--brand-blue-800); }
+/* En semántico los enlaces usan --color-link (diseno-ux §3.2, enmienda §4.3) */
+a { color: var(--color-link); }
 
 *, *::before, *::after { box-sizing: border-box; }

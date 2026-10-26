@@ -40,6 +40,11 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
       session.setPostLoginDestination(pathname);
       router.replace('/login');
     } else if (sessionState === 'AUTHENTICATED' && category === 'AUTH') {
+      // D-F10: en el primer login tras crear la cuenta en la pestaña, LoginScreen muestra la bienvenida
+      // a menos que haya un destino post-login explícito (ej. /invitaciones)
+      if (session.isJustRegistered() && !session.getPostLoginDestination()) {
+        return;
+      }
       // A-3 (plan-fase7-pantallas.md): tras iniciar sesión, el destino guardado; si no hay, el inicio del donante
       // (`/home`) cuando está habilitado y, si no, el panel como hasta ahora
       const dest = session.consumePostLoginDestination();

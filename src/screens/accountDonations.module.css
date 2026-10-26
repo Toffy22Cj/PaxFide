@@ -8,3 +8,6 @@
 .link { margin: 0 0 var(--space-2); }
 .link a { display: inline-flex; align-items: center; min-height: 44px; color: var(--color-link); font-weight: var(--weight-semibold); }
 .link a:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.trackLink { margin: 0 0 var(--space-4); }
+.linkAction { display: inline-flex; align-items: center; min-height: 44px; color: var(--color-link); font-weight: var(--weight-semibold); text-decoration: underline; }
+.linkAction:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }

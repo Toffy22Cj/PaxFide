@@ -1,8 +1,7 @@
 'use client';
-// Ref: plan-fase7-pantallas.md A-3, D-P6, D-P7 y D-P11; DF7-21 (acceso a la plataforma); prompts-agentes-estilo-v2.md
-// VS-5 y §3.3; referencia-api-v1.md §1 (GET /me, GET /account/donations y su nota del 2026-10-22) y §5. Referencia
-// visual: paxfide-home.html. Fuera: pantallas de entrada y términos, nombre y correo (GET /account/profile no está),
-// selector de posición de la barra, ciudad navegable y los datos de ejemplo del prototipo.
+// Ref: plan-fase7-fidelidad.md F-A4 (D-F12), plan-fase7-pantallas.md A-3, D-P6, D-P7 y D-P11; DF7-21;
+// prompts-agentes-estilo-v2.md VS-5 y §3.2; referencia-api-v1.md §1, §3 y §5.
+// Contrato visual: paxfide-home.html (vHome). Desviación X-18 (QR sin lector: tarjeta rápida sin enlace).
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -10,6 +9,8 @@ import { fetchMe, type Principal } from '../lib/api/identity';
 import { usePrincipal } from '../lib/auth/usePrincipal';
 import { fetchAccountDonations, type AccountDonation } from '../lib/api/account';
 import { fetchDiscovery, type DiscoveryItem } from '../lib/api/publicCampaigns';
+import { fetchOrganizationCampaigns, type AdminCampaign } from '../lib/api/campaignAdmin';
+import { fetchOrganizationAssets, type OrgAsset } from '../lib/api/organization';
 import { useRead } from '../lib/api/useRead';
 import { formatMinorUnits } from '../lib/money';
 import { intentStatusLabel, paymentMethodLabel } from '../lib/labels';
@@ -47,7 +48,7 @@ export function accountCards(principal: Principal | null): HomeCard[] {
   const cards: HomeCard[] = [];
   if (principal.organizationId) {
     if (isSurfaceEnabled('/panel')) {
-      cards.push({ id: 'organization', title: 'Tu organización', text: 'Convocatorias, lotes y personas de tu organización.', action: 'Ir a tu organización', href: '/panel' });
+      cards.push({ id: 'organization', title: 'Tu organización hoy', text: 'Convocatorias, lotes y personas de tu organización.', action: 'Ir a tu organización', href: '/panel' });
     }
   } else if (isSurfaceEnabled('/panel/organization')) {
     cards.push({ id: 'create-organization', title: '¿Tienes una fundación?', text: 'Regístrala, la revisamos y luego puedes publicar convocatorias.', action: 'Registrar organización', href: '/panel/organization' });
@@ -59,12 +60,58 @@ export function accountCards(principal: Principal | null): HomeCard[] {
   return cards;
 }
 
+/**
+ * D-F12 / D-P9: Convocatoria abierta que cierra en 7 días o menos a partir de `now`.
+ */
+export function isClosingSoon(
+  campaign: { status: string; endDate?: string },
+  now: number = Date.now()
+): boolean {
+  if (campaign.status !== 'OPEN' || !campaign.endDate) return false;
+  const endMs = new Date(campaign.endDate).getTime();
+  if (Number.isNaN(endMs)) return false;
+  const diffMs = endMs - now;
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  return diffMs >= 0 && diffMs <= SEVEN_DAYS_MS;
+}
+
 function Icon({ d }: { d: string }) {
   return (
     <svg className={s.icon} width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d={d} /></svg>
   );
 }
+
+function PlusIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function BoxIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+      <line x1="12" y1="22.08" x2="12" y2="12" />
+    </svg>
+  );
+}
+
+function QrIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+    </svg>
+  );
+}
+
 const ICON = {
   route: 'M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM18 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM6 15V9a4 4 0 0 1 4-4h6M18 9v6a4 4 0 0 1-4 4H8',
   lock: 'M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3',
@@ -89,7 +136,7 @@ function SealTree() {
   );
 }
 
-function TrackCard() {
+function TrackCard({ cardIndex }: { cardIndex?: number }) {
   const router = useRouter();
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | undefined>();
@@ -103,25 +150,192 @@ function TrackCard() {
     router.push('/tracking');
   };
   return (
-    <section className={`${s.card} ${s.hero}`} aria-labelledby="home-track">
+    <section
+      className={`${s.card} ${s.hero}`}
+      aria-labelledby="home-track"
+      style={{ '--card-index': cardIndex } as React.CSSProperties}
+    >
       <h2 id="home-track" className={s.cardTitle}><Icon d={ICON.route} />Seguir una donación</h2>
       <p className={s.sub}>Escribe el código que recibiste al donar.</p>
       <form className={s.track} onSubmit={submit} noValidate>
-        <TextField label="Código de seguimiento" value={code} onChange={(e) => { setCode(e.target.value); setError(undefined); }}
-          autoComplete="off" spellCheck={false} autoCapitalize="off" error={error} />
-        <Button type="submit">Ver recorrido</Button>
+        <TextField
+          label="Código de seguimiento"
+          value={code}
+          onChange={(e) => { setCode(e.target.value); setError(undefined); }}
+          autoComplete="off"
+          spellCheck={false}
+          autoCapitalize="off"
+          error={error}
+        />
+        <Button type="submit" variant="emphasis">Ver ruta</Button>
       </form>
       <p className={s.note}><Icon d={ICON.lock} />El código es la llave de la donación: no lo publiques.</p>
     </section>
   );
 }
 
-function SealCard() {
+function SealCard({ cardIndex }: { cardIndex?: number }) {
   return (
-    <section className={s.card} aria-labelledby="home-seal">
+    <section
+      className={s.card}
+      aria-labelledby="home-seal"
+      style={{ '--card-index': cardIndex } as React.CSSProperties}
+    >
       <h2 id="home-seal" className={s.cardTitle}><Icon d={ICON.lock} />Sellado en blockchain</h2>
-      <SealTree />
-      <p className={s.text}>Cada paso deja una huella. Las huellas se juntan en una sola y esa se ancla, para que nadie cambie la historia sin que se note.</p>
+      <div className={s.seal}>
+        <SealTree />
+        <p className={s.text}>Cada paso deja una huella. Las huellas se juntan en una sola y esa se ancla, para que nadie cambie la historia sin que se note.</p>
+      </div>
+    </section>
+  );
+}
+
+function OrgTodayCard({
+  principal,
+  campaignsClient = fetchOrganizationCampaigns,
+  assetsClient = fetchOrganizationAssets,
+  cardIndex,
+}: {
+  principal: Principal;
+  campaignsClient?: typeof fetchOrganizationCampaigns;
+  assetsClient?: typeof fetchOrganizationAssets;
+  cardIndex?: number;
+}) {
+  const orgId = principal.organizationId!;
+  const roles = principal.roles ?? [];
+  const isAdmin = roles.includes('ADMINISTRATOR');
+  const isEmployee = roles.includes('EMPLOYEE');
+
+  const [campaignsCount, setCampaignsCount] = useState<number | null>(null);
+  const [dispatcheableCount, setDispatcheableCount] = useState<number | null>(null);
+  const [inTransitCount, setInTransitCount] = useState<number | null>(null);
+  const [loading, setLoading] = useState(isAdmin || isEmployee);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!orgId || (!isAdmin && !isEmployee)) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(false);
+
+    const promises: Promise<unknown>[] = [];
+
+    if (isAdmin) {
+      promises.push(
+        campaignsClient(orgId).then((r) => {
+          if (cancelled) return;
+          if (r.kind === 'ok') {
+            const open = r.items.filter((c) => c.status === 'OPEN').length;
+            setCampaignsCount(open);
+          } else if (r.kind === 'error') {
+            setError(true);
+          }
+        }).catch(() => { if (!cancelled) setError(true); })
+      );
+    }
+
+    if (isAdmin || isEmployee) {
+      promises.push(
+        assetsClient(orgId).then((r) => {
+          if (cancelled) return;
+          if (r.kind === 'ok') {
+            const dispatcheable = r.items.filter((a) => a.lifecycleStatus === 'REGISTERED' || a.lifecycleStatus === 'RECEIVED').length;
+            const inTransit = r.items.filter((a) => a.lifecycleStatus === 'DISPATCHED').length;
+            setDispatcheableCount(dispatcheable);
+            setInTransitCount(inTransit);
+          } else if (r.kind === 'error') {
+            setError(true);
+          }
+        }).catch(() => { if (!cancelled) setError(true); })
+      );
+    }
+
+    Promise.allSettled(promises).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [orgId, isAdmin, isEmployee, campaignsClient, assetsClient]);
+
+  return (
+    <section
+      className={`${s.card} ${s.full}`}
+      aria-labelledby="home-organization"
+      data-testid="home-card-organization"
+      style={{ '--card-index': cardIndex } as React.CSSProperties}
+    >
+      <div className={s.cardHead}>
+        <h2 id="home-organization" className={s.cardTitle}>
+          <Icon d={ICON.org} />Tu organización hoy
+        </h2>
+        {isSurfaceEnabled('/panel') && (
+          <Link className={s.linkAction} href="/panel">
+            Ir a tu organización
+          </Link>
+        )}
+      </div>
+
+      {loading && <LoadingState />}
+      {error && <ErrorState onRetry={() => {
+        setCampaignsCount(null);
+        setDispatcheableCount(null);
+        setInTransitCount(null);
+        setLoading(true);
+      }} />}
+
+      {!loading && !error && (
+        <>
+          {(isAdmin || isEmployee) && (
+            <div className={s.stats}>
+              {isAdmin && (
+                <div className={s.stat}>
+                  <b className={s.statNumber}>{campaignsCount ?? 0}</b>
+                  <span className={s.statLabel}>convocatorias abiertas</span>
+                </div>
+              )}
+              <div className={s.stat}>
+                <b className={s.statNumber}>{dispatcheableCount ?? 0}</b>
+                <span className={s.statLabel}>lotes por despachar</span>
+              </div>
+              <div className={s.stat}>
+                <b className={s.statNumber}>{inTransitCount ?? 0}</b>
+                <span className={s.statLabel}>lotes en camino</span>
+              </div>
+            </div>
+          )}
+
+          {(isAdmin || isEmployee) && (
+            <div className={s.qa}>
+              {isAdmin && isSurfaceEnabled('/panel/campaigns') && (
+                <Link className={s.qaItem} href="/panel/campaigns">
+                  <span className={`${s.qi} ${s.qiCampaign}`} aria-hidden="true"><PlusIcon /></span>
+                  <span>Nueva convocatoria</span>
+                  <small>Publica una necesidad</small>
+                </Link>
+              )}
+              {isSurfaceEnabled('/panel/assets') && (
+                <Link className={s.qaItem} href="/panel/assets">
+                  <span className={`${s.qi} ${s.qiAsset}`} aria-hidden="true"><BoxIcon /></span>
+                  <span>Registrar lote</span>
+                  <small>Con lo que se compró</small>
+                </Link>
+              )}
+              <div className={`${s.qaItem} ${s.qaDisabled}`}>
+                <span className={`${s.qi} ${s.qiQr}`} aria-hidden="true"><QrIcon /></span>
+                <span>Despachar o recibir</span>
+                <small>Escanea el QR en la app</small>
+              </div>
+            </div>
+          )}
+
+          {!isAdmin && !isEmployee && (
+            <p className={s.text}>Convocatorias, lotes y personas de tu organización.</p>
+          )}
+        </>
+      )}
     </section>
   );
 }
@@ -153,17 +367,29 @@ function DonationRow({ d }: { d: AccountDonation }) {
   );
 }
 
-function DonationsCard({ client }: { client: typeof fetchAccountDonations }) {
+function DonationsCard({
+  client,
+  cardIndex,
+}: {
+  client: typeof fetchAccountDonations;
+  cardIndex?: number;
+}) {
   const { state, reload } = useRead<AccountDonation[], 'forbidden' | 'unauthorized' | 'error'>(async () => {
     const r = await client();
     return r.kind === 'ok' ? { status: 'ready', data: r.items } : { status: r.kind };
   }, []);
   return (
-    <section className={`${s.card} ${s.wide}`} aria-labelledby="home-donations" data-testid="home-donations">
+    <section
+      className={`${s.card} ${s.wide}`}
+      aria-labelledby="home-donations"
+      data-testid="home-donations"
+      style={{ '--card-index': cardIndex } as React.CSSProperties}
+    >
       <div className={s.cardHead}>
         <h2 id="home-donations" className={s.cardTitle}><Icon d={ICON.heart} />Tus donaciones</h2>
         {isSurfaceEnabled('/account/donations') && <Link className={s.linkAction} href="/account/donations">Ver todas</Link>}
       </div>
+      <p className={s.sub}>Solo tú y la organización las ven.</p>
       {state.status === 'loading' && <LoadingState />}
       {(state.status === 'error' || state.status === 'unauthorized') && <ErrorState onRetry={reload} />}
       {state.status === 'forbidden' && <ForbiddenState />}
@@ -175,37 +401,77 @@ function DonationsCard({ client }: { client: typeof fetchAccountDonations }) {
   );
 }
 
-function CampaignsCard({ client }: { client: typeof fetchDiscovery }) {
+function CampaignsCard({
+  client,
+  now = Date.now(),
+  cardIndex,
+}: {
+  client: typeof fetchDiscovery;
+  now?: number;
+  cardIndex?: number;
+}) {
   const { state, reload } = useRead<DiscoveryItem[], 'error'>(async () => {
     const r = await client();
     return r.kind === 'ok' ? { status: 'ready', data: r.items } : { status: 'error' };
   }, []);
+
+  const items = state.status === 'ready' ? state.data : [];
+  const closingSoon = items
+    .filter((c) => isClosingSoon(c, now))
+    .sort((a, b) => new Date(a.endDate!).getTime() - new Date(b.endDate!).getTime());
+  const hasClosingSoon = closingSoon.length > 0;
+  const title = hasClosingSoon ? 'Cierran pronto' : 'Convocatorias abiertas';
+  const displayed = hasClosingSoon ? closingSoon.slice(0, HOME_ITEMS) : items.slice(0, HOME_ITEMS);
+
   return (
-    <section className={`${s.card} ${s.full}`} aria-labelledby="home-campaigns" data-testid="home-campaigns">
+    <section
+      className={`${s.card} ${s.full}`}
+      aria-labelledby="home-campaigns"
+      data-testid="home-campaigns"
+      style={{ '--card-index': cardIndex } as React.CSSProperties}
+    >
       <div className={s.cardHead}>
-        {/* "Cierran pronto" necesita el orden de R-1, que no está en develop (D-P6): hasta entonces, "Convocatorias abiertas" */}
-        <h2 id="home-campaigns" className={s.cardTitle}><Icon d={ICON.campaign} />Convocatorias abiertas</h2>
+        <h2 id="home-campaigns" className={s.cardTitle}><Icon d={ICON.campaign} />{title}</h2>
         {isSurfaceEnabled('/campaigns') && <Link className={s.linkAction} href="/campaigns">Ver todas</Link>}
       </div>
       <p className={s.sub}>Convocatorias que todavía puedes apoyar.</p>
       {state.status === 'loading' && <LoadingState />}
       {state.status === 'error' && <ErrorState onRetry={reload} />}
-      {state.status === 'ready' && state.data.length === 0 && <EmptyState text="No hay convocatorias abiertas en este momento." />}
-      {state.status === 'ready' && state.data.length > 0 && (
-        <ul className={s.campaigns}>{state.data.slice(0, HOME_ITEMS).map((c) => <li key={c.publicCode}><CampaignCard campaign={c} /></li>)}</ul>
+      {state.status === 'ready' && displayed.length === 0 && (
+        <EmptyState text={hasClosingSoon ? 'No hay convocatorias próximas a cerrar.' : 'No hay convocatorias abiertas en este momento.'} />
+      )}
+      {state.status === 'ready' && displayed.length > 0 && (
+        <ul className={s.campaigns}>{displayed.map((c) => <li key={c.publicCode}><CampaignCard campaign={c} /></li>)}</ul>
       )}
     </section>
   );
 }
 
+export interface HomeScreenProps {
+  meClient?: typeof fetchMe;
+  donationsClient?: typeof fetchAccountDonations;
+  campaignsClient?: typeof fetchDiscovery;
+  orgCampaignsClient?: typeof fetchOrganizationCampaigns;
+  orgAssetsClient?: typeof fetchOrganizationAssets;
+  now?: number;
+}
+
 export function HomeScreen({
-  meClient = fetchMe, donationsClient = fetchAccountDonations, campaignsClient = fetchDiscovery,
-}: {
-  meClient?: typeof fetchMe; donationsClient?: typeof fetchAccountDonations; campaignsClient?: typeof fetchDiscovery;
-}) {
+  meClient = fetchMe,
+  donationsClient = fetchAccountDonations,
+  campaignsClient = fetchDiscovery,
+  orgCampaignsClient = fetchOrganizationCampaigns,
+  orgAssetsClient = fetchOrganizationAssets,
+  now,
+}: HomeScreenProps) {
   const greeting = useGreeting();
   const { state } = usePrincipal(meClient);
-  const cards = accountCards(state.status === 'ready' ? state.data : null);
+  const principal = state.status === 'ready' ? state.data : null;
+  const cards = accountCards(principal);
+  const accountCardsList = cards.filter((c) => c.id !== 'organization');
+  const isMember = !!principal?.organizationId;
+
+  let cardIdx = 0;
 
   return (
     <div className={s.home} data-testid="home-content">
@@ -221,17 +487,31 @@ export function HomeScreen({
         </div>
       </header>
       <div className={s.grid}>
-        {isSurfaceEnabled('/tracking') && <TrackCard />}
-        <SealCard />
-        <DonationsCard client={donationsClient} />
-        {cards.map((c) => (
-          <section key={c.id} className={s.card} aria-labelledby={`home-${c.id}`} data-testid={`home-card-${c.id}`}>
+        {isSurfaceEnabled('/tracking') && <TrackCard cardIndex={cardIdx++} />}
+        <SealCard cardIndex={cardIdx++} />
+        {isMember && isSurfaceEnabled('/panel') && principal && (
+          <OrgTodayCard
+            principal={principal}
+            campaignsClient={orgCampaignsClient}
+            assetsClient={orgAssetsClient}
+            cardIndex={cardIdx++}
+          />
+        )}
+        <CampaignsCard client={campaignsClient} now={now} cardIndex={cardIdx++} />
+        <DonationsCard client={donationsClient} cardIndex={cardIdx++} />
+        {accountCardsList.map((c) => (
+          <section
+            key={c.id}
+            className={s.card}
+            aria-labelledby={`home-${c.id}`}
+            data-testid={`home-card-${c.id}`}
+            style={{ '--card-index': cardIdx++ } as React.CSSProperties}
+          >
             <h2 id={`home-${c.id}`} className={s.cardTitle}><Icon d={c.id === 'platform' ? ICON.shield : ICON.org} />{c.title}</h2>
             <p className={s.text}>{c.text}</p>
             <Link className={s.cta} href={c.href}>{c.action}</Link>
           </section>
         ))}
-        <CampaignsCard client={campaignsClient} />
       </div>
     </div>
   );

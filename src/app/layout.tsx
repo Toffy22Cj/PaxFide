@@ -3,6 +3,8 @@ import "./globals.css";
 import RouteGuard from "./RouteGuard";
 import { Shell } from "../components/shell/Shell";
 import { fontDisplay, fontMono } from "./fonts";
+import { THEME_INIT_SCRIPT } from "../lib/theme/theme";
+import { NAV_POSITION_INIT_SCRIPT } from "../lib/nav/navEntries";
 
 export const metadata: Metadata = {
   title: "PaxFide",
@@ -13,9 +15,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // Ref: decisión de Carlos 2026-10-21 (DF7-17), se retira en VS-8. Tema claro forzado hasta que todas las
-    // pantallas usen la capa semántica; en VS-8 vuelven el script de preferencia (THEME_INIT_SCRIPT) y ThemeSelect.
-    <html lang="es" data-theme="light" className={`${fontDisplay.variable} ${fontMono.variable}`}>
+    // Ref: plan-fase7-fidelidad.md F-A0, D-F11 (revoca DF7-17 y activa el tema oscuro).
+    // THEME_INIT_SCRIPT aplica en <head> la preferencia del usuario antes de pintar para evitar parpadeo.
+    // NAV_POSITION_INIT_SCRIPT aplica la posición de la barra guardada en escritorio antes de pintar (D-F8).
+    <html lang="es" suppressHydrationWarning className={`${fontDisplay.variable} ${fontMono.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: NAV_POSITION_INIT_SCRIPT }} />
+      </head>
       <body>
         <Shell>
           <RouteGuard>

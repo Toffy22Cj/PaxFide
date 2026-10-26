@@ -87,12 +87,13 @@ for (const width of [390, 1280]) {
     test('ADMINISTRATOR: entradas, aria-current y orden de foco igual al visual', async ({ page }) => {
       await login(page, 'admin@demo.test', 'demo-admin');
       const expected = width >= 768
-        ? ['Inicio', 'Explorar', 'Donaciones', 'Seguimiento', 'Organización', 'Convocatorias', 'Lotes']
-        : ['Inicio', 'Explorar', 'Donaciones', 'Seguimiento', 'Organización']; // DF7-20: con Inicio (A-3), justo 5
+        ? ['Inicio', 'Explorar', 'Donaciones', 'Seguimiento', 'Organización', 'Convocatorias', 'Lotes', 'Perfil']
+        : ['Inicio', 'Explorar', 'Donaciones', 'Organización', 'Perfil']; // D-F15, DF7-20: con Inicio y Perfil, exactamente 5
       // Espera a GET /me: las entradas de organización llegan con él
       await expect(nav(page).getByRole('link')).toHaveText(expected);
       await expect(nav(page).getByRole('link', { name: 'Organización' })).toHaveAttribute('aria-current', 'page');
-      expect(await tabOrder(page)).toEqual(expected);
+      const expectedFocus = width >= 768 ? [...expected, 'Barra'] : expected;
+      expect(await tabOrder(page)).toEqual(expectedFocus);
       if (width >= 768) {
         await nav(page).getByRole('link', { name: 'Convocatorias' }).click();
         await expect(page).toHaveURL(/\/panel\/campaigns$/);
@@ -114,7 +115,7 @@ for (const width of [390, 1280]) {
 
     test('cuenta sin organización: no ve "Organización" (B)', async ({ page }) => {
       await login(page, 'donante@demo.test', 'demo-donante');
-      await expect(nav(page).getByRole('link')).toHaveText(['Inicio', 'Explorar', 'Donaciones', 'Seguimiento']);
+      await expect(nav(page).getByRole('link')).toHaveText(['Inicio', 'Explorar', 'Donaciones', 'Seguimiento', 'Perfil']);
       const labels = await navLabels(page);
       expect(labels).not.toContain('Organización');
     });
@@ -133,10 +134,10 @@ for (const width of [390, 1280]) {
   });
 }
 
-test('DF7-20: con Inicio (A-3) el ADMINISTRATOR tiene exactamente 5 entradas a 390 px y caben', async ({ page }) => {
+test('DF7-20: con Inicio (A-3) y Perfil (D-F9) el ADMINISTRATOR tiene exactamente 5 entradas a 390 px y caben', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 860 });
   await login(page, 'admin@demo.test', 'demo-admin');
-  await expect(nav(page).getByRole('link')).toHaveText(['Inicio', 'Explorar', 'Donaciones', 'Seguimiento', 'Organización']);
+  await expect(nav(page).getByRole('link')).toHaveText(['Inicio', 'Explorar', 'Donaciones', 'Organización', 'Perfil']);
   await expectEntriesInside(page, 390);
 });
 
@@ -151,7 +152,8 @@ test('al redimensionar, la barra cambia de posición (bottom ↔ side)', async (
   await expect(shell).toHaveAttribute('data-nav-position', 'side');
 });
 
-test('las entradas sin ruta aprobada no aparecen en la barra (D5): Perfil, Ajustes y QR', async ({ page }) => {
+test('las entradas sin ruta aprobada no aparecen en la barra (D5): Ajustes y QR; Perfil sí aparece (D-F9)', async ({ page }) => {
   await login(page, 'admin@demo.test', 'demo-admin');
-  for (const name of ['Perfil', 'Ajustes', 'QR']) await expect(nav(page).getByRole('link', { name })).toHaveCount(0);
+  for (const name of ['Ajustes', 'QR']) await expect(nav(page).getByRole('link', { name })).toHaveCount(0);
+  await expect(nav(page).getByRole('link', { name: 'Perfil' })).toHaveCount(1);
 });

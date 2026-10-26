@@ -1,9 +1,8 @@
 'use client';
-// Ref: plan-fase7-pantallas.md A-2 y D-P5; prompts-agentes-estilo-v2.md VS-4 y §3.3; referencia-api-v1.md §5
-// (GET /public/campaigns). Referencia visual: paxfide-landing.html. Textos del recorrido tal cual, sin cifras ni
-// nombres concretos (montos, organizaciones, ciudades). Fuera: búsqueda y filtros (R-1), "Escanear QR", métricas
-// globales, el acceso con Google o billetera y el selector Día / Noche del prototipo. D-P13: en `/` la app no pone su
-// cabecera ni su barra; esta cabecera (la del prototipo) es la única, con el botón de pausa (R-F2).
+// Ref: plan-fase7-pantallas.md A-2 y D-P5; plan-fase7-fidelidad.md D-F1, D-F2, D-F4; prompts-agentes-estilo-v2.md VS-4 y §3.3; referencia-api-v1.md §5
+// (GET /public/campaigns). Referencia visual y contrato: paxfide-landing.html. Textos del recorrido tal cual, sin cifras ni
+// nombres concretos (montos, organizaciones, ciudades). D-F2: selector Día / Ocaso / Noche (auto, night, day).
+// D-P13: en `/` la app no pone su cabecera ni su barra; esta cabecera (la del prototipo) es la única, con el botón de pausa (R-F2).
 import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import * as session from '../lib/auth/session';
@@ -11,7 +10,15 @@ import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { fetchDiscovery, type DiscoveryItem } from '../lib/api/publicCampaigns';
 import { custodianLabel, eventLabel, intentStatusLabel } from '../lib/labels';
 import { CampaignCard } from '../components/campaign/CampaignCard';
-import { WorldScene } from '../components/landing/WorldScene';
+import { WorldScene, targetView } from '../components/landing/WorldScene';
+import { LandingThemeToggle } from '../components/landing/LandingThemeToggle';
+import {
+  calculateNightVal,
+  nextWorldMode,
+  readSavedWorldMode,
+  saveWorldMode,
+  type WorldMode,
+} from '../components/landing/worldMode';
 import { PauseButton } from '../components/background/PauseButton';
 import { BrandMark } from '../components/shell/BrandMark';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
@@ -79,7 +86,15 @@ const ANCHORS = [
  * Cabecera de la landing (prototipo `header.nav`): marca → `/`, anclas de la página, pausa de la animación y accesos
  * a Ingresar, Seguir una donación y Donar. En estrecho, las anclas y los accesos van en un menú que se despliega.
  */
-function LandingHeader() {
+function LandingHeader({
+  worldMode,
+  nightVal,
+  onToggleMode,
+}: {
+  worldMode: WorldMode;
+  nightVal: number;
+  onToggleMode: () => void;
+}) {
   const signedIn = useSessionState() === 'AUTHENTICATED';
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
@@ -88,22 +103,23 @@ function LandingHeader() {
       <Link className={s.brand} href="/" aria-label="PaxFide, inicio">
         <BrandMark size={30} /><span aria-hidden="true">Pax<span className={s.brandFide}>Fide</span><span className={s.brandDot}>.</span></span>
       </Link>
-      <PauseButton className={s.pause} textClassName={s.pauseText} />
-      <button type="button" className={s.menuToggle} aria-expanded={open} aria-controls="landing-menu"
-        aria-label={open ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'} onClick={() => setOpen((o) => !o)}>
-        <span /><span /><span />
-      </button>
       <nav id="landing-menu" className={open ? `${s.menu} ${s.menuOpen}` : s.menu} aria-label="Secciones de la página de inicio">
         <ul className={s.anchors}>
           {ANCHORS.map((a) => <li key={a.href}><a href={a.href} onClick={close}>{a.label}</a></li>)}
         </ul>
         <div className={s.acts}>
+          <LandingThemeToggle mode={worldMode} nightVal={nightVal} onToggle={onToggleMode} />
           {signedIn && isSurfaceEnabled('/home') && <Link className={s.btnPrimary} href="/home">Ir a mi inicio</Link>}
           {!signedIn && isSurfaceEnabled('/login') && <Link className={s.btnSecondary} href="/login">Ingresar</Link>}
           {isSurfaceEnabled('/tracking') && <Link className={s.btnSecondary} href="/tracking">Seguir una donación</Link>}
           {isSurfaceEnabled('/campaigns') && <Link className={s.btnPrimary} href="/campaigns">Donar</Link>}
         </div>
       </nav>
+      <PauseButton className={s.pause} textClassName={s.pauseText} />
+      <button type="button" className={s.menuToggle} aria-expanded={open} aria-controls="landing-menu"
+        aria-label={open ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'} onClick={() => setOpen((o) => !o)}>
+        <span /><span /><span />
+      </button>
     </header>
   );
 }
@@ -276,10 +292,30 @@ function OpenCampaigns({ client }: { client: typeof fetchDiscovery }) {
 }
 
 export function LandingScreen({ client = fetchDiscovery }: { client?: typeof fetchDiscovery }) {
+  const [worldMode, setWorldMode] = useState<WorldMode>('auto');
+  const [currentView, setCurrentView] = useState(0);
+
+  useEffect(() => {
+    setWorldMode(readSavedWorldMode());
+  }, []);
+
+  useScroll(() => {
+    setCurrentView(targetView());
+  });
+
+  const handleToggleMode = () => {
+    const next = nextWorldMode(worldMode);
+    setWorldMode(next);
+    saveWorldMode(next);
+  };
+
+  const nightVal = calculateNightVal(worldMode, currentView);
+  const isDark = nightVal >= 0.5;
+
   return (
-    <div className={s.landing}>
-      <WorldScene />
-      <LandingHeader />
+    <div className={s.landing} data-theme={isDark ? 'dark' : undefined} data-testid="landing-root">
+      <WorldScene mode={worldMode} onViewChange={setCurrentView} />
+      <LandingHeader worldMode={worldMode} nightVal={nightVal} onToggleMode={handleToggleMode} />
       <StopDots />
       {/* D-P13: en `/` la estructura no pone su <main>; la landing lo abre tras su cabecera */}
       <main className={s.content} id="contenido">
