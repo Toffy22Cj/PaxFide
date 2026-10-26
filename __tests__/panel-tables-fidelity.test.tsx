@@ -284,7 +284,7 @@ describe('F-B2 Fidelidad — /panel/campaigns y /panel/assets', () => {
       expect(within(notice).queryByRole('link')).toBeNull();
 
       // Fila resaltada: la fila de L-REG tiene la clase ambRow
-      const rows = screen.getAllByTestId('org-asset');
+      const rows = await screen.findAllByTestId('org-asset');
       const regRow = rows.find((r) => r.textContent?.includes('L-REG'));
       expect(regRow).toHaveClass(/ambRow/);
 
