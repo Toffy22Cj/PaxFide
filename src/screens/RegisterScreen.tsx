@@ -13,38 +13,10 @@ import { BrandMark } from '../components/shell/BrandMark';
 import { BrandDots } from '../components/loaders/BrandDots';
 import { AccessLayout } from '../components/access/AccessLayout';
 import { LegalConsent } from '../components/access/LegalConsent';
+import { calculateStrength } from '../lib/auth/passwordStrength';
 import s from './access.module.css';
 
 const MIN_PASSWORD = 12;
-
-interface StrengthInfo {
-  score: number;
-  width: string;
-  color: string;
-  label: string;
-}
-
-function calculateStrength(val: string): StrengthInfo {
-  if (!val) {
-    return { score: 0, width: '0%', color: 'var(--color-divider)', label: 'Seguridad de contraseña' };
-  }
-  let score = 0;
-  if (val.length >= MIN_PASSWORD) score++;
-  if (/[A-Z]/.test(val)) score++;
-  if (/[0-9]/.test(val)) score++;
-  if (/[^A-Za-z0-9]/.test(val)) score++;
-
-  if (val.length < MIN_PASSWORD || score <= 1) {
-    return { score: 1, width: '25%', color: 'var(--color-danger-text)', label: 'Seguridad: Débil (al menos 12 caracteres)' };
-  }
-  if (score === 2) {
-    return { score: 2, width: '50%', color: 'var(--color-ambiguous-title)', label: 'Seguridad: Media' };
-  }
-  if (score === 3) {
-    return { score: 3, width: '75%', color: 'var(--color-action)', label: 'Seguridad: Segura' };
-  }
-  return { score: 4, width: '100%', color: 'var(--color-success-text)', label: 'Seguridad: ¡Excelente y robusta!' };
-}
 
 export function RegisterScreen({ client = registerAccount }: { client?: (e: string, p: string) => Promise<RegisterOutcome> }) {
   const [email, setEmail] = useState('');

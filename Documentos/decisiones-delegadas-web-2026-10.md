@@ -118,6 +118,7 @@ Cada entrada cita la evidencia o la enmienda que la justifica. Una habilitación
 | `/panel/configuration`, `action:configuration-edit`, `action:configuration-request`, `action:configuration-approve`, `action:configuration-reject` | P3-C | `CampaignConfigurationController` (`8456ecc`, Enmienda 4 de ADR-037, DD-73) | D-10 (sin lectura de la configuración ni de su versión); S-20 (el representante no tiene listado de convocatorias) |
 | `/panel/members`, `action:member-invite`, `action:invitation-revoke`, `action:member-change-role`, `action:member-remove` | P3-B | Invitaciones y miembros (`8456ecc`, §3.3, ADR-049, DD-65, DD-66) | — |
 | `/invitaciones` | P3-B | `POST /invitations/accept` (`8456ecc`, ADR-049 D4) | D-09 (token en el cuerpo); D-05 (enlace del correo a `:5173` en la demo) |
+| `/recuperar`, `action:platform-reactivate-account` | P-1 de `plan-fase7-puesta-al-dia.md` (D-F16) | `POST /auth/password-reset` y `…/confirm` (ADR-050 D8); `POST /platform/accounts/{accountId}/reactivate` (ADR-050 D7) | El token va en el fragmento y se borra de la barra antes de nada (como DW-48) |
 | `/panel/my-campaigns` | P3-B | `GET /me/campaigns` (`8456ecc`, DD-72) | — |
 | `/panel/organization`, `action:create-organization` | P3-A | `POST /organizations` (`8456ecc`, R9, DD-68) | S-18 (sin lectura del estado de verificación) |
 | `/assets/:assetRef` (lectura) | 1 | `GET /physical-assets/{assetRef}` en `develop` (B6-c, `estado-fase6.md` §0.12) | R10: un `REPRESENTATIVE` recibe 403 (estado de pantalla) |

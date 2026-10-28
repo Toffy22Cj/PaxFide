@@ -1,8 +1,12 @@
 'use client';
 
-// Ref: Documentos/plan-fase7-fidelidad.md §2 D-F9; Documentos/paxfide-home.html (vProfile)
+// Ref: Documentos/plan-fase7-fidelidad.md §2 D-F9; Documentos/paxfide-home.html (vProfile); plan-fase7-puesta-al-dia.md
+// P-1 (X-8: nombre y apellido en "Tus datos"; X-9: tarjeta "Seguridad" con cambiar contraseña y desactivar la cuenta).
 import React, { useEffect, useState } from 'react';
-import { fetchAccount, type AccountProfile } from '../lib/api/account';
+import { fetchAccount, fetchProfile, initialsOf, type AccountProfile, type PersonalProfile } from '../lib/api/account';
+import { ProfileNameCard } from '../components/account/ProfileNameCard';
+import { SecurityCard, type SecurityClients } from '../components/account/SecurityCard';
+import type { NameGateClients } from '../components/access/NameGate';
 import { useRead } from '../lib/api/useRead';
 import * as session from '../lib/auth/session';
 import { ThemeSelect } from '../components/theme/ThemeSelect';
@@ -26,11 +30,24 @@ const POS_LABELS: Record<NavPosition, string> = {
   side: 'Izquierda',
 };
 
-export function ProfileScreen({ client = fetchAccount }: { client?: typeof fetchAccount }) {
+export function ProfileScreen({ client = fetchAccount, profileClients, securityClients }: {
+  client?: typeof fetchAccount;
+  profileClients?: NameGateClients;
+  securityClients?: SecurityClients;
+}) {
   const { state, reload } = useRead<AccountProfile, 'unauthorized' | 'error'>(async () => {
     const r = await client();
     return r.kind === 'ok' ? { status: 'ready', data: r.account } : { status: r.kind };
   }, [client]);
+  const fetchNames = profileClients?.fetch ?? fetchProfile;
+  // El nombre se lee aparte (`GET /account/profile`): si falla, el resto del perfil sigue
+  const names = useRead<PersonalProfile, 'unauthorized' | 'error'>(async () => {
+    const r = await fetchNames();
+    return r.kind === 'ok' ? { status: 'ready', data: r.profile } : { status: r.kind };
+  }, [fetchNames]);
+  const [savedNames, setSavedNames] = useState<PersonalProfile | null>(null);
+  const currentNames = savedNames ?? (names.state.status === 'ready' ? names.state.data : null);
+  const initials = initialsOf(currentNames);
 
   const [isTuneOpen, setIsTuneOpen] = useState(false);
   const [navPos, setNavPos] = useState<NavPosition>('side');
@@ -66,11 +83,13 @@ export function ProfileScreen({ client = fetchAccount }: { client?: typeof fetch
   return (
     <div className={s.profile} data-testid="profile-screen">
       <header className={s.header}>
-        <div className={s.avatar} aria-hidden="true">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
+        <div className={s.avatar} aria-hidden="true" data-testid="profile-avatar">
+          {initials ?? (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          )}
         </div>
         <div>
           <h1 className={s.title}>Perfil</h1>
@@ -83,10 +102,14 @@ export function ProfileScreen({ client = fetchAccount }: { client?: typeof fetch
         <section className={s.card} aria-labelledby="cardDataTitle">
           <h2 id="cardDataTitle" className={s.cardTitle}>Tus datos</h2>
           <p className={s.sub}>Solo los ves tú.</p>
-          <dl className={s.dl}>
-            <dt className={s.dt}>Correo electrónico</dt>
-            <dd className={s.dd} data-testid="profile-email-detail">{account.email}</dd>
-          </dl>
+          <ProfileNameCard
+            email={account.email}
+            names={names.state.status === 'ready' ? currentNames : null}
+            namesFailed={names.state.status === 'error'}
+            onRetry={names.reload}
+            update={profileClients?.update}
+            onSaved={setSavedNames}
+          />
         </section>
 
         {/* Card: Apariencia y ciudad */}
@@ -116,6 +139,8 @@ export function ProfileScreen({ client = fetchAccount }: { client?: typeof fetch
             <PauseButton className={s.pauseBtn} />
           </div>
         </section>
+
+        <SecurityCard clients={securityClients} />
       </div>
 
       <div className={s.actions}>

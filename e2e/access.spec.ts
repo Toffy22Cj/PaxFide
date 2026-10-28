@@ -115,9 +115,10 @@ test.describe('Fidelidad de Acceso, Bienvenida y Rutas Legales (F-A2)', () => {
     await expect(welcome.getByText('Sigue el recorrido de tu ayuda')).toBeVisible();
     await expect(welcome.getByText('Cada paso queda sellado')).toBeVisible();
 
-    // 4. Continuar navega a /home
+    // 4. Continuar lleva a "¿Cómo te llamamos?" (P-1); "Más tarde" navega a /home
     const continueBtn = welcome.getByRole('button', { name: 'Continuar' });
     await continueBtn.click();
+    await page.getByTestId('name-gate').getByRole('button', { name: 'Más tarde' }).click();
     await expect(page).toHaveURL(/\/home$/);
 
     // 5. Un login posterior en la misma pestaña ya NO muestra la bienvenida

@@ -23,7 +23,7 @@ import { consumeHandedOffTrackingCode } from '../src/lib/tracking/handoff';
 
 const ALL = [
   '/home', '/tracking', '/campaigns', '/account/donations', '/c/:publicCode',
-  '/panel', '/panel/campaigns', '/panel/assets', '/panel/organization', '/panel/platform',
+  '/panel', '/panel/campaigns', '/panel/assets', '/panel/organization', '/panel/platform', '/account',
 ];
 const donor: Principal = { accountId: 'a', roles: [] };
 const member: Principal = { accountId: 'a', organizationId: 'org-1', roles: ['ADMINISTRATOR'] };
@@ -54,6 +54,7 @@ function renderHome(
       campaignsClient={campaigns(camps)}
       orgCampaignsClient={async () => ({ kind: 'ok', items: orgCamps })}
       orgAssetsClient={async () => ({ kind: 'ok', items: orgAssets })}
+      profileClient={async () => ({ kind: 'ok', profile: { email: 'a@b.co' } })}
     />
   );
 }
@@ -342,5 +343,36 @@ describe('Destino tras iniciar sesión (A-3)', () => {
     expect(defaultDestination()).toBe('/home');
     enabled.delete('/home');
     expect(defaultDestination()).toBe('/panel');
+  });
+});
+
+describe('Home — nombre (plan-fase7-puesta-al-dia.md P-1, X-8)', () => {
+  const base = { meClient: me(donor), donationsClient: donations([]), campaignsClient: campaigns() };
+
+  it('con givenName: saludo con el nombre e iniciales; sin el aviso "Completa tu perfil"', async () => {
+    render(<HomeScreen {...base} profileClient={async () => ({ kind: 'ok', profile: { email: 'a@b.co', givenName: 'Ana', familyName: 'Ruiz' } })} />);
+    await waitFor(() => expect(screen.getByTestId('home-greeting')).toHaveTextContent(/, Ana$/));
+    expect(screen.getByTestId('home-avatar')).toHaveTextContent('AR');
+    expect(screen.queryByTestId('profile-nudge')).toBeNull();
+  });
+
+  it('sin givenName: D-P7 (sin nombre) y "Completa tu perfil" → /account; "Ocultar aviso" lo quita sin guardar nada', async () => {
+    render(<HomeScreen {...base} profileClient={async () => ({ kind: 'ok', profile: { email: 'a@b.co', familyName: 'Ruiz' } })} />);
+    const nudge = await screen.findByTestId('profile-nudge');
+    expect(within(nudge).getByRole('link', { name: 'Agregar' })).toHaveAttribute('href', '/account');
+    expect(screen.getByTestId('home-greeting').textContent).not.toContain(',');
+    expect(screen.getByTestId('home-avatar').textContent).toBe('');
+    fireEvent.click(within(nudge).getByRole('button', { name: 'Ocultar aviso' }));
+    expect(screen.queryByTestId('profile-nudge')).toBeNull();
+    expect(window.localStorage.length).toBe(0);
+    expect(window.sessionStorage.length).toBe(0);
+  });
+
+  it('si el perfil no se puede leer: ni nombre ni aviso (no se infiere nada)', async () => {
+    render(<HomeScreen {...base} profileClient={async () => ({ kind: 'error' })} />);
+    await screen.findByTestId('home-content');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(screen.queryByTestId('profile-nudge')).toBeNull();
+    expect(screen.getByTestId('home-greeting').textContent).not.toContain(',');
   });
 });

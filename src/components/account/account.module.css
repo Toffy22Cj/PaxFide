@@ -1,0 +1,48 @@
+/* Ref: plan-fase7-puesta-al-dia.md P-1; Documentos/paxfide-home.html (vProfile). Solo tokens semánticos. */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-card);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-card);
+  min-width: 0;
+}
+@media (min-width: 768px) {
+  .wide { grid-column: 1 / -1; }
+}
+.cardTitle { margin: 0 0 var(--space-1); font-size: var(--font-size-display-5); font-weight: var(--weight-semibold); color: var(--color-text); }
+.sub { margin: 0 0 var(--space-4); font-size: var(--font-size-body-3); color: var(--color-text-secondary); }
+.blockTitle { margin: 0 0 var(--space-1); font-size: var(--font-size-body-1); font-weight: var(--weight-semibold); color: var(--color-text); }
+.note { margin: 0 0 var(--space-3); font-size: var(--font-size-body-3); color: var(--color-text-secondary); }
+.modalText { margin: 0 0 var(--space-4); color: var(--color-text); }
+
+.securityGrid { display: grid; grid-template-columns: 1fr; gap: var(--space-6); }
+@media (min-width: 900px) {
+  .securityGrid { grid-template-columns: 3fr 2fr; }
+}
+
+.dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--font-size-body-2);
+}
+.dt { color: var(--color-text-secondary); }
+.dd { margin: 0; color: var(--color-text); font-weight: var(--weight-semibold); min-width: 0; overflow-wrap: anywhere; }
+.mail { word-break: break-all; }
+.empty { color: var(--color-text-secondary); font-weight: var(--weight-regular); }
+.cardAction { margin-top: var(--space-4); }
+.inlineError { margin-top: var(--space-4); display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; color: var(--color-danger-text); }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+@media (max-width: 480px) { .row2 { grid-template-columns: 1fr; } }
+
+.strength { display: flex; align-items: center; gap: var(--space-3); margin: calc(-1 * var(--space-2)) 0 var(--space-3); }
+.strengthTrack { flex: 1; height: 6px; border-radius: var(--radius-button); background: var(--color-divider); overflow: hidden; }
+.strengthMeter { height: 100%; transition: width var(--duration-fast) var(--ease-standard); }
+.strengthLabel { font-size: var(--font-size-body-4); font-weight: var(--weight-semibold); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .strengthMeter { transition: none; } }
+
+.danger { color: var(--color-danger-text); border-color: var(--color-danger-text); }
+.dangerSolid { background: var(--color-danger-bg); color: var(--color-danger-text); border: 1px solid var(--color-danger-text); }

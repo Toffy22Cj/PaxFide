@@ -14,21 +14,24 @@
 .avatar {
   width: 56px;
   height: 56px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-button);
   background: var(--color-surface);
-  border: 1px solid var(--color-border-card);
+  border: 1px solid var(--color-divider);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--color-text);
   box-shadow: var(--shadow-card);
   flex-shrink: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  font-size: var(--font-size-display-5);
 }
 
 .title {
   margin: 0;
-  font-size: var(--font-size-h1);
-  font-weight: var(--weight-bold);
+  font-size: var(--font-size-display-3);
+  font-weight: var(--weight-semibold);
   color: var(--color-text);
 }
 
@@ -52,7 +55,7 @@
 
 .card {
   background: var(--color-surface);
-  border: 1px solid var(--color-border-card);
+  border: 1px solid var(--color-divider);
   border-radius: var(--radius-card);
   padding: var(--space-6);
   box-shadow: var(--shadow-card);
@@ -60,8 +63,8 @@
 
 .cardTitle {
   margin: 0 0 var(--space-1);
-  font-size: var(--font-size-h3);
-  font-weight: var(--weight-bold);
+  font-size: var(--font-size-display-5);
+  font-weight: var(--weight-semibold);
   color: var(--color-text);
 }
 
@@ -81,7 +84,7 @@
 
 .dt {
   color: var(--color-text-secondary);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-regular);
 }
 
 .dd {
@@ -108,7 +111,7 @@
 .settingLabel {
   color: var(--color-text);
   font-size: var(--font-size-body-2);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-regular);
 }
 
 .tuneBtn {
@@ -124,7 +127,7 @@
   color: var(--color-text);
   font: inherit;
   font-size: var(--font-size-body-2);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-regular);
   cursor: pointer;
 }
 

@@ -3,12 +3,15 @@
 // Ref: diseno-ux-contractual-web-v1.md §5.2; ID-01; ADR-038 §2.6; ADR-046 D2;
 // Documentos/plan-fase7-fidelidad.md §2 D-F5 (acceso sobre el mundo), D-F10 (bienvenida), D-F2;
 // Documentos/paxfide-landing.html (.auth-card, #formLogin); plan-fase7-puesta-al-dia.md R-2 y U-2 (403
-// AcceptanceRequired: "Actualizamos nuestras condiciones" en la misma tarjeta; la contraseña sigue solo en el estado).
-import React, { useState } from 'react';
+// AcceptanceRequired: "Actualizamos nuestras condiciones" en la misma tarjeta; la contraseña sigue solo en el estado);
+// P-1: "¿Olvidaste tu contraseña?" (→ /recuperar), el aviso tras recuperarla y "¿Cómo te llamamos?" tras la bienvenida
+// (paxfide-home.html #sData; ADR-050 D1): opcional, con "Más tarde"; el nombre solo viaja en /account/profile.
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import * as session from '../lib/auth/session';
 import { acceptanceFor, login as loginRequest, LoginAcceptance, LoginOutcome } from '../lib/api/identity';
 import { LegalConsent } from '../components/access/LegalConsent';
+import { NameGate, type NameGateClients } from '../components/access/NameGate';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { BrandMark } from '../components/shell/BrandMark';
 import { BrandDots } from '../components/loaders/BrandDots';
@@ -19,15 +22,18 @@ import s from './access.module.css';
 type Props = {
   loginClient?: (email: string, password: string, acceptance?: LoginAcceptance) => Promise<LoginOutcome>;
   onContinueWelcome?: () => void;
+  profileClients?: NameGateClients;
 };
 
 const REASON_TEXT: Record<session.LogoutReason, string | null> = {
   EXPIRED: 'Tu sesión expiró. Vuelve a iniciar sesión.',
   OTHER_TAB: 'Cerraste sesión en otra pestaña.',
   MANUAL: null,
+  PASSWORD_CHANGED: 'Tu contraseña cambió; vuelve a iniciar sesión.',
+  DEACTIVATED: 'Desactivaste tu cuenta. Si fue un error, pide al administrador de la plataforma que la reactive.',
 };
 
-export function LoginScreen({ loginClient = loginRequest, onContinueWelcome }: Props) {
+export function LoginScreen({ loginClient = loginRequest, onContinueWelcome, profileClients }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -35,6 +41,11 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome }: P
   const [sending, setSending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [reason] = useState(() => session.getLastLogoutReason());
+  // Aviso de otra pantalla (p. ej. /recuperar): se lee al montar y se borra después (StrictMode monta dos veces)
+  const [notice] = useState(() => session.peekLoginNotice());
+  useEffect(() => { if (notice) session.clearLoginNotice(); }, [notice]);
+  /** D-F10 + P-1: la bienvenida y, tras "Continuar", "¿Cómo te llamamos?". */
+  const [welcomeStep, setWelcomeStep] = useState<'welcome' | 'name'>('welcome');
   /** U-2: las versiones pendientes que se aceptan al repetir el login; `unsupported` si la web no tiene ese texto. */
   const [pending, setPending] = useState<LoginAcceptance | 'unsupported' | null>(null);
   const [checks, setChecks] = useState<{ terms: boolean; data: boolean }>({ terms: false, data: false });
@@ -102,7 +113,7 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome }: P
     && (pending.acceptedTermsVersion === undefined || checks.terms)
     && (pending.acceptedDataPolicyVersion === undefined || checks.data);
 
-  const handleContinueWelcome = () => {
+  const finishWelcome = () => {
     if (onContinueWelcome) {
       onContinueWelcome();
     } else {
@@ -121,7 +132,9 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome }: P
     <AccessLayout>
       <div className={s.page}>
         <div className={s.card} data-world-avoid="">
-          {showWelcome ? (
+          {showWelcome && welcomeStep === 'name' ? (
+            <NameGate clients={profileClients} onDone={finishWelcome} />
+          ) : showWelcome ? (
             /* ============ Bienvenida (D-F10; paxfide-home.html §1) ============ */
             <div className={s.welcomeGate} data-testid="welcome-gate">
               <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
@@ -190,7 +203,7 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome }: P
                   </div>
                 </li>
               </ul>
-              <button type="button" className={s.submitBtn} onClick={handleContinueWelcome}>
+              <button type="button" className={s.submitBtn} onClick={() => setWelcomeStep('name')}>
                 <span>Continuar</span>
               </button>
               <div className={s.welcomeDots} aria-hidden="true">
@@ -233,6 +246,7 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome }: P
                 )}
               </div>
 
+              {notice && <div className={[s.feedbackMsg, s.feedbackSuccess].join(' ')} role="status" data-testid="login-notice">{notice}</div>}
               {reasonText && <div className={[s.feedbackMsg, s.feedbackInfo].join(' ')} role="status">{reasonText}</div>}
               {failure && <div className={[s.feedbackMsg, s.feedbackError].join(' ')} role="alert">{failure}</div>}
 
@@ -289,7 +303,12 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome }: P
                 </div>
 
                 <div className={s.field}>
-                  <label htmlFor="loginPass" className={s.label}>Contraseña</label>
+                  <div className={s.labelRow}>
+                    <label htmlFor="loginPass" className={s.label}>Contraseña</label>
+                    {isSurfaceEnabled('/recuperar') && (
+                      <Link href="/recuperar" className={s.forgotLink}>¿Olvidaste tu contraseña?</Link>
+                    )}
+                  </div>
                   <div className={s.inputWrap}>
                     <svg className={s.fieldIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />

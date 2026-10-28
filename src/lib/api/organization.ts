@@ -211,3 +211,29 @@ export async function fetchOrganization(organizationId: string): Promise<Organiz
   if (r.kind === 'error' && r.status === 401) return { kind: 'unauthorized' };
   return { kind: 'error' };
 }
+
+/**
+ * `POST /platform/accounts/{accountId}/reactivate` (referencia-api-v1.md §2, ADR-050 D7; plan-fase7-puesta-al-dia.md
+ * U-7). Ya activa → 200 igual. Sin `Command-Id`.
+ */
+export type ReactivateOutcome =
+  | { kind: 'ok' }
+  | { kind: 'not-found' }
+  | { kind: 'forbidden' }
+  | { kind: 'bad-request' }
+  | { kind: 'network' }
+  | { kind: 'unauthorized' }
+  | { kind: 'error' };
+
+export async function reactivateAccount(accountId: string): Promise<ReactivateOutcome> {
+  const r = await apiRequest<{ status?: unknown }>({
+    path: `/platform/accounts/${segment(accountId)}/reactivate`, method: 'POST', auth: 'required',
+  });
+  if (r.kind === 'network') return { kind: 'network' };
+  if (r.kind === 'ok') return r.data?.status === 'ACTIVE' ? { kind: 'ok' } : { kind: 'error' };
+  if (r.status === 404) return { kind: 'not-found' };
+  if (r.status === 403) return { kind: 'forbidden' };
+  if (r.status === 400) return { kind: 'bad-request' };
+  if (r.status === 401) return { kind: 'unauthorized' };
+  return { kind: 'error' };
+}

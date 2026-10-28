@@ -8,6 +8,7 @@
   display: inline-flex; align-items: center; justify-content: center;
   background: var(--color-success-bg); color: var(--color-success-text);
 }
+.avatar { font-family: var(--font-display); font-weight: var(--weight-semibold); font-size: var(--font-size-body-1); }
 .title { margin: 0; font-family: var(--font-display); font-size: var(--font-size-display-3); line-height: 1.15; color: var(--color-text); }
 .sub { margin: var(--space-1) 0 0; font-size: var(--font-size-body-3); color: var(--color-text-secondary); }
 
@@ -212,3 +213,23 @@
 }
 .campaigns > li { display: flex; min-width: 0; }
 .campaigns > li > * { flex: 1; }
+
+/* plan-fase7-puesta-al-dia.md P-1 (X-8): "Completa tu perfil" (paxfide-home.html .nudge), con los tokens informativos */
+.nudge {
+  display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4); border-radius: var(--radius-card);
+  background: var(--color-info-bg); color: var(--color-info-text); border: 1px solid var(--color-divider);
+}
+.nudge > svg { flex: none; }
+.nudgeText { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nudgeText span { font-size: var(--font-size-body-3); }
+.nudgeCta {
+  margin-left: auto; flex: none; display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-4);
+  border-radius: var(--radius-button); background: var(--color-action); color: var(--color-on-action);
+  font-weight: var(--weight-semibold); text-decoration: none;
+}
+.nudgeCta:focus-visible, .nudgeClose:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.nudgeClose {
+  flex: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  border: 0; background: none; color: inherit; cursor: pointer; border-radius: var(--radius-control);
+}
