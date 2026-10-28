@@ -86,7 +86,8 @@ test.describe('Línea de tiempo del seguimiento (VS-7)', () => {
   });
 });
 
-test('a 390 px con varios bienes: una pestaña por bien y solo su carril a la vista', async ({ page }) => {
+// P-2 (F-A5, como el boceto en estrecho): el árbol muestra todos los lotes y las pestañas eligen el lote de la serpiente
+test('a 390 px con varios bienes: una pestaña por bien en la serpiente; el árbol muestra los dos', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 860 });
   const lane = (ref: string, type: string) => ({ assetRef: ref, lifecycleStatus: 'REGISTERED', assetType: type, unitOfMeasure: 'kit', quantity: '1.0000', locationZone: null, custodianCategory: 'LOCAL_ALLY' });
   await page.route('**/api/v1/donations/tracking**', (route) => {
@@ -100,8 +101,9 @@ test('a 390 px con varios bienes: una pestaña por bien y solo su carril a la vi
   await page.getByLabel('Código de seguimiento').fill('TRK.prueba-pestanas');
   await page.getByRole('button', { name: 'Ver seguimiento' }).click();
   await expect(page.getByRole('tab')).toHaveCount(2);
-  await expect(page.getByTestId('asset-lane').filter({ visible: true })).toHaveCount(1);
+  await expect(page.getByTestId('asset-lane').filter({ visible: true })).toHaveCount(2);
   await page.getByRole('tab', { name: 'Abrigo' }).click();
-  await expect(page.getByTestId('asset-lane').filter({ visible: true })).toContainText('Abrigo');
+  await expect(page.getByRole('tab', { name: 'Abrigo' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('snake')).toContainText('ABRIGO');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

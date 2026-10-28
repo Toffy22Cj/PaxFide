@@ -2,6 +2,7 @@
 
 import { apiRequest } from './http';
 import { segment } from './config';
+import type { AnchorProof } from '../tracking/merkle';
 
 /**
  * Seguimiento público (TR-01 a TR-03). El `trackingCode` es una credencial y viaja **solo** en
@@ -19,6 +20,9 @@ export interface FinancialSnapshot {
   pendingAllocationAmount?: string;
   confirmedAllocationAmount?: string;
   refundedAmount?: string;
+  /** G-2 (nota del 2026-10-23, §8): primer y último `FUNDS_CLEARED`; faltan sin liquidaciones. */
+  firstClearedAt?: string;
+  lastClearedAt?: string;
 }
 
 export interface LogisticsItem {
@@ -29,6 +33,8 @@ export interface LogisticsItem {
   quantity?: string;
   locationZone?: string;
   custodianCategory?: string;
+  /** G-4 (nota del 2026-10-25, §8): siempre otro ítem de la misma `logistics`; si no, falta. */
+  parentAssetRef?: string;
 }
 
 export interface DonationTracking {
@@ -79,6 +85,8 @@ export function parseTracking(data: unknown): DonationTracking | null {
       pendingAllocationAmount: amount(f.pendingAllocationAmount),
       confirmedAllocationAmount: amount(f.confirmedAllocationAmount),
       refundedAmount: amount(f.refundedAmount),
+      firstClearedAt: opt(f.firstClearedAt),
+      lastClearedAt: opt(f.lastClearedAt),
     } : null,
     logistics: Array.isArray(d.logistics) ? d.logistics
       .filter((x): x is Record<string, unknown> => !!x && typeof x === 'object' && typeof (x as any).assetRef === 'string')
@@ -90,6 +98,7 @@ export function parseTracking(data: unknown): DonationTracking | null {
         quantity: typeof x.quantity === 'number' ? String(x.quantity) : opt(x.quantity),
         locationZone: opt(x.locationZone),
         custodianCategory: opt(x.custodianCategory),
+        parentAssetRef: opt(x.parentAssetRef),
       })) : [],
   };
 }
@@ -118,6 +127,50 @@ export interface Transition {
   locationZone?: string;
   custodianCategory?: string;
   status?: string;
+  /** G-3 (nota del 2026-10-25, §8): siempre en el contrato; un valor desconocido no se muestra. */
+  anchorStatus?: AnchorStatus;
+  /** 64 hexadecimales en minúscula; falta en pasos sin evento asociado. */
+  eventHash?: string;
+  /** Solo con `ANCHORED` y las hojas guardadas (E1). */
+  anchorProof?: AnchorProof;
+  /** ADR-051 F6: solo en el paso `DELIVERED`. Nunca la imagen ni su URL. */
+  evidenceRegistered?: boolean;
+  evidenceRef?: string;
+}
+
+export const ANCHOR_STATUSES = ['ANCHORED', 'IN_BATCH', 'PENDING', 'UNDER_REVIEW'] as const;
+export type AnchorStatus = (typeof ANCHOR_STATUSES)[number];
+const HEX64 = /^[0-9a-f]{64}$/;
+const EVIDENCE_REF = /^sha256:[0-9a-f]{64}$/;
+
+/** La prueba solo se acepta entera y bien formada; si falta algo, no hay botón (nunca se comprueba a medias). */
+export function parseAnchorProof(v: unknown): AnchorProof | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const p = v as Record<string, unknown>;
+  if (typeof p.merkleRoot !== 'string' || !HEX64.test(p.merkleRoot)) return undefined;
+  if (typeof p.leafIndex !== 'number' || !Number.isSafeInteger(p.leafIndex) || p.leafIndex < 0) return undefined;
+  if (!Array.isArray(p.path)) return undefined;
+  const path = p.path.map((x) => x as Record<string, unknown>);
+  if (!path.every((x) => x && (x.side === 'LEFT' || x.side === 'RIGHT') && typeof x.hash === 'string' && HEX64.test(x.hash))) return undefined;
+  if (typeof p.transactionHash !== 'string' || typeof p.network !== 'string' || typeof p.anchoredAt !== 'string') return undefined;
+  return {
+    merkleRoot: p.merkleRoot, leafIndex: p.leafIndex,
+    path: path.map((x) => ({ side: x.side as 'LEFT' | 'RIGHT', hash: x.hash as string })),
+    transactionHash: p.transactionHash, network: p.network, anchoredAt: p.anchoredAt,
+  };
+}
+
+export function parseTransition(t: Record<string, unknown>): Transition {
+  const anchorStatus = (ANCHOR_STATUSES as readonly string[]).includes(t.anchorStatus as string) ? t.anchorStatus as AnchorStatus : undefined;
+  const eventHash = typeof t.eventHash === 'string' && HEX64.test(t.eventHash) ? t.eventHash : undefined;
+  const delivered = t.eventType === 'ASSET_DELIVERED';
+  return {
+    eventType: t.eventType as string, timestamp: opt(t.timestamp), locationZone: opt(t.locationZone),
+    custodianCategory: opt(t.custodianCategory), status: opt(t.status), anchorStatus, eventHash,
+    anchorProof: anchorStatus === 'ANCHORED' && eventHash ? parseAnchorProof(t.anchorProof) : undefined,
+    evidenceRegistered: delivered && typeof t.evidenceRegistered === 'boolean' ? t.evidenceRegistered : undefined,
+    evidenceRef: delivered && typeof t.evidenceRef === 'string' && EVIDENCE_REF.test(t.evidenceRef) ? t.evidenceRef : undefined,
+  };
 }
 
 /** TR-03: historial público de un activo de la donación. */
@@ -125,10 +178,7 @@ export async function fetchAssetHistory(trackingCode: string, assetRef: string):
   return outcomeOf(await trackingRequest(`/donations/tracking/assets/${segment(assetRef)}/history`, trackingCode), (d) => {
     const h = (d as { history?: unknown } | null)?.history;
     if (!Array.isArray(h)) return null;
-    return h.filter((t) => t && typeof t.eventType === 'string').map((t) => ({
-      eventType: t.eventType, timestamp: opt(t.timestamp), locationZone: opt(t.locationZone),
-      custodianCategory: opt(t.custodianCategory), status: opt(t.status),
-    }));
+    return h.filter((t) => t && typeof t.eventType === 'string').map((t) => parseTransition(t));
   });
 }
 

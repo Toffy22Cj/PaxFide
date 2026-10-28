@@ -93,7 +93,8 @@ function useNavPosition(): [NavPosition | 'auto', boolean, (pos: NavPosition) =>
 export function Shell({ children, me = fetchMe }: { children: React.ReactNode; me?: typeof fetchMe }) {
   const state = useSyncExternalStore(session.subscribe, session.getState, () => 'RESTORING' as session.MachineState);
   const pathname = usePathname() ?? '';
-  const wide = pathname.startsWith('/panel/prediction');
+  // plan-fase7-puesta-al-dia.md P-2 (F-A5): el seguimiento lleva tres columnas en escritorio, como el boceto
+  const wide = pathname.startsWith('/panel/prediction') || pathname === '/tracking';
   const principal = useNavPrincipal(state, pathname, me);
   const [position, isDesktop, setNavPosition] = useNavPosition();
   const [isTuneOpen, setIsTuneOpen] = useState(false);

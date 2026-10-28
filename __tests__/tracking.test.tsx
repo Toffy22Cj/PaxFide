@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { within, render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
 import * as session from '../src/lib/auth/session';
 import { fetchTracking, fetchAssetHistory, fetchIntegrity, fetchNarrative, parseIntegrity, parseTracking } from '../src/lib/api/tracking';
@@ -153,7 +153,8 @@ describe('TrackingScreen (formulario)', () => {
     expect(await screen.findByTestId('narrative')).toHaveTextContent('Relato');
     expect(screen.getByText('Relato redactado con IA.')).toBeInTheDocument();
     // A-4: el recorrido de cada bien se pide al abrir, sin botón
-    expect(await screen.findByText('Despachado')).toBeInTheDocument();
+    // P-2: el paso sale en el árbol, en la serpiente y en el detalle; aquí, el del árbol
+    expect(within((await screen.findAllByTestId('tracking-step'))[0]).getByText('Despachado')).toBeInTheDocument();
     expect(history).toHaveBeenCalledWith('TRK.1', 'AS-1');
     // El código no se pinta en la pantalla
     expect(document.body.textContent).not.toContain('TRK.1');
