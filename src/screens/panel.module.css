@@ -204,6 +204,18 @@
   gap: 6px;
 }
 
+/* P-3: cuatro KPI en una fila (c3 del boceto) y "Por hacer" (c7) junto a "Actividad reciente" (c5) */
+@media (min-width: 769px) {
+  .pnGrid:has(> .kpi:nth-child(4)) > .kpi { grid-column: span 6; }
+  .c7, .c5 { grid-column: span 12; }
+}
+@media (min-width: 1000px) {
+  .pnGrid:has(> .kpi:nth-child(4)) > .kpi { grid-column: span 3; }
+  .c7 { grid-column: span 7; }
+  .c5 { grid-column: span 5; }
+}
+@media (max-width: 768px) { .c7, .c5 { grid-column: span 12; } }
+
 /* Sección Por hacer (.pn-card.c12) */
 .cFull {
   grid-column: span 12;
@@ -217,6 +229,8 @@
 }
 
 .sectionTitle {
+  flex: 1 1 auto; /* dentro de .sectionHeader (flex) no se encoge a su ancho mínimo ("Por / hacer") */
+  min-width: 0;
   margin: 0;
   font-size: 16px;
   font-weight: var(--weight-bold, 700);
@@ -631,3 +645,6 @@
     display: flex;
   }
 }
+
+/* El icono del título mantiene su tamaño aunque el título crezca */
+.sectionTitle svg { flex: none; width: 20px; height: 20px; }

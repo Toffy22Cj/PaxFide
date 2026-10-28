@@ -153,8 +153,10 @@ describe('Registrar activo (PanelHome)', () => {
 
   it('solo EMPLOYEE lo ve; nunca un REPRESENTATIVE solo (D-N1-2)', async () => {
     const { PanelHomeScreen } = await load();
-    const r = render(<PanelHomeScreen meClient={async () => ({ kind: 'ok', principal: { accountId: 'a', organizationId: 'o', roles: ['REPRESENTATIVE'] } })} />);
-    await screen.findByTestId('empty-state');
+    // P-3: el representante ya no ve el panel vacío (integridad y actividad, G-7 y G-8), pero sigue sin registrar
+    const r = render(<PanelHomeScreen meClient={async () => ({ kind: 'ok', principal: { accountId: 'a', organizationId: 'o', roles: ['REPRESENTATIVE'] } })}
+      integrityClient={async () => ({ kind: 'error' })} activityClient={async () => ({ kind: 'error' })} />);
+    await screen.findByTestId('panel-activity');
     expect(screen.queryByRole('button', { name: 'Registrar activo' })).toBeNull();
     r.unmount();
     render(<PanelHomeScreen meClient={async () => ({ kind: 'ok', principal: { accountId: 'a', organizationId: 'o', roles: ['EMPLOYEE'] } })} />);

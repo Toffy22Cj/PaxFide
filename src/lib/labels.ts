@@ -1,3 +1,4 @@
+import { formatQuantity } from './quantity';
 /** Traducciones de literales de los contratos. Un literal desconocido se muestra tal cual (nunca se inventa uno). */
 const DONATION_TYPES: Record<string, string> = { MONETARY: 'Dinero', IN_KIND: 'Especie (bienes)' };
 const PAYMENT_METHODS: Record<string, string> = {
@@ -37,6 +38,31 @@ const ANCHOR_STEP: Record<string, string> = {
   ANCHORED: 'Anclado en blockchain', IN_BATCH: 'En el próximo anclaje', PENDING: 'Esperando anclaje', UNDER_REVIEW: 'En revisión',
 };
 export const anchorStatusLabel = (v: string) => ANCHOR_STEP[v] ?? v;
+
+/**
+ * "Actividad reciente" del panel (referencia-api-v1.md §3, G-8; plan-fase7-puesta-al-dia.md P-3). Un tipo nuevo del
+ * contrato que no esté aquí rompe la compilación (switch con `never`). Sin actor, importes ni destinatarios.
+ */
+export function activityText(i: import('./api/panelData').ActivityItem): string {
+  const amount = [i.quantity ? formatQuantity(i.quantity) : undefined, i.unitOfMeasure].filter(Boolean).join(' ');
+  const zone = i.locationZone ? ` en ${i.locationZone}` : '';
+  switch (i.type) {
+    case 'ASSET_REGISTERED': return `Lote registrado${amount ? ` · ${amount}` : ''}${zone}`;
+    case 'ASSET_DISPATCHED': return 'Lote despachado';
+    case 'ASSET_RECEIVED': return `Lote recibido${zone}`;
+    case 'ASSET_DELIVERED': return `Lote entregado${zone}`;
+    case 'ASSET_SPLIT': return amount ? `Lote dividido: ${amount} pasan a un sublote` : 'Lote dividido en un sublote';
+    case 'FUNDS_CLEARED': return 'Donación confirmada';
+    case 'CAMPAIGN_CLOSED': return 'Convocatoria cerrada';
+    case 'BATCH_ANCHORED': return i.eventCount === undefined
+      ? 'Grupo de pasos anclado en blockchain'
+      : `Anclados en blockchain: ${i.eventCount} ${i.eventCount === 1 ? 'paso' : 'pasos'}`;
+    default: {
+      const unreachable: never = i.type;
+      throw new Error(`Actividad sin texto: ${String(unreachable)}`);
+    }
+  }
+}
 export const intentStatusLabel = (v: string) => INTENT_STATUS[v] ?? v;
 
 const ROLE: Record<string, string> = { ADMINISTRATOR: 'Administrador', REPRESENTATIVE: 'Representante', EMPLOYEE: 'Empleado' };

@@ -62,6 +62,8 @@ export interface OrgAsset {
   unitOfMeasure?: string;
   campaignRef?: string;
   assetType?: string;
+  /** G-9 (nota del 2026-10-25, §3): el último evento del lote por `sequence`; falta si no hay fecha. */
+  lastEventAt?: string;
 }
 
 export async function fetchOrganizationAssets(organizationId: string): Promise<ListOutcome<OrgAsset>> {
@@ -69,7 +71,7 @@ export async function fetchOrganizationAssets(organizationId: string): Promise<L
   return listOutcome(r, (a) => (a && typeof a.assetRef === 'string' ? {
     assetRef: a.assetRef, lifecycleStatus: String(a.lifecycleStatus), currentCustodianRef: opt(a.currentCustodianRef),
     currentLocation: opt(a.currentLocation), quantity: opt(a.quantity), unitOfMeasure: opt(a.unitOfMeasure), campaignRef: opt(a.campaignRef),
-    assetType: opt(a.assetType),
+    assetType: opt(a.assetType), lastEventAt: opt(a.lastEventAt),
   } : null));
 }
 
