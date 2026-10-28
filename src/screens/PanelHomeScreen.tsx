@@ -27,6 +27,8 @@ import {
   OrgAsset,
   OrganizationDetails,
 } from '../lib/api/organization';
+import { fetchActivity, fetchMonthlyCleared, fetchOrgIntegrity, type MonthlyCleared, type OrgIntegrity } from '../lib/api/panelData';
+import { ActivityFeed, IntegrityKpi, MonthlyKpi, daysSince } from '../components/panel/PanelTimeData';
 import {
   AmbiguousCommandItem,
   getAmbiguousSessionCommands,
@@ -342,9 +344,15 @@ export interface PanelHomeScreenProps {
   campaignsClient?: typeof fetchOrganizationCampaigns;
   fundsClient?: typeof fetchFunds;
   assetsClient?: typeof fetchOrganizationAssets;
+  monthlyClient?: typeof fetchMonthlyCleared;
+  integrityClient?: typeof fetchOrgIntegrity;
+  activityClient?: typeof fetchActivity;
   ambiguousCommands?: AmbiguousCommandItem[];
   now?: number;
 }
+
+/** "Desde hace más de N días" en "Por hacer" y en el KPI (paxfide-panel.html: N = 3). */
+export const STALE_DAYS = 3;
 
 export function PanelHomeScreen({
   meClient = fetchMe,
@@ -352,6 +360,9 @@ export function PanelHomeScreen({
   campaignsClient = fetchOrganizationCampaigns,
   fundsClient = fetchFunds,
   assetsClient = fetchOrganizationAssets,
+  monthlyClient = fetchMonthlyCleared,
+  integrityClient = fetchOrgIntegrity,
+  activityClient = fetchActivity,
   ambiguousCommands,
   now = Date.now(),
 }: PanelHomeScreenProps) {
@@ -371,6 +382,11 @@ export function PanelHomeScreen({
   const canFetchCampaigns = !!orgId && isAdmin && isSurfaceEnabled('/panel/campaigns');
   const canFetchFunds = !!orgId && (isAdmin || isEmployee) && isSurfaceEnabled('/panel/funds');
   const canFetchAssets = !!orgId && (isAdmin || isEmployee) && isSurfaceEnabled('/panel/assets');
+  // P-3 (G-6, G-7, G-8): el recaudado por mes como /funds; la integridad solo ADMINISTRATOR o REPRESENTATIVE (el
+  // empleado no la pide); la actividad, los tres papeles
+  const canFetchMonthly = canFetchFunds;
+  const canFetchIntegrity = !!orgId && (isAdmin || isRepresentative);
+  const canFetchActivity = !!orgId && (isAdmin || isEmployee || isRepresentative);
 
   const orgRead = useRead<OrganizationDetails | null, never>(async () => {
     if (!canFetchOrg) return { status: 'ready', data: null };
@@ -395,6 +411,18 @@ export function PanelHomeScreen({
     const r = await assetsClient(orgId!);
     return { status: 'ready', data: r.kind === 'ok' ? r.items : null };
   }, [canFetchAssets, orgId]);
+
+  const monthlyRead = useRead<MonthlyCleared | null, never>(async () => {
+    if (!canFetchMonthly) return { status: 'ready', data: null };
+    const r = await monthlyClient(orgId!).catch(() => null);
+    return { status: 'ready', data: r?.kind === 'ok' ? r.data : null };
+  }, [canFetchMonthly, orgId]);
+
+  const integrityRead = useRead<OrgIntegrity | null, never>(async () => {
+    if (!canFetchIntegrity) return { status: 'ready', data: null };
+    const r = await integrityClient(orgId!).catch(() => null);
+    return { status: 'ready', data: r?.kind === 'ok' ? r.data : null };
+  }, [canFetchIntegrity, orgId]);
 
   if (state.status === 'loading' || (canFetchOrg && orgRead.state.status === 'loading')) {
     return (
@@ -433,7 +461,7 @@ export function PanelHomeScreen({
   const register = canRegisterAsset(principal);
 
   // Si no hay superficies ni opciones para este usuario, mostrar EmptyState directo
-  if (entries.length === 0 && !canFetchCampaigns && !canFetchFunds && !canFetchAssets && !register) {
+  if (entries.length === 0 && !canFetchCampaigns && !canFetchFunds && !canFetchAssets && !canFetchIntegrity && !canFetchActivity && !register) {
     return (
       <div data-testid="panel-content" className={s.container}>
         <header className={s.pnHead} data-testid="panel-header">
@@ -464,13 +492,19 @@ export function PanelHomeScreen({
   const availableFunds = (isAdmin || isEmployee) && funds ? funds.filter((f) => BigInt(f.availableAmount || '0') > BigInt(0)) : [];
 
   // Urgencia de Por hacer: 1) ambiguos, 2) fondos por aplicar, 3) convocatorias sin empleado
-  const hasTodos = currentAmbiguous.length > 0 || availableFunds.length > 0 || unassignedCampaigns.length > 0;
+  // G-9: lotes por despachar sin cambios desde hace más de 3 días (como el boceto); sin `lastEventAt` no cuentan
+  const staleToDispatch = (isAdmin || isEmployee) && assets
+    ? assets.filter((a) => ['REGISTERED', 'RECEIVED'].includes(a.lifecycleStatus) && (daysSince(a.lastEventAt, now) ?? 0) > STALE_DAYS)
+    : [];
+  const hasTodos = currentAmbiguous.length > 0 || availableFunds.length > 0 || unassignedCampaigns.length > 0 || staleToDispatch.length > 0;
+  const monthly = monthlyRead.state.status === 'ready' ? monthlyRead.state.data : null;
+  const integrity = integrityRead.state.status === 'ready' ? integrityRead.state.data : null;
 
   // KPIs (máximo 3, Integridad se omite según X-13)
   const openCampaignsCount = isAdmin && campaigns ? campaigns.filter((c) => c.status === 'OPEN').length : null;
   const clearedTotals = (isAdmin || isEmployee) && funds ? computeTotalClearedByCurrency(funds) : null;
   const assetsToDispatchCount = (isAdmin || isEmployee) && assets ? countDispatcheableAssets(assets) : null;
-  const hasKpis = openCampaignsCount !== null || clearedTotals !== null || assetsToDispatchCount !== null;
+  const hasKpis = openCampaignsCount !== null || clearedTotals !== null || assetsToDispatchCount !== null || integrity !== null;
 
   const roleText = roles.map(roleLabel).join(', ') || 'Organización';
   const orgName = canFetchOrg && orgDetails?.name ? orgDetails.name : 'Tu organización';
@@ -561,7 +595,12 @@ export function PanelHomeScreen({
               <small className={s.kpiSub}>Convocatorias activas</small>
             </div>
           )}
-          {clearedTotals !== null && (
+          {monthly && (
+            <div className={`${s.pnCard} ${s.kpi}`}>
+              <MonthlyKpi data={monthly} now={now} iconClass={`${s.ico} ${s.kpiClearedIco}`} icon={<PanelIcon name="heart" />} />
+            </div>
+          )}
+          {!monthly && clearedTotals !== null && (
             <div className={`${s.pnCard} ${s.kpi}`} data-testid="kpi-cleared-amount">
               <span className={`${s.ico} ${s.kpiClearedIco}`}>
                 <PanelIcon name="heart" />
@@ -580,14 +619,22 @@ export function PanelHomeScreen({
               </span>
               <span className={s.kpiLabel}>Lotes por despachar</span>
               <b className={s.kpiValue}>{assetsToDispatchCount}</b>
-              <small className={s.kpiSub}>Listos para salida</small>
+              <small className={s.kpiSub}>{staleToDispatch.length > 0
+                ? `${staleToDispatch.length} desde hace más de ${STALE_DAYS} días`
+                : 'Listos para salida'}</small>
+            </div>
+          )}
+          {integrity && (
+            <div className={`${s.pnCard} ${s.kpi}`}>
+              <IntegrityKpi data={integrity} iconClass={`${s.ico} ${s.kpiClearedIco}`} icon={<PanelIcon name="lock" />} />
             </div>
           )}
         </section>
       )}
 
       {/* Por hacer (ordenado por urgencia: 1. ambiguos, 2. fondos por aplicar, 3. convocatorias sin empleado) */}
-      <section className={`${s.pnCard} ${s.cFull}`} aria-label="Tareas pendientes" data-testid="panel-todos-section">
+      <div className={s.pnGrid}>
+      <section className={`${s.pnCard} ${canFetchActivity ? s.c7 : s.cFull}`} aria-label="Tareas pendientes" data-testid="panel-todos-section">
         <div className={s.sectionHeader}>
           <h2 className={s.sectionTitle}>
             <PanelIcon name="info" /> Por hacer
@@ -627,6 +674,20 @@ export function PanelHomeScreen({
                 </Link>
               </li>
             ))}
+            {staleToDispatch.length > 0 && (
+              <li className={s.todoItem} data-testid="stale-assets-todo">
+                <div className={`${s.ti} ${s.stWait}`}>
+                  <PanelIcon name="truck" />
+                </div>
+                <div className={s.tt}>
+                  <b className={s.ttTitle}>{staleToDispatch.length === 1 ? 'Despachar 1 lote' : `Despachar ${staleToDispatch.length} lotes`}</b>
+                  <small className={s.ttSub}>Sin cambios desde hace más de {STALE_DAYS} días.</small>
+                </div>
+                <Link href="/panel/assets" className={s.pnBtnSecondary}>
+                  Ver lotes
+                </Link>
+              </li>
+            )}
             {unassignedCampaigns.map((c) => (
               <li key={c.campaignRef} className={s.todoItem} data-testid="unassigned-campaign-todo">
                 <div className={`${s.ti} ${s.stInfo}`}>
@@ -648,6 +709,13 @@ export function PanelHomeScreen({
           </p>
         )}
       </section>
+
+      {canFetchActivity && (
+        <div className={`${s.pnCard} ${s.c5}`}>
+          <ActivityFeed organizationId={orgId!} client={activityClient} />
+        </div>
+      )}
+      </div>
 
       {/* Formulario de registro de activo para EMPLOYEE si se activa */}
       {register && registering && (

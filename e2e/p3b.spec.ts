@@ -19,6 +19,9 @@ async function adminPage(browser: Browser, destination = '/panel/members'): Prom
 }
 
 test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
+  // Varias sesiones a la vez: con 4 workers en CI rondaban los 30 s del límite por defecto (p3a 27,9 s en el ci-local
+  // de 6ce9006). Más margen, sin saltar nada
+  test.describe.configure({ timeout: 60_000 });
   test('invitar → el enlace del correo (#token) → crear cuenta e iniciar sesión → aceptar; el token nunca en una URL ni en almacenamiento', async ({ browser, request }) => {
     const email = `invitada-${Date.now()}@demo.test`;
     const admin = await adminPage(browser);
@@ -38,6 +41,8 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
     const urls: string[] = [];
     invitee.on('request', (r) => urls.push(r.url()));
     await invitee.goto(link);
+    // Antes de pulsar, la página tiene que estar hidratada: un clic al botón del HTML del servidor no hace nada
+    await invitee.waitForFunction(() => !!(window as any).__TEST_ROUTER__);
     await expect(invitee.getByText(/inicia sesión con la cuenta del correo/)).toBeVisible();
     expect(invitee.url()).toMatch(/\/invitaciones$/);
     expect(invitee.url()).not.toContain(token);
@@ -74,6 +79,8 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
     // La misma invitación otra vez: el mismo 403
     const again = await (await browser.newContext()).newPage();
     await again.goto(link);
+    // Antes de pulsar, la página tiene que estar hidratada: un clic al botón del HTML del servidor no hace nada
+    await again.waitForFunction(() => !!(window as any).__TEST_ROUTER__);
     await again.getByRole('button', { name: 'Iniciar sesión' }).click();
     await again.getByLabel('Correo electrónico').fill(email);
     await again.getByLabel('Contraseña').fill('clave-demo-larga');
@@ -95,6 +102,8 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
 
     const emp = await (await browser.newContext()).newPage();
     await emp.goto(link);
+    // Antes de pulsar, la página tiene que estar hidratada: un clic al botón del HTML del servidor no hace nada
+    await emp.waitForFunction(() => !!(window as any).__TEST_ROUTER__);
     await emp.getByRole('button', { name: 'Iniciar sesión' }).click();
     await emp.getByLabel('Correo electrónico').fill(email);
     await emp.getByLabel('Contraseña').fill('clave-demo-larga');

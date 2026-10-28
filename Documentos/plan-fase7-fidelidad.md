@@ -124,8 +124,8 @@ Lo que **no** cambia de la regla de los prompts (§2): los colores salen de toke
 | X-10 | Cifras, organizaciones, lugares y fechas de ejemplo | Todas | §3 de los prompts y D-P5. Las etiquetas, según §2.1 |
 | X-11 | Filtros por causa ("Nutrición", "Agua limpia"…) y búsqueda | Landing | ⏳ R-1 |
 | X-12 | Las 17 variantes de tarjeta de convocatoria | Landing | Son un muestrario del boceto: se usa la variante 01 (la "unificada clásica"), que es `CampaignCard` |
-| X-13 | KPI "Integridad", "Actividad reciente" y "Recaudado en octubre" (pasa a "Recaudado" total) | Panel | ⏳ Llegan con F-C3 tras la ficha R-6, bloques B (G-6) y D (G-7, G-8) |
-| X-14 | Columna "Último cambio" de la tabla de lotes del panel | Panel | ⏳ Llega con F-C3 tras la Enmienda 1 de la ficha R-6 (G-9). "Desde hace más de 3 días" se calcula entonces en el cliente. **Las fechas de cada paso del seguimiento ya se muestran** (`history[].timestamp`) |
+| X-13 | KPI "Integridad", "Actividad reciente" y "Recaudado en octubre" (pasa a "Recaudado" total) | Panel | ✅ Implementado en P-3 de `plan-fase7-puesta-al-dia.md` (G-6, G-7, G-8), con la mini serie de 6 meses del plan. La integridad solo para `ADMINISTRATOR` y `REPRESENTATIVE`; el recaudado mensual, como `/funds` |
+| X-14 | Columna "Último cambio" de la tabla de lotes del panel | Panel | ✅ Implementado en P-3 (`lastEventAt`, G-9). "Desde hace más de 3 días" en el KPI y en "Por hacer"; un lote sin fecha no cuenta |
 | X-15 | Hash por paso ("Huella criptográfica"), "Anclado en blockchain (Merkle)" por paso, fecha del pago, sublotes como árbol | Seguimiento | ✅ Implementado en P-2 de `plan-fase7-puesta-al-dia.md` (con "Comprobar en mi navegador"). **Sigue sin mostrarse:** el nombre del lote ("Lote A") y el destinatario ("Escuela San José"), por privacidad |
 | X-16 | Selector "Escenario" y "Recorrido en vivo" | Seguimiento | Herramienta del boceto |
 | X-17 | Botón "DEMO" y cambio de rol | Home, Panel | Herramienta del boceto |

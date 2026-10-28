@@ -9,6 +9,7 @@ import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { ListOutcome } from '../lib/api/campaignAdmin';
 import { fetchOrganizationAssets, OrgAsset } from '../lib/api/organization';
 import { lifecycleLabel } from '../lib/labels';
+import { LocalDate } from '../components/LocalDate';
 import { formatQuantity } from '../lib/quantity';
 import { EmptyState, ErrorState, ForbiddenState, LoadingState, UnavailableState } from '../components/States';
 import { RegisterAssetForm } from '../components/asset/RegisterAssetForm';
@@ -222,6 +223,7 @@ export function OrgAssetsScreen({
                     <th>Cantidad</th>
                     <th>Estado</th>
                     <th>Ubicación</th>
+                    <th>Último cambio</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -253,6 +255,8 @@ export function OrgAssetsScreen({
                           </span>
                         </td>
                         <td>{a.currentLocation ?? '—'}</td>
+                        {/* G-9: sin `lastEventAt`, vacía (nunca "hace 0 días") */}
+                        <td className={s.mono} data-testid="org-asset-last-change">{a.lastEventAt ? <LocalDate iso={a.lastEventAt} withTime compact /> : ''}</td>
                       </tr>
                     );
                   })}

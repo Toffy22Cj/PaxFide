@@ -830,8 +830,65 @@ const server = http.createServer(async (req, res) => {
       assetRef: a.assetRef, lifecycleStatus: a.lifecycleStatus, currentCustodianRef: a.currentCustodianRef,
       currentLocation: a.currentLocation, quantity: scale4(a.quantity), unitOfMeasure: a.unitOfMeasure, campaignRef: a.campaignRef,
       assetType: a.assetType,
+      // G-9: el último evento por orden (aquí, el último del historial)
+      ...(a.history && a.history.length ? { lastEventAt: a.history[a.history.length - 1].timestamp } : {}),
     }));
     send(res, 200, { items });
+    return;
+  }
+
+  // P-3 — G-6, G-7 y G-8 (ficha R-6, Bloques B y D; referencia-api-v1.md §3). Valores del doble, por la organización
+  const timeMatch = p.match(/^\/organizations\/([^/]+)\/(funds\/monthly|integrity|activity)$/);
+  if (timeMatch && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(timeMatch[1]);
+    const what = timeMatch[2];
+    const allowed = { 'funds/monthly': ['ADMINISTRATOR', 'EMPLOYEE'], integrity: ['ADMINISTRATOR', 'REPRESENTATIVE'], activity: ['ADMINISTRATOR', 'EMPLOYEE', 'REPRESENTATIVE'] }[what];
+    if (actor.organizationId !== orgId || !actor.roles.some((r) => allowed.includes(r))) { problem(res, 403, 'Forbidden'); return; }
+    const funds = [...intents.values()].filter((i) => i.fundId && campaigns.get(i.publicCode)?.organizationRef === orgId);
+    const orgAssets = [...assets.values()].filter((a) => a.organizationRef === orgId);
+    if (what === 'funds/monthly') {
+      const n = url.searchParams.has('months') ? Number(url.searchParams.get('months')) : 6;
+      if (!Number.isInteger(n) || n < 1 || n > 12) { problem(res, 400, 'BadRequest'); return; }
+      const bogota = (iso) => new Date(Date.parse(iso) - 5 * 3600 * 1000).toISOString().slice(0, 7);
+      const now = new Date(Date.now() - 5 * 3600 * 1000);
+      const months = [];
+      for (let k = n - 1; k >= 0; k--) months.push(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - k, 1)).toISOString().slice(0, 7));
+      const currencies = [...new Set(funds.map((f) => f.currency || 'COP'))];
+      const items = [];
+      for (const c of currencies) for (const m of months) {
+        const sum = funds.filter((f) => (f.currency || 'COP') === c && f.clearedAt && bogota(f.clearedAt) === m).reduce((t, f) => t + BigInt(f.amount), BigInt(0));
+        items.push({ month: m, currency: c, clearedAmount: String(sum) });
+      }
+      send(res, 200, { timezone: 'America/Bogota', items }, { 'Cache-Control': 'no-store' });
+      return;
+    }
+    if (what === 'integrity') {
+      const events = orgAssets.reduce((t, a) => t + (a.history ? a.history.length : 0), 0) + funds.length;
+      send(res, 200, { unanchoredEvents: Math.max(0, events - 2), inPendingBatches: 0, underReviewEvents: 0, lastAnchoredAt: '2026-10-08T10:00:00Z', truncated: false, checkedAt: new Date().toISOString() }, { 'Cache-Control': 'no-store' });
+      return;
+    }
+    // activity: de lo más reciente a lo más antiguo, 20 por página, cursor opaco de esta organización
+    const all = [];
+    for (const a of orgAssets) for (const h of a.history || []) {
+      const it = { type: h.eventType, occurredAt: h.timestamp, subject: { kind: 'ASSET', ref: a.assetRef } };
+      if (h.eventType === 'ASSET_REGISTERED' || h.eventType === 'ASSET_SPLIT') { it.quantity = scale4(a.quantity); it.unitOfMeasure = a.unitOfMeasure; }
+      if (['ASSET_REGISTERED', 'ASSET_RECEIVED', 'ASSET_DELIVERED'].includes(h.eventType)) it.locationZone = 'Zona centro';
+      if (['ASSET_REGISTERED', 'ASSET_DISPATCHED', 'ASSET_RECEIVED', 'ASSET_DELIVERED', 'ASSET_SPLIT'].includes(h.eventType)) all.push(it);
+    }
+    for (const f of funds) if (f.clearedAt) all.push({ type: 'FUNDS_CLEARED', occurredAt: f.clearedAt, subject: { kind: 'FUND', ref: f.fundId } });
+    all.push({ type: 'BATCH_ANCHORED', occurredAt: '2026-10-08T10:00:00Z', eventCount: 2 });
+    all.sort((x, y) => (x.occurredAt < y.occurredAt ? 1 : -1));
+    const cursor = url.searchParams.get('cursor');
+    let start = 0;
+    if (cursor !== null) {
+      const m = /^([^:]+):(\d+)$/.exec(Buffer.from(cursor, 'base64url').toString());
+      if (!m || m[1] !== orgId) { problem(res, 400, 'BadRequest'); return; }
+      start = Number(m[2]);
+    }
+    const out = { items: all.slice(start, start + 20), truncated: false };
+    if (start + 20 < all.length) out.nextCursor = Buffer.from(`${orgId}:${start + 20}`).toString('base64url');
+    send(res, 200, out, { 'Cache-Control': 'no-store' });
     return;
   }
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Ref: Documentos/plan-fase7-fidelidad.md §1 (punto 2 y 4), §4 F-A1, §5 F-B1, F-B2.
+// Ref: Documentos/plan-fase7-fidelidad.md §1 (punto 2 y 4), §4 F-A1, §5 F-B1, F-B2; plan-fase7-puesta-al-dia.md P-3
+// (el boceto del panel abre con la bienvenida: se cruza antes de capturar).
 // Capturas de fidelidad lado a lado (boceto vs app) en claro y oscuro a 390 y 1280 px.
 // Comprobación de superposición con elementFromPoint a 390, 1280 y 1920 px.
 
@@ -112,7 +113,12 @@ async function capturePanelScreens(browser, screensToRun) {
         const page = await browser.newPage({
           viewport: { width, height: 860 },
         });
+        // Sin movimiento: el portal del boceto no se queda a medias en la captura
+        await page.emulateMedia({ reducedMotion: 'reduce' });
         await page.goto(sketchUrl);
+        // El boceto abre con la bienvenida y "¿Cómo te llamamos?": se cruzan con sus propios botones antes de ir al panel
+        await page.click('#wGo');
+        if (await page.locator('#dSkip').isVisible()) await page.click('#dSkip');
         await page.evaluate(
           ({ th, role, view }) => {
             const dRole = document.querySelector('#dRole');
@@ -131,7 +137,9 @@ async function capturePanelScreens(browser, screensToRun) {
           },
           { th: theme, role: screenInfo.role, view: screenInfo.sketchView }
         );
-        await page.waitForTimeout(400);
+        const navItem = page.locator(`#navItems [data-k="${screenInfo.sketchView}"]`);
+        if (await navItem.count()) await navItem.first().click();
+        await page.waitForTimeout(800);
         const out = path.join(outDir, `boceto__${theme}__${width}.png`);
         await page.screenshot({ path: out, fullPage: true });
         console.log(`Boceto guardado: ${out}`);
@@ -264,9 +272,11 @@ async function main() {
         'action:register-asset',
         'action:create-campaign',
       ]);
+      // En su propio grupo: al terminar se mata el grupo entero (pnpm y su next-server), y el script sale
       nextProc = spawn('pnpm', ['dev', '--port', '3000'], {
         cwd: ROOT,
         stdio: 'inherit',
+        detached: true,
         env: {
           ...process.env,
           NEXT_PUBLIC_API_BASE_URL: 'http://localhost:3002/api/v1',
@@ -297,7 +307,7 @@ async function main() {
 
     console.log('\n✅ Todas las capturas y comprobaciones completadas con éxito.');
   } finally {
-    if (nextProc) nextProc.kill();
+    if (nextProc) { try { process.kill(-nextProc.pid, 'SIGTERM'); } catch { nextProc.kill(); } }
     if (fakeBackendProc) fakeBackendProc.kill();
   }
 }
