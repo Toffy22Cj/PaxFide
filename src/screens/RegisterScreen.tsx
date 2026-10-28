@@ -2,7 +2,8 @@
 
 // Ref: P2; POST /auth/register; DD-56; H-P2-1 (PasswordTooShort >= 12).
 // Documentos/plan-fase7-fidelidad.md §2 D-F5 (acceso sobre el mundo), D-F10 (bienvenida), D-F14 (fundación), X-4..X-7;
-// Documentos/paxfide-landing.html (.auth-card, #formRegister, checkPassStrength).
+// Documentos/paxfide-landing.html (.auth-card, #formRegister, checkPassStrength); plan-fase7-puesta-al-dia.md R-1 (las
+// dos casillas legales, sin marcar; sin las dos no se envía nada; el registro lleva las dos versiones de LEGAL_VERSIONS).
 import React, { useState } from 'react';
 import Link from 'next/link';
 import * as session from '../lib/auth/session';
@@ -11,6 +12,7 @@ import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { BrandMark } from '../components/shell/BrandMark';
 import { BrandDots } from '../components/loaders/BrandDots';
 import { AccessLayout } from '../components/access/AccessLayout';
+import { LegalConsent } from '../components/access/LegalConsent';
 import s from './access.module.css';
 
 const MIN_PASSWORD = 12;
@@ -53,11 +55,15 @@ export function RegisterScreen({ client = registerAccount }: { client?: (e: stri
   const [errors, setErrors] = useState<{ email?: string; password?: string; repeat?: string }>({});
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<RegisterOutcome | null>(null);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptData, setAcceptData] = useState(false);
+  const consented = acceptTerms && acceptData;
 
   const strength = calculateStrength(password);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!consented) return; // R-1: sin las dos casillas no hay petición
     const next = {
       email: email.trim() ? undefined : 'Este campo es obligatorio.',
       password: !password ? 'Este campo es obligatorio.'
@@ -83,6 +89,7 @@ export function RegisterScreen({ client = registerAccount }: { client?: (e: stri
   const failure: Record<string, string> = {
     'duplicate-email': 'Ya existe una cuenta con ese correo.',
     'bad-request': 'Revisa los datos: alguno no es válido.',
+    'legal-rejected': 'No pudimos registrar que aceptaste las condiciones vigentes. Recarga la página y vuelve a intentarlo.',
     'server-error': 'No pudimos crear la cuenta. Inténtalo de nuevo más tarde.',
     network: 'No pudimos conectar. Revisa tu conexión e inténtalo de nuevo.',
   };
@@ -268,7 +275,12 @@ export function RegisterScreen({ client = registerAccount }: { client?: (e: stri
                   </div>
                 </details>
 
-                <button type="submit" className={s.submitBtn} disabled={sending} aria-busy={sending || undefined}>
+                <div className={s.consents}>
+                  <LegalConsent doc="terms" checked={acceptTerms} onChange={setAcceptTerms} disabled={sending} />
+                  <LegalConsent doc="dataPolicy" checked={acceptData} onChange={setAcceptData} disabled={sending} />
+                </div>
+
+                <button type="submit" className={s.submitBtn} disabled={sending || !consented} aria-busy={sending || undefined}>
                   <span>Crear cuenta</span>
                   {sending ? (
                     <BrandDots aria-hidden="true" />

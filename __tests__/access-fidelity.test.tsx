@@ -10,6 +10,15 @@ vi.mock('next/link', () => ({
   default: ({ href, children, ...rest }: any) => <a href={href} {...rest}>{children}</a>,
 }));
 
+/** R-1 (plan-fase7-puesta-al-dia.md): sin las dos casillas no se puede enviar; las marca si aún no lo están. */
+function consentAll() {
+  for (const id of ['consent-terms', 'consent-dataPolicy']) {
+    const box = screen.getByTestId(id) as HTMLInputElement;
+    if (!box.checked) fireEvent.click(box);
+  }
+}
+
+
 describe('Fidelidad del Acceso (F-A2)', () => {
   beforeEach(() => {
     session._resetForTest();
@@ -55,7 +64,7 @@ describe('Fidelidad del Acceso (F-A2)', () => {
       // Medidor de seguridad indica débil (< 12)
       expect(screen.getByText(/Seguridad: Débil/i)).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+      consentAll(); fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
       // Bloquea antes de enviar al backend
       expect(screen.getByText('La contraseña debe tener al menos 12 caracteres.')).toBeInTheDocument();
@@ -70,7 +79,7 @@ describe('Fidelidad del Acceso (F-A2)', () => {
       fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: '123456789012' } }); // 12 chars
       fireEvent.change(screen.getByLabelText('Repite la contraseña'), { target: { value: '123456789012' } });
 
-      fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+      consentAll(); fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
       await waitFor(() => expect(client).toHaveBeenCalledWith('user@demo.test', '123456789012'));
       expect(session.isJustRegistered()).toBe(true);

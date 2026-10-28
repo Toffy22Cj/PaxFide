@@ -1,18 +1,30 @@
 'use client';
 
 import { apiRequest } from './http';
+import { LEGAL_VERSIONS } from '../legal/versions';
 
-/** ID-01: `POST /api/v1/auth/login` → `200 {token}`; 400 campos vacíos; 401 cualquier fallo; 500 al emitir. */
+/**
+ * ID-01: `POST /api/v1/auth/login` → `200 {token}`; 400 campos vacíos; 401 cualquier fallo; 500 al emitir.
+ * referencia-api-v1.md §1, nota D3 (plan-fase7-puesta-al-dia.md R-2, U-2): con la contraseña correcta y alguna versión
+ * legal sin aceptar, `403 AcceptanceRequired` con las versiones pendientes y sin token. El 401 no cambia.
+ */
 export type LoginOutcome =
   | { kind: 'ok'; token: string }
   | { kind: 'invalid-credentials' }
+  | { kind: 'acceptance-required'; pendingTermsVersion?: string; pendingDataPolicyVersion?: string }
   | { kind: 'bad-request' }
   | { kind: 'server-error' }
   | { kind: 'network' };
 
-export async function login(email: string, password: string): Promise<LoginOutcome> {
+/** Las versiones que se aceptan al repetir el login: solo las pendientes, exactamente las vigentes. */
+export interface LoginAcceptance {
+  acceptedTermsVersion?: string;
+  acceptedDataPolicyVersion?: string;
+}
+
+export async function login(email: string, password: string, acceptance?: LoginAcceptance): Promise<LoginOutcome> {
   const r = await apiRequest<{ token?: unknown }>({
-    path: '/auth/login', method: 'POST', body: { email, password }, auth: 'none',
+    path: '/auth/login', method: 'POST', body: { email, password, ...(acceptance ?? {}) }, auth: 'none',
   });
   if (r.kind === 'network') return { kind: 'network' };
   if (r.kind === 'ok') {
@@ -20,8 +32,29 @@ export async function login(email: string, password: string): Promise<LoginOutco
     return token ? { kind: 'ok', token } : { kind: 'server-error' };
   }
   if (r.status === 401) return { kind: 'invalid-credentials' };
+  if (r.status === 403 && r.problem.title === 'AcceptanceRequired') {
+    const out: LoginOutcome = { kind: 'acceptance-required' };
+    if (r.problem.pendingTermsVersion) out.pendingTermsVersion = r.problem.pendingTermsVersion;
+    if (r.problem.pendingDataPolicyVersion) out.pendingDataPolicyVersion = r.problem.pendingDataPolicyVersion;
+    return out;
+  }
   if (r.status === 400) return { kind: 'bad-request' };
   return { kind: 'server-error' };
+}
+
+/**
+ * U-2: las versiones pendientes que la web sabe mostrar. Si el backend pide una que no es la de LEGAL_VERSIONS, la web
+ * no tiene ese texto: no se puede aceptar desde aquí (null).
+ */
+export function acceptanceFor(outcome: { pendingTermsVersion?: string; pendingDataPolicyVersion?: string }): LoginAcceptance | null {
+  const { pendingTermsVersion: t, pendingDataPolicyVersion: d } = outcome;
+  if (t === undefined && d === undefined) return null;
+  if (t !== undefined && t !== LEGAL_VERSIONS.terms) return null;
+  if (d !== undefined && d !== LEGAL_VERSIONS.dataPolicy) return null;
+  const out: LoginAcceptance = {};
+  if (t !== undefined) out.acceptedTermsVersion = t;
+  if (d !== undefined) out.acceptedDataPolicyVersion = d;
+  return out;
 }
 
 export type Role = 'ADMINISTRATOR' | 'REPRESENTATIVE' | 'EMPLOYEE';
@@ -70,7 +103,11 @@ export async function fetchMe(): Promise<MeOutcome> {
   return { kind: 'error' };
 }
 
-/** `POST /auth/register` (P2; sin `Command-Id`, DD-56): `201 {accountId, status}`; 409 `DuplicateEmail`. */
+/**
+ * `POST /auth/register` (P2; sin `Command-Id`, DD-56): `201 {accountId, status}`; 409 `DuplicateEmail`.
+ * referencia-api-v1.md §1, nota R-5 (plan-fase7-puesta-al-dia.md R-1): lleva las dos versiones aceptadas; sin ellas o
+ * con otra, 400 `BadRequest` sin cuenta creada (`legal-rejected`).
+ */
 export type RegisterOutcome =
   | { kind: 'ok' }
   | { kind: 'duplicate-email' }
@@ -78,16 +115,22 @@ export type RegisterOutcome =
   | { kind: 'bad-request' }
   | { kind: 'server-error' }
   | { kind: 'network' }
-  | { kind: 'password-too-short' };
+  | { kind: 'password-too-short' }
+  | { kind: 'legal-rejected' };
 
 export async function registerAccount(email: string, password: string): Promise<RegisterOutcome> {
-  const r = await apiRequest<unknown>({ path: '/auth/register', method: 'POST', body: { email, password }, auth: 'none' });
+  const r = await apiRequest<unknown>({
+    path: '/auth/register', method: 'POST', auth: 'none',
+    body: { email, password, acceptedTermsVersion: LEGAL_VERSIONS.terms, acceptedDataPolicyVersion: LEGAL_VERSIONS.dataPolicy },
+  });
   if (r.kind === 'network') return { kind: 'network' };
   if (r.kind === 'ok') return { kind: 'ok' };
   if (r.status === 409) return { kind: 'duplicate-email' };
   if (r.status === 400 && r.problem.title === 'InvalidEmailFormat') return { kind: 'invalid-email' };
   // H-P2-1 del backend (`4d1d65a`): menos de 12 caracteres → 400 `PasswordTooShort`
   if (r.status === 400 && r.problem.title === 'PasswordTooShort') return { kind: 'password-too-short' };
+  // Los campos vacíos no llegan al backend (los valida el formulario): un 400 `BadRequest` es la versión legal
+  if (r.status === 400 && r.problem.title === 'BadRequest') return { kind: 'legal-rejected' };
   if (r.status === 400) return { kind: 'bad-request' };
   return { kind: 'server-error' };
 }

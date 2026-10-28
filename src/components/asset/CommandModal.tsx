@@ -7,6 +7,8 @@ import { TextField, SelectField, TextArea } from '../ui/Field';
 import { Button } from '../ui/Button';
 import { Actions, uiClasses as ui } from '../ui/Layout';
 import { CommandFeedback } from '../CommandFeedback';
+import { LegalConsent } from '../access/LegalConsent';
+import type { LegalDocumentKey } from '../../lib/legal/versions';
 
 export interface FieldSpec {
   name: string;
@@ -27,8 +29,13 @@ export interface FieldSpec {
  * Formulario transitorio de un comando en un modal (§4: título, contenido, Cancelar + Primario). Los campos son
  * referencias de texto del contrato; el backend valida su forma (400) y el estado del activo (409).
  */
-export function CommandModal<TRes>({ title, description, fields, submitLabel, builder, onSuccess, onClose, validate }: {
+export function CommandModal<TRes>({ title, description, fields, submitLabel, builder, onSuccess, onClose, validate, consent }: {
   title: string;
+  /**
+   * plan-fase7-puesta-al-dia.md R-3: una casilla legal sin marcar (p. ej. los términos para organizaciones). Sin
+   * marcarla no se puede enviar; la versión aceptada la pone el `builder`.
+   */
+  consent?: LegalDocumentKey;
   description?: React.ReactNode;
   fields: FieldSpec[];
   submitLabel: string;
@@ -44,6 +51,7 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
   const command = useCommand<TRes>(builder);
   const sent = useRef<Record<string, string>>({});
   const sending = command.state === 'SENDING';
+  const [consented, setConsented] = useState(false);
 
   useEffect(() => {
     if (command.state === 'SUCCESS') onSuccess(command.data, command.location, sent.current);
@@ -52,6 +60,7 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (consent && !consented) return;
     const nextErrors: Record<string, string | undefined> = {};
     const payload: Record<string, string> = {};
     for (const f of fields) {
@@ -84,10 +93,11 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
           : <TextField key={f.name} label={f.label} hint={f.hint} value={values[f.name]} autoComplete="off"
               onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))} error={errors[f.name]} disabled={sending} />
         ))}
+        {consent && <LegalConsent doc={consent} checked={consented} onChange={setConsented} disabled={sending || command.state === 'AMBIGUOUS'} />}
         <CommandFeedback command={command} />
         <Actions>
           <Button variant="secondary" onClick={onClose} disabled={sending}>Cancelar</Button>
-          {command.state !== 'AMBIGUOUS' && <Button type="submit" sending={sending}>{submitLabel}</Button>}
+          {command.state !== 'AMBIGUOUS' && <Button type="submit" sending={sending} disabled={!!consent && !consented}>{submitLabel}</Button>}
         </Actions>
       </form>
     </Modal>

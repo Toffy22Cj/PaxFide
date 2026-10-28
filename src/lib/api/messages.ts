@@ -49,6 +49,10 @@ const BY_TITLE: Record<string, string> = {
   InvalidDonationAmount: 'El monto no es válido.',
   // Activos (DomainInvariantViolationException: el title es el nombre de la regla)
   InvalidAssetTransition: 'El activo no está en un estado que permita esta operación.',
+  // Entrega con foto (plan-fase7-puesta-al-dia.md U-3; referencia-api-v1.md §6, nota ADR-051 T4)
+  InvalidEvidenceRef: 'La foto de la entrega no es válida. Súbela de nuevo.',
+  EvidenceNotFound: 'No encontramos la foto de la entrega en tu organización. Súbela de nuevo.',
+  EvidenceAlreadyBound: 'Esa foto ya se usó en otra entrega. Toma una foto de esta entrega.',
   AssetTerminalState: 'El activo ya terminó su recorrido: no admite más operaciones.',
   InsufficientQuantity: 'La cantidad a separar debe ser menor que la cantidad actual del activo.',
   InvalidSplitTarget: 'No se puede dividir este activo con esa cantidad.',

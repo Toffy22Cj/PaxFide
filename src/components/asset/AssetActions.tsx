@@ -9,6 +9,7 @@ import { Button } from '../ui/Button';
 import { Actions } from '../ui/Layout';
 import { StatusNotice } from '../States';
 import { CommandModal, FieldSpec } from './CommandModal';
+import { DeliverModal } from './DeliverModal';
 import { SplitProgress } from './SplitProgress';
 import type { PrincipalState } from '../../lib/auth/usePrincipal';
 
@@ -51,15 +52,9 @@ const SPECS: Record<ActionId, { label: string; title: string; description: strin
       { name: 'receiverRef', label: 'Quién recibe (referencia)' },
     ], done: 'Activo recibido.',
   },
+  // plan-fase7-puesta-al-dia.md U-3: la entrega lleva una foto que se sube antes (DeliverModal), no un texto libre
   deliver: {
-    label: 'Entregar', title: 'Entregar activo',
-    description: 'Registra la entrega final. Después el activo queda en solo lectura. La hora la pone el servidor.',
-    fields: [
-      { name: 'finalCustodianRef', label: 'Custodio final (referencia)' },
-      { name: 'beneficiaryRef', label: 'Beneficiario (referencia)', hint: 'Una referencia, nunca datos personales.' },
-      { name: 'locationRef', label: 'Lugar de entrega (referencia)' },
-      { name: 'evidenceRef', label: 'Evidencia (referencia)' },
-    ], done: 'Activo entregado.',
+    label: 'Entregar', title: 'Entregar activo', description: '', fields: [], done: 'Activo entregado.',
   },
 };
 
@@ -98,7 +93,15 @@ export function AssetActions({ assetRef, delivered, onChanged, principal }: {
           <Button key={a} variant="secondary" onClick={() => { setDone(null); setOpen(a); }}>{SPECS[a].label}</Button>
         ))}
       </Actions>}
-      {open && (
+      {open === 'deliver' && (
+        <DeliverModal
+          assetRef={assetRef}
+          organizationId={principal?.status === 'ready' ? principal.data.organizationId ?? null : null}
+          onClose={() => setOpen(null)}
+          onSuccess={() => { setOpen(null); setDone(SPECS.deliver.done); onChanged(); }}
+        />
+      )}
+      {open && open !== 'deliver' && (
         <CommandModal
           key={open}
           title={SPECS[open].title}

@@ -1,4 +1,5 @@
 import { test, expect, Page, Browser } from '@playwright/test';
+import { acceptLegal } from './support/evidence';
 
 const API = 'http://localhost:3002';
 
@@ -41,10 +42,13 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
     expect(invitee.url()).toMatch(/\/invitaciones$/);
     expect(invitee.url()).not.toContain(token);
 
+    await acceptLegal(invitee);
+
     await invitee.getByRole('button', { name: 'Crear cuenta' }).click();
     await invitee.getByLabel('Correo electrónico').fill(email);
     await invitee.getByLabel('Contraseña', { exact: true }).fill('clave-demo-larga');
     await invitee.getByLabel('Repite la contraseña').fill('clave-demo-larga');
+    await acceptLegal(invitee);
     await invitee.getByRole('button', { name: 'Crear cuenta' }).click();
     await invitee.getByRole('link', { name: 'Iniciar sesión' }).click();
     await invitee.getByLabel('Correo electrónico').fill(email);
@@ -87,7 +91,7 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
     await admin.getByRole('dialog').getByRole('button', { name: 'Enviar invitación' }).click();
     await expect(admin.getByText('Invitación enviada.')).toBeVisible();
     const { link } = await (await request.get(`${API}/__test/invitations/last?email=${encodeURIComponent(email)}`)).json();
-    const { accountId } = await (await request.post(`${API}/api/v1/auth/register`, { data: { email, password: 'clave-demo-larga' } })).json();
+    const { accountId } = await (await request.post(`${API}/api/v1/auth/register`, { data: { email, password: 'clave-demo-larga', acceptedTermsVersion: 'v1-2026-10', acceptedDataPolicyVersion: 'v1-2026-10' } })).json();
 
     const emp = await (await browser.newContext()).newPage();
     await emp.goto(link);

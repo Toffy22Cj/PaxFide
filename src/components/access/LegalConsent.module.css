@@ -1,0 +1,12 @@
+/* Ref: plan-fase7-puesta-al-dia.md R-1, R-3, U-2; prototipo paxfide-landing.html (.auth-checkbox-label). Solo tokens
+   semánticos; la casilla y su etiqueta forman un objetivo táctil de al menos 44 px. */
+.consent { display: flex; align-items: flex-start; gap: var(--space-2); min-height: 44px; padding: var(--space-1) 0; }
+.box {
+  flex: none; width: 20px; height: 20px; margin: 2px 0 0; cursor: pointer;
+  accent-color: var(--color-action);
+}
+.box:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.label { font-size: var(--font-size-body-3); line-height: 1.45; color: var(--color-text); cursor: pointer; }
+.link { color: var(--color-link); font-weight: var(--weight-semibold); text-decoration: underline; }
+.link:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 4px; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

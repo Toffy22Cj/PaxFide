@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { acceptLegal } from './support/evidence';
 
 // Ref: Documentos/plan-fase7-fidelidad.md §2 D-F5, D-F10, D-F14, D-F17, X-6, X-7;
 // Documentos/paxfide-landing.html (.auth-top-bar, .auth-card).
@@ -95,6 +96,7 @@ test.describe('Fidelidad de Acceso, Bienvenida y Rutas Legales (F-A2)', () => {
     await page.getByLabel('Correo electrónico').fill(email);
     await page.getByLabel('Contraseña', { exact: true }).fill(password);
     await page.getByLabel('Repite la contraseña').fill(password);
+    await acceptLegal(page);
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
 
     await expect(page.getByText('Cuenta creada')).toBeVisible();

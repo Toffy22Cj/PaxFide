@@ -4,6 +4,12 @@
   inset: 0;
   z-index: 80;
   pointer-events: none;
+  /* D-F7, paso 3: un fundido corto al final, para que el contenido aparezca aunque el temporizador se retrase */
+  animation: portalFade var(--duration-fast) var(--ease-out) calc(3 * var(--duration-normal)) forwards;
+}
+
+@keyframes portalFade {
+  to { opacity: 0; }
 }
 
 .greenLayer,

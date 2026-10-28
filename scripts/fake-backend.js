@@ -41,6 +41,16 @@ const tokens = new Map([
   ['fake-jwt-token-for-security', 'legacy@demo.test'],
 ]);
 
+// referencia-api-v1.md §1, nota R-5 (plan-fase7-puesta-al-dia.md §1.2): versiones legales vigentes. Las cuentas de
+// siempre ya las aceptaron (los E2E existentes no cambian); `/__test/acceptance-pending` deja una cuenta pendiente,
+// como las de la semilla del backend real tras desplegar D3.
+const LEGAL = 'v1-2026-10';
+for (const acc of Object.values(accounts)) { acc.acceptedTermsVersion = LEGAL; acc.acceptedDataPolicyVersion = LEGAL; }
+// ADR-051 T4: fotos de entrega subidas (`evidenceRef` → organización y activo al que quedaron vinculadas)
+const evidences = new Map();
+const EVIDENCE_MAX = 5 * 1024 * 1024;
+const evidenceFailures = [];
+
 function send(res, status, body, extra = {}) {
   const headers = { ...extra };
   if (body !== undefined) headers['Content-Type'] = status >= 400 ? 'application/problem+json' : 'application/json';
@@ -189,6 +199,34 @@ function readBody(req) {
   });
 }
 
+function readRaw(req) {
+  return new Promise((resolve) => {
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+  });
+}
+
+/** El primer archivo de un `multipart/form-data` con el campo `name` (suficiente para el navegador de los tests). */
+function multipartFile(req, raw, name) {
+  const m = /boundary=(?:"([^"]+)"|([^;]+))/.exec(req.headers['content-type'] || '');
+  if (!m) return null;
+  const boundary = Buffer.from('--' + (m[1] || m[2]).trim());
+  let start = raw.indexOf(boundary);
+  while (start >= 0) {
+    const next = raw.indexOf(boundary, start + boundary.length);
+    if (next < 0) break;
+    const part = raw.subarray(start + boundary.length + 2, next - 2);
+    const headerEnd = part.indexOf('\r\n\r\n');
+    if (headerEnd >= 0) {
+      const head = part.subarray(0, headerEnd).toString('utf8');
+      if (new RegExp(`name="${name}"`).test(head)) return part.subarray(headerEnd + 4);
+    }
+    start = next;
+  }
+  return null;
+}
+
 function accountOf(req) {
   const h = req.headers['authorization'];
   if (!h || !h.startsWith('Bearer ')) return null;
@@ -198,7 +236,7 @@ function accountOf(req) {
 
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept, Command-Id, Intent-Token, x-test-delay-ms');
   res.setHeader('Access-Control-Expose-Headers', 'Location');
 
@@ -213,6 +251,28 @@ const server = http.createServer(async (req, res) => {
     const body = await readBody(req);
     failures.push({ prefix: body.prefix, mode: body.mode, applyThenFail: !!body.applyThenFail });
     send(res, 200, { ok: true });
+    return;
+  }
+  // La cuenta pasa a tener las versiones legales pendientes (cuentas anteriores a R-5 y semilla tras D3)
+  if (path === '/__test/acceptance-pending' && req.method === 'POST') {
+    const body = await readBody(req);
+    const acc = body && accounts[String(body.email || '').toLowerCase()];
+    if (!acc) { send(res, 404, { ok: false }); return; }
+    if (body.terms !== false) delete acc.acceptedTermsVersion;
+    if (body.dataPolicy !== false) delete acc.acceptedDataPolicyVersion;
+    send(res, 200, { ok: true });
+    return;
+  }
+  // La siguiente subida de evidencia responde con este estado (410 EvidenceRemoved, 503, 413, 415)
+  if (path === '/__test/evidence-fail' && req.method === 'POST') {
+    const body = await readBody(req);
+    evidenceFailures.push(Number(body.status));
+    send(res, 200, { ok: true });
+    return;
+  }
+  // Cuántas fotos de evidencia se subieron (para comprobar que un reintento no vuelve a subir)
+  if (path === '/__test/evidence/count' && req.method === 'GET') {
+    send(res, 200, { uploads: evidences.__uploads || 0 });
     return;
   }
   if (path === '/__test/delay' && req.method === 'POST') {
@@ -309,9 +369,11 @@ const server = http.createServer(async (req, res) => {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)) { problem(res, 400, 'InvalidEmailFormat'); return; }
     // H-P2-1 del backend: al menos 12 caracteres
     if (String(body.password).length < 12) { problem(res, 400, 'PasswordTooShort'); return; }
+    // R-5: las dos versiones vigentes, o 400 BadRequest sin cuenta creada
+    if (body.acceptedTermsVersion !== LEGAL || body.acceptedDataPolicyVersion !== LEGAL) { problem(res, 400, 'BadRequest'); return; }
     if (accounts[body.email]) { problem(res, 409, 'DuplicateEmail'); return; }
     const accountId = crypto.randomUUID();
-    accounts[body.email] = { password: body.password, accountId, roles: [] };
+    accounts[body.email] = { password: body.password, accountId, roles: [], acceptedTermsVersion: LEGAL, acceptedDataPolicyVersion: LEGAL };
     send(res, 201, { accountId, status: 'ACTIVE' });
     return;
   }
@@ -327,6 +389,18 @@ const server = http.createServer(async (req, res) => {
       (acc.password === 'demo-local-password' && (body.password === 'demo-representante' || body.password === 'demo-admin' || body.password === 'demo-empleado'))
     );
     if (!acc || !passwordMatches) { problem(res, 401, 'Unauthorized'); return; }
+    // D3: con la contraseña correcta, las versiones que falten tienen que venir EXACTAMENTE en el cuerpo; si no, 403
+    const missingTerms = acc.acceptedTermsVersion !== LEGAL;
+    const missingData = acc.acceptedDataPolicyVersion !== LEGAL;
+    if ((missingTerms && body.acceptedTermsVersion !== LEGAL) || (missingData && body.acceptedDataPolicyVersion !== LEGAL)) {
+      const pending = {};
+      if (missingTerms) pending.pendingTermsVersion = LEGAL;
+      if (missingData) pending.pendingDataPolicyVersion = LEGAL;
+      send(res, 403, { type: 'about:blank', title: 'AcceptanceRequired', status: 403, detail: DETAILS[403], ...pending });
+      return;
+    }
+    if (missingTerms) acc.acceptedTermsVersion = LEGAL;
+    if (missingData) acc.acceptedDataPolicyVersion = LEGAL;
     const token = 'tok-' + crypto.randomUUID();
     tokens.set(token, body.email);
     send(res, 200, { token });
@@ -819,6 +893,8 @@ const server = http.createServer(async (req, res) => {
     const b = await readBody(req);
     if (!b || !['FOUNDATION', 'COMPANY'].includes(b.type)) { problem(res, 400, 'InvalidRequestField'); return; }
     if (typeof b.name !== 'string' || !b.name.trim() || b.name.length > 200) { problem(res, 400, 'InvalidRequestField'); return; }
+    // R-5: la versión vigente de los términos de organización, o 400 sin organización
+    if (b.acceptedOrganizationTermsVersion !== LEGAL) { problem(res, 400, 'BadRequest'); return; }
     if (actor.organizationId) { problem(res, 409, 'AccountAlreadyBelongsToOrganization'); return; }
     const organizationId = 'org-' + crypto.randomUUID();
     organizations.set(organizationId, { name: b.name.trim(), type: b.type });
@@ -826,6 +902,30 @@ const server = http.createServer(async (req, res) => {
     actor.organizationId = organizationId;
     actor.roles = ['REPRESENTATIVE'];
     send(res, 201, { organizationId, verificationStatus: 'PENDING_VERIFICATION' });
+    return;
+  }
+
+  // ADR-051 T4 (referencia-api-v1.md §6): subir la foto de una entrega. Multipart `file`, JPEG o PNG por contenido,
+  // ≤ 5 MB binarios; solo EMPLOYEE de esa organización (403 antes de leer el archivo); sin Command-Id
+  const evMatch = p.match(/^\/organizations\/([^/]+)\/delivery-evidence$/);
+  if (evMatch && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(evMatch[1]);
+    if (actor.organizationId !== orgId || !(actor.roles || []).includes('EMPLOYEE')) { problem(res, 403, 'Forbidden'); return; }
+    const raw = await readRaw(req);
+    const forced = evidenceFailures.shift();
+    if (forced === 410) { send(res, 410, { type: 'about:blank', title: 'EvidenceRemoved', status: 410, detail: 'The resource was removed.' }); return; }
+    if (forced === 503) { problem(res, 503, 'MediaStorageUnavailable'); return; }
+    const file = multipartFile(req, raw, 'file');
+    if (!file) { problem(res, 400, 'BadRequest'); return; }
+    if (forced === 413 || file.length > EVIDENCE_MAX) { problem(res, 413, 'ImageTooLarge'); return; }
+    const jpeg = file[0] === 0xff && file[1] === 0xd8 && file[2] === 0xff;
+    const png = file.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    if (forced === 415 || !(jpeg || png)) { problem(res, 415, 'UnsupportedImageFormat'); return; }
+    const evidenceRef = 'sha256:' + crypto.createHash('sha256').update(file).digest('hex');
+    if (!evidences.has(evidenceRef)) evidences.set(evidenceRef, { organizationId: orgId, assetRef: null });
+    evidences.__uploads = (evidences.__uploads || 0) + 1;
+    send(res, 201, { evidenceRef });
     return;
   }
 
@@ -1206,7 +1306,14 @@ const server = http.createServer(async (req, res) => {
       if (!fields.every((k) => text(b[k])) || (action === 'split' && (typeof b.quantity !== 'string' || !QTY.test(b.quantity) || Number(b.quantity) <= 0))) {
         problem(res, 400, 'BadRequest'); return;
       }
+      // ADR-051 T4: `evidenceRef` = `sha256:` + 64 hex en minúscula, antes de consumir el Command-Id ni mirar el activo
+      if (action === 'deliver' && !/^sha256:[0-9a-f]{64}$/.test(b.evidenceRef)) { problem(res, 400, 'InvalidEvidenceRef'); return; }
       if (!allowed) { problem(res, 403, 'Forbidden'); return; }
+      if (action === 'deliver') {
+        const ev = evidences.get(b.evidenceRef);
+        if (!ev || ev.organizationId !== asset.organizationRef) { problem(res, 400, 'EvidenceNotFound'); return; }
+        if (ev.assetRef && ev.assetRef !== asset.assetRef) { problem(res, 409, 'EvidenceAlreadyBound'); return; }
+      }
       const prev = claims.get(commandId);
       if (!prev) {
         if (asset.lifecycleStatus === 'DELIVERED') { problem(res, 409, 'AssetTerminalState'); return; }
@@ -1226,11 +1333,13 @@ const server = http.createServer(async (req, res) => {
         const status = { dispatch: 'DISPATCHED', receive: 'RECEIVED', deliver: 'DELIVERED' }[action];
         asset.lifecycleStatus = status;
         if (action === 'receive') asset.currentLocation = b.facilityLocation;
-        if (action === 'deliver') asset.currentCustodianRef = b.finalCustodianRef;
+        if (action === 'deliver') { asset.currentCustodianRef = b.finalCustodianRef; evidences.get(b.evidenceRef).assetRef = asset.assetRef; }
         asset.history.push({ eventType: 'ASSET_' + status, timestamp: now, status });
         return { assetRef: asset.assetRef, status };
       });
       if (!r) return;
+      // Ambiguo real (como en la donación): el comando quedó aplicado y la respuesta se pierde
+      if (res.__failAfter) { res.__failAfter === 'drop' ? req.socket.destroy() : problem(res, 503, 'ServiceUnavailable'); return; }
       if (action === 'split') {
         send(res, 202, r.value, { Location: `${BASE}/physical-assets/${asset.assetRef}/splits/${r.value.childAssetRef}` });
       } else send(res, 200, r.value);
