@@ -65,7 +65,7 @@ export default defineConfig({
           'action:platform-revoke-admin',
           '/panel/members',
           '/panel/my-campaigns',
-          '/invitaciones',
+          '/invitaciones', '/terminos', '/privacidad', '/terminos-organizacion',
           'action:member-invite',
           'action:invitation-revoke',
           'action:member-change-role',

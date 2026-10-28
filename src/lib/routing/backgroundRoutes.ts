@@ -22,9 +22,21 @@ export function backgroundFor(pathname: string): AnimatedBackground | null {
 }
 
 /**
+ * El acceso sobre el mundo de la landing (plan-fase7-fidelidad.md D-F5) y los textos legales (D-F17, con la misma
+ * barra del acceso). Estas pantallas montan su propio mundo (`AccessLayout`), en la vista panorámica.
+ */
+const ACCESS = new Set(['/login', '/register', '/invitaciones']);
+const LEGAL = new Set(['/terminos', '/privacidad', '/terminos-organizacion']);
+
+export function isAccessRoute(pathname: string): boolean {
+  return ACCESS.has(pathname) || LEGAL.has(pathname);
+}
+
+/**
  * D-P13 (Carlos, 2026-10-23): en `/` la estructura de la app no pone su cabecera ni su barra de navegación (lateral ni
- * inferior); la landing usa solo su propia cabecera. En el resto de rutas, la estructura de siempre.
+ * inferior); la landing usa solo su propia cabecera. D-F5 y D-F17: tampoco en el acceso ni en los textos legales, que
+ * llevan la barra del acceso. En el resto de rutas, la estructura de siempre.
  */
 export function hasAppChrome(pathname: string): boolean {
-  return pathname !== '/';
+  return pathname !== '/' && !isAccessRoute(pathname);
 }

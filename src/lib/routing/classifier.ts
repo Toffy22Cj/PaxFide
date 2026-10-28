@@ -30,6 +30,10 @@ export function classifyRoute(pathname: string): RouteCategory {
   if (parts.length === 1 && a === 'home') return when('/home', 'AUTHENTICATED');
   // Aceptar invitación (DW-48): pública para poder leer y borrar el token del fragmento antes de pedir sesión
   if (parts.length === 1 && a === 'invitaciones') return when('/invitaciones', 'PUBLIC');
+  // Textos legales (plan-fase7-fidelidad.md D-F17, superficies nuevas aprobadas por Carlos): públicos
+  if (parts.length === 1 && a === 'terminos') return when('/terminos', 'PUBLIC');
+  if (parts.length === 1 && a === 'privacidad') return when('/privacidad', 'PUBLIC');
+  if (parts.length === 1 && a === 'terminos-organizacion') return when('/terminos-organizacion', 'PUBLIC');
 
   if (parts.length === 2 && a === 'c') {
     return isValidParam(b) ? when('/c/:publicCode', 'PUBLIC') : 'NOT_APPROVED';

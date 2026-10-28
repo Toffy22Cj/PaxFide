@@ -32,7 +32,7 @@ export default defineConfig({
           '/panel/funds', '/panel/assets', '/panel/platform', 'action:request-allocation', 'action:confirm-allocation',
           'action:platform-verify', 'action:platform-reject', 'action:platform-request-information',
           '/panel/organization', 'action:create-organization', '/register', '/campaigns',
-          '/panel/members', '/panel/my-campaigns', '/invitaciones', 'action:member-invite', 'action:invitation-revoke',
+          '/panel/members', '/panel/my-campaigns', '/invitaciones', '/terminos', '/privacidad', '/terminos-organizacion', 'action:member-invite', 'action:invitation-revoke',
           'action:member-change-role', 'action:member-remove',
           '/panel/configuration', 'action:configuration-edit', 'action:configuration-request', 'action:configuration-approve', 'action:configuration-reject', 'action:platform-grant-admin', 'action:platform-revoke-admin',
         ]),
