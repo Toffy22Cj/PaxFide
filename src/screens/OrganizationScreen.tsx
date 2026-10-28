@@ -11,6 +11,7 @@ import { Actions, DefinitionList, PageHeader, Surface, uiClasses as ui } from '.
 import { Button } from '../components/ui/Button';
 import { ErrorState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
 import { CommandModal } from '../components/asset/CommandModal';
+import { OrganizationLogoCard } from '../components/media/OrganizationLogoCard';
 
 const TYPES = [{ value: 'FOUNDATION', label: 'Fundación' }, { value: 'COMPANY', label: 'Empresa' }];
 
@@ -59,6 +60,11 @@ export function OrganizationScreen({ meClient = fetchMe }: { meClient?: typeof f
           ]} />
           {!created && <UnavailableState what="El estado de verificación de tu organización" />}
         </Surface>
+      )}
+      {/* U-5 (plan-fase7-puesta-al-dia.md): el logo, para REPRESENTATIVE y ADMINISTRATOR */}
+      {state.status === 'ready' && state.data.organizationId && isSurfaceEnabled('action:organization-logo')
+        && state.data.roles.some((r) => r === 'REPRESENTATIVE' || r === 'ADMINISTRATOR') && (
+        <OrganizationLogoCard organizationId={state.data.organizationId} />
       )}
       {creating && (
         <CommandModal<{ organizationId?: string; verificationStatus?: string }>

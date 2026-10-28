@@ -31,3 +31,6 @@
 .fill { height: 100%; background: var(--color-action); border-radius: inherit; }
 .amounts { margin: 0; font-family: var(--font-mono); font-size: var(--font-size-mono-2); color: var(--color-text); }
 .dates { margin: 0; font-size: var(--font-size-body-3); color: var(--color-text-secondary); }
+
+/* U-6: la portada arriba de la tarjeta, sin bloquear la carga (lazy) */
+.cover { display: block; width: calc(100% + 2 * var(--space-4)); margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) 0; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-card) var(--radius-card) 0 0; background: var(--color-bg); }

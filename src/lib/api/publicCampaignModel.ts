@@ -11,6 +11,24 @@ export interface PublicCampaign {
   currency?: string;
   targetAmount?: string;
   clearedAmount?: string;
+  /** U-6 (nota del 2026-10-25, ADR-051 Tarea 3): ruta pública de la portada, solo si la tiene. */
+  coverImageUrl?: string;
+}
+
+/**
+ * Una ruta pública del backend (`/api/v1/public/…`) resuelta contra el origen de la API. Otra forma (otro origen,
+ * `//host`) se descarta: nunca se pide nada fuera. Vale en el servidor y en el navegador (la base es pública).
+ */
+export function publicAssetUrl(v: unknown): string | undefined {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (typeof v !== 'string' || !v.startsWith('/') || v.startsWith('//') || !baseUrl) return undefined;
+  try {
+    const base = new URL(baseUrl);
+    const url = new URL(v, base);
+    return url.origin === base.origin ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export type PublicCampaignOutcome =
@@ -44,6 +62,7 @@ export function parsePublicCampaign(data: unknown): PublicCampaign | null {
     currency: str(d.currency),
     targetAmount: str(d.targetAmount),
     clearedAmount: str(d.clearedAmount),
+    coverImageUrl: str(d.coverImageUrl)?.startsWith('/') ? str(d.coverImageUrl) : undefined,
   };
 }
 

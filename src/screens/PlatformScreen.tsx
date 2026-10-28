@@ -18,6 +18,8 @@ import { SelectField, TextField } from '../components/ui/Field';
 import { Button } from '../components/ui/Button';
 import { EmptyState, ErrorState, ForbiddenState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
 import { CommandModal, FieldSpec } from '../components/asset/CommandModal';
+import { RemovePhotoForm } from '../components/media/RemovePhotoForm';
+import { removePlatformMedia } from '../lib/api/media';
 import p from './panelLists.module.css';
 
 const LABEL: Record<PlatformDecision, string> = {
@@ -228,14 +230,24 @@ function ReactivateAccount({ client }: { client: (accountId: string) => Promise<
  */
 export function PlatformScreen({
   meClient = fetchMe, queueClient = fetchVerificationQueue, adminsClient = fetchPlatformAdmins, reactivateClient = reactivateAccount,
+  removeMediaClient = removePlatformMedia,
 }: {
   meClient?: typeof fetchMe;
   queueClient?: typeof fetchVerificationQueue;
   adminsClient?: typeof fetchPlatformAdmins;
   reactivateClient?: typeof reactivateAccount;
+  removeMediaClient?: typeof removePlatformMedia;
 }) {
   const { state, reload } = usePrincipal(meClient);
   const allowed = state.status === 'ready' && !!state.data.platformAuthority;
+  // U-7: las organizaciones de la cola para elegir dónde retirar una foto (si no se pueden leer, se escribe el ID)
+  const [queueOrgs, setQueueOrgs] = useState<{ organizationId: string; name?: string }[]>([]);
+  useEffect(() => {
+    if (!allowed || !isSurfaceEnabled('action:platform-remove-media')) return;
+    let live = true;
+    void queueClient().catch(() => null).then((r) => { if (live && r && r.kind === 'ok') setQueueOrgs(r.items.map((i) => ({ organizationId: i.organizationId, name: i.name }))); });
+    return () => { live = false; };
+  }, [allowed, queueClient]);
 
   return (
     <div>
@@ -249,6 +261,7 @@ export function PlatformScreen({
           <VerificationQueue queueClient={queueClient} />
           <PlatformAdmins selfId={state.status === 'ready' ? state.data.accountId : ''} adminsClient={adminsClient} />
           {isSurfaceEnabled('action:platform-reactivate-account') && <ReactivateAccount client={reactivateClient} />}
+          {isSurfaceEnabled('action:platform-remove-media') && <RemovePhotoForm organizations={queueOrgs} client={removeMediaClient} />}
         </>
       )}
     </div>

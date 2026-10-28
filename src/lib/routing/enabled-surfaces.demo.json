@@ -52,5 +52,8 @@
   "/terminos",
   "/privacidad",
   "/terminos-organizacion",
-  "/account"
+  "/account",
+  "action:organization-logo",
+  "action:campaign-cover",
+  "action:platform-remove-media"
 ]

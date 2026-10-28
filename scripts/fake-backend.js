@@ -188,11 +188,21 @@ function publicView(c) {
   }
   // Notas del 2026-10-18 y del 2026-10-21 (referencia-api-v1.md §5): verificación siempre presente; logo solo si hay
   out.organizationVerified = organizationStatus.get(c.organizationRef) === 'VERIFIED';
-  if (c.organizationLogo) out.organizationLogoUrl = `/api/v1/public/campaigns/${c.publicCode}/organization-logo`;
+  if (c.organizationLogo || orgLogos.has(c.organizationRef)) out.organizationLogoUrl = `/api/v1/public/campaigns/${c.publicCode}/organization-logo`;
+  // U-6 (nota del 2026-10-25, Tarea 3): la portada, solo si la tiene
+  if (covers.has(c.publicCode)) out.coverImageUrl = `/api/v1/public/campaigns/${c.publicCode}/cover`;
   return out;
 }
 
 /** Logo de demostración: un PNG de 1×1 (los bytes no importan al front, solo que sea una imagen del backend). */
+// P-4 (ADR-051 F6, F7, F8): logos subidos por organización y portadas por convocatoria, con sus bytes
+const orgLogos = new Map();
+const covers = new Map();
+/** JPEG o PNG por el contenido (como el backend), nunca por el nombre ni el tipo declarado. */
+const isImage = (b) => (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) || b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+const imageType = (b) => (b[0] === 0xff ? 'image/jpeg' : 'image/png');
+const IMAGE_MAX = 2 * 1024 * 1024;
+
 const DEMO_LOGO = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 
 /** Fallos forzados por los tests: el siguiente POST cuya ruta empiece por `prefix` falla con `mode`. */
@@ -488,9 +498,19 @@ const server = http.createServer(async (req, res) => {
   const logoMatch = p.match(/^\/public\/campaigns\/([^/]+)\/organization-logo$/);
   if (logoMatch && req.method === 'GET') {
     const c = campaigns.get(decodeURIComponent(logoMatch[1]));
-    if (!c || !c.organizationLogo) { problem(res, 404, 'NotFound'); return; }
-    res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600' });
-    res.end(DEMO_LOGO);
+    const uploaded = c && orgLogos.get(c.organizationRef);
+    if (!c || (!c.organizationLogo && !uploaded)) { problem(res, 404, 'NotFound'); return; }
+    res.writeHead(200, { 'Content-Type': uploaded ? imageType(uploaded) : 'image/png', 'Cache-Control': 'public, max-age=3600' });
+    res.end(uploaded || DEMO_LOGO);
+    return;
+  }
+  // GET /public/campaigns/{publicCode}/cover (Tarea 3): pública; 404 igual sin portada
+  const coverGet = p.match(/^\/public\/campaigns\/([^/]+)\/cover$/);
+  if (coverGet && req.method === 'GET') {
+    const bytes = covers.get(decodeURIComponent(coverGet[1]));
+    if (!bytes) { problem(res, 404, 'NotFound'); return; }
+    res.writeHead(200, { 'Content-Type': imageType(bytes), 'Cache-Control': 'public, max-age=3600' });
+    res.end(bytes);
     return;
   }
 
@@ -1017,6 +1037,75 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // P-4 — logo (ADR-051 F6 y F8, Tarea 2): PUT y DELETE para REPRESENTATIVE o ADMINISTRATOR (403 antes de mirar el
+  // tamaño); GET para cualquier miembro o la plataforma, con no-store y private; 404 sin logo
+  const logoOrg = p.match(/^\/organizations\/([^/]+)\/logo$/);
+  if (logoOrg && ['PUT', 'DELETE', 'GET'].includes(req.method)) {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(logoOrg[1]);
+    const o = organizations.get(orgId);
+    if (req.method === 'GET') {
+      if (!(actor.organizationId === orgId || actor.platformAuthority) || !o) { problem(res, 403, 'Forbidden'); return; }
+      const bytes = orgLogos.get(orgId) || (o.logoUrl ? DEMO_LOGO : null);
+      if (!bytes) { problem(res, 404, 'NotFound'); return; }
+      res.writeHead(200, { 'Content-Type': imageType(bytes), 'Cache-Control': 'no-store, private' });
+      res.end(bytes);
+      return;
+    }
+    if (actor.organizationId !== orgId || !actor.roles.some((r) => r === 'ADMINISTRATOR' || r === 'REPRESENTATIVE') || !o) { problem(res, 403, 'Forbidden'); return; }
+    if (req.method === 'DELETE') { orgLogos.delete(orgId); delete o.logoUrl; res.writeHead(204); res.end(); return; }
+    const raw = await readRaw(req);
+    const file = multipartFile(req, raw, 'file');
+    if (!file) { problem(res, 400, 'BadRequest'); return; }
+    if (file.length > IMAGE_MAX) { problem(res, 413, 'ImageTooLarge'); return; }
+    if (!isImage(file)) { problem(res, 415, 'UnsupportedImageFormat'); return; }
+    orgLogos.set(orgId, file);
+    o.logoUrl = `/api/v1/organizations/${orgId}/logo`;
+    send(res, 200, { logoUrl: o.logoUrl });
+    return;
+  }
+  // P-4 — portada (Tarea 3): solo ADMINISTRATOR de la organización de la convocatoria, nunca el REPRESENTATIVE
+  const coverOrg = p.match(/^\/organizations\/([^/]+)\/campaigns\/([^/]+)\/cover$/);
+  if (coverOrg && (req.method === 'PUT' || req.method === 'DELETE')) {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(coverOrg[1]);
+    const c = campaignByRef(decodeURIComponent(coverOrg[2]));
+    if (actor.organizationId !== orgId || !actor.roles.includes('ADMINISTRATOR') || !c || c.organizationRef !== orgId) { problem(res, 403, 'Forbidden'); return; }
+    if (req.method === 'DELETE') { covers.delete(c.publicCode); res.writeHead(204); res.end(); return; }
+    const raw = await readRaw(req);
+    const file = multipartFile(req, raw, 'file');
+    if (!file) { problem(res, 400, 'BadRequest'); return; }
+    if (file.length > IMAGE_MAX) { problem(res, 413, 'ImageTooLarge'); return; }
+    if (!isImage(file)) { problem(res, 415, 'UnsupportedImageFormat'); return; }
+    covers.set(c.publicCode, file);
+    send(res, 200, { coverImageUrl: `/api/v1/public/campaigns/${c.publicCode}/cover` });
+    return;
+  }
+  // P-4 — retirar una foto (ADR-051 F7): plataforma; 403 antes de validar el cuerpo; 204 también si ya no estaba
+  const removeMatch = p.match(/^\/platform\/organizations\/([^/]+)\/media\/remove$/);
+  if (removeMatch && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    if (!actor.platformAuthority) { problem(res, 403, 'Forbidden'); return; }
+    const orgId = decodeURIComponent(removeMatch[1]);
+    const b = (await readBody(req)) || {};
+    if (typeof b.reason !== 'string' || !b.reason.trim() || b.reason.length > 500) { problem(res, 400, 'BadRequest'); return; }
+    if (b.purpose === 'ORGANIZATION_LOGO') {
+      if (b.ref !== undefined) { problem(res, 400, 'BadRequest'); return; }
+      orgLogos.delete(orgId); const o = organizations.get(orgId); if (o) delete o.logoUrl;
+    } else if (b.purpose === 'CAMPAIGN_COVER') {
+      const c = typeof b.ref === 'string' ? campaignByRef(b.ref) : null;
+      if (!c) { problem(res, 400, 'BadRequest'); return; }
+      if (c.organizationRef === orgId) covers.delete(c.publicCode);
+    } else if (b.purpose === 'DELIVERY_EVIDENCE') {
+      if (typeof b.ref !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(b.ref)) { problem(res, 400, 'BadRequest'); return; }
+      const ev = evidences.get(b.ref);
+      if (!ev || ev.organizationId !== orgId) { problem(res, 404, 'NotFound'); return; }
+      ev.removed = true; delete ev.bytes;
+    } else { problem(res, 400, 'BadRequest'); return; }
+    res.writeHead(204); res.end();
+    return;
+  }
+
   // ADR-051 T4 (referencia-api-v1.md §6): subir la foto de una entrega. Multipart `file`, JPEG o PNG por contenido,
   // ≤ 5 MB binarios; solo EMPLOYEE de esa organización (403 antes de leer el archivo); sin Command-Id
   const evMatch = p.match(/^\/organizations\/([^/]+)\/delivery-evidence$/);
@@ -1035,7 +1124,7 @@ const server = http.createServer(async (req, res) => {
     const png = file.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
     if (forced === 415 || !(jpeg || png)) { problem(res, 415, 'UnsupportedImageFormat'); return; }
     const evidenceRef = 'sha256:' + crypto.createHash('sha256').update(file).digest('hex');
-    if (!evidences.has(evidenceRef)) evidences.set(evidenceRef, { organizationId: orgId, assetRef: null });
+    if (!evidences.has(evidenceRef)) evidences.set(evidenceRef, { organizationId: orgId, assetRef: null, bytes: file });
     evidences.__uploads = (evidences.__uploads || 0) + 1;
     send(res, 201, { evidenceRef });
     return;
@@ -1474,6 +1563,19 @@ const server = http.createServer(async (req, res) => {
   // B6-c — activos (PhysicalAssetController)
   if (p.startsWith('/physical-assets')) {
     if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    // P-4 / U-8 — GET /physical-assets/{ref}/evidence (Tarea 5): miembros de la organización del activo o la plataforma;
+    // 404 sin entrega o sin foto; 410 EvidenceRemoved si la plataforma la retiró
+    const evRead = p.match(/^\/physical-assets\/([^/]+)\/evidence$/);
+    if (evRead && req.method === 'GET') {
+      const a = assets.get(decodeURIComponent(evRead[1]));
+      if (!a || !(actor.organizationId === a.organizationRef || actor.platformAuthority)) { problem(res, 403, 'Forbidden'); return; }
+      const ev = a.evidenceRef && evidences.get(a.evidenceRef);
+      if (ev && ev.removed) { send(res, 410, { type: 'about:blank', title: 'EvidenceRemoved', status: 410, detail: 'The resource was removed.' }); return; }
+      if (!ev || !ev.bytes) { problem(res, 404, 'NotFound'); return; }
+      res.writeHead(200, { 'Content-Type': imageType(ev.bytes), 'Cache-Control': 'private, no-store' });
+      res.end(ev.bytes);
+      return;
+    }
     const registerMatch = p === '/physical-assets/register' || p === '/physical-assets/from-donation';
     if (registerMatch && req.method === 'POST') {
       const commandId = commandIdOf(req);

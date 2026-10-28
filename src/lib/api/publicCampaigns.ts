@@ -84,6 +84,8 @@ export interface DiscoveryItem {
   organizationVerified: boolean;
   /** URL absoluta del logo en el backend (nota del 2026-10-21, ADR-051 Tarea 2), solo si la organización tiene logo. */
   organizationLogoUrl?: string;
+  /** U-6 (nota del 2026-10-25, ADR-051 Tarea 3): URL absoluta de la portada, solo si la tiene. */
+  coverImageUrl?: string;
 }
 
 /**
@@ -115,6 +117,7 @@ export async function fetchDiscovery(cursor?: string): Promise<DiscoveryOutcome>
       acceptedDonationTypes: Array.isArray(i.acceptedDonationTypes) ? i.acceptedDonationTypes : [],
       currency: optStr(i.currency), targetAmount: optStr(i.targetAmount), clearedAmount: optStr(i.clearedAmount),
       organizationVerified: i.organizationVerified === true, organizationLogoUrl: apiAssetUrl(i.organizationLogoUrl),
+      coverImageUrl: apiAssetUrl(i.coverImageUrl),
     }));
   return { kind: 'ok', items, nextCursor: optStr(r.data.nextCursor) };
 }

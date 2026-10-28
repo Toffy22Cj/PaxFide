@@ -10,6 +10,7 @@ import { ErrorState, LoadingState, NotFoundState } from '../components/States';
 import { LocalDate } from '../components/LocalDate';
 import { DonateSection } from '../components/campaign/DonateSection';
 import { CampaignNarrative } from '../components/campaign/CampaignNarrative';
+import { publicAssetUrl } from '../lib/api/publicCampaignModel';
 import s from '../components/campaign/campaign.module.css';
 
 function Chips({ items, label }: { items: string[]; label: (v: string) => string }) {
@@ -39,8 +40,14 @@ function Progress({ campaign }: { campaign: PublicCampaign }) {
 }
 
 export function CampaignDetails({ campaign }: { campaign: PublicCampaign }) {
+  const cover = publicAssetUrl(campaign.coverImageUrl);
   return (
     <>
+      {/* U-6: la portada si llega; es pública y va directa en <img>, con texto alternativo */}
+      {cover && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className={s.cover} src={cover} alt={`Portada de «${campaign.title}»`} decoding="async" referrerPolicy="no-referrer" data-testid="campaign-detail-cover" />
+      )}
       {campaign.organizationName && <p className={s.org}>{campaign.organizationName}</p>}
       <PageHeader title={campaign.title} />
       {campaign.description && <p className={s.description}>{campaign.description}</p>}
