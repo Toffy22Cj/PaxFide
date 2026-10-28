@@ -92,7 +92,11 @@ describe('Fidelidad del Acceso (F-A2)', () => {
       expect(session.isJustRegistered()).toBe(true);
 
       const onContinue = vi.fn();
-      render(<LoginScreen loginClient={async () => ({ kind: 'ok', token: 'jwt-nuevo' })} onContinueWelcome={onContinue} />);
+      const profileClients = {
+        fetch: vi.fn().mockResolvedValue({ kind: 'ok', profile: { email: 'nuevo@demo.test' } }),
+        update: vi.fn(),
+      };
+      render(<LoginScreen loginClient={async () => ({ kind: 'ok', token: 'jwt-nuevo' })} onContinueWelcome={onContinue} profileClients={profileClients} />);
 
       // Login
       fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'nuevo@demo.test' } });
@@ -107,10 +111,14 @@ describe('Fidelidad del Acceso (F-A2)', () => {
       expect(screen.getByText('Sigue el recorrido de tu ayuda')).toBeInTheDocument();
       expect(screen.getByText('Cada paso queda sellado')).toBeInTheDocument();
 
-      // Pulsar Continuar
+      // Pulsar Continuar: P-1 añade "¿Cómo te llamamos?", opcional
       const btn = screen.getByRole('button', { name: 'Continuar' });
       fireEvent.click(btn);
+      expect(onContinue).not.toHaveBeenCalled();
+      expect(await screen.findByTestId('name-gate')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Más tarde' }));
       expect(onContinue).toHaveBeenCalledTimes(1);
+      expect(profileClients.update).not.toHaveBeenCalled();
     });
 
     it('en un inicio de sesión normal: NO se muestra la bienvenida (negativa)', async () => {

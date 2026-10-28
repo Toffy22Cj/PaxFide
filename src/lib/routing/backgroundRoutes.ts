@@ -6,6 +6,7 @@ const ACCESS_ROUTES = new Set([
   '/login',
   '/register',
   '/invitaciones',
+  '/recuperar',
   '/terminos',
   '/privacidad',
   '/terminos-organizacion',

@@ -569,6 +569,8 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     await n.getByRole('button', { name: 'Iniciar sesión' }).click();
     if (await n.getByRole('button', { name: 'Continuar' }).isVisible({ timeout: 2000 }).catch(() => false)) {
       await n.getByRole('button', { name: 'Continuar' }).click();
+      // P-1: "¿Cómo te llamamos?" es opcional
+      await n.getByTestId('name-gate').getByRole('button', { name: 'Más tarde' }).click();
     }
     if (!n.url().endsWith('/panel')) {
       await n.goto('/panel');

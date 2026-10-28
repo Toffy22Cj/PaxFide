@@ -6,6 +6,11 @@ import { ProfileScreen } from '../src/screens/ProfileScreen';
 import * as session from '../src/lib/auth/session';
 import { NAV_POSITION_STORAGE_KEY } from '../src/lib/nav/navEntries';
 
+vi.mock('../src/lib/api/account', async (orig) => ({
+  ...(await orig<typeof import('../src/lib/api/account')>()),
+  fetchProfile: vi.fn().mockResolvedValue({ kind: 'ok', profile: { email: 'donante@demo.test' } }),
+}));
+
 describe('ProfileScreen (D-F9)', () => {
   beforeEach(() => {
     session._resetForTest();
@@ -36,25 +41,21 @@ describe('ProfileScreen (D-F9)', () => {
     expect(screen.getByText('Solo los ves tú.')).toBeInTheDocument();
   });
 
-  it('negativa: no muestra nombre, apellido ni "Seguridad" (X-8, X-9, D5)', async () => {
+  it('P-1: "Tus datos" con Nombre y Apellido ("Sin completar") y la tarjeta "Seguridad"; nunca "Próximamente"', async () => {
     const mockClient = vi.fn().mockResolvedValue({
       kind: 'ok',
       account: { accountId: 'acc-123', email: 'donante@demo.test' },
     });
 
-    const { container } = render(<ProfileScreen client={mockClient} />);
+    render(<ProfileScreen client={mockClient} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('profile-screen')).toBeInTheDocument();
     });
 
-    // Negativa de X-8: sin nombre ni apellido
-    expect(screen.queryByText(/Nombre/i)).toBeNull();
-    expect(screen.queryByText(/Apellido/i)).toBeNull();
-    expect(container.querySelector('input[name="name"]')).toBeNull();
-
-    // Negativa de X-9 y D5: sin tarjeta de seguridad ni próximamente
-    expect(screen.queryByText(/Seguridad/i)).toBeNull();
+    expect(await screen.findByTestId('profile-given-name')).toHaveTextContent('Sin completar');
+    expect(screen.getByTestId('profile-family-name')).toHaveTextContent('Sin completar');
+    expect(screen.getByRole('heading', { name: 'Seguridad' })).toBeInTheDocument();
     expect(screen.queryByText(/Próximamente/i)).toBeNull();
   });
 

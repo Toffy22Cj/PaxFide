@@ -70,7 +70,8 @@ test.describe('F-A3 · Fidelidad de la estructura, navegación, portal y perfil'
     await expect(page.locator('[data-testid="city-background"]')).toBeVisible();
 
     // 3. Transición desde ruta con ciudad (/home) hacia /panel: el portal sí aparece
-    await page.getByRole('link', { name: 'Organización' }).click();
+    // Exacto: "Ir a tu organización" (tarjeta del inicio) también contiene la palabra
+    await page.getByRole('link', { name: 'Organización', exact: true }).click();
     await expect(page).toHaveURL(/\/panel$/);
     // El portal se renderiza con modo enter
     await expect(page.locator('[data-testid="panel-portal"]')).toBeAttached();
@@ -114,7 +115,7 @@ test.describe('F-A3 · Fidelidad de la estructura, navegación, portal y perfil'
     expect(saved).toBe('left');
   });
 
-  test('/account muestra el correo y no muestra nombre ni "Seguridad" (D-F9)', async ({ page }) => {
+  test('/account muestra el correo, "Tus datos" con nombre y la tarjeta "Seguridad" (D-F9; X-8 y X-9 con P-1)', async ({ page }) => {
     await login(page, 'donante@demo.test', 'demo-donante');
     await page.getByRole('link', { name: 'Perfil' }).click();
     await expect(page).toHaveURL(/\/account$/);
@@ -124,10 +125,10 @@ test.describe('F-A3 · Fidelidad de la estructura, navegación, portal y perfil'
     await expect(page.locator('[data-testid="profile-email-header"]')).toHaveText('donante@demo.test');
     await expect(page.locator('[data-testid="profile-email-detail"]')).toHaveText('donante@demo.test');
 
-    // Negativas estrictas de D-F9 y X-8, X-9: sin nombre, apellido ni seguridad
-    await expect(page.locator('text=Nombre')).toHaveCount(0);
-    await expect(page.locator('text=Apellido')).toHaveCount(0);
-    await expect(page.locator('text=Seguridad')).toHaveCount(0);
+    // plan-fase7-puesta-al-dia.md P-1: X-8 y X-9 ya están (antes eran negativas); nunca "Próximamente" (D5)
+    await expect(page.getByTestId('profile-given-name')).toBeVisible();
+    await expect(page.getByTestId('profile-family-name')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Seguridad', exact: true })).toBeVisible();
     await expect(page.locator('text=Próximamente')).toHaveCount(0);
   });
 

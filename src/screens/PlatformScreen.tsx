@@ -1,5 +1,7 @@
 'use client';
 
+// Ref: Autorización (2) §2.2 (DW-41, DW-44, DW-45); plan-fase7-puesta-al-dia.md U-7 y P-1 ("Reactivar una cuenta",
+// referencia-api-v1.md §2, ADR-050 D7).
 import React, { useCallback, useEffect, useState } from 'react';
 import { fetchMe } from '../lib/api/identity';
 import { usePrincipal } from '../lib/auth/usePrincipal';
@@ -8,11 +10,11 @@ import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { ListOutcome } from '../lib/api/campaignAdmin';
 import {
   fetchPlatformAdmins, fetchVerificationQueue, grantPlatformAdminRequest, PlatformAdmin, PlatformDecision,
-  platformDecisionRequest, QueueItem, QueueStatus, revokePlatformAdminRequest,
+  platformDecisionRequest, QueueItem, QueueStatus, reactivateAccount, revokePlatformAdminRequest, type ReactivateOutcome,
 } from '../lib/api/organization';
 import { organizationTypeLabel, verificationStatusLabel } from '../lib/labels';
 import { Actions, DefinitionList, PageHeader, Surface, uiClasses as ui } from '../components/ui/Layout';
-import { SelectField } from '../components/ui/Field';
+import { SelectField, TextField } from '../components/ui/Field';
 import { Button } from '../components/ui/Button';
 import { EmptyState, ErrorState, ForbiddenState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
 import { CommandModal, FieldSpec } from '../components/asset/CommandModal';
@@ -170,13 +172,67 @@ function PlatformAdmins({ selfId, adminsClient }: { selfId: string; adminsClient
 }
 
 /**
+ * "Reactivar una cuenta" (U-7, ADR-050 D7). Ya activa → 200 igual: repetirlo no cambia nada, así que tras un fallo de red
+ * se puede volver a pulsar. Los tokens de antes de la desactivación siguen sin valer: la persona vuelve a iniciar sesión.
+ */
+function ReactivateAccount({ client }: { client: (accountId: string) => Promise<ReactivateOutcome> }) {
+  const [accountId, setAccountId] = useState('');
+  const [error, setError] = useState<string | undefined>();
+  const [result, setResult] = useState<ReactivateOutcome['kind'] | null>(null);
+  const [sending, setSending] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const id = accountId.trim();
+    if (!id) { setError('Este campo es obligatorio.'); return; }
+    if (id.length > 255) { setError('Valor no válido.'); return; }
+    setError(undefined);
+    setResult(null);
+    setSending(true);
+    const r = await client(id);
+    setSending(false);
+    setResult(r.kind);
+  };
+
+  const notice = (): React.ReactNode => {
+    switch (result) {
+      case null: return null;
+      case 'ok': return <StatusNotice variant="success" title="Cuenta activa" text="La persona ya puede volver a iniciar sesión." />;
+      case 'not-found': return <StatusNotice variant="rejected" text="No existe esa cuenta." />;
+      case 'forbidden': return <ForbiddenState />;
+      case 'bad-request': return <StatusNotice variant="rejected" text="El identificador no es válido." />;
+      case 'network': return <StatusNotice variant="rejected" text="No pudimos conectar. Puedes repetirlo: reactivar una cuenta activa no cambia nada." />;
+      case 'unauthorized': return null;
+      case 'error': return <StatusNotice variant="rejected" text="No pudimos reactivar la cuenta. Inténtalo de nuevo." />;
+      default: { const unreachable: never = result; throw new Error(`Resultado desconocido: ${String(unreachable)}`); }
+    }
+  };
+
+  return (
+    <Surface title="Reactivar una cuenta">
+      <p className={ui.modalText}>Para una cuenta que se desactivó por error. No cambia sus permisos ni su organización.</p>
+      {notice()}
+      <form onSubmit={(e) => void submit(e)} noValidate data-testid="reactivate-form">
+        <TextField label="Cuenta (identificador)" value={accountId} error={error} autoComplete="off" spellCheck={false}
+          hint="El contrato no permite buscar por correo: pide a la persona el identificador de su cuenta."
+          onChange={(e) => setAccountId(e.target.value)} disabled={sending} />
+        <Actions><Button type="submit" sending={sending}>Reactivar</Button></Actions>
+      </form>
+    </Surface>
+  );
+}
+
+/**
  * `/panel/platform`: autoridad de plataforma (`platformAuthority` de `/me`; representación, el backend autoriza).
  * Cola de verificación con decisiones por fila y administradores de la plataforma.
  */
-export function PlatformScreen({ meClient = fetchMe, queueClient = fetchVerificationQueue, adminsClient = fetchPlatformAdmins }: {
+export function PlatformScreen({
+  meClient = fetchMe, queueClient = fetchVerificationQueue, adminsClient = fetchPlatformAdmins, reactivateClient = reactivateAccount,
+}: {
   meClient?: typeof fetchMe;
   queueClient?: typeof fetchVerificationQueue;
   adminsClient?: typeof fetchPlatformAdmins;
+  reactivateClient?: typeof reactivateAccount;
 }) {
   const { state, reload } = usePrincipal(meClient);
   const allowed = state.status === 'ready' && !!state.data.platformAuthority;
@@ -192,6 +248,7 @@ export function PlatformScreen({ meClient = fetchMe, queueClient = fetchVerifica
         <>
           <VerificationQueue queueClient={queueClient} />
           <PlatformAdmins selfId={state.status === 'ready' ? state.data.accountId : ''} adminsClient={adminsClient} />
+          {isSurfaceEnabled('action:platform-reactivate-account') && <ReactivateAccount client={reactivateClient} />}
         </>
       )}
     </div>

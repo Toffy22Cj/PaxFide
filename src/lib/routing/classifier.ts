@@ -34,6 +34,9 @@ export function classifyRoute(pathname: string): RouteCategory {
   if (parts.length === 1 && a === 'home') return when('/home', 'AUTHENTICATED');
   // Aceptar invitación (DW-48): pública para poder leer y borrar el token del fragmento antes de pedir sesión
   if (parts.length === 1 && a === 'invitaciones') return when('/invitaciones', 'PUBLIC');
+  // Recuperar la contraseña (plan-fase7-puesta-al-dia.md P-1): pública, como `/invitaciones`, para borrar el token
+  // del fragmento antes de nada. Sin sesión se pide el correo; con `#token=` se pide la contraseña nueva
+  if (parts.length === 1 && a === 'recuperar') return when('/recuperar', 'PUBLIC');
 
   if (parts.length === 2 && a === 'c') {
     return isValidParam(b) ? when('/c/:publicCode', 'PUBLIC') : 'NOT_APPROVED';

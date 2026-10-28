@@ -1,5 +1,10 @@
 export type MachineState = 'RESTORING' | 'LOGGED_OUT' | 'AUTHENTICATED';
-export type LogoutReason = 'MANUAL' | 'EXPIRED' | 'OTHER_TAB';
+/**
+ * `PASSWORD_CHANGED`: el cambio de contraseña se confirmó pero la respuesta no trajo token (500 tras confirmar,
+ * referencia-api-v1.md §1, nota R-3 + R-2); `DEACTIVATED`: la persona desactivó su cuenta (D6). Ref:
+ * plan-fase7-puesta-al-dia.md P-1.
+ */
+export type LogoutReason = 'MANUAL' | 'EXPIRED' | 'OTHER_TAB' | 'PASSWORD_CHANGED' | 'DEACTIVATED';
 
 type Listener = (state: MachineState) => void;
 
@@ -63,6 +68,26 @@ export function login(token: string) {
 export function logout() {
   executeLogout(true, 'MANUAL');
 }
+
+/** Cierre por un motivo propio (P-1): el texto lo pone el login. */
+export function logoutWith(reason: Exclude<LogoutReason, 'EXPIRED' | 'OTHER_TAB'>) {
+  executeLogout(true, reason);
+}
+
+/**
+ * P-1 (referencia-api-v1.md §1, `POST /account/password`): la respuesta trae un token nuevo que sustituye al de la
+ * sesión en memoria (D2); las demás sesiones quedan revocadas. Sin sesión no hace nada.
+ */
+export function replaceToken(token: string) {
+  if (currentState !== 'AUTHENTICATED') return;
+  jwt = token;
+}
+
+/** Un aviso para la próxima pantalla de login (p. ej. tras recuperar la contraseña). Solo en memoria. */
+let loginNotice: string | null = null;
+export function setLoginNotice(text: string) { loginNotice = text; }
+export function peekLoginNotice(): string | null { return loginNotice; }
+export function clearLoginNotice() { loginNotice = null; }
 
 function executeLogout(broadcast: boolean, reason: LogoutReason) {
   jwt = null;
@@ -128,6 +153,7 @@ export function clearJustRegistered(): void {
 }
 
 export function _resetForTest() {
+  loginNotice = null;
   currentState = 'RESTORING';
   jwt = null;
   postLoginDestination = null;

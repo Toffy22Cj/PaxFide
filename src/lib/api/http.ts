@@ -22,7 +22,7 @@ export type AuthMode =
 
 export interface ApiRequest {
   path: string;
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PUT';
   body?: unknown;
   auth: AuthMode;
   headers?: Record<string, string>;

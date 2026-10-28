@@ -50,6 +50,16 @@ for (const acc of Object.values(accounts)) { acc.acceptedTermsVersion = LEGAL; a
 const evidences = new Map();
 const EVIDENCE_MAX = 5 * 1024 * 1024;
 const evidenceFailures = [];
+// P-1 (referencia-api-v1.md §1, notas del 2026-10-25): recuperación, revocación y perfil
+const resetTokens = new Map(); // token -> { email, used, superseded, at }
+const resetMails = [];
+const resetCooldown = new Map(); // email -> ms de la última petición que envió correo
+const passwordChange500 = new Set();
+
+/** Revocación (ADR-050 D4): ningún token anterior de esa cuenta vale (todas sus direcciones). */
+function revokeTokensOf(acc) {
+  for (const [t, e] of [...tokens.entries()]) if (accounts[e] && accounts[e].accountId === acc.accountId) tokens.delete(t);
+}
 
 function send(res, status, body, extra = {}) {
   const headers = { ...extra };
@@ -231,7 +241,12 @@ function accountOf(req) {
   const h = req.headers['authorization'];
   if (!h || !h.startsWith('Bearer ')) return null;
   const email = tokens.get(h.slice(7));
-  return email ? accounts[email] : null;
+  const acc = email ? accounts[email] : null;
+  return acc && acc.status !== 'INACTIVE' ? acc : null;
+}
+
+function emailOf(req) {
+  return tokens.get(String(req.headers['authorization'] || '').slice(7));
 }
 
 const server = http.createServer(async (req, res) => {
@@ -250,6 +265,20 @@ const server = http.createServer(async (req, res) => {
   if (path === '/__test/fail-next' && req.method === 'POST') {
     const body = await readBody(req);
     failures.push({ prefix: body.prefix, mode: body.mode, applyThenFail: !!body.applyThenFail });
+    send(res, 200, { ok: true });
+    return;
+  }
+  // P-1: el buzón de la recuperación (como Mailpit): el enlace del último correo de recuperación a una dirección
+  if (path === '/__test/password-reset/last' && req.method === 'GET') {
+    const email = (url.searchParams.get('email') || '').toLowerCase();
+    const r = [...resetTokens.entries()].filter(([, v]) => v.email === email).pop();
+    send(res, r ? 200 : 404, r ? { link: `/recuperar#token=${r[0]}`, sent: resetMails.filter((m) => m === email).length } : { ok: false });
+    return;
+  }
+  // P-1: el próximo cambio de contraseña de esa cuenta se aplica y responde 500 (nota ADR-038 #7)
+  if (path === '/__test/password-change-500' && req.method === 'POST') {
+    const body = await readBody(req);
+    passwordChange500.add(String((body && body.email) || '').toLowerCase());
     send(res, 200, { ok: true });
     return;
   }
@@ -383,11 +412,12 @@ const server = http.createServer(async (req, res) => {
     const body = await readBody(req);
     if (!body || !body.email || !body.password) { problem(res, 400, 'Bad Request'); return; }
     const acc = accounts[body.email];
-    const passwordMatches = acc && (
+    // Una cuenta que cambió o recuperó la contraseña solo entra con la suya (sin los atajos de las cuentas de la demo)
+    const passwordMatches = acc && acc.status !== 'INACTIVE' && (acc.passwordChanged ? acc.password === body.password : (
       acc.password === body.password ||
       (body.password === 'demo-local-password' && acc.password) ||
       (acc.password === 'demo-local-password' && (body.password === 'demo-representante' || body.password === 'demo-admin' || body.password === 'demo-empleado'))
-    );
+    ));
     if (!acc || !passwordMatches) { problem(res, 401, 'Unauthorized'); return; }
     // D3: con la contraseña correcta, las versiones que falten tienen que venir EXACTAMENTE en el cuerpo; si no, 403
     const missingTerms = acc.acceptedTermsVersion !== LEGAL;
@@ -1173,6 +1203,115 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     problem(res, 404, 'NotFound');
+    return;
+  }
+
+  // P-1 — POST /auth/password-reset (ADR-050 D8): siempre el mismo 202; solo una cuenta ACTIVE fuera del
+  // enfriamiento de 5 minutos recibe correo; pedir otro sustituye al anterior
+  if (p === '/auth/password-reset' && req.method === 'POST') {
+    const body = await readBody(req);
+    if (!body || typeof body.email !== 'string' || !body.email.trim()) { problem(res, 400, 'BadRequest'); return; }
+    const email = body.email.trim().toLowerCase();
+    const acc = accounts[email];
+    const last = resetCooldown.get(email) || 0;
+    if (acc && acc.status !== 'INACTIVE' && Date.now() - last >= 5 * 60 * 1000) {
+      for (const v of resetTokens.values()) if (v.email === email) v.superseded = true;
+      resetTokens.set('rst-' + crypto.randomBytes(24).toString('base64url'), { email, used: false, superseded: false, at: Date.now() });
+      resetCooldown.set(email, Date.now());
+      resetMails.push(email);
+    }
+    res.writeHead(202, { 'Cache-Control': 'no-store' });
+    res.end();
+    return;
+  }
+  // P-1 — POST /auth/password-reset/confirm: 204 sin iniciar sesión; el mismo 400 para cualquier token que no sirve;
+  // PasswordTooShort no consume el token
+  if (p === '/auth/password-reset/confirm' && req.method === 'POST') {
+    const body = await readBody(req);
+    if (!body || !body.token || !body.newPassword) { problem(res, 400, 'BadRequest'); return; }
+    const t = resetTokens.get(String(body.token));
+    const acc = t && accounts[t.email];
+    if (!t || t.used || t.superseded || Date.now() - t.at > 30 * 60 * 1000 || !acc || acc.status === 'INACTIVE') {
+      problem(res, 400, 'PasswordResetTokenInvalid'); return;
+    }
+    if (String(body.newPassword).length < 12) { problem(res, 400, 'PasswordTooShort'); return; }
+    t.used = true;
+    acc.password = String(body.newPassword);
+    acc.passwordChanged = true;
+    revokeTokensOf(acc);
+    res.writeHead(204, { 'Cache-Control': 'no-store' });
+    res.end();
+    return;
+  }
+
+  // P-1 — POST /account/password (ADR-050 D5): 200 {token}; la sesión sigue con el token nuevo y las demás se revocan
+  if (p === '/account/password' && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const body = await readBody(req);
+    if (!body || !body.currentPassword || !body.newPassword) { problem(res, 400, 'BadRequest'); return; }
+    if (body.currentPassword !== actor.password) { problem(res, 400, 'CurrentPasswordIncorrect'); return; }
+    if (String(body.newPassword).length < 12) { problem(res, 400, 'PasswordTooShort'); return; }
+    const email = emailOf(req);
+    actor.password = String(body.newPassword);
+    actor.passwordChanged = true;
+    revokeTokensOf(actor);
+    if (passwordChange500.delete(email)) { problem(res, 500, 'InternalServerError'); return; }
+    const token = 'tok-' + crypto.randomUUID();
+    tokens.set(token, email);
+    send(res, 200, { token }, { 'Cache-Control': 'no-store' });
+    return;
+  }
+
+  // P-1 — POST /account/deactivate (ADR-050 D6): orden contraseña, administrador, representante, responsable
+  if (p === '/account/deactivate' && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const body = await readBody(req);
+    if (!body || !body.currentPassword) { problem(res, 400, 'BadRequest'); return; }
+    if (body.currentPassword !== actor.password) { problem(res, 400, 'CurrentPasswordIncorrect'); return; }
+    if (actor.platformAuthority) { problem(res, 409, 'PlatformAdministratorDeactivation'); return; }
+    if ((actor.roles || []).includes('REPRESENTATIVE')) { problem(res, 409, 'RepresentativeTransferRequired'); return; }
+    const responsible = [...assignments.entries()].some(([k, v]) => k.endsWith(':' + actor.accountId)
+      && campaignByRef(k.slice(0, k.length - actor.accountId.length - 1))?.status === 'OPEN' && v);
+    if (responsible) { problem(res, 409, 'ActiveCampaignResponsible'); return; }
+    actor.status = 'INACTIVE';
+    revokeTokensOf(actor);
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // P-1 — GET y PUT /account/profile (ADR-050 D1): el nombre es privado; vacío tras recortar o > 100 puntos de código → 400
+  if (p === '/account/profile' && (req.method === 'GET' || req.method === 'PUT')) {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    if (req.method === 'PUT') {
+      const body = (await readBody(req)) || {};
+      const next = {};
+      for (const f of ['givenName', 'familyName']) {
+        const v = body[f];
+        if (v === null || v === undefined) { next[f] = undefined; continue; }
+        if (typeof v !== 'string' || !v.trim() || Array.from(v.trim()).length > 100) { problem(res, 400, 'BadRequest'); return; }
+        next[f] = v.trim();
+      }
+      actor.givenName = next.givenName;
+      actor.familyName = next.familyName;
+    }
+    const out = { email: emailOf(req) };
+    if (actor.givenName) out.givenName = actor.givenName;
+    if (actor.familyName) out.familyName = actor.familyName;
+    send(res, 200, out, { 'Cache-Control': 'no-store' });
+    return;
+  }
+
+  // P-1 / U-7 — POST /platform/accounts/{accountId}/reactivate (ADR-050 D7): 403 uniforme antes de leer la cuenta
+  const reactivateMatch = p.match(/^\/platform\/accounts\/([^/]+)\/reactivate$/);
+  if (reactivateMatch && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    if (!actor.platformAuthority) { problem(res, 403, 'Forbidden'); return; }
+    const id = decodeURIComponent(reactivateMatch[1]);
+    const targets = Object.values(accounts).filter((a) => a.accountId === id);
+    if (targets.length === 0) { problem(res, 404, 'NotFound'); return; }
+    for (const a of targets) a.status = 'ACTIVE';
+    send(res, 200, { accountId: id, status: 'ACTIVE' }, { 'Cache-Control': 'no-store' });
     return;
   }
 

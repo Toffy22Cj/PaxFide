@@ -2,12 +2,14 @@
 // Ref: plan-fase7-fidelidad.md F-A4 (D-F12), plan-fase7-pantallas.md A-3, D-P6, D-P7 y D-P11; DF7-21;
 // prompts-agentes-estilo-v2.md VS-5 y §3.2; referencia-api-v1.md §1, §3 y §5.
 // Contrato visual: paxfide-home.html (vHome). Desviación X-18 (QR sin lector: tarjeta rápida sin enlace).
+// plan-fase7-puesta-al-dia.md P-1 (X-8): con `givenName` de `GET /account/profile`, saludo con el nombre e iniciales;
+// sin él, D-P7 y el aviso "Completa tu perfil" (azul informativo: el amarillo queda para lo ambiguo, D6).
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { fetchMe, type Principal } from '../lib/api/identity';
 import { usePrincipal } from '../lib/auth/usePrincipal';
-import { fetchAccountDonations, type AccountDonation } from '../lib/api/account';
+import { fetchAccountDonations, fetchProfile, initialsOf, type AccountDonation, type PersonalProfile } from '../lib/api/account';
 import { fetchDiscovery, type DiscoveryItem } from '../lib/api/publicCampaigns';
 import { fetchOrganizationCampaigns, type AdminCampaign } from '../lib/api/campaignAdmin';
 import { fetchOrganizationAssets, type OrgAsset } from '../lib/api/organization';
@@ -29,6 +31,18 @@ export const HOME_ITEMS = 3;
 /** Saludo por la hora del dispositivo, sin nombre (D-P7). En el servidor, "Hola" (no hay hora local). */
 export function greetingFor(hour: number): string {
   return hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
+}
+
+function useProfile(client: typeof fetchProfile): { profile: PersonalProfile | null; loaded: boolean } {
+  const [state, setState] = useState<{ profile: PersonalProfile | null; loaded: boolean }>({ profile: null, loaded: false });
+  useEffect(() => {
+    let alive = true;
+    void client().catch(() => null).then((r) => {
+      if (alive) setState({ profile: r?.kind === 'ok' ? r.profile : null, loaded: r?.kind === 'ok' });
+    });
+    return () => { alive = false; };
+  }, [client]);
+  return state;
 }
 
 function useGreeting(): string {
@@ -119,6 +133,7 @@ const ICON = {
   campaign: 'M4 10v4h3l6 4V6L7 10H4zM16.5 9a4 4 0 0 1 0 6',
   org: 'M4 20V9l8-5 8 5v11M9 20v-6h6v6',
   shield: 'M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6l7-3z',
+  user: 'M12 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM4 21a8 8 0 0 1 16 0',
 };
 
 /** Árbol de huellas que se juntan en una sola raíz (ilustración estática del prototipo, sin texto). */
@@ -453,6 +468,7 @@ export interface HomeScreenProps {
   campaignsClient?: typeof fetchDiscovery;
   orgCampaignsClient?: typeof fetchOrganizationCampaigns;
   orgAssetsClient?: typeof fetchOrganizationAssets;
+  profileClient?: typeof fetchProfile;
   now?: number;
 }
 
@@ -462,9 +478,13 @@ export function HomeScreen({
   campaignsClient = fetchDiscovery,
   orgCampaignsClient = fetchOrganizationCampaigns,
   orgAssetsClient = fetchOrganizationAssets,
+  profileClient = fetchProfile,
   now,
 }: HomeScreenProps) {
   const greeting = useGreeting();
+  const { profile, loaded } = useProfile(profileClient);
+  const [nudgeHidden, setNudgeHidden] = useState(false);
+  const initials = initialsOf(profile);
   const { state } = usePrincipal(meClient);
   const principal = state.status === 'ready' ? state.data : null;
   const cards = accountCards(principal);
@@ -476,16 +496,33 @@ export function HomeScreen({
   return (
     <div className={s.home} data-testid="home-content">
       <header className={s.head}>
-        <span className={s.avatar} aria-hidden="true">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
-          </svg>
+        <span className={s.avatar} aria-hidden="true" data-testid="home-avatar">
+          {initials ?? (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
+            </svg>
+          )}
         </span>
         <div>
-          <h1 className={s.title}>{greeting}</h1>
+          <h1 className={s.title} data-testid="home-greeting">{profile?.givenName ? `${greeting}, ${profile.givenName}` : greeting}</h1>
           <p className={s.sub}>Qué bueno verte por aquí.</p>
         </div>
       </header>
+      {loaded && !profile?.givenName && !nudgeHidden && isSurfaceEnabled('/account') && (
+        <div className={s.nudge} role="status" data-testid="profile-nudge">
+          <Icon d={ICON.user} />
+          <div className={s.nudgeText}>
+            <b>Completa tu perfil</b>
+            <span>Agrega tu nombre para que te saludemos como se debe.</span>
+          </div>
+          <Link className={s.nudgeCta} href="/account">Agregar</Link>
+          <button type="button" className={s.nudgeClose} aria-label="Ocultar aviso" onClick={() => setNudgeHidden(true)}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
+      )}
       <div className={s.grid}>
         {isSurfaceEnabled('/tracking') && <TrackCard cardIndex={cardIdx++} />}
         <SealCard cardIndex={cardIdx++} />
