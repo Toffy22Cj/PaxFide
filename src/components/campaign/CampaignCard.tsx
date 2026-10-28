@@ -1,7 +1,8 @@
 'use client';
 // Ref: plan-fase7-pantallas.md A-2 (tarjeta compartida con A-3 y A-5), D-P10 y DF7-22 (inicial sobre
 // --color-success-bg con --color-success-text); referencia-api-v1.md §5 (GET /public/campaigns, notas del 18 y del
-// 21 de octubre: organizationVerified y organizationLogoUrl?). `coverImageUrl` no se usa (Tarea 3 de ADR-051).
+// 21 de octubre: organizationVerified y organizationLogoUrl?); plan-fase7-puesta-al-dia.md U-6: `coverImageUrl` arriba
+// si llega; si no (o si no carga), el aspecto de siempre con el logo o la inicial.
 import React, { useState } from 'react';
 import Link from 'next/link';
 import type { DiscoveryItem } from '../../lib/api/publicCampaigns';
@@ -26,6 +27,8 @@ export function organizationInitial(name?: string): string | null {
 
 export function CampaignCard({ campaign: c, headingLevel = 3 }: { campaign: DiscoveryItem; headingLevel?: 2 | 3 }) {
   const [logoFailed, setLogoFailed] = useState(false);
+  const [coverFailed, setCoverFailed] = useState(false);
+  const cover = c.coverImageUrl && !coverFailed ? c.coverImageUrl : null;
   const Heading = `h${headingLevel}` as const;
   const initial = organizationInitial(c.organizationName);
   const logo = c.organizationLogoUrl && !logoFailed ? c.organizationLogoUrl : null;
@@ -33,6 +36,11 @@ export function CampaignCard({ campaign: c, headingLevel = 3 }: { campaign: Disc
 
   return (
     <article className={s.card} data-testid="campaign-card">
+      {cover && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className={s.cover} src={cover} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer"
+          onError={() => setCoverFailed(true)} data-testid="campaign-cover" />
+      )}
       {(logo || initial || c.organizationVerified) && (
         <div className={s.org}>
           {/* El nombre va al lado en texto: el logo y la inicial son decorativos */}

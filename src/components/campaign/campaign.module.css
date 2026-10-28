@@ -17,3 +17,6 @@
 }
 .steps { margin: 0 0 var(--space-4); padding-left: var(--space-6); color: var(--color-text-secondary); }
 .mono { font-family: var(--font-mono); word-break: break-all; }
+
+/* U-6: portada del detalle */
+.cover { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-card); margin-bottom: var(--space-4); background: var(--color-bg); }

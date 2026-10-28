@@ -28,6 +28,7 @@ import {
   OrganizationDetails,
 } from '../lib/api/organization';
 import { fetchActivity, fetchMonthlyCleared, fetchOrgIntegrity, type MonthlyCleared, type OrgIntegrity } from '../lib/api/panelData';
+import { PrivateImage } from '../components/media/PrivateImage';
 import { ActivityFeed, IntegrityKpi, MonthlyKpi, daysSince } from '../components/panel/PanelTimeData';
 import {
   AmbiguousCommandItem,
@@ -522,8 +523,10 @@ export function PanelHomeScreen({
         <div className={s.headLeft}>
           <IsometricEmblem district="org" />
           {canFetchOrg && (
+            // U-4: el logo privado se pide con fetch y Authorization y se muestra como blob (nunca un src a la API)
             orgDetails?.logoUrl ? (
-              <img src={orgDetails.logoUrl} alt={orgDetails.name ?? 'Logo'} className={s.logoImg} />
+              <PrivateImage path={orgDetails.logoUrl} alt={orgDetails.name ?? 'Logo'} className={s.logoImg} testId="org-logo"
+                fallback={<div className={s.logoInitial} aria-hidden="true" data-testid="org-initial">{(orgDetails?.name ?? 'O').trim().charAt(0).toUpperCase()}</div>} />
             ) : (
               <div className={s.logoInitial} aria-hidden="true" data-testid="org-initial">
                 {(orgDetails?.name ?? 'O').trim().charAt(0).toUpperCase()}

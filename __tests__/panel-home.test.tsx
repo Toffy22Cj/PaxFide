@@ -257,7 +257,10 @@ describe('Panel v2 fidelidad (F-B1, D-F12, D-F13): vistas por rol y comportamien
     // Cabecera con nombre de la organización, subtítulo con rol y verificación, y logo
     expect(await screen.findByText('Fundación Manos Unidas')).toBeInTheDocument();
     expect(screen.getByText('Organización verificada · Tu rol: Administrador')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Fundación Manos Unidas' })).toHaveAttribute('src', 'https://cdn.example.test/logo.png');
+    // U-4 (plan-fase7-puesta-al-dia.md P-4): el logo privado nunca va en un `src`; una URL fuera del origen de la API no se
+    // pide (el JWT no sale de allí) y queda la inicial
+    expect(document.querySelector('img[src="https://cdn.example.test/logo.png"]')).toBeNull();
+    expect(await screen.findByTestId('org-initial')).toHaveTextContent('F');
 
     // Botón de acción en la cabecera
     expect(screen.getByTestId('new-campaign-button')).toHaveAttribute('href', '/panel/campaigns');

@@ -1,0 +1,17 @@
+/* Ref: plan-fase7-puesta-al-dia.md U-4, U-5 y U-8. Solo tokens semánticos. */
+.editor { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.current { display: flex; align-items: center; gap: var(--space-3); }
+.preview, .logo { width: 72px; height: 72px; object-fit: cover; border-radius: var(--radius-control); border: 1px solid var(--color-divider); }
+.coverPreview { width: 100%; max-width: 360px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-control); border: 1px solid var(--color-divider); }
+.initial {
+  width: 72px; height: 72px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-control);
+  background: var(--color-success-bg); color: var(--color-success-text); font-family: var(--font-display); font-size: 28px; font-weight: var(--weight-semibold);
+}
+.label { font-weight: var(--weight-semibold); color: var(--color-text); }
+.hint { font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.file { font: inherit; color: var(--color-text); min-height: 44px; }
+.file:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.progress { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--font-size-body-4); }
+.confirm { padding: var(--space-3); border-radius: var(--radius-control); background: var(--color-bg); border: 1px solid var(--color-divider); }
+.confirm p { margin: 0 0 var(--space-2); }
+.evidence { width: 100%; max-width: 420px; border-radius: var(--radius-control); border: 1px solid var(--color-divider); }

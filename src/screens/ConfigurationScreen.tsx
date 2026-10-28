@@ -18,6 +18,7 @@ import { Button } from '../components/ui/Button';
 import { EmptyState, ErrorState, ForbiddenState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
 import { CommandModal } from '../components/asset/CommandModal';
 import { LocalDate } from '../components/LocalDate';
+import { CampaignCoverCard } from '../components/media/CampaignCoverCard';
 
 const POLICY: Record<string, string> = {
   FLEXIBLE: 'Flexible', STRICT: 'Estricta', CLOSE_ON_TARGET: 'Cerrar al alcanzar la meta',
@@ -113,6 +114,8 @@ function ConfigurationForm({ current, onSubmit }: {
 type Loaded = {
   requests: ListOutcome<ChangeRequest>;
   current?: CampaignConfiguration | null | 'unavailable';
+  /** U-5: la portada que da la lectura pública, si la tiene. */
+  coverImageUrl?: string;
 };
 
 /**
@@ -155,6 +158,7 @@ export function ConfigurationScreen({
     setLoaded('loading');
     const requests = await requestsClient(sel.ref);
     let current: Loaded['current'];
+    let coverImageUrl: string | undefined;
     if (sel.campaign && organizationId) {
       // Se relee el listado: tras un cambio, la política de meta (que solo trae el listado) puede ser otra
       const list = await listClient(organizationId);
@@ -162,8 +166,9 @@ export function ConfigurationScreen({
       const campaign = list.kind === 'ok' ? list.items.find((c) => c.campaignRef === sel.ref) : undefined;
       const pub = campaign ? await publicClient(campaign.publicCode) : null;
       current = campaign && pub?.kind === 'ok' ? currentConfiguration(campaign, pub.campaign) : 'unavailable';
+      coverImageUrl = pub?.kind === 'ok' ? pub.campaign.coverImageUrl : undefined;
     }
-    setLoaded({ requests, current });
+    setLoaded({ requests, current, coverImageUrl });
   }, [requestsClient, publicClient, listClient, organizationId]);
 
   const items = campaigns?.kind === 'ok' ? campaigns.items.filter((c) => c.status === 'OPEN') : [];
@@ -207,6 +212,11 @@ export function ConfigurationScreen({
       {loaded === 'loading' && <LoadingState />}
       {selected && loaded && loaded !== 'loading' && (
         <>
+          {/* U-5: la portada, solo ADMINISTRATOR (nunca el REPRESENTATIVE, C1 (a)) */}
+          {selected.campaign && organizationId && roles.includes('ADMINISTRATOR') && isSurfaceEnabled('action:campaign-cover') && (
+            <CampaignCoverCard key={selected.ref} organizationId={organizationId} campaignRef={selected.ref}
+              title={selected.campaign.title} coverImageUrl={loaded.coverImageUrl} />
+          )}
           {selected.campaign && (
             <Surface title="Configuración actual">
               {loaded.current === 'unavailable' && <UnavailableState what="La configuración actual de esta convocatoria" />}

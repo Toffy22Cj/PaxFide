@@ -9,6 +9,7 @@ import { AssetActions } from '../../../components/asset/AssetActions';
 import { fetchMe } from '../../../lib/api/identity';
 import { usePrincipal } from '../../../lib/auth/usePrincipal';
 import { formatQuantity } from '../../../lib/quantity';
+import { DeliveryEvidencePhoto } from '../../../components/media/DeliveryEvidencePhoto';
 
 type State = 'LOADING' | 'SUCCESS' | 'FORBIDDEN' | 'NOT_FOUND' | 'ERROR';
 
@@ -63,6 +64,10 @@ export default function AssetPage({ params, fetchClient = fetchAsset, meClient =
         ]} />
         <AssetActions assetRef={data.assetRef} delivered={isReadOnly} onChanged={() => void read(true)} principal={principal} />
       </Surface>
+      {/* U-8 (plan-fase7-puesta-al-dia.md): la foto de la entrega, para los miembros de la organización o la plataforma */}
+      {isReadOnly && principal.status === 'ready' && (principal.data.organizationId || principal.data.platformAuthority) && (
+        <DeliveryEvidencePhoto assetRef={data.assetRef} />
+      )}
     </div>
   );
 }
