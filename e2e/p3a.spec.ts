@@ -13,6 +13,9 @@ async function login(browser: Browser, email: string, password: string): Promise
 }
 
 test.describe('P3-A — crear organización, cola de verificación y administradores de plataforma', () => {
+  // Varias sesiones a la vez: con 4 workers en CI rondaban los 30 s del límite por defecto (p3a 27,9 s en el ci-local
+  // de 6ce9006). Más margen, sin saltar nada
+  test.describe.configure({ timeout: 60_000 });
   test('cuenta nueva → crea su organización (pendiente) → la plataforma la ve en la cola, pide información y la verifica', async ({ browser }) => {
     const email = `rep-${Date.now()}@demo.test`;
     const name = `Fundación e2e ${Date.now()}`;

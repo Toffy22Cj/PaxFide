@@ -19,6 +19,9 @@ async function adminPage(browser: Browser, destination = '/panel/members'): Prom
 }
 
 test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
+  // Varias sesiones a la vez: con 4 workers en CI rondaban los 30 s del límite por defecto (p3a 27,9 s en el ci-local
+  // de 6ce9006). Más margen, sin saltar nada
+  test.describe.configure({ timeout: 60_000 });
   test('invitar → el enlace del correo (#token) → crear cuenta e iniciar sesión → aceptar; el token nunca en una URL ni en almacenamiento', async ({ browser, request }) => {
     const email = `invitada-${Date.now()}@demo.test`;
     const admin = await adminPage(browser);
