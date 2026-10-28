@@ -114,13 +114,13 @@ Lo que **no** cambia de la regla de los prompts (§2): los colores salen de toke
 |---|---|---|---|
 | X-1 | Botones "Google" y "Billetera Web3", y el separador "o continúa con correo electrónico" | Acceso | **Carlos, 2026-10-24: se quitan de la web.** El backend de Google (ADR-050 R-6) sigue como última prioridad; si llega, volver a poner el botón es una decisión nueva de Carlos. La billetera no tiene diseño |
 | X-2 | "Recordarme en este navegador" | Acceso | D2: la sesión vive solo en memoria |
-| X-3 | "¿Olvidaste tu contraseña?" (recuperarla por correo sin haber iniciado sesión) | Acceso | ⏳ Llega con F-C1 tras ADR-050 R-4 (D8) |
+| X-3 | "¿Olvidaste tu contraseña?" (recuperarla por correo sin haber iniciado sesión) | Acceso | ✅ Implementado en P-1 de `plan-fase7-puesta-al-dia.md` (`/recuperar`). En el boceto el enlace solo muestra un aviso de demostración |
 | X-4 | "Nombre completo u Organización" en el formulario de registro | Registro | El nombre **no** va en el registro: ADR-050 D1 lo pone en un paso 2 opcional ("¿Cómo te llamamos?" y Perfil, F-C1). "u Organización" no se usa nunca (D-F14) |
 | X-5 | "Acepto los Términos de Transparencia y la Política de Privacidad" | Registro | ⏳ Llega con F-C1 tras ADR-050 R-5: dos casillas separadas (términos y autorización de datos, D2) con enlaces a `/terminos` y `/privacidad` (D-F17) |
 | X-6 | "Mínimo 8 caracteres" | Registro | El backend exige 12 (`PasswordTooShort`). El medidor de seguridad del boceto se mantiene, con 12 como mínimo |
 | X-7 | "¿Cómo participarás?" (Donante / Organización) | Registro | **Carlos, 2026-10-24:** no va; en su lugar, la nota de D-F14 |
-| X-8 | Nombre y apellido en el saludo, iniciales, "Completa tu perfil" y "¿Cómo te llamamos?" | Home, Perfil | ⏳ Llega con F-C1 tras ADR-050 R-5+D1 (`GET/PUT /account/profile`). Hasta entonces, D-P7 (saludo sin nombre) |
-| X-9 | Tarjeta "Seguridad y criptografía" (cambiar contraseña, desactivar cuenta) | Perfil | ⏳ Llega con F-C1 tras ADR-050 R-3+R-2 (D5) y la tarea de desactivación (D6). Nada de "Próximamente" mientras tanto (D5 de ADR-046) |
+| X-8 | Nombre y apellido en el saludo, iniciales, "Completa tu perfil" y "¿Cómo te llamamos?" | Home, Perfil | ✅ Implementado en P-1 de `plan-fase7-puesta-al-dia.md`. Sin `givenName`, D-P7. Ver X-20 y X-21 |
+| X-9 | Tarjeta "Seguridad y criptografía" (cambiar contraseña, desactivar cuenta) | Perfil | ✅ Implementado en P-1 de `plan-fase7-puesta-al-dia.md`, con el título "Seguridad" (ver X-22) |
 | X-10 | Cifras, organizaciones, lugares y fechas de ejemplo | Todas | §3 de los prompts y D-P5. Las etiquetas, según §2.1 |
 | X-11 | Filtros por causa ("Nutrición", "Agua limpia"…) y búsqueda | Landing | ⏳ R-1 |
 | X-12 | Las 17 variantes de tarjeta de convocatoria | Landing | Son un muestrario del boceto: se usa la variante 01 (la "unificada clásica"), que es `CampaignCard` |
@@ -131,6 +131,9 @@ Lo que **no** cambia de la regla de los prompts (§2): los colores salen de toke
 | X-17 | Botón "DEMO" y cambio de rol | Home, Panel | Herramienta del boceto |
 | X-18 | "Escanear QR" y "Despachar o recibir" como acción | Home, Panel | ⛔ lector QR sin decidir. La tarjeta rápida "Despachar o recibir" se queda con el texto del boceto "Escanea el QR en la app", sin enlace |
 | X-19 | Fuentes de Google | Todas | Fuentes autoalojadas (enmienda §6) |
+| X-20 | Aviso "Completa tu perfil" en amarillo, con botón amarillo y entrada animada (`rise`) | Home | **Propuesta de P-1, pendiente de Carlos.** En la web el amarillo significa "ambiguo" (D6), así que el aviso usa los tokens informativos (azul) y el botón de acción. No se anima: no responde a nada que haya pasado |
+| X-21 | "Ahora no" en "¿Cómo te llamamos?" | Acceso | **Propuesta de P-1, pendiente de Carlos.** El plan aprobado (P-1 y F-C1) dice "Más tarde" |
+| X-22 | Título "Seguridad y Criptografía" y el texto "están en el kit (M-27, M-30)" | Perfil | **Propuesta de P-1, pendiente de Carlos.** El plan aprobado la llama "Seguridad", y la tarjeta no tiene nada de criptografía. El texto del kit es una nota del boceto |
 
 ---
 

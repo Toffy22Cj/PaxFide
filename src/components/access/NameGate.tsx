@@ -50,8 +50,11 @@ export function NameGate({ clients = DEFAULT_CLIENTS, onDone }: { clients?: Name
     setErrors(next);
     setFailure(null);
     if (next.givenName || next.familyName) return;
-    // Nada escrito: es lo mismo que "Más tarde" (no se borra un nombre que no se cargó)
-    if (!givenName.trim() && !familyName.trim()) { onDone(); return; }
+    // Nada escrito (como el boceto): se pide al menos el nombre; "Más tarde" es la salida sin datos
+    if (!givenName.trim() && !familyName.trim()) {
+      setErrors({ givenName: 'Escribe al menos tu nombre, o elige "Más tarde".' });
+      return;
+    }
     setSending(true);
     const r = await clients.update(givenName, familyName);
     setSending(false);
@@ -66,22 +69,23 @@ export function NameGate({ clients = DEFAULT_CLIENTS, onDone }: { clients?: Name
   };
 
   return (
-    <form className={s.welcomeGate} data-testid="name-gate" onSubmit={(e) => void submit(e)} noValidate aria-labelledby="nameGateTitle">
+    <form className={[s.welcomeGate, s.nameGate].join(' ')} data-testid="name-gate" onSubmit={(e) => void submit(e)} noValidate aria-labelledby="nameGateTitle">
       <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
       <h1 id="nameGateTitle" className={s.welcomeTitle}>¿Cómo te llamamos?</h1>
       <p className={s.welcomeLead}>Así te saludamos y te identificamos dentro de tu organización. Puedes completarlo ahora o más tarde desde tu perfil.</p>
       {failure && <div className={[s.feedbackMsg, s.feedbackError].join(' ')} role="alert">{failure}</div>}
+      <div className={s.gateFields}>
       <div className={s.row2}>
         <div className={s.field}>
           <label htmlFor="gName" className={s.label}>Nombre</label>
-          <input id="gName" className={s.input} autoComplete="given-name" value={givenName} disabled={sending}
+          <input id="gName" className={[s.input, s.inputPlain].join(' ')} autoComplete="given-name" value={givenName} disabled={sending}
             onChange={(e) => setGivenName(e.target.value)} aria-invalid={errors.givenName ? true : undefined}
             aria-describedby={errors.givenName ? 'gName-e' : undefined} />
           {errors.givenName && <span id="gName-e" className={s.fieldError}>{errors.givenName}</span>}
         </div>
         <div className={s.field}>
           <label htmlFor="fName" className={s.label}>Apellido</label>
-          <input id="fName" className={s.input} autoComplete="family-name" value={familyName} disabled={sending}
+          <input id="fName" className={[s.input, s.inputPlain].join(' ')} autoComplete="family-name" value={familyName} disabled={sending}
             onChange={(e) => setFamilyName(e.target.value)} aria-invalid={errors.familyName ? true : undefined}
             aria-describedby={errors.familyName ? 'fName-e' : undefined} />
           {errors.familyName && <span id="fName-e" className={s.fieldError}>{errors.familyName}</span>}
@@ -90,9 +94,10 @@ export function NameGate({ clients = DEFAULT_CLIENTS, onDone }: { clients?: Name
       {email && (
         <div className={s.field}>
           <label htmlFor="gMail" className={s.label}>Correo de la cuenta</label>
-          <input id="gMail" className={[s.input, s.readonlyInput].join(' ')} value={email} readOnly aria-readonly="true" />
+          <input id="gMail" className={[s.input, s.inputPlain, s.readonlyInput].join(' ')} value={email} readOnly aria-readonly="true" />
         </div>
       )}
+      </div>
       <div className={s.privacy}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 3l7 4v5c0 4-3 7.5-7 9-4-1.5-7-5-7-9V7z" />

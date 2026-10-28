@@ -626,6 +626,14 @@
 /* "¿Cómo te llamamos?" (paxfide-home.html #sData) */
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
 @media (max-width: 420px) { .row2 { grid-template-columns: 1fr; } }
+.gateFields { text-align: left; width: 100%; }
+/* "¿Cómo te llamamos?" va alineado a la izquierda (paxfide-home.html #sData), a diferencia de la bienvenida */
+.nameGate { align-items: stretch; text-align: left; }
+.nameGate .gateActions { flex-direction: column; }
+.nameGate .gateActions > * { flex: none; width: 100%; }
+.nameGate .welcomeDots { align-self: center; }
+/* Sin icono a la izquierda ni botón a la derecha */
+.inputPlain { padding: 0 14px; }
 .readonlyInput { background: var(--color-bg); color: var(--color-text-secondary); }
 .privacy {
   display: flex; gap: var(--space-2); align-items: flex-start; margin-top: var(--space-4);

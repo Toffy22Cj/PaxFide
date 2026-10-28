@@ -127,8 +127,9 @@ test.describe('P-1: seguridad de la cuenta', () => {
     await expect(page).toHaveURL(/\/home$/);
   });
 
-  test('recuperar: un enlace ya usado da un único texto y nunca lleva al login', async ({ page, request }) => {
+  test('recuperar: un enlace ya usado da un único texto y nunca lleva al login', async ({ page }) => {
     await page.goto('/recuperar#token=rst-que-no-existe');
+    await expect(page.getByLabel('Contraseña nueva')).toBeVisible();
     expect(page.url()).not.toContain('rst-que-no-existe');
     await page.getByLabel('Contraseña nueva').fill('clave-recuperada-2');
     await page.getByLabel('Repite la contraseña').fill('clave-recuperada-2');
@@ -241,4 +242,67 @@ test.describe('P-1: seguridad de la cuenta', () => {
     await expect(page).toHaveURL(/\/account$/);
     await expect(page.getByTestId('security-card')).toBeVisible();
   });
+});
+
+/**
+ * plan-fase7-fidelidad.md §1.4: en el centro de cada control interactivo visible, `elementFromPoint` devuelve ese mismo
+ * control (o algo dentro de él). Cada control se lleva al centro de la ventana antes de mirar.
+ */
+async function overlaps(page: Page, scope: string): Promise<string[]> {
+  return page.evaluate(async (sel) => {
+    const root = document.querySelector(sel);
+    if (!root) return [`sin ${sel}`];
+    const bad: string[] = [];
+    const controls = [...root.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea')]
+      .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; });
+    for (const el of controls) {
+      el.scrollIntoView({ block: 'center', inline: 'center' });
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      if (!hit || !(hit === el || el.contains(hit) || (el.id && hit.closest(`label[for="${el.id}"]`)))) {
+        bad.push(`${el.tagName.toLowerCase()}「${(el.getAttribute('aria-label') || el.textContent || el.getAttribute('name') || el.id).trim().slice(0, 30)}」 tapado por ${hit ? hit.tagName.toLowerCase() + '.' + String(hit.className).slice(0, 40) : 'nada'}`);
+      }
+    }
+    return bad;
+  }, scope);
+}
+
+test.describe('P-1: sin superposiciones (390, 1280 y 1920 px)', () => {
+  for (const width of [390, 1280, 1920]) {
+    test(`login, /recuperar, "¿Cómo te llamamos?", inicio con aviso y Perfil a ${width} px`, async ({ page, request }) => {
+      await page.setViewportSize({ width, height: 860 });
+      await page.goto('/login');
+      expect(await overlaps(page, '[data-world-avoid]')).toEqual([]);
+      await page.goto('/recuperar');
+      await expect(page.getByLabel('Correo electrónico')).toBeVisible();
+      expect(await overlaps(page, '[data-testid="recover-screen"]')).toEqual([]);
+      await page.goto('/recuperar#token=rst-x');
+      await expect(page.getByLabel('Contraseña nueva')).toBeVisible();
+      expect(await overlaps(page, '[data-testid="recover-screen"]')).toEqual([]);
+
+      const email = `p1-solape-${width}-${Date.now()}@demo.test`;
+      await page.goto('/register');
+      await page.getByLabel('Correo electrónico').fill(email);
+      await page.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
+      await page.getByLabel('Repite la contraseña').fill(PASSWORD);
+      await acceptLegal(page);
+      await page.getByRole('button', { name: 'Crear cuenta' }).click();
+      await expect(page.getByText('Cuenta creada')).toBeVisible();
+      await page.getByRole('tab', { name: 'Iniciar sesión' }).click();
+      await page.getByLabel('Correo electrónico').fill(email);
+      await page.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
+      await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+      await page.getByTestId('welcome-gate').getByRole('button', { name: 'Continuar' }).click();
+      await expect(page.getByTestId('name-gate')).toBeVisible();
+      expect(await overlaps(page, '[data-testid="name-gate"]')).toEqual([]);
+      await page.getByTestId('name-gate').getByRole('button', { name: 'Más tarde' }).click();
+      await expect(page.getByTestId('profile-nudge')).toBeVisible();
+      await expect(page.getByTestId('panel-portal')).toHaveCount(0);
+      expect(await overlaps(page, '[data-testid="profile-nudge"]')).toEqual([]);
+      await go(page, '/account');
+      await expect(page.getByTestId('security-card')).toBeVisible();
+      expect(await overlaps(page, '[data-testid="profile-screen"]')).toEqual([]);
+    });
+  }
 });

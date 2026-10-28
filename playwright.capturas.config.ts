@@ -35,7 +35,7 @@ export default defineConfig({
           '/panel/members', '/panel/my-campaigns', '/invitaciones', '/recuperar', 'action:member-invite', 'action:invitation-revoke',
           'action:member-change-role', 'action:member-remove',
           '/panel/configuration', 'action:configuration-edit', 'action:configuration-request', 'action:configuration-approve', 'action:configuration-reject', 'action:platform-grant-admin', 'action:platform-revoke-admin', 'action:platform-reactivate-account',
-          '/terminos', '/privacidad', '/terminos-organizacion',
+          '/terminos', '/privacidad', '/terminos-organizacion', '/account',
         ]),
       },
     },

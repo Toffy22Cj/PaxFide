@@ -31,10 +31,12 @@ export function RecoverScreen({ requestClient = requestPasswordReset, confirmCli
   confirmClient?: (token: string, password: string) => Promise<ResetConfirmOutcome>;
 }) {
   const router = useRouter();
-  // El token sale de la barra en el primer render, antes de cualquier efecto o petición
-  const [mode, setMode] = useState<Mode>(() => (captureResetToken() || getResetToken() ? 'confirm' : 'request'));
+  // El token sale de la barra en el primer efecto, antes de cualquier petición. No en el render: al hidratar, Next
+  // vuelve a escribir la URL inicial (con el fragmento) en un efecto de inserción, que corre después del render
+  const [mode, setMode] = useState<Mode | null>(null);
 
   useEffect(() => {
+    setMode(captureResetToken() || getResetToken() ? 'confirm' : 'request');
     // Abrir otro enlace con esta página abierta solo cambia el fragmento
     const onHash = () => { if (captureResetToken()) setMode('confirm'); };
     window.addEventListener('hashchange', onHash);

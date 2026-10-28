@@ -394,6 +394,16 @@ describe('"¿Cómo te llamamos?"', () => {
     expect(onDone).not.toHaveBeenCalled();
   });
 
+  it('sin escribir nada, "Guardar y continuar" pide el nombre y no envía (como el boceto)', async () => {
+    const update = vi.fn();
+    const onDone = vi.fn();
+    render(<NameGate clients={{ fetch: vi.fn().mockResolvedValue({ kind: 'error' }), update }} onDone={onDone} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar y continuar' }));
+    expect(await screen.findByText('Escribe al menos tu nombre, o elige "Más tarde".')).toBeInTheDocument();
+    expect(update).not.toHaveBeenCalled();
+    expect(onDone).not.toHaveBeenCalled();
+  });
+
   it('"Más tarde" continúa sin enviar nada', () => {
     const update = vi.fn();
     const onDone = vi.fn();
