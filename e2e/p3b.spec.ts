@@ -38,6 +38,8 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
     const urls: string[] = [];
     invitee.on('request', (r) => urls.push(r.url()));
     await invitee.goto(link);
+    // Antes de pulsar, la página tiene que estar hidratada: un clic al botón del HTML del servidor no hace nada
+    await invitee.waitForFunction(() => !!(window as any).__TEST_ROUTER__);
     await expect(invitee.getByText(/inicia sesión con la cuenta del correo/)).toBeVisible();
     expect(invitee.url()).toMatch(/\/invitaciones$/);
     expect(invitee.url()).not.toContain(token);
@@ -74,6 +76,8 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
     // La misma invitación otra vez: el mismo 403
     const again = await (await browser.newContext()).newPage();
     await again.goto(link);
+    // Antes de pulsar, la página tiene que estar hidratada: un clic al botón del HTML del servidor no hace nada
+    await again.waitForFunction(() => !!(window as any).__TEST_ROUTER__);
     await again.getByRole('button', { name: 'Iniciar sesión' }).click();
     await again.getByLabel('Correo electrónico').fill(email);
     await again.getByLabel('Contraseña').fill('clave-demo-larga');
@@ -95,6 +99,8 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
 
     const emp = await (await browser.newContext()).newPage();
     await emp.goto(link);
+    // Antes de pulsar, la página tiene que estar hidratada: un clic al botón del HTML del servidor no hace nada
+    await emp.waitForFunction(() => !!(window as any).__TEST_ROUTER__);
     await emp.getByRole('button', { name: 'Iniciar sesión' }).click();
     await emp.getByLabel('Correo electrónico').fill(email);
     await emp.getByLabel('Contraseña').fill('clave-demo-larga');
