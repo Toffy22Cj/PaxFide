@@ -153,7 +153,7 @@ describe('/panel/platform — administradores', () => {
 });
 
 describe('/panel/organization — crear organización', () => {
-  it('sin organización: crea con {type, name}; muestra "Pendiente de verificación" y relee /me', async () => {
+  it('sin organización: crea con {type, name, acceptedOrganizationTermsVersion}; "Pendiente de verificación" y relee /me', async () => {
     const { OrganizationScreen } = await load();
     const me = vi.fn()
       .mockResolvedValueOnce({ kind: 'ok', principal: { accountId: 'a', roles: [] } })
@@ -161,6 +161,11 @@ describe('/panel/organization — crear organización', () => {
     render(<OrganizationScreen meClient={me} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Crear organización' }));
     const dialog = screen.getByRole('dialog');
+    // R-3 (plan-fase7-puesta-al-dia.md): sin la casilla de los términos de organización, no se puede enviar
+    expect(within(dialog).getByTestId('consent-organizationTerms')).not.toBeChecked();
+    expect(within(dialog).getByRole('link', { name: /Términos para organizaciones/ })).toHaveAttribute('href', '/terminos-organizacion');
+    expect(within(dialog).getByRole('button', { name: 'Crear organización' })).toBeDisabled();
+    fireEvent.click(within(dialog).getByTestId('consent-organizationTerms'));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Crear organización' }));
     expect(within(dialog).getAllByText('Este campo es obligatorio.')).toHaveLength(2);
     fireEvent.change(within(dialog).getByLabelText('Tipo'), { target: { value: 'FOUNDATION' } });
@@ -170,7 +175,7 @@ describe('/panel/organization — crear organización', () => {
     expect(await screen.findByText('Organización creada')).toBeInTheDocument();
     expect(screen.getByTestId('organization-status')).toHaveTextContent('Pendiente de verificación');
     expect(fetchMock.mock.calls[0][0]).toBe('http://api.paxfide.test/api/v1/organizations');
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ type: 'FOUNDATION', name: 'Fundación Nueva' });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ type: 'FOUNDATION', name: 'Fundación Nueva', acceptedOrganizationTermsVersion: 'v1-2026-10' });
     expect(await screen.findByTestId('organization-roles')).toHaveTextContent('Representante');
     expect(me).toHaveBeenCalledTimes(2);
   });
@@ -182,9 +187,21 @@ describe('/panel/organization — crear organización', () => {
     const dialog = screen.getByRole('dialog');
     fireEvent.change(within(dialog).getByLabelText('Tipo'), { target: { value: 'COMPANY' } });
     fireEvent.change(within(dialog).getByLabelText('Nombre'), { target: { value: 'Empresa' } });
+    fireEvent.click(within(dialog).getByTestId('consent-organizationTerms'));
     fetchMock.mockResolvedValueOnce(res(409, { title: 'AccountAlreadyBelongsToOrganization' }));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Crear organización' }));
     expect(await within(dialog).findByText('Tu cuenta ya pertenece a una organización.')).toBeInTheDocument();
+  });
+
+  it('R-3: sin marcar la casilla no hay petición aunque el formulario esté completo (negativa)', async () => {
+    const { OrganizationScreen } = await load();
+    render(<OrganizationScreen meClient={async () => ({ kind: 'ok', principal: { accountId: 'a', roles: [] } })} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Crear organización' }));
+    const dialog = screen.getByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Tipo'), { target: { value: 'COMPANY' } });
+    fireEvent.change(within(dialog).getByLabelText('Nombre'), { target: { value: 'Empresa' } });
+    fireEvent.submit(dialog.querySelector('form')!);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('con organización: papeles y estado de verificación "No disponible" (sin lectura)', async () => {

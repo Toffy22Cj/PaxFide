@@ -80,19 +80,16 @@ describe('Acciones del activo', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('entregar: 409 InvalidAssetTransition → rechazo; Escape cierra el modal', async () => {
+  it('entregar (U-3): "Foto de la entrega" sustituye a "Evidencia (referencia)"; Escape cierra el modal', async () => {
     const { AssetActions } = await load();
-    fetchMock.mockResolvedValueOnce(res(409, { title: 'InvalidAssetTransition' }));
     render(<AssetActions assetRef="A1" delivered={false} onChanged={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: 'Entregar' }));
-    for (const [label, value] of [['Custodio final (referencia)', 'C'], ['Beneficiario (referencia)', 'B'], ['Lugar de entrega (referencia)', 'L'], ['Evidencia (referencia)', 'E']]) {
-      fireEvent.change(screen.getByLabelText(label), { target: { value } });
-    }
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
-    expect(await screen.findByText('El activo no está en un estado que permita esta operación.')).toBeInTheDocument();
-    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ finalCustodianRef: 'C', beneficiaryRef: 'B', locationRef: 'L', evidenceRef: 'E' });
+    expect(screen.getByLabelText('Foto de la entrega')).toHaveAttribute('type', 'file');
+    expect(screen.getByLabelText('Foto de la entrega')).toHaveAttribute('accept', 'image/jpeg,image/png');
+    expect(screen.queryByLabelText('Evidencia (referencia)')).toBeNull();
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('recibir: 403 → "No tienes acceso"; 5xx → ambiguo y Reintentar con el mismo Command-Id', async () => {

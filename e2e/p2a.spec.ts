@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import { acceptLegal } from './support/evidence';
 
 function future(days: number) {
   const d = new Date(Date.now() + days * 86400000);
@@ -39,6 +40,7 @@ test.describe('P2-A — registro, descubrimiento y narrativa', () => {
     await page.getByLabel('Correo electrónico').fill(email);
     await page.getByLabel('Contraseña', { exact: true }).fill('clave-demo-larga');
     await page.getByLabel('Repite la contraseña').fill('clave-demo-larga');
+    await acceptLegal(page);
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page.getByText('Cuenta creada')).toBeVisible();
 
@@ -47,6 +49,7 @@ test.describe('P2-A — registro, descubrimiento y narrativa', () => {
     await page.getByLabel('Correo electrónico').fill(email);
     await page.getByLabel('Contraseña', { exact: true }).fill('clave-demo-larga');
     await page.getByLabel('Repite la contraseña').fill('clave-demo-larga');
+    await acceptLegal(page);
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page.getByText('Ya existe una cuenta con ese correo.')).toBeVisible();
 

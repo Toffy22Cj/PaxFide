@@ -2,6 +2,7 @@ import { test, expect, Page, Browser, APIRequestContext } from '@playwright/test
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { attachDeliveryPhoto, acceptLegal } from '../e2e/support/evidence';
 
 /**
  * Ensayo conjunto: golden path POR LA INTERFAZ contra el backend REAL de la demo local. Cada paso queda en
@@ -75,13 +76,34 @@ async function login(browser: Browser, who: string): Promise<Page> {
   await page.getByLabel('Correo electrónico').fill(EMAIL(who));
   await page.getByLabel('Contraseña').fill(PASSWORD);
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+  // plan-fase7-puesta-al-dia.md R-2 / U-2: las cuentas de la semilla anteriores a D3 reciben 403 AcceptanceRequired y
+  // aceptan las condiciones vigentes en la misma tarjeta; el resto entra directo
+  const acceptance = page.getByTestId('acceptance-required');
+  await Promise.race([page.waitForURL(/\/panel$/), acceptance.waitFor()]);
+  if (await acceptance.isVisible()) {
+    reaceptaciones.push(who);
+    await acceptLegal(acceptance);
+    await acceptance.getByRole('button', { name: 'Aceptar y entrar' }).click();
+  }
   await expect(page).toHaveURL(/\/panel$/);
   return page;
 }
 
+/** Cuentas que pasaron por la re-aceptación del login (U-2); van a pasos.json. */
+const reaceptaciones: string[] = [];
+
 /** JWT para los pasos por HTTP: solo en memoria del test. */
 async function jwt(request: APIRequestContext, who: string): Promise<string> {
-  const r = await request.post(`${API}/auth/login`, { data: { email: EMAIL(who), password: PASSWORD } });
+  let r = await request.post(`${API}/auth/login`, { data: { email: EMAIL(who), password: PASSWORD } });
+  // D3: si la cuenta tiene versiones pendientes, se repite con exactamente las que pide el 403
+  if (r.status() === 403) {
+    const b = await r.json();
+    expect(b.title).toBe('AcceptanceRequired');
+    const accept: Record<string, string> = {};
+    if (b.pendingTermsVersion) accept.acceptedTermsVersion = b.pendingTermsVersion;
+    if (b.pendingDataPolicyVersion) accept.acceptedDataPolicyVersion = b.pendingDataPolicyVersion;
+    r = await request.post(`${API}/auth/login`, { data: { email: EMAIL(who), password: PASSWORD, ...accept } });
+  }
   expect(r.status()).toBe(200);
   return (await r.json()).token;
 }
@@ -132,13 +154,14 @@ async function act(page: Page, button: string, fields: [string, string][]) {
   await page.getByRole('button', { name: button, exact: true }).click();
   const dialog = page.getByRole('dialog');
   for (const [label, value] of fields) await dialog.getByLabel(label).fill(value);
+  if (button === 'Entregar') await attachDeliveryPhoto(dialog); // U-3: la entrega lleva su foto
   await dialog.getByRole('button', { name: 'Confirmar' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 15000 });
 }
 
 const DELIVER: [string, string][] = [
   ['Custodio final (referencia)', 'ALIADO-LOCAL-1'], ['Beneficiario (referencia)', 'BEN-0001'],
-  ['Lugar de entrega (referencia)', 'SALON-COMUNAL'], ['Evidencia (referencia)', 'ACTA-001'],
+  ['Lugar de entrega (referencia)', 'SALON-COMUNAL'],
 ];
 
 test('ensayo conjunto: golden path por la interfaz contra el backend real', async ({ browser, request }) => {
@@ -495,10 +518,12 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     await i.goto(s.inviteLink);
     await expect(i.getByText(/inicia sesión con la cuenta del correo/)).toBeVisible();
     expect(i.url()).not.toContain(token);
+    await acceptLegal(i);
     await i.getByRole('button', { name: 'Crear cuenta' }).click();
     await i.getByLabel('Correo electrónico').fill(invited);
     await i.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
     await i.getByLabel('Repite la contraseña').fill(PASSWORD);
+    await acceptLegal(i);
     await i.getByRole('button', { name: 'Crear cuenta' }).click();
     await i.getByRole('link', { name: 'Iniciar sesión' }).click();
     await i.getByLabel('Correo electrónico').fill(invited);
@@ -536,6 +561,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     await n.getByLabel('Correo electrónico').fill(email);
     await n.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
     await n.getByLabel('Repite la contraseña').fill(PASSWORD);
+    await acceptLegal(n);
     await n.getByRole('button', { name: 'Crear cuenta' }).click();
     await n.getByRole('link', { name: 'Iniciar sesión' }).click();
     await n.getByLabel('Correo electrónico').fill(email);
@@ -551,6 +577,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     await n.getByRole('button', { name: 'Crear organización' }).click();
     await n.getByRole('dialog').getByLabel('Tipo').selectOption('FOUNDATION');
     await n.getByRole('dialog').getByLabel('Nombre').fill(orgName);
+    await n.getByRole('dialog').getByTestId('consent-organizationTerms').check();
     await n.getByRole('dialog').getByRole('button', { name: 'Crear organización' }).click();
     await expect(n.getByTestId('organization-status')).toHaveText('Pendiente de verificación');
     await expect(n.getByTestId('organization-roles')).toHaveText('Representante');
@@ -575,6 +602,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   }, () => s.platform);
 
   fs.writeFileSync(path.join(OUT, 'pasos.json'), JSON.stringify(pasos, null, 2) + '\n');
+  fs.writeFileSync(path.join(OUT, 'reaceptaciones.json'), JSON.stringify(reaceptaciones, null, 2) + '\n');
   fs.writeFileSync(path.join(OUT, 'red.json'), JSON.stringify(red, null, 2) + '\n');
   expect(pasos.filter((p) => p.resultado !== 'OK')).toEqual([]);
 });

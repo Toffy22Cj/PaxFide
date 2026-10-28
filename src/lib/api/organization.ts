@@ -156,8 +156,9 @@ export const revokePlatformAdminRequest = (accountId: string) => () => ({
 });
 
 /**
- * Crear organización (`POST /organizations`, R9; DD-68): cualquier cuenta activa sin organización; `{type, name}`
- * (1–200) → `201 {organizationId, verificationStatus: "PENDING_VERIFICATION"}`. Quien la crea queda como
+ * Crear organización (`POST /organizations`, R9; DD-68): cualquier cuenta activa sin organización; `{type, name,
+ * acceptedOrganizationTermsVersion}` (nombre de 1 a 200; la versión, la vigente: referencia-api-v1.md §1, nota R-5) →
+ * `201 {organizationId, verificationStatus: "PENDING_VERIFICATION"}`; sin la versión, 400 sin organización. Quien la crea queda como
  * `REPRESENTATIVE`; la sesión lo ve en el siguiente `/me`.
  */
 export const createOrganizationRequest = (payload: unknown) => ({

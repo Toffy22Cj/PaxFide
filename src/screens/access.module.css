@@ -601,3 +601,16 @@
   border-radius: 999px;
   background: var(--color-action);
 }
+
+/* plan-fase7-puesta-al-dia.md R-1 y U-2: las casillas legales del registro y de la re-aceptación del login */
+.consents { display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-2); }
+.acceptance { display: flex; flex-direction: column; gap: var(--space-3); }
+.acceptanceTitle { margin: 0; font-family: var(--font-display); font-size: var(--font-size-display-5); color: var(--color-text); }
+.acceptanceText { margin: 0; font-size: var(--font-size-body-3); line-height: 1.5; color: var(--color-text-secondary); }
+.acceptanceActions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.secondaryBtn {
+  min-height: 44px; padding: 0 var(--space-4); border-radius: var(--radius-control); cursor: pointer;
+  font: inherit; font-weight: var(--weight-semibold);
+  background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control);
+}
+.secondaryBtn:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }

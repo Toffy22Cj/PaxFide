@@ -1,6 +1,7 @@
 import { test, expect, Page, Route } from '@playwright/test';
 import path from 'path';
 import crypto from 'crypto';
+import { acceptLegal, attachDeliveryPhoto } from '../e2e/support/evidence';
 
 /**
  * Capturas de cada pantalla del golden path en sus estados, para validar contra Penpot. Contra el backend simulado;
@@ -284,6 +285,7 @@ test('mi organización', async ({ page }) => {
   await page.getByLabel('Correo electrónico').fill(email);
   await page.getByLabel('Contraseña', { exact: true }).fill('clave-demo-larga');
   await page.getByLabel('Repite la contraseña').fill('clave-demo-larga');
+  await acceptLegal(page);
   await page.getByRole('button', { name: 'Crear cuenta' }).click();
   await expect(page.getByText('Cuenta creada')).toBeVisible();
   await login(page, email, 'clave-demo-larga');
@@ -292,10 +294,12 @@ test('mi organización', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Crear organización' })).toBeVisible();
   await shot(page, 'organizacion', 'sin-organizacion');
   await page.getByRole('button', { name: 'Crear organización' }).click();
+  await page.getByRole('dialog').getByTestId('consent-organizationTerms').check();
   await page.getByRole('dialog').getByRole('button', { name: 'Crear organización' }).click();
   await shot(page, 'organizacion', 'validacion');
   await page.getByRole('dialog').getByLabel('Tipo').selectOption('FOUNDATION');
   await page.getByRole('dialog').getByLabel('Nombre').fill('Fundación de las capturas');
+  await page.getByRole('dialog').getByTestId('consent-organizationTerms').check();
   await page.getByRole('dialog').getByRole('button', { name: 'Crear organización' }).click();
   await expect(page.getByTestId('organization-status')).toBeVisible();
   await shot(page, 'organizacion', 'creada-pendiente');
@@ -340,7 +344,7 @@ test('invitación', async ({ page, request, browser }) => {
   await admin.getByRole('dialog').getByRole('button', { name: 'Enviar invitación' }).click();
   await expect(admin.getByText('Invitación enviada.')).toBeVisible();
   const { link } = await (await request.get(`${API}/__test/invitations/last?email=${encodeURIComponent(email)}`)).json();
-  await request.post(`${API}/api/v1/auth/register`, { data: { email, password: 'clave-demo-larga' } });
+  await request.post(`${API}/api/v1/auth/register`, { data: { email, password: 'clave-demo-larga', acceptedTermsVersion: 'v1-2026-10', acceptedDataPolicyVersion: 'v1-2026-10' } });
 
   await page.goto('/invitaciones');
   await expect(page.getByText(/No hay ninguna invitación/)).toBeVisible();
@@ -628,9 +632,10 @@ test('activo', async ({ page }) => {
   await shot(page, 'activo', 'division-completada');
 
   await page.getByRole('button', { name: 'Entregar', exact: true }).click();
-  for (const [l, v] of [['Custodio final (referencia)', 'C'], ['Beneficiario (referencia)', 'B'], ['Lugar de entrega (referencia)', 'L'], ['Evidencia (referencia)', 'E']]) {
+  for (const [l, v] of [['Custodio final (referencia)', 'C'], ['Beneficiario (referencia)', 'B'], ['Lugar de entrega (referencia)', 'L']]) {
     await page.getByRole('dialog').getByLabel(l).fill(v);
   }
+  await attachDeliveryPhoto(page.getByRole('dialog'));
   await page.getByRole('dialog').getByRole('button', { name: 'Confirmar' }).click();
   await expect(page.getByTestId('state-content-readonly')).toBeVisible();
   await shot(page, 'activo', 'entregado-solo-lectura');

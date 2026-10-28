@@ -1,7 +1,7 @@
 'use client';
 
 // Ref: Documentos/plan-fase7-fidelidad.md §2 D-F7; Documentos/paxfide-panel.html (.portal, enterPanel, exitPanel)
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import s from './PanelPortal.module.css';
 
 export interface PanelPortalProps {
@@ -11,22 +11,26 @@ export interface PanelPortalProps {
 
 export function PanelPortal({ mode, onComplete }: PanelPortalProps) {
   const [mounted, setMounted] = useState(false);
+  // El Shell pasa una función nueva en cada render (p. ej. al llegar GET /me): si el efecto dependiera de ella, cada
+  // render reiniciaría el temporizador y el portal se quedaría tapando la pantalla. Solo el modo arranca la secuencia.
+  const done = useRef(onComplete);
+  done.current = onComplete;
 
   useEffect(() => {
     if (!mode) return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) {
-      onComplete();
+      done.current();
       return;
     }
     setMounted(true);
-    // calc(2 * 350ms) + 350ms + 100ms fade = ~1150ms total
+    // calc(2 * 350ms) + 350ms + el fundido final (D-F7, paso 3) ≈ 1150 ms
     const timer = setTimeout(() => {
       setMounted(false);
-      onComplete();
+      done.current();
     }, 1150);
     return () => clearTimeout(timer);
-  }, [mode, onComplete]);
+  }, [mode]);
 
   if (!mode || !mounted) return null;
 

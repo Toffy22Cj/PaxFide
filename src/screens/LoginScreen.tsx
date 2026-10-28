@@ -2,11 +2,13 @@
 
 // Ref: diseno-ux-contractual-web-v1.md §5.2; ID-01; ADR-038 §2.6; ADR-046 D2;
 // Documentos/plan-fase7-fidelidad.md §2 D-F5 (acceso sobre el mundo), D-F10 (bienvenida), D-F2;
-// Documentos/paxfide-landing.html (.auth-card, #formLogin).
+// Documentos/paxfide-landing.html (.auth-card, #formLogin); plan-fase7-puesta-al-dia.md R-2 y U-2 (403
+// AcceptanceRequired: "Actualizamos nuestras condiciones" en la misma tarjeta; la contraseña sigue solo en el estado).
 import React, { useState } from 'react';
 import Link from 'next/link';
 import * as session from '../lib/auth/session';
-import { login as loginRequest, LoginOutcome } from '../lib/api/identity';
+import { acceptanceFor, login as loginRequest, LoginAcceptance, LoginOutcome } from '../lib/api/identity';
+import { LegalConsent } from '../components/access/LegalConsent';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { BrandMark } from '../components/shell/BrandMark';
 import { BrandDots } from '../components/loaders/BrandDots';
@@ -15,7 +17,7 @@ import { defaultDestination } from '../app/RouteGuard';
 import s from './access.module.css';
 
 type Props = {
-  loginClient?: (email: string, password: string) => Promise<LoginOutcome>;
+  loginClient?: (email: string, password: string, acceptance?: LoginAcceptance) => Promise<LoginOutcome>;
   onContinueWelcome?: () => void;
 };
 
@@ -33,6 +35,9 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome }: P
   const [sending, setSending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [reason] = useState(() => session.getLastLogoutReason());
+  /** U-2: las versiones pendientes que se aceptan al repetir el login; `unsupported` si la web no tiene ese texto. */
+  const [pending, setPending] = useState<LoginAcceptance | 'unsupported' | null>(null);
+  const [checks, setChecks] = useState<{ terms: boolean; data: boolean }>({ terms: false, data: false });
   const [showWelcome, setShowWelcome] = useState(() => session.isJustRegistered() && !session.getPostLoginDestination() && session.getState() === 'AUTHENTICATED');
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -43,10 +48,16 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome }: P
     setErrors(nextErrors);
     if (nextErrors.email || nextErrors.password) return;
 
+    await send();
+  };
+
+  /** Envía el login; con `acceptance`, el segundo intento tras el 403 (U-2), con el mismo correo y contraseña. */
+  const send = async (acceptance?: LoginAcceptance) => {
     setSending(true);
     setFailure(null);
-    const outcome = await loginClient(email.trim(), password);
+    const outcome = await loginClient(email.trim(), password, acceptance);
     setSending(false);
+    if (outcome.kind !== 'acceptance-required') setPending(null);
     switch (outcome.kind) {
       case 'ok':
         setPassword('');
@@ -59,6 +70,10 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome }: P
       case 'invalid-credentials':
         setFailure('Correo o contraseña incorrectos.');
         return;
+      case 'acceptance-required':
+        setChecks({ terms: false, data: false });
+        setPending(acceptanceFor(outcome) ?? 'unsupported');
+        return;
       case 'bad-request':
         setErrors({ email: email.trim() ? undefined : 'Este campo es obligatorio.', password: password ? undefined : 'Este campo es obligatorio.' });
         setFailure('Correo o contraseña incorrectos.');
@@ -68,8 +83,24 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome }: P
         return;
       case 'network':
         setFailure('No pudimos conectar. Revisa tu conexión e inténtalo de nuevo.');
+        return;
+      default: {
+        const unreachable: never = outcome;
+        throw new Error(`Resultado de login desconocido: ${String(unreachable)}`);
+      }
     }
   };
+
+  /** "Cancelar": vuelve al formulario y la contraseña sale del estado (y del DOM). */
+  const cancelAcceptance = () => {
+    setPending(null);
+    setPassword('');
+    setFailure(null);
+  };
+
+  const acceptanceReady = pending !== null && pending !== 'unsupported'
+    && (pending.acceptedTermsVersion === undefined || checks.terms)
+    && (pending.acceptedDataPolicyVersion === undefined || checks.data);
 
   const handleContinueWelcome = () => {
     if (onContinueWelcome) {
@@ -205,6 +236,36 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome }: P
               {reasonText && <div className={[s.feedbackMsg, s.feedbackInfo].join(' ')} role="status">{reasonText}</div>}
               {failure && <div className={[s.feedbackMsg, s.feedbackError].join(' ')} role="alert">{failure}</div>}
 
+              {pending !== null ? (
+                <section className={s.acceptance} aria-labelledby="acceptance-title" data-testid="acceptance-required">
+                  <h2 id="acceptance-title" className={s.acceptanceTitle}>Actualizamos nuestras condiciones</h2>
+                  {pending === 'unsupported' ? (
+                    <p className={s.acceptanceText}>Hay condiciones nuevas que esta versión de la web todavía no puede mostrar. Inténtalo de nuevo más tarde.</p>
+                  ) : (
+                    <>
+                      <p className={s.acceptanceText}>Para seguir usando tu cuenta, lee y acepta los textos vigentes. Puedes abrirlos en una pestaña nueva.</p>
+                      {pending.acceptedTermsVersion !== undefined && (
+                        <LegalConsent doc="terms" checked={checks.terms} disabled={sending}
+                          onChange={(v) => setChecks((c) => ({ ...c, terms: v }))} />
+                      )}
+                      {pending.acceptedDataPolicyVersion !== undefined && (
+                        <LegalConsent doc="dataPolicy" checked={checks.data} disabled={sending}
+                          onChange={(v) => setChecks((c) => ({ ...c, data: v }))} />
+                      )}
+                    </>
+                  )}
+                  <div className={s.acceptanceActions}>
+                    {pending !== 'unsupported' && (
+                      <button type="button" className={s.submitBtn} disabled={sending || !acceptanceReady} aria-busy={sending || undefined}
+                        onClick={() => { if (acceptanceReady) void send(pending); }}>
+                        <span>Aceptar y entrar</span>
+                        {sending && <BrandDots aria-hidden="true" />}
+                      </button>
+                    )}
+                    <button type="button" className={s.secondaryBtn} onClick={cancelAcceptance} disabled={sending}>Cancelar</button>
+                  </div>
+                </section>
+              ) : (
               <form onSubmit={onSubmit} className={s.form} noValidate>
                 <div className={s.field}>
                   <label htmlFor="loginEmail" className={s.label}>Correo electrónico</label>
@@ -280,8 +341,9 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome }: P
                   )}
                 </button>
               </form>
+              )}
 
-              {isSurfaceEnabled('/register') && (
+              {pending === null && isSurfaceEnabled('/register') && (
                 <div className={s.foot}>
                   <p>
                     ¿No tienes una cuenta aún?{' '}

@@ -33,7 +33,9 @@ export function AccessLayout({ children }: AccessLayoutProps) {
   };
 
   const nightVal = calculateNightVal(worldMode, 5);
-  const themeAttr = worldMode === 'night' ? 'dark' : worldMode === 'day' ? 'light' : undefined;
+  // D-F2: las superficies del acceso siguen la mezcla de noche del mundo, no el tema del sistema (en Auto, también).
+  // Sin esto, con el sistema en oscuro y el mundo de día, la tarjeta quedaba clara con el texto claro.
+  const themeAttr = nightVal > 0.5 ? 'dark' : 'light';
 
   return (
     <div className={s.root} data-theme={themeAttr} data-testid="access-root">

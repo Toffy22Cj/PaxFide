@@ -1,4 +1,5 @@
 import { test, expect, Page, Browser } from '@playwright/test';
+import { acceptLegal } from './support/evidence';
 
 async function login(browser: Browser, email: string, password: string): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
@@ -20,6 +21,7 @@ test.describe('P3-A — crear organización, cola de verificación y administrad
     await reg.getByLabel('Correo electrónico').fill(email);
     await reg.getByLabel('Contraseña', { exact: true }).fill('clave-demo-larga');
     await reg.getByLabel('Repite la contraseña').fill('clave-demo-larga');
+    await acceptLegal(reg);
     await reg.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(reg.getByText('Cuenta creada')).toBeVisible();
 
@@ -29,6 +31,7 @@ test.describe('P3-A — crear organización, cola de verificación y administrad
     const dialog = rep.getByRole('dialog');
     await dialog.getByLabel('Tipo').selectOption('FOUNDATION');
     await dialog.getByLabel('Nombre').fill(name);
+    await dialog.getByTestId('consent-organizationTerms').check();
     await dialog.getByRole('button', { name: 'Crear organización' }).click();
     await expect(rep.getByTestId('organization-status')).toHaveText('Pendiente de verificación');
     await expect(rep.getByTestId('organization-roles')).toHaveText('Representante');

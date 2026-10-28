@@ -30,6 +30,12 @@ export interface ApiRequest {
 
 export interface ProblemInfo {
   title?: string;
+  /**
+   * `403 AcceptanceRequired` del login (referencia-api-v1.md §1, nota D3): las versiones legales pendientes. Son
+   * nombres de versión, no datos de la persona; solo se conservan si son texto.
+   */
+  pendingTermsVersion?: string;
+  pendingDataPolicyVersion?: string;
 }
 
 export type ApiResult<T> =
@@ -50,10 +56,13 @@ async function readJson(res: Response): Promise<unknown> {
 }
 
 function problemOf(body: unknown): ProblemInfo {
-  if (body && typeof body === 'object' && typeof (body as { title?: unknown }).title === 'string') {
-    return { title: (body as { title: string }).title };
-  }
-  return {};
+  if (!body || typeof body !== 'object') return {};
+  const b = body as Record<string, unknown>;
+  const out: ProblemInfo = {};
+  if (typeof b.title === 'string') out.title = b.title;
+  if (typeof b.pendingTermsVersion === 'string') out.pendingTermsVersion = b.pendingTermsVersion;
+  if (typeof b.pendingDataPolicyVersion === 'string') out.pendingDataPolicyVersion = b.pendingDataPolicyVersion;
+  return out;
 }
 
 export async function apiRequest<T>(req: ApiRequest): Promise<ApiResult<T>> {

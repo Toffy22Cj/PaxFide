@@ -1,10 +1,12 @@
 'use client';
 
-// Ref: Documentos/plan-fase7-fidelidad.md §2 D-F17; Documentos/legal/*-v1-2026-10.md
+// Ref: Documentos/plan-fase7-fidelidad.md §2 D-F17; Documentos/legal/*-v1-2026-10.md; plan-fase7-puesta-al-dia.md U-1
+// (la versión sale de LEGAL_VERSIONS: una sola cadena para los textos, el registro, el login y crear organización)
 import React from 'react';
 import Link from 'next/link';
 import { AccessLayout } from '../components/access/AccessLayout';
 import { BrandMark } from '../components/shell/BrandMark';
+import { LEGAL_VERSIONS } from '../lib/legal/versions';
 import s from './legal.module.css';
 
 export interface LegalSection {
@@ -30,7 +32,7 @@ export interface LegalDocument {
 export const LEGAL_TERMS: LegalDocument = {
   id: 'terminos',
   title: 'Términos y condiciones de uso',
-  version: 'v1-2026-10',
+  version: LEGAL_VERSIONS.terms,
   state: 'BORRADOR ACADÉMICO',
   lead: 'La versión de arriba es exactamente la cadena de traceability.legal.terms-version (ADR-050 D2). Cambiar el texto obliga a cambiar la versión (ADR-050 D3).',
   disclaimer: 'BORRADOR ACADÉMICO — redactado por el agente a petición de Carlos el 2026-10-24 (D-F17). No es asesoría legal. El equipo lo revisa antes de publicarlo.',
@@ -100,7 +102,7 @@ export const LEGAL_TERMS: LegalDocument = {
 export const LEGAL_PRIVACY: LegalDocument = {
   id: 'privacidad',
   title: 'Autorización de tratamiento de datos personales',
-  version: 'v1-2026-10',
+  version: LEGAL_VERSIONS.dataPolicy,
   state: 'BORRADOR ACADÉMICO',
   lead: 'La versión de arriba es exactamente la cadena que el backend configura en traceability.legal.data-policy-version (ADR-050 D2). Si cambia una letra del texto, cambia la versión y todas las cuentas la vuelven a aceptar en su siguiente inicio de sesión (ADR-050 D3).',
   disclaimer: 'BORRADOR ACADÉMICO — redactado por el agente a petición de Carlos el 2026-10-24 (D-F17). No es asesoría legal. El equipo lo revisa antes de publicarlo.',
@@ -164,7 +166,7 @@ export const LEGAL_PRIVACY: LegalDocument = {
 export const LEGAL_ORG_TERMS: LegalDocument = {
   id: 'terminos-organizacion',
   title: 'Términos para organizaciones',
-  version: 'v1-2026-10',
+  version: LEGAL_VERSIONS.organizationTerms,
   state: 'BORRADOR ACADÉMICO',
   lead: 'La versión de arriba es exactamente la cadena de traceability.legal.organization-terms-version. La acepta quien registra la organización, que queda como su representante (ADR-050 D2).',
   disclaimer: 'BORRADOR ACADÉMICO — redactado por el agente a petición de Carlos el 2026-10-24 (D-F17). No es asesoría legal. El equipo lo revisa antes de publicarlo.',
