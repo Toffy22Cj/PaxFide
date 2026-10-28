@@ -199,6 +199,30 @@ const DEMO_LOGO = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAD
 const failures = [];
 const delays = [];
 
+const sha256Hex = (text) => crypto.createHash('sha256').update(text, 'utf8').digest('hex');
+/** Árbol de Merkle de E1.3: padre = SHA-256 del texto hexadecimal izquierdo + derecho; el último impar consigo mismo. */
+function merkleLevels(leaves) {
+  const levels = [leaves];
+  while (levels[levels.length - 1].length > 1) {
+    const l = levels[levels.length - 1];
+    const next = [];
+    for (let i = 0; i < l.length; i += 2) next.push(sha256Hex(l[i] + (l[i + 1] ?? l[i])));
+    levels.push(next);
+  }
+  return levels;
+}
+const merkleRoot = (leaves) => { const lv = merkleLevels(leaves); return lv[lv.length - 1][0]; };
+function merklePath(leaves, index) {
+  const path = [];
+  let i = index;
+  for (const l of merkleLevels(leaves).slice(0, -1)) {
+    if (i % 2 === 0) path.push({ side: 'RIGHT', hash: l[i + 1] ?? l[i] });
+    else path.push({ side: 'LEFT', hash: l[i - 1] });
+    i = Math.floor(i / 2);
+  }
+  return path;
+}
+
 function readBody(req) {
   return new Promise((resolve) => {
     let raw = '';
@@ -322,6 +346,7 @@ const server = http.createServer(async (req, res) => {
     } else if (intent.status === 'PENDING') {
       intent.status = 'CONFIRMED';
       intent.confirmedAt = new Date().toISOString();
+      intent.clearedAt = intent.confirmedAt; // G-2: un solo FUNDS_CLEARED (primero y último iguales)
       if (!body.withoutApplying) {
         intent.trackingCode = 'TRK.' + crypto.randomBytes(24).toString('base64url');
         intent.fundId = 'fund-' + crypto.randomUUID();
@@ -1164,6 +1189,8 @@ const server = http.createServer(async (req, res) => {
         financialSnapshot: {
           currency: intent.currency, originalAmount: Number(intent.amount), clearedAmount: Number(intent.amount),
           pendingAllocationAmount: 0, confirmedAllocationAmount: items.length ? Number(intent.amount) : 0, refundedAmount: 0,
+          // G-2 (nota del 2026-10-23, §8)
+          ...(intent.clearedAt ? { firstClearedAt: intent.clearedAt, lastClearedAt: intent.clearedAt } : {}),
         },
         campaignRef: c.campaignRef,
         // G-1 (nota del 2026-10-21, §8): título y organización de la convocatoria
@@ -1172,6 +1199,8 @@ const server = http.createServer(async (req, res) => {
           assetRef: a.assetRef, lifecycleStatus: a.lifecycleStatus, assetType: a.assetType, unitOfMeasure: a.unitOfMeasure,
           // `locationZone` llega null si el activo no tiene ubicación (despachado)
           quantity: scale4(a.quantity), locationZone: a.lifecycleStatus === 'DISPATCHED' ? null : 'Zona centro', custodianCategory: 'LOCAL_ALLY',
+          // G-4 (nota del 2026-10-25, §8): solo si el padre está en la misma respuesta
+          ...(a.parentAssetRef && items.some((x) => x.assetRef === a.parentAssetRef) ? { parentAssetRef: a.parentAssetRef } : {}),
         })),
         status: items.length ? 'EN_PROCESO' : 'ACTIVA',
       });
@@ -1199,7 +1228,25 @@ const server = http.createServer(async (req, res) => {
     if (hist) {
       const a = assets.get(decodeURIComponent(hist[1]));
       if (!a || a.fundId !== intent.fundId) { send(res, 401, { type: 'about:blank', title: 'Unauthorized', status: 401, detail: 'Invalid or missing token' }); return; }
-      send(res, 200, { history: a.history.map((h) => ({ eventType: h.eventType, timestamp: h.timestamp, locationZone: NO_ZONE_EVENTS.has(h.eventType) ? null : 'Zona centro', custodianCategory: 'LOCAL_ALLY', status: h.status })) });
+      // G-3 y E1 (nota del 2026-10-25, §8): huella por paso; los dos primeros eventos de cada activo forman un lote
+      // ANCHORED con su prueba de Merkle (algoritmo E1.3), el resto espera anclaje. Valores de PRUEBA del doble
+      const hashes = a.history.map((h, i) => sha256Hex(`${a.assetRef}:${i}:${h.eventType}`));
+      const batch = hashes.slice(0, 2);
+      send(res, 200, { history: a.history.map((h, i) => {
+        const out = { eventType: h.eventType, timestamp: h.timestamp, locationZone: NO_ZONE_EVENTS.has(h.eventType) ? null : 'Zona centro', custodianCategory: 'LOCAL_ALLY', status: h.status, eventHash: hashes[i] };
+        if (i < batch.length) {
+          out.anchorStatus = 'ANCHORED';
+          out.anchorProof = { merkleRoot: merkleRoot(batch), leafIndex: i, path: merklePath(batch, i), transactionHash: '0x' + sha256Hex(a.assetRef + ':tx'), network: 'sepolia', anchoredAt: h.timestamp };
+        } else {
+          out.anchorStatus = 'PENDING';
+        }
+        // ADR-051 F6: la huella de la foto, nunca la imagen
+        if (h.eventType === 'ASSET_DELIVERED') {
+          out.evidenceRegistered = !!a.evidenceRef;
+          if (a.evidenceRef && /^sha256:[0-9a-f]{64}$/.test(a.evidenceRef)) out.evidenceRef = a.evidenceRef;
+        }
+        return out;
+      }) });
       return;
     }
     problem(res, 404, 'NotFound');
@@ -1430,7 +1477,7 @@ const server = http.createServer(async (req, res) => {
       // La saga crea el hijo de forma asíncrona: PENDING en las dos primeras consultas
       if (sp.polls > 2 && sp.status === 'PENDING') {
         sp.status = 'CHILD_CREATED';
-        newAsset({ ...asset, assetRef: childRef, quantity: sp.quantity, lifecycleStatus: 'REGISTERED',
+        newAsset({ ...asset, assetRef: childRef, parentAssetRef: asset.assetRef, quantity: sp.quantity, lifecycleStatus: 'REGISTERED',
           history: [{ eventType: 'ASSET_REGISTERED', timestamp: new Date().toISOString(), status: 'REGISTERED' }] });
       }
       send(res, 200, { status: sp.status });
@@ -1472,7 +1519,7 @@ const server = http.createServer(async (req, res) => {
         const status = { dispatch: 'DISPATCHED', receive: 'RECEIVED', deliver: 'DELIVERED' }[action];
         asset.lifecycleStatus = status;
         if (action === 'receive') asset.currentLocation = b.facilityLocation;
-        if (action === 'deliver') { asset.currentCustodianRef = b.finalCustodianRef; evidences.get(b.evidenceRef).assetRef = asset.assetRef; }
+        if (action === 'deliver') { asset.currentCustodianRef = b.finalCustodianRef; asset.evidenceRef = b.evidenceRef; evidences.get(b.evidenceRef).assetRef = asset.assetRef; }
         asset.history.push({ eventType: 'ASSET_' + status, timestamp: now, status });
         return { assetRef: asset.assetRef, status };
       });

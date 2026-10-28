@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  DonationTracking, fetchAssetHistory, fetchIntegrity, fetchNarrative, fetchTracking, LogisticsItem, Narrative, TrackingOutcome,
+  DonationTracking, fetchAssetHistory, fetchIntegrity, fetchNarrative, fetchTracking, Narrative, TrackingOutcome,
 } from '../lib/api/tracking';
 import { consumeHandedOffTrackingCode } from '../lib/tracking/handoff';
 import { formatMinorUnits } from '../lib/money';
@@ -13,8 +13,10 @@ import { Button } from '../components/ui/Button';
 import { ErrorState, LoadingState, StatusNotice } from '../components/States';
 import { TrackingCodeChip } from '../components/tracking/TrackingCodeChip';
 import { IntegrityBadge } from '../components/tracking/IntegrityBadge';
-import { AssetLane, assetName, type HistoryState } from '../components/tracking/AssetLane';
+import { TrackingTimeline, type HistoryState } from '../components/tracking/TrackingTimeline';
 import t from '../components/tracking/tracking.module.css';
+
+export { tabLabel } from '../components/tracking/TrackingTimeline';
 
 type Clients = {
   tracking?: typeof fetchTracking;
@@ -26,7 +28,8 @@ type Clients = {
 const money = (v: string | undefined, currency?: string) => (v === undefined ? '—' : formatMinorUnits(v, currency));
 
 // Ref: plan-fase7-pantallas.md A-4 (línea de tiempo de paxfide-linea-tiempo.html); prompts-agentes-estilo-v2.md VS-7,
-// §3.1 y §3.5 (T-1); referencia-api-v1.md §8 (G-1: campaignTitle? y organizationName?).
+// §3.1 y §3.5 (T-1); referencia-api-v1.md §8 (G-1: campaignTitle? y organizationName?); plan-fase7-puesta-al-dia.md
+// P-2 (F-A5 + F-C2: tres columnas, árbol de sublotes, anclaje y huella por paso, serpiente).
 /**
  * `TrackingPage` por formulario (C2/H1, DW-01): el código se escribe aquí (o llega en memoria desde la donación,
  * DW-16) y solo vive en el estado de este componente; viaja en `Authorization`. Un 401 es un único mensaje y nunca
@@ -113,6 +116,17 @@ function TrackingDetails({ data, trackingCode, clients, onClose }: {
   const f = data.financialSnapshot;
   const sub = [data.campaignTitle, data.organizationName].filter(Boolean).join(' · ');
   const assets = data.logistics.length;
+  const client = clients.history ?? fetchAssetHistory;
+  // Los recorridos se piden todos al abrir (cada uno con el código en `Authorization`)
+  const [histories, setHistories] = useState<Record<string, HistoryState>>({});
+  const load = async (assetRef: string) => {
+    setHistories((h) => ({ ...h, [assetRef]: 'loading' }));
+    const r = await client(trackingCode, assetRef);
+    setHistories((h) => ({ ...h, [assetRef]: r }));
+  };
+  useEffect(() => { data.logistics.forEach((i) => void load(i.assetRef)); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trackingCode, data.logistics]);
+
   return (
     <>
       <section className={t.header} aria-labelledby="tracking-story">
@@ -125,69 +139,34 @@ function TrackingDetails({ data, trackingCode, clients, onClose }: {
         </span>
         <TrackingCodeChip code={trackingCode} />
       </section>
-      <div className={t.grid}>
-        <section className={t.panel} aria-labelledby="tracking-facts">
-          <h3 id="tracking-facts" className={t.panelTitle}>Hechos verificables</h3>
-          <DefinitionList items={[
-            { label: 'Estado', value: donationStatusLabel(data.status), testId: 'tracking-status' },
-            ...(f ? [
-              { label: 'Donado', value: money(f.originalAmount, f.currency), testId: 'tracking-original' },
-              { label: 'Recibido', value: money(f.clearedAmount, f.currency) },
-              { label: 'Comprometido en compras', value: money(f.pendingAllocationAmount, f.currency) },
-              { label: 'Usado en compras', value: money(f.confirmedAllocationAmount, f.currency) },
-              { label: 'Reembolsado', value: money(f.refundedAmount, f.currency) },
-            ] : []),
-          ]} />
-        </section>
-        <IntegrityBadge trackingCode={trackingCode} client={clients.integrity ?? fetchIntegrity} />
-      </div>
-      <h3 className={t.lanesTitle}>Bienes de tu donación</h3>
-      {assets === 0
-        ? <p className={t.privacy}>Todavía no hay bienes asociados a tu donación.</p>
-        : <Lanes items={data.logistics} trackingCode={trackingCode} client={clients.history ?? fetchAssetHistory} />}
+      <TrackingTimeline
+        items={data.logistics}
+        payment={{ firstClearedAt: f?.firstClearedAt, lastClearedAt: f?.lastClearedAt, amount: f?.originalAmount, currency: f?.currency }}
+        campaignLine={sub || undefined}
+        histories={histories}
+        onRetry={(ref) => void load(ref)}
+        aside={(
+          <>
+            <IntegrityBadge trackingCode={trackingCode} client={clients.integrity ?? fetchIntegrity} />
+            <section className={t.panel} aria-labelledby="tracking-facts">
+              <h3 id="tracking-facts" className={t.panelTitle}>Hechos verificables</h3>
+              <DefinitionList items={[
+                { label: 'Estado', value: donationStatusLabel(data.status), testId: 'tracking-status' },
+                ...(f ? [
+                  { label: 'Donado', value: money(f.originalAmount, f.currency), testId: 'tracking-original' },
+                  { label: 'Recibido', value: money(f.clearedAmount, f.currency) },
+                  { label: 'Comprometido en compras', value: money(f.pendingAllocationAmount, f.currency) },
+                  { label: 'Usado en compras', value: money(f.confirmedAllocationAmount, f.currency) },
+                  { label: 'Reembolsado', value: money(f.refundedAmount, f.currency) },
+                ] : []),
+              ]} />
+            </section>
+          </>
+        )}
+      />
       <NarrativeSection trackingCode={trackingCode} client={clients.narrative ?? fetchNarrative} />
-      <p className={t.privacy}>Los custodios se identifican solo por su categoría. Nunca se muestra quién recibe la ayuda.</p>
+      <p className={t.privacy}><b>Privacidad y transparencia:</b> los custodios se identifican solo por su categoría. Nunca se muestra quién recibe la ayuda.</p>
       <Actions><Button variant="secondary" onClick={onClose}>Cerrar seguimiento</Button></Actions>
-    </>
-  );
-}
-
-/** Nombre de la pestaña; si dos bienes se llaman igual, lleva su número para distinguirlos. */
-export function tabLabel(items: LogisticsItem[], i: number): string {
-  const name = assetName(items[i], i + 1);
-  return items.filter((x, j) => assetName(x, j + 1) === name).length > 1 ? `${name} ${i + 1}` : name;
-}
-
-/** Un carril por bien (lista plana, G-4). Los recorridos se piden todos al abrir; en estrecho, una pestaña por bien. */
-function Lanes({ items, trackingCode, client }: { items: LogisticsItem[]; trackingCode: string; client: typeof fetchAssetHistory }) {
-  const [histories, setHistories] = useState<Record<string, HistoryState>>({});
-  const [active, setActive] = useState(0);
-  const load = async (assetRef: string) => {
-    setHistories((h) => ({ ...h, [assetRef]: 'loading' }));
-    const r = await client(trackingCode, assetRef);
-    setHistories((h) => ({ ...h, [assetRef]: r }));
-  };
-  useEffect(() => { items.forEach((i) => void load(i.assetRef)); // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trackingCode, items]);
-  const tabs = items.length > 1;
-  return (
-    <>
-      {tabs && (
-        <div className={t.tabs} role="tablist" aria-label="Bienes de tu donación">
-          {items.map((item, i) => (
-            <button key={item.assetRef} type="button" role="tab" id={`lane-tab-${i}`} aria-controls={`lane-${i}`}
-              aria-selected={i === active} className={t.tab} onClick={() => setActive(i)}>
-              {tabLabel(items, i)}
-            </button>
-          ))}
-        </div>
-      )}
-      <div className={t.lanes}>
-        {items.map((item, i) => (
-          <AssetLane key={item.assetRef} id={`lane-${i}`} item={item} index={i + 1} history={histories[item.assetRef] ?? 'loading'}
-            onRetry={() => void load(item.assetRef)} hiddenOnNarrow={tabs && i !== active} labelledBy={tabs ? `lane-tab-${i}` : undefined} />
-        ))}
-      </div>
     </>
   );
 }

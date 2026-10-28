@@ -1,0 +1,183 @@
+/* Ref: plan-fase7-fidelidad.md F-A5; plan-fase7-puesta-al-dia.md P-2; paxfide-linea-tiempo.html (.tl-workspace,
+   .detail-card, .tree-stage, .snake-card). Solo tokens semánticos; el movimiento, por token y con reduce. */
+.workspaceWrap { container-type: inline-size; }
+.workspace { display: grid; grid-template-columns: 1fr; gap: var(--space-4); margin-bottom: var(--space-4); }
+/* Por el ancho real del contenido (no de la ventana): la barra lateral y la superficie se lo comen */
+@container (min-width: 960px) {
+  .workspace { grid-template-columns: minmax(230px, 260px) minmax(0, 1fr) minmax(320px, 340px); align-items: start; }
+}
+.leftCol, .rightCol { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+@container (min-width: 960px) { .leftCol { position: sticky; top: var(--space-4); } }
+.colTag {
+  margin: 0; display: flex; align-items: center; gap: var(--space-2);
+  font-family: var(--font-mono); font-size: var(--font-size-mono-3); letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+.colDot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-info-text); }
+.colDotGold { background: var(--color-ambiguous-title); }
+.hint { margin: 0; font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.mono { font-family: var(--font-mono); font-size: var(--font-size-mono-3); }
+
+/* Detalle */
+.detail {
+  display: flex; flex-direction: column; gap: var(--space-2); min-width: 0;
+  background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-divider);
+  border-radius: var(--radius-card); box-shadow: var(--shadow-card); padding: var(--space-4);
+}
+.detailIcon {
+  width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-control); background: var(--color-action); color: var(--color-on-action);
+}
+.detailTitle { font-family: var(--font-display); font-size: var(--font-size-display-5); }
+.detailText { margin: 0; font-size: var(--font-size-body-3); color: var(--color-text-secondary); }
+.detailMeta {
+  display: grid; grid-template-columns: auto 1fr; gap: var(--space-1) var(--space-3); margin: 0;
+  padding: var(--space-3) 0; border-top: 1px dashed var(--color-divider); border-bottom: 1px dashed var(--color-divider);
+  font-size: var(--font-size-body-4);
+}
+.detailMeta dt { color: var(--color-text-secondary); }
+.detailMeta dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-weight: var(--weight-semibold); }
+.hashRow { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.hashChip {
+  font-family: var(--font-mono); font-size: var(--font-size-mono-3); padding: 2px 6px; border-radius: 6px;
+  background: var(--color-info-bg); color: var(--color-info-text);
+}
+.linkButton {
+  min-height: 24px; padding: 0 var(--space-2); border: 0; background: none; cursor: pointer; border-radius: 6px;
+  font: inherit; font-size: var(--font-size-body-4); font-weight: var(--weight-semibold); color: var(--color-link); text-decoration: underline;
+}
+.copied { font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.anchorPill {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 3px var(--space-3);
+  border-radius: var(--radius-button); font-size: var(--font-size-body-4); font-weight: var(--weight-semibold);
+  background: var(--color-info-bg); color: var(--color-info-text);
+}
+.anchorPill[data-status="UNDER_REVIEW"] { background: var(--color-ambiguous-bg); color: var(--color-ambiguous-title); }
+.anchorPill[data-status="PENDING"], .anchorPill[data-status="IN_BATCH"] { background: var(--color-bg); color: var(--color-text-secondary); }
+.verify { display: flex; flex-direction: column; gap: var(--space-2); }
+.verifyButton {
+  align-self: flex-start; min-height: 44px; padding: 0 var(--space-4); border-radius: var(--radius-button); cursor: pointer;
+  font: inherit; font-weight: var(--weight-semibold); font-size: var(--font-size-body-3);
+  background: var(--color-action); color: var(--color-on-action); border: 0;
+}
+.verifyButton:disabled { opacity: 0.6; cursor: progress; }
+.txLink { font-size: var(--font-size-body-4); color: var(--color-link); font-weight: var(--weight-semibold); }
+
+/* Árbol */
+.tree { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.rootNode, .stepButton, .stationButton {
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
+  border: 1px solid transparent; background: none; border-radius: var(--radius-control);
+}
+.rootNode {
+  align-self: center; display: flex; gap: var(--space-3); align-items: center; width: min(100%, 360px);
+  padding: var(--space-3); background: var(--color-surface); border-color: var(--color-divider); box-shadow: var(--shadow-card);
+}
+.rootBody { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.rootNode:focus-visible, .stepButton:focus-visible, .stationButton:focus-visible, .tab:focus-visible,
+.linkButton:focus-visible, .verifyButton:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.selected { border-color: var(--color-success-icon); background: var(--color-success-bg); }
+.nodeIcon {
+  position: relative; flex: none; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 10px; background: var(--color-action); color: var(--color-on-action);
+}
+.seal {
+  position: absolute; top: -5px; right: -5px; width: 16px; height: 16px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--color-info-bg); color: var(--color-info-text); border: 1px solid var(--color-surface);
+}
+.seal[data-status="UNDER_REVIEW"] { background: var(--color-ambiguous-bg); color: var(--color-ambiguous-title); }
+.lot {
+  display: flex; flex-direction: column; gap: var(--space-3); min-width: 0;
+  background: var(--color-surface); border: 1px solid var(--color-divider); border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card); padding: var(--space-4);
+}
+.subLot { background: var(--color-bg); box-shadow: none; margin-left: var(--space-4); }
+.lotHead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding-bottom: var(--space-2); border-bottom: 1px dashed var(--color-divider); }
+.lotTitle { margin: 0; font-size: var(--font-size-body-1); font-weight: var(--weight-semibold); overflow-wrap: anywhere; flex: 1 1 auto; }
+.subKicker { width: 100%; font-family: var(--font-mono); font-size: var(--font-size-mono-3); color: var(--color-ambiguous-title); }
+.unitsChip, .chip, .dateBadge {
+  display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--radius-button);
+  font-size: var(--font-size-body-4); background: var(--color-bg); color: var(--color-text-secondary); border: 1px solid var(--color-divider);
+}
+.dateBadge { font-family: var(--font-mono); font-size: var(--font-size-mono-3); }
+.lotMeta { width: 100%; margin: 0; font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); position: relative; }
+.step { position: relative; }
+.step:not(:last-child)::before {
+  content: ""; position: absolute; left: 25px; top: 46px; bottom: -6px; width: 6px; border-radius: 3px;
+  background: var(--color-text); opacity: 0.85;
+}
+.stepButton { width: 100%; display: flex; gap: var(--space-3); padding: var(--space-2); }
+.stepBody { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; flex: 1; }
+.stepLine { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); align-items: baseline; }
+.stepTitle { font-size: var(--font-size-body-2); }
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.treeTruck { display: flex; justify-content: flex-end; padding-right: var(--space-2); }
+
+/* Serpiente */
+.snake {
+  display: flex; flex-direction: column; gap: var(--space-3); min-width: 0;
+  background: var(--color-surface); border: 1px solid var(--color-divider); border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card); padding: var(--space-4);
+}
+.snakeHead { display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-3); border-bottom: 1px solid var(--color-divider); }
+.snakeKicker { margin: 0; font-family: var(--font-mono); font-size: var(--font-size-mono-3); color: var(--color-ambiguous-title); letter-spacing: 0.04em; }
+.snakePill {
+  align-self: flex-start; padding: 3px var(--space-3); border-radius: var(--radius-button);
+  background: var(--color-success-bg); color: var(--color-success-text); font-size: var(--font-size-body-4); font-weight: var(--weight-semibold);
+}
+.snakeTitle { margin: 0; font-family: var(--font-display); font-size: var(--font-size-display-5); }
+.tabs { display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: 2px; }
+.tab {
+  flex: none; min-height: 44px; padding: 0 var(--space-4); border-radius: var(--radius-button); cursor: pointer;
+  font: inherit; font-size: var(--font-size-body-3); font-weight: var(--weight-semibold);
+  background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control);
+}
+.tab[aria-selected="true"] { background: var(--color-action); color: var(--color-on-action); border-color: var(--color-action); }
+.track { position: relative; margin: var(--space-3) auto 0; max-width: 100%; }
+.road { position: absolute; inset: 0; overflow: visible; }
+.roadAsphalt { fill: none; stroke: var(--color-text); stroke-width: 18; stroke-linecap: round; opacity: 0.9; }
+.roadLine { fill: none; stroke: var(--color-ambiguous-bg); stroke-width: 2; stroke-dasharray: 8 8; }
+.stations { list-style: none; margin: 0; padding: 0; position: absolute; inset: 0; }
+.station { position: absolute; transform: translate(-18px, -18px); }
+.stationButton { display: flex; align-items: center; gap: var(--space-2); padding: 0; min-height: 36px; }
+.station[data-side="right"] { transform: translate(calc(-100% + 18px), -18px); }
+.station[data-side="right"] .stationButton { flex-direction: row-reverse; text-align: right; }
+.stationIcon {
+  flex: none; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 10px; background: var(--color-action); color: var(--color-on-action); box-shadow: var(--shadow-card);
+}
+.stationLabel {
+  display: flex; flex-direction: column; padding: 4px var(--space-2); border-radius: 10px; max-width: 150px;
+  background: var(--color-surface); border: 1px solid var(--color-divider); font-size: var(--font-size-body-4);
+}
+.stationLabel small { font-family: var(--font-mono); font-size: var(--font-size-mono-4); color: var(--color-text-secondary); }
+.stationButton.selected .stationLabel { border-color: var(--color-success-icon); background: var(--color-success-bg); }
+.stationButton.selected { background: none; border-color: transparent; }
+
+/* El camión: en la carretera (offset-path). Solo conduce si el último evento es un despacho */
+.snakeTruck {
+  position: absolute; left: 0; top: 0; offset-rotate: 0deg; offset-anchor: 50% 100%;
+  offset-distance: var(--to); pointer-events: none;
+}
+.snakeTruck[data-driving="true"] { animation: snakeDrive calc(3 * var(--duration-normal)) var(--ease-in-out) both; }
+@keyframes snakeDrive {
+  from { offset-distance: var(--from); }
+  to { offset-distance: var(--to); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .snakeTruck[data-driving="true"] { animation: none; }
+}
+.truckBox { fill: var(--brand-yellow-400); }
+.truckCab { fill: var(--color-action); }
+.truckWheel { fill: var(--color-text); }
+
+/* La carretera de la raíz "Donada" hasta cada lote (boceto: tramo oscuro con línea discontinua) */
+.tree > .lot { position: relative; }
+.tree > .lot::before {
+  content: ""; position: absolute; left: 50%; top: calc(-1 * var(--space-4)); width: 10px; height: var(--space-4);
+  transform: translateX(-50%); background: var(--color-text); opacity: 0.9;
+  background-image: linear-gradient(var(--color-ambiguous-bg) 50%, transparent 50%); background-size: 2px 6px;
+  background-repeat: repeat-y; background-position: center;
+}

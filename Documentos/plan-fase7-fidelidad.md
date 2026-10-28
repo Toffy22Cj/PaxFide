@@ -126,13 +126,15 @@ Lo que **no** cambia de la regla de los prompts (§2): los colores salen de toke
 | X-12 | Las 17 variantes de tarjeta de convocatoria | Landing | Son un muestrario del boceto: se usa la variante 01 (la "unificada clásica"), que es `CampaignCard` |
 | X-13 | KPI "Integridad", "Actividad reciente" y "Recaudado en octubre" (pasa a "Recaudado" total) | Panel | ⏳ Llegan con F-C3 tras la ficha R-6, bloques B (G-6) y D (G-7, G-8) |
 | X-14 | Columna "Último cambio" de la tabla de lotes del panel | Panel | ⏳ Llega con F-C3 tras la Enmienda 1 de la ficha R-6 (G-9). "Desde hace más de 3 días" se calcula entonces en el cliente. **Las fechas de cada paso del seguimiento ya se muestran** (`history[].timestamp`) |
-| X-15 | Hash por paso ("Huella criptográfica"), "Anclado en blockchain (Merkle)" por paso, fecha del pago, sublotes como árbol | Seguimiento | ⏳ Llegan con F-C2 tras la ficha R-6 bloques B (G-2) y C (G-4, G-3) y su Enmienda 1 (hash y prueba de Merkle). **Nunca:** el nombre del lote y el destinatario (privacidad) |
+| X-15 | Hash por paso ("Huella criptográfica"), "Anclado en blockchain (Merkle)" por paso, fecha del pago, sublotes como árbol | Seguimiento | ✅ Implementado en P-2 de `plan-fase7-puesta-al-dia.md` (con "Comprobar en mi navegador"). **Sigue sin mostrarse:** el nombre del lote ("Lote A") y el destinatario ("Escuela San José"), por privacidad |
 | X-16 | Selector "Escenario" y "Recorrido en vivo" | Seguimiento | Herramienta del boceto |
 | X-17 | Botón "DEMO" y cambio de rol | Home, Panel | Herramienta del boceto |
 | X-18 | "Escanear QR" y "Despachar o recibir" como acción | Home, Panel | ⛔ lector QR sin decidir. La tarjeta rápida "Despachar o recibir" se queda con el texto del boceto "Escanea el QR en la app", sin enlace |
 | X-19 | Fuentes de Google | Todas | Fuentes autoalojadas (enmienda §6) |
 | X-20 | Aviso "Completa tu perfil" en amarillo, con botón amarillo y entrada animada (`rise`) | Home | **Propuesta de P-1, pendiente de Carlos.** En la web el amarillo significa "ambiguo" (D6), así que el aviso usa los tokens informativos (azul) y el botón de acción. No se anima: no responde a nada que haya pasado |
 | X-21 | "Ahora no" en "¿Cómo te llamamos?" | Acceso | **Propuesta de P-1, pendiente de Carlos.** El plan aprobado (P-1 y F-C1) dice "Más tarde" |
+| X-23 | Estaciones y pasos futuros (en gris), y la estación "Fondos asignados" de la serpiente | Seguimiento | **Propuesta de P-2, pendiente de Carlos.** Solo se muestra lo que pasó: el contrato no dice qué pasos faltan, y el seguimiento no trae la asignación de fondos por lote. La serpiente empieza en "Pago confirmado" y sigue con los pasos del lote |
+| X-24 | Fecha "02 oct 2026 · 10:14" del pago en la raíz "Donada" y chip "Pasarela de pago" | Seguimiento | **Propuesta de P-2, pendiente de Carlos.** La fecha sí (G-2, `firstClearedAt`), con el monto. El medio de pago no llega en el seguimiento: sin chip |
 | X-22 | Título "Seguridad y Criptografía" y el texto "están en el kit (M-27, M-30)" | Perfil | **Propuesta de P-1, pendiente de Carlos.** El plan aprobado la llama "Seguridad", y la tarjeta no tiene nada de criptografía. El texto del kit es una nota del boceto |
 
 ---

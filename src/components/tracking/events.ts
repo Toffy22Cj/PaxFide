@@ -32,6 +32,24 @@ export function stepKind(e: TrackingEvent): StepKind {
   }
 }
 
+/** Qué significa cada paso, para el detalle (F-A5). Solo hechos: nunca quién recibe ni "en camino a X". */
+export function eventDescription(e: TrackingEvent): string {
+  switch (e) {
+    case 'ASSET_REGISTERED': return 'El lote quedó registrado con lo que se compró con las donaciones.';
+    case 'ASSET_DISPATCHED': return 'El lote salió hacia su destino con un transportista.';
+    case 'ASSET_RECEIVED': return 'El lote llegó a una instalación y quedó bajo su custodia.';
+    case 'ASSET_DELIVERED': return 'El lote se entregó en su destino final. Desde aquí ya no cambia.';
+    case 'ASSET_SPLIT': return 'Una parte del lote se separó en un sublote, que sigue su propio recorrido.';
+    case 'ASSET_SPLIT_COMPENSATED': return 'Una división no se completó y se deshizo: la cantidad volvió al lote.';
+    case 'ASSET_CUSTODY_TRANSFERRED': return 'El lote cambió de custodio.';
+    case 'ASSET_DEPLETED': return 'El lote se repartió por completo en sublotes.';
+    default: {
+      const unreachable: never = e;
+      throw new Error(`Evento de seguimiento sin descripción: ${String(unreachable)}`);
+    }
+  }
+}
+
 /** El camión de VS-1 solo si el último evento del activo es un despacho: no se anima lo que no pasó (§3.1). */
 export function showsTruck(events: readonly { eventType: string }[]): boolean {
   return events.length > 0 && events[events.length - 1].eventType === 'ASSET_DISPATCHED';

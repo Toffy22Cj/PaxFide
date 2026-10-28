@@ -31,6 +31,12 @@ const INTENT_STATUS: Record<string, string> = {
 export const custodianLabel = (v?: string) => (v ? CUSTODIAN[v] ?? v : '—');
 export const donationStatusLabel = (v: string) => DONATION_STATUS[v] ?? v;
 export const eventLabel = (v: string) => EVENT[v] ?? v;
+
+/** `anchorStatus` de cada paso del seguimiento (referencia-api-v1.md §8, nota G-3; plan-fase7-puesta-al-dia.md P-2). */
+const ANCHOR_STEP: Record<string, string> = {
+  ANCHORED: 'Anclado en blockchain', IN_BATCH: 'En el próximo anclaje', PENDING: 'Esperando anclaje', UNDER_REVIEW: 'En revisión',
+};
+export const anchorStatusLabel = (v: string) => ANCHOR_STEP[v] ?? v;
 export const intentStatusLabel = (v: string) => INTENT_STATUS[v] ?? v;
 
 const ROLE: Record<string, string> = { ADMINISTRATOR: 'Administrador', REPRESENTATIVE: 'Representante', EMPLOYEE: 'Empleado' };
