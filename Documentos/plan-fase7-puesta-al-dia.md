@@ -288,3 +288,77 @@ develop (1295184)
 ```
 
 No queda ningún pendiente en §6.
+
+---
+
+## Anexo 2 (2026-10-29) — Bienvenida, ancho del inicio con transparencia y error del Perfil
+
+**Estado: PROPUESTO — espera la aprobación de Carlos.** Sale de la revisión de Carlos sobre `develop` `1295184` (capturas del 2026-10-28):
+1. tras crear una cuenta, **no apareció la bienvenida**;
+2. las tarjetas del inicio son estrechas y tapan el fondo;
+3. `/account` muestra "No se pudo cargar la información del perfil".
+
+### A2.1 Diagnóstico
+
+- **La bienvenida no es fiable.** D-F10 la ligó a un aviso **en memoria** (`justRegistered`, `src/lib/auth/session.ts:16`) que se pierde con cualquier recarga, con un enlace abierto en otra pestaña o al escribir la URL. Con la Enmienda 2 de ADR-050 el primer inicio de sesión llega casi siempre desde el enlace de verificación del correo, en otra pestaña, así que fallaría siempre. Además se muestra dentro de `LoginScreen` y no sobre el inicio.
+- **La opacidad de R-F1** (0,88 en claro y 0,86 en oscuro) casi no deja ver el fondo. Recalculado con la fórmula del Anexo A de la enmienda 1 del sistema visual, para el peor caso (fondo blanco, negro, amarillo de marca y las dos bases), con texto principal y secundario:
+
+  | Opacidad | Mínimo en oscuro | Mínimo en claro |
+  |---|---|---|
+  | 0,88 / 0,86 (hoy) | ≥ 6,25 | ≥ 5,75 |
+  | **0,82** | **5,09** | **5,13** |
+  | 0,80 | 4,74 | 4,71 |
+  | 0,75 | 3,99 | 4,12 (no cumple) |
+
+  Con **0,82** todo el texto sigue por encima de 4,5 con margen. Con 0,80 queda demasiado justo, y con menos no cumple. El desenfoque mejora la lectura, pero no se cuenta para el contraste.
+- **El error del Perfil** sale de `GET /account` (`ProfileScreen.tsx:78`). La pantalla muestra el mismo texto para cualquier fallo, **incluido un 401**: eso es un defecto de la web, porque un 401 debe seguir el flujo de sesión. La causa concreta del fallo no se sabe sin el estado HTTP (§A2.3, P-10).
+
+### A2.2 Decisiones (se aprueban con el anexo)
+
+| # | Decisión |
+|---|---|
+| U-15 | **Bienvenida grande y fiable** (sustituye el disparador de D-F10). Es una capa a pantalla completa sobre el inicio, con la ciudad detrás desenfocada y una tarjeta centrada de hasta 640 px, en el estilo del boceto (`paxfide-home.html`, `sWelcome` y `sData`). Tres pasos con sus puntos:<br>1. **"Te damos la bienvenida a PaxFide"**: los cubos encadenados y las tres ideas del boceto (convocatorias verificadas, sigue el recorrido, cada paso queda sellado).<br>2. **"Así te mueves por PaxFide"**: las entradas de la barra **que esa cuenta ve de verdad** (`navEntriesFor`), cada una con su icono y una línea; más "Ver ciudad", el tema y "Pausar animación".<br>3. **"¿Cómo te llamamos?"**: nombre y apellido opcionales (`PUT /account/profile`), con **"Guardar"** y **"Después"**.<br><br>"Saltar" está en todos los pasos. Se cierra con Escape, el foco queda dentro de la capa y vuelve al inicio al cerrarla. Con "reducir movimiento", sin animaciones |
+| U-16 | **Cuándo sale:** en el primer `/home` tras iniciar sesión, si la cuenta **no tiene nombre** (`GET /account/profile`) y en **ese navegador** no se cerró antes la bienvenida para **esa cuenta**. El cierre ("Saltar", "Después" o "Guardar") se guarda en `localStorage` con `try/catch`, con la clave `paxfide.welcome-done.<accountId>`. El `accountId` es opaco, y nunca se guardan el correo ni el nombre. Si el almacenamiento falla, se muestra una sola vez por sesión. **El aviso `justRegistered` y la bienvenida dentro de `LoginScreen` se retiran.** Así funciona con la verificación del correo y en otra pestaña |
+| U-17 | **El inicio más ancho y translúcido** (enmienda de R-F1, decisión de Carlos con los números de A2.1):<br>- `--color-surface-translucent` pasa a `rgba(255,255,255,.82)` en claro y a `rgba(16,38,29,.82)` en oscuro, siempre con `backdrop-filter: blur(20px) saturate(1.2)`;<br>- en el navegador que no admita `backdrop-filter`, la superficie vuelve a la opacidad de antes (0,88 / 0,86), con `@supports not`;<br>- los campos siguen sólidos;<br>- **la rejilla del inicio crece hasta 1200 px** (hoy es una columna estrecha), con dos columnas desde 1024 px y la de "Seguir una donación" más ancha, como en el boceto;<br>- la píldora "Sector" y "Ver ciudad" no se tapan.<br><br>La enmienda del sistema visual recibe una nota fechada con esta tabla. **Es el único cambio de `globals.css` del anexo** |
+
+### A2.3 Tareas
+
+**P-8 · `feat/web-welcome`** — U-15 y U-16.
+- **Tests:**
+  - sale para una cuenta sin nombre que no la cerró;
+  - no sale si tiene nombre, ni si ya se cerró en ese navegador (negativas);
+  - "Después" no envía `PUT`; "Guardar" sí;
+  - el paso 2 de un donante no muestra "Organización" (negativa), y el de un administrador sí;
+  - el foco se queda dentro de la capa y Escape la cierra;
+  - en `localStorage` solo aparece la clave con el `accountId`, nunca el correo ni el nombre (negativa);
+  - con `localStorage` que lanza un error, la capa sale una vez y la página no se rompe;
+  - el `LoginScreen` ya no tiene bienvenida (negativa).
+- Capturas lado a lado con `sWelcome` y `sData` del boceto, en claro y en oscuro.
+
+**P-9 · `feat/web-home-wide-glass`** — U-17.
+- **Tests:**
+  - la prueba de contraste de C-1 en claro y en oscuro sigue en verde con 0,82;
+  - una prueba nueva calcula con la fórmula del Anexo A el peor caso de 0,82 y falla si baja de 4,5;
+  - `@supports not (backdrop-filter…)` devuelve la opacidad antigua (prueba sobre el CSS);
+  - a 1280 y 1920 px, la rejilla mide más de 1000 px y nada se superpone (§1.4 del plan de fidelidad).
+- Capturas antes y después.
+
+**P-10 · `fix/web-profile-load`** — primero el diagnóstico.
+- Reproducir contra el backend real de `develop`.
+- Pegar el estado HTTP y el cuerpo (sin el correo) de `GET /api/v1/account` y de `GET /api/v1/account/profile`.
+- Según el resultado:
+  - **401** → el flujo de sesión de siempre, no el error de la pantalla;
+  - **404** → el backend levantado es anterior: no es un fallo de la web, se dice en el PR y no se cambia código para taparlo;
+  - **500 o CORS** → DETENTE y repórtalo, porque es del backend o de la configuración;
+  - **200 con otro cuerpo** → DETENTE: el contrato no coincide.
+- **En todos los casos se arregla el defecto de A2.1:** `ProfileScreen` trata el 401 como cualquier otra pantalla autenticada, con un test que lo prueba.
+- El fallo de `GET /account/profile` no debe tumbar la pantalla: ya está separado, y se comprueba con un test.
+
+### A2.4 Orden
+
+```
+P-5 → P-7 → P-10 (rápido) → P-8 → P-9
+P-6 cuando el backend de la Enmienda 2 esté en develop
+```
+
+P-8 va antes que P-6, para que la verificación del correo ya encuentre la bienvenida nueva.
