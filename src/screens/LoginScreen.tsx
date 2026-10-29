@@ -4,25 +4,21 @@
 // Documentos/plan-fase7-fidelidad.md §2 D-F5 (acceso sobre el mundo), D-F10 (bienvenida), D-F2;
 // Documentos/paxfide-landing.html (.auth-card, #formLogin); plan-fase7-puesta-al-dia.md R-2 y U-2 (403
 // AcceptanceRequired: "Actualizamos nuestras condiciones" en la misma tarjeta; la contraseña sigue solo en el estado);
-// P-1: "¿Olvidaste tu contraseña?" (→ /recuperar), el aviso tras recuperarla y "¿Cómo te llamamos?" tras la bienvenida
-// (paxfide-home.html #sData; ADR-050 D1): opcional, con "Más tarde"; el nombre solo viaja en /account/profile.
+// P-1: "¿Olvidaste tu contraseña?" (→ /recuperar) y el aviso tras recuperarla. plan-fase7-puesta-al-dia.md U-16 (P-8):
+// la bienvenida de D-F10 y "¿Cómo te llamamos?" salen de aquí y pasan a /home (WelcomeOverlay).
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import * as session from '../lib/auth/session';
 import { acceptanceFor, login as loginRequest, LoginAcceptance, LoginOutcome } from '../lib/api/identity';
 import { LegalConsent } from '../components/access/LegalConsent';
-import { NameGate, type NameGateClients } from '../components/access/NameGate';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { BrandMark } from '../components/shell/BrandMark';
 import { BrandDots } from '../components/loaders/BrandDots';
 import { AccessLayout } from '../components/access/AccessLayout';
-import { defaultDestination } from '../app/RouteGuard';
 import s from './access.module.css';
 
 type Props = {
   loginClient?: (email: string, password: string, acceptance?: LoginAcceptance) => Promise<LoginOutcome>;
-  onContinueWelcome?: () => void;
-  profileClients?: NameGateClients;
 };
 
 const REASON_TEXT: Record<session.LogoutReason, string | null> = {
@@ -34,7 +30,7 @@ const REASON_TEXT: Record<session.LogoutReason, string | null> = {
   DEACTIVATED: 'Desactivaste tu cuenta. Si fue un error, pide al administrador de la plataforma que la reactive.',
 };
 
-export function LoginScreen({ loginClient = loginRequest, onContinueWelcome, profileClients }: Props) {
+export function LoginScreen({ loginClient = loginRequest }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -45,12 +41,9 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome, pro
   // Aviso de otra pantalla (p. ej. /recuperar): se lee al montar y se borra después (StrictMode monta dos veces)
   const [notice] = useState(() => session.peekLoginNotice());
   useEffect(() => { if (notice) session.clearLoginNotice(); }, [notice]);
-  /** D-F10 + P-1: la bienvenida y, tras "Continuar", "¿Cómo te llamamos?". */
-  const [welcomeStep, setWelcomeStep] = useState<'welcome' | 'name'>('welcome');
   /** U-2: las versiones pendientes que se aceptan al repetir el login; `unsupported` si la web no tiene ese texto. */
   const [pending, setPending] = useState<LoginAcceptance | 'unsupported' | null>(null);
   const [checks, setChecks] = useState<{ terms: boolean; data: boolean }>({ terms: false, data: false });
-  const [showWelcome, setShowWelcome] = useState(() => session.isJustRegistered() && !session.getPostLoginDestination() && session.getState() === 'AUTHENTICATED');
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,10 +67,6 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome, pro
       case 'ok':
         setPassword('');
         session.login(outcome.token);
-        if (session.isJustRegistered() && !session.getPostLoginDestination()) {
-          setShowWelcome(true);
-          return;
-        }
         return;
       case 'invalid-credentials':
         setFailure('Correo o contraseña incorrectos.');
@@ -114,107 +103,13 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome, pro
     && (pending.acceptedTermsVersion === undefined || checks.terms)
     && (pending.acceptedDataPolicyVersion === undefined || checks.data);
 
-  const finishWelcome = () => {
-    if (onContinueWelcome) {
-      onContinueWelcome();
-    } else {
-      session.clearJustRegistered();
-      setShowWelcome(false);
-      const dest = session.consumePostLoginDestination();
-      if (typeof window !== 'undefined') {
-        window.location.href = dest || defaultDestination();
-      }
-    }
-  };
-
   const reasonText = reason ? REASON_TEXT[reason] : null;
 
   return (
     <AccessLayout>
       <div className={s.page}>
         <div className={s.card} data-world-avoid="">
-          {showWelcome && welcomeStep === 'name' ? (
-            <NameGate clients={profileClients} onDone={finishWelcome} />
-          ) : showWelcome ? (
-            /* ============ Bienvenida (D-F10; paxfide-home.html §1) ============ */
-            <div className={s.welcomeGate} data-testid="welcome-gate">
-              <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
-              <div className={s.chain} aria-hidden="true">
-                <svg className={s.chainCube} viewBox="0 0 56 56">
-                  <path d="M28 6l20 11-20 11L8 17z" className={s.cubeBlueTop} />
-                  <path d="M8 17l20 11v22L8 39z" className={s.cubeBlueLeft} />
-                  <path d="M48 17L28 28v22l20-11z" className={s.cubeBlueRight} />
-                </svg>
-                <span className={s.chainLink} />
-                <svg className={s.chainCube} viewBox="0 0 56 56">
-                  <path d="M28 6l20 11-20 11L8 17z" className={s.cubeGreenTop} />
-                  <path d="M8 17l20 11v22L8 39z" className={s.cubeGreenLeft} />
-                  <path d="M48 17L28 28v22l20-11z" className={s.cubeGreenRight} />
-                </svg>
-                <span className={s.chainLink} />
-                <svg className={s.chainCube} viewBox="0 0 56 56">
-                  <path d="M28 6l20 11-20 11L8 17z" className={s.cubeYellowTop} />
-                  <path d="M8 17l20 11v22L8 39z" className={s.cubeYellowLeft} />
-                  <path d="M48 17L28 28v22l20-11z" className={s.cubeYellowRight} />
-                </svg>
-                <span className={s.seal}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="5" y="11" width="14" height="10" rx="2" />
-                    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-                  </svg>
-                </span>
-              </div>
-              <h1 className={s.welcomeTitle}>Te damos la bienvenida a PaxFide</h1>
-              <p className={s.welcomeLead}>Ya iniciaste sesión. Esto es lo que puedes hacer aquí:</p>
-              <ul className={s.featuresList}>
-                <li className={s.featureItem}>
-                  <span className={`${s.featureIcon} ${s.featureIconGreen}`}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z" />
-                    </svg>
-                  </span>
-                  <div className={s.featureText}>
-                    <b>Dona a convocatorias verificadas</b>
-                    <span>Cada organización pasa por una revisión antes de publicar.</span>
-                  </div>
-                </li>
-                <li className={s.featureItem}>
-                  <span className={`${s.featureIcon} ${s.featureIconBlue}`}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="6" cy="18" r="2" />
-                      <circle cx="18" cy="6" r="2" />
-                      <path d="M8 18h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6" />
-                    </svg>
-                  </span>
-                  <div className={s.featureText}>
-                    <b>Sigue el recorrido de tu ayuda</b>
-                    <span>Del pago a la compra, el despacho y la entrega.</span>
-                  </div>
-                </li>
-                <li className={s.featureItem}>
-                  <span className={`${s.featureIcon} ${s.featureIconYellow}`}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
-                      <path d="M4 7.5l8 4.5 8-4.5M12 12v9" />
-                    </svg>
-                  </span>
-                  <div className={s.featureText}>
-                    <b>Cada paso queda sellado</b>
-                    <span>Se registra de forma que no se puede cambiar sin que se note.</span>
-                  </div>
-                </li>
-              </ul>
-              <button type="button" className={s.submitBtn} onClick={() => setWelcomeStep('name')}>
-                <span>Continuar</span>
-              </button>
-              <div className={s.welcomeDots} aria-hidden="true">
-                <span className={[s.welcomeDot, s.welcomeDotActive].join(' ')} />
-                <span className={s.welcomeDot} />
-                <span className={s.welcomeDot} />
-              </div>
-            </div>
-          ) : (
-            /* ============ Tarjeta de Iniciar Sesión (D-F5) ============ */
+            {/* ============ Tarjeta de Iniciar Sesión (D-F5) ============ */}
             <>
               <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
               <div className={s.badgePill}>
@@ -372,7 +267,6 @@ export function LoginScreen({ loginClient = loginRequest, onContinueWelcome, pro
                 </div>
               )}
             </>
-          )}
         </div>
       </div>
     </AccessLayout>

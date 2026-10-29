@@ -1,6 +1,7 @@
 // Ref: plan-fase7-puesta-al-dia.md Anexo 1, P-7 ("Mi impacto" como tarjeta en /home y en /account; sin ruta propia).
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
 import crypto from 'crypto';
+import { skipWelcome } from './support/evidence';
 
 const API = 'http://localhost:3002';
 const PASSWORD = 'clave-demo-larga';
@@ -25,6 +26,7 @@ async function loginAt(page: Page, path: string, email: string) {
 test('P-7: sin donaciones, el estado vacío; con una confirmada, la tarjeta en /home y en /account', async ({ page, request }) => {
   const { email, token } = await freshAccount(request);
   await loginAt(page, '/home', email);
+  await skipWelcome(page);
   const card = page.getByTestId('impact-card');
   await expect(card.getByText('Aún no tienes donaciones confirmadas')).toBeVisible();
   await expect(card.getByRole('link', { name: 'Explorar convocatorias' })).toHaveAttribute('href', '/campaigns');
@@ -53,6 +55,7 @@ test('P-7: si /account/impact falla, el resto del inicio sigue visible', async (
   const { email } = await freshAccount(request);
   await page.route('**/api/v1/account/impact', (route) => route.fulfill({ status: 503, contentType: 'application/problem+json', body: '{"title":"ServiceUnavailable","status":503}' }));
   await loginAt(page, '/home', email);
+  await skipWelcome(page);
   await expect(page.getByTestId('impact-card').getByRole('button', { name: 'Reintentar' })).toBeVisible();
   await expect(page.getByTestId('home-greeting')).toBeVisible();
   await expect(page.getByTestId('home-donations')).toBeVisible();

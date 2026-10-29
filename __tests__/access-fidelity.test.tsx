@@ -82,57 +82,29 @@ describe('Fidelidad del Acceso (F-A2)', () => {
       consentAll(); fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
       await waitFor(() => expect(client).toHaveBeenCalledWith('user@demo.test', '123456789012'));
-      expect(session.isJustRegistered()).toBe(true);
     });
   });
 
-  describe('D-F10: Bienvenida', () => {
-    it('tras registrarse e iniciar sesión: se muestra la bienvenida con los cubos y "Continuar" limpia el aviso', async () => {
-      session.markJustRegistered();
-      expect(session.isJustRegistered()).toBe(true);
+  describe('U-16 (P-8): la bienvenida ya no está en el LoginScreen', () => {
+    it('tras registrarse e iniciar sesión, el login no muestra ninguna bienvenida (negativa)', async () => {
+      const client = vi.fn().mockResolvedValue({ kind: 'ok' });
+      const { unmount } = render(<RegisterScreen client={client} />);
+      fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'nuevo@demo.test' } });
+      fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'clave-12-caracteres' } });
+      fireEvent.change(screen.getByLabelText('Repite la contraseña'), { target: { value: 'clave-12-caracteres' } });
+      consentAll(); fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+      await waitFor(() => expect(client).toHaveBeenCalled());
+      unmount();
 
-      const onContinue = vi.fn();
-      const profileClients = {
-        fetch: vi.fn().mockResolvedValue({ kind: 'ok', profile: { email: 'nuevo@demo.test' } }),
-        update: vi.fn(),
-      };
-      render(<LoginScreen loginClient={async () => ({ kind: 'ok', token: 'jwt-nuevo' })} onContinueWelcome={onContinue} profileClients={profileClients} />);
-
-      // Login
+      render(<LoginScreen loginClient={async () => ({ kind: 'ok', token: 'jwt-nuevo' })} />);
       fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'nuevo@demo.test' } });
       fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'clave-12-caracteres' } });
       fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
-
-      // Se muestra la bienvenida (D-F10)
-      const welcome = await screen.findByTestId('welcome-gate');
-      expect(welcome).toBeInTheDocument();
-      expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Te damos la bienvenida a PaxFide');
-      expect(screen.getByText('Dona a convocatorias verificadas')).toBeInTheDocument();
-      expect(screen.getByText('Sigue el recorrido de tu ayuda')).toBeInTheDocument();
-      expect(screen.getByText('Cada paso queda sellado')).toBeInTheDocument();
-
-      // Pulsar Continuar: P-1 añade "¿Cómo te llamamos?", opcional
-      const btn = screen.getByRole('button', { name: 'Continuar' });
-      fireEvent.click(btn);
-      expect(onContinue).not.toHaveBeenCalled();
-      expect(await screen.findByTestId('name-gate')).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Más tarde' }));
-      expect(onContinue).toHaveBeenCalledTimes(1);
-      expect(profileClients.update).not.toHaveBeenCalled();
-    });
-
-    it('en un inicio de sesión normal: NO se muestra la bienvenida (negativa)', async () => {
-      expect(session.isJustRegistered()).toBe(false);
-
-      render(<LoginScreen loginClient={async () => ({ kind: 'ok', token: 'jwt-normal' })} />);
-
-      fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'normal@demo.test' } });
-      fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'clave-12-caracteres' } });
-      fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
-
-      // No se muestra la bienvenida
       await waitFor(() => expect(session.getState()).toBe('AUTHENTICATED'));
       expect(screen.queryByTestId('welcome-gate')).toBeNull();
+      expect(screen.queryByTestId('name-gate')).toBeNull();
+      expect(screen.queryByText('Te damos la bienvenida a PaxFide')).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Continuar' })).toBeNull();
     });
   });
 

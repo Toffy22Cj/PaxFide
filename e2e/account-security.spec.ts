@@ -1,7 +1,7 @@
 // Ref: plan-fase7-puesta-al-dia.md P-1 (F-C1 completa + D7) y §1.2 (el servidor falso responde como el real);
 // referencia-api-v1.md §1 (notas del 2026-10-25: contraseña, desactivación, perfil y recuperación) y §2 (reactivación).
 import { test, expect, type Page, type APIRequestContext, type Request } from '@playwright/test';
-import { acceptLegal } from './support/evidence';
+import { acceptLegal, skipWelcome } from './support/evidence';
 
 const API = 'http://localhost:3002';
 const PASSWORD = 'clave-demo-larga';
@@ -139,7 +139,7 @@ test.describe('P-1: seguridad de la cuenta', () => {
     await expect(page.getByRole('button', { name: 'Pedir un enlace nuevo' })).toBeVisible();
   });
 
-  test('nombre: "¿Cómo te llamamos?" tras la bienvenida; saludo con el nombre; el nombre solo viaja en /account/profile', async ({ page }) => {
+  test('nombre: "¿Cómo te llamamos?" en el paso 3 de la bienvenida; saludo con el nombre; el nombre solo viaja en /account/profile', async ({ page }) => {
     const email = `p1-nombre-${Date.now()}@demo.test`;
     const NAME = `Zoraida${Date.now() % 100000}`;
     const carrying: Request[] = [];
@@ -158,14 +158,17 @@ test.describe('P-1: seguridad de la cuenta', () => {
     await page.getByLabel('Correo electrónico').fill(email);
     await page.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-    await page.getByTestId('welcome-gate').getByRole('button', { name: 'Continuar' }).click();
-    const gate = page.getByTestId('name-gate');
+    await expect(page).toHaveURL(/\/home$/);
+    const welcome = page.getByTestId('welcome-overlay');
+    await welcome.getByRole('button', { name: 'Continuar' }).click();
+    await welcome.getByRole('button', { name: 'Continuar' }).click();
+    const gate = page.getByTestId('welcome-step-3');
     await expect(gate.getByRole('heading', { name: '¿Cómo te llamamos?' })).toBeVisible();
     await expect(gate.getByLabel('Correo de la cuenta')).toHaveValue(email);
     await gate.getByLabel('Nombre').fill(NAME);
     await gate.getByLabel('Apellido').fill('Pérez');
-    await gate.getByRole('button', { name: 'Guardar y continuar' }).click();
-    await expect(page).toHaveURL(/\/home$/);
+    await gate.getByRole('button', { name: 'Guardar' }).click();
+    await expect(welcome).toHaveCount(0);
     await expect(page.getByTestId('home-greeting')).toContainText(`, ${NAME}`);
     await expect(page.getByTestId('home-avatar')).toHaveText(`${NAME[0]}P`.toUpperCase());
     await expect(page.getByTestId('profile-nudge')).toHaveCount(0);
@@ -185,6 +188,7 @@ test.describe('P-1: seguridad de la cuenta', () => {
     const { email } = await registerApi(request, 'p1-nudge');
     await loginForm(page, email, PASSWORD);
     await expect(page).toHaveURL(/\/home$/);
+    await skipWelcome(page);
     const nudge = page.getByTestId('profile-nudge');
     await expect(nudge).toBeVisible();
     await nudge.getByRole('link', { name: 'Agregar' }).click();
@@ -293,10 +297,12 @@ test.describe('P-1: sin superposiciones (390, 1280 y 1920 px)', () => {
       await page.getByLabel('Correo electrónico').fill(email);
       await page.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
       await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-      await page.getByTestId('welcome-gate').getByRole('button', { name: 'Continuar' }).click();
-      await expect(page.getByTestId('name-gate')).toBeVisible();
-      expect(await overlaps(page, '[data-testid="name-gate"]')).toEqual([]);
-      await page.getByTestId('name-gate').getByRole('button', { name: 'Más tarde' }).click();
+      const welcome = page.getByTestId('welcome-overlay');
+      await welcome.getByRole('button', { name: 'Continuar' }).click();
+      await welcome.getByRole('button', { name: 'Continuar' }).click();
+      await expect(page.getByTestId('welcome-step-3')).toBeVisible();
+      expect(await overlaps(page, '[role="dialog"]')).toEqual([]);
+      await page.getByTestId('welcome-step-3').getByRole('button', { name: 'Después' }).click();
       await expect(page.getByTestId('profile-nudge')).toBeVisible();
       await expect(page.getByTestId('panel-portal')).toHaveCount(0);
       expect(await overlaps(page, '[data-testid="profile-nudge"]')).toEqual([]);
