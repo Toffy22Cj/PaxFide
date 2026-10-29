@@ -1,0 +1,68 @@
+# P-10 — diagnóstico de /account contra el backend real (plan-fase7-puesta-al-dia.md A2.3)
+backend: Toffy22Cj/Donaciones develop 993c3e8, perfil dev, Mongo 6 (réplica rs0) y Ganache en Docker
+origen de la web: http://localhost:3000 (TRACEABILITY_CORS_ALLOWED_ORIGINS de demo.env.example)
+cuenta: donante de la semilla (correo oculto en las respuestas)
+fecha UTC: 2026-10-29T05:20:21Z
+
+$ curl -i http://localhost:8080/api/v1/account -H 'Authorization: Bearer <JWT>' -H 'Origin: http://localhost:3000'
+HTTP/1.1 200 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+Access-Control-Allow-Origin: http://localhost:3000
+Access-Control-Expose-Headers: Location
+Cache-Control: no-store
+Content-Type: application/json
+Transfer-Encoding: chunked
+
+{"email":"<oculto>"}
+
+
+$ curl -i http://localhost:8080/api/v1/account/profile -H 'Authorization: Bearer <JWT>' -H 'Origin: http://localhost:3000'
+HTTP/1.1 200 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+Access-Control-Allow-Origin: http://localhost:3000
+Access-Control-Expose-Headers: Location
+Cache-Control: no-store
+Content-Type: application/json
+Transfer-Encoding: chunked
+
+{"email":"<oculto>"}
+
+
+$ curl -i -X OPTIONS http://localhost:8080/api/v1/account -H 'Origin: http://localhost:3000' -H 'Access-Control-Request-Method: GET' -H 'Access-Control-Request-Headers: authorization'
+HTTP/1.1 200 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+Access-Control-Allow-Origin: http://localhost:3000
+Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS
+Access-Control-Allow-Headers: authorization
+Access-Control-Expose-Headers: Location
+Access-Control-Max-Age: 600
+Content-Length: 0
+
+
+$ curl -i http://localhost:8080/api/v1/account -H 'Origin: http://localhost:3000'   # sin JWT
+HTTP/1.1 401 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+Access-Control-Allow-Origin: http://localhost:3000
+Access-Control-Expose-Headers: Location
+Content-Type: application/problem+json
+Content-Length: 93
+
+{"type":"about:blank","title":"Unauthorized","status":401,"detail":"Authentication required"}
+
+
+RESULTADO
+- GET /api/v1/account → 200 {email}: coincide con referencia-api-v1.md §1 (`200 {email}`). La web solo exige email (accountId es opcional en fetchAccount).
+- GET /api/v1/account/profile → 200 {email} (sin nombre): coincide con §1 (`200 {email, givenName?, familyName?}`).
+- CORS: el preflight y la respuesta llevan Access-Control-Allow-Origin: http://localhost:3000.
+- Ningún caso de DETENTE (500, CORS o cuerpo distinto). Con develop de hoy el fallo no se reproduce con una sesión válida;
+  el único camino que lleva a "No se pudo cargar la información del perfil" con un backend sano es un 401 (JWT
+  caducado o revocado), que la pantalla trataba como un error propio: es el defecto de A2.1 y se corrige aquí.
+  Si en la máquina de Carlos el backend era anterior a M-26 (sin GET /account), sería un 404: no es un fallo de la web.
