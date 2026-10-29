@@ -209,7 +209,7 @@ Un solo agente, en serie. Estimación: 5 PR.
 
 ## Anexo 1 (2026-10-28) — Comprobante y verificación del correo
 
-**Estado: PROPUESTO — espera la aprobación de Carlos.** P-0 a P-4 ya están en `develop` (#44 a #48). Este anexo añade dos tareas. Las reglas de §1 rigen igual.
+**Estado: APROBADO — Carlos, 2026-10-29.** P-0 a P-4 ya están en `develop` (#44 a #48). Este anexo añade dos tareas. Las reglas de §1 rigen igual.
 
 ### A1.1 Decisiones (Carlos, 2026-10-28, al aceptar las recomendaciones del comprobante)
 
@@ -293,7 +293,7 @@ No queda ningún pendiente en §6.
 
 ## Anexo 2 (2026-10-29) — Bienvenida, ancho del inicio con transparencia y error del Perfil
 
-**Estado: PROPUESTO — espera la aprobación de Carlos.** Sale de la revisión de Carlos sobre `develop` `1295184` (capturas del 2026-10-28):
+**Estado: APROBADO — Carlos, 2026-10-29.** Sale de la revisión de Carlos sobre `develop` `1295184` (capturas del 2026-10-28):
 1. tras crear una cuenta, **no apareció la bienvenida**;
 2. las tarjetas del inicio son estrechas y tapan el fondo;
 3. `/account` muestra "No se pudo cargar la información del perfil".
