@@ -202,5 +202,89 @@ Un solo agente, en serie. Estimación: 5 PR.
 
 | # | Pregunta |
 |---|---|
-| PD-1 | **"Mi impacto"** (`GET /account/impact`, boceto 05 de Manuel). ¿Entra? Si entra: ¿ruta nueva `/account/impact`, o una tarjeta en el home y en el Perfil sin ruta nueva? |
-| PD-2 | **Comprobante como imagen (M-22).** Manuel decidió que lo generen la web y el móvil. ¿Entra en la web? ¿Con qué campos? Recuerda que el `trackingCode` nunca puede ir en él (T1-7) |
+| PD-1 | ~~"Mi impacto"~~ | **Resuelto (Carlos, 2026-10-28): tarjeta en el inicio y en el Perfil, sin ruta nueva. Anexo 1, P-7** |
+| PD-2 | ~~Comprobante como imagen (M-22)~~ | **Resuelto (Carlos, 2026-10-28): Anexo 1, P-5** |
+
+---
+
+## Anexo 1 (2026-10-28) — Comprobante y verificación del correo
+
+**Estado: PROPUESTO — espera la aprobación de Carlos.** P-0 a P-4 ya están en `develop` (#44 a #48). Este anexo añade dos tareas. Las reglas de §1 rigen igual.
+
+### A1.1 Decisiones (Carlos, 2026-10-28, al aceptar las recomendaciones del comprobante)
+
+| # | Decisión |
+|---|---|
+| U-9 | **Solo se generan comprobantes de donaciones `CONFIRMED`.** Las demás muestran su estado y no tienen el botón |
+| U-10 | **Campos, todos de `GET /account/donations`:**<br>- título "Comprobante de donación" y la marca PaxFide;<br>- convocatoria (`campaignTitle`) y organización (`organizationName`);<br>- monto y moneda (`money.ts`);<br>- medio de pago (`labels.ts`);<br>- fecha de la donación (`createdAt`) y del pago confirmado (`confirmedAt`), en hora local y con la zona;<br>- referencia (`intentId` recortado a sus 6 últimos caracteres, `…a3f9c2`);<br>- enlace a `/c/{publicCode}`, solo si llega `publicCode`;<br>- fecha en que se generó;<br>- leyenda fija: "Este comprobante no es un certificado de donación para efectos tributarios; ese lo expide la organización".<br><br>Si falta un campo opcional, su fila no aparece: nada de "—" ni de "Desconocido" |
+| U-11 | **Nunca van:** el `trackingCode` (T1-7), el correo, el `donorRef` ni el `fundId` |
+| U-12 | **El nombre es opcional:** casilla sin marcar, "Incluir mi nombre". Solo aparece si `GET /account/profile` devuelve nombre o apellido. La preferencia no se guarda |
+| U-13 | **Formato:** imagen PNG de 1200 × 1600 px, dibujada en un `<canvas>` 2D sin dependencias (D8), con las fuentes autoalojadas (se espera a `document.fonts.ready`) y siempre en el tema claro. Los colores son tokens leídos con `getComputedStyle` de un contenedor con `data-theme="light"`, sin hexadecimales. Se descarga como `comprobante-paxfide-<referencia>.png`. Al lado va el botón "Imprimir", con una vista imprimible con los mismos campos |
+
+### P-5 · `feat/web-donation-receipt` — el comprobante
+
+- **Dónde:** el botón "Descargar comprobante" va en cada donación `CONFIRMED` de `/account/donations`.
+- **Lógica pura** en `src/lib/receipt/receiptModel.ts`: `buildReceipt(donation, name?)` devuelve las filas del comprobante, o `null` si la donación no es `CONFIRMED`. El dibujo, en `src/components/receipt/ReceiptCanvas.ts`, solo dibuja ese modelo.
+- **Tests:**
+  - el modelo con todos los campos y con cada opcional ausente;
+  - `null` para `PENDING`, `FUNDING_REJECTED` y los demás estados (negativas);
+  - **el `trackingCode` nunca está en el modelo, ni en ninguna llamada a `fillText`** (un espía sobre el contexto del canvas recoge todo el texto dibujado; aserción negativa con una donación que sí trae `trackingCode`);
+  - sin la casilla no se dibuja el nombre y con ella sí;
+  - sin `publicCode` no hay enlace;
+  - E2E: el botón no existe en una donación no confirmada (negativa), y en una confirmada se descarga un PNG del tamaño fijado.
+
+### P-6 · `feat/web-email-verification` — **espera al backend**
+
+**Empieza solo cuando la Enmienda 2 de ADR-050** (`Donaciones/Documentos/ADR-050-enmienda-2-verificacion-correo-y-avisos.md`) **esté APROBADA e implementada en `develop`, con su contrato en `referencia-api-v1.md`.** Si el contrato publicado no coincide con lo de abajo, DETENTE.
+
+- **Tras registrarse:** la pantalla "Revisa tu correo", con el correo al que se envió y el botón "Reenviar" (`POST /auth/email-verification`). Siempre el mismo mensaje: "Si no llega, revisa el spam o vuelve a pedirlo en 5 minutos".
+- **`/verificar-correo`** (superficie nueva, autorizada por este anexo): lee `#token=` y lo borra de la barra **antes de nada**, como `/recuperar`. Después envía `POST /auth/email-verification/confirm`:
+  - 204 → al login con "Tu correo quedó verificado";
+  - 400 → "El enlace no es válido o caducó", con "Reenviar".
+- **Login con 403 `EmailNotVerified`:** "Antes de entrar, confirma tu correo", con "Reenviar". La contraseña se borra del estado.
+- **Perfil:** si `GET /account` trae `emailVerified: false`, un aviso con "Reenviar". Con Q1 (a) no debería pasar, pero el campo existe.
+- **Bienvenida (D-F10):** se muestra en el primer login después de verificar, en la misma pestaña en la que se registró.
+- **Servidor falso:** las dos rutas, el 403 y `emailVerified`.
+- **Tests:**
+  - tras cargar `/verificar-correo` el token ya no está en `location.href`;
+  - el 403 no deja la contraseña en el DOM (negativa);
+  - "Reenviar" muestra siempre el mismo texto, exista o no la cuenta;
+  - el 401 de una contraseña errónea sigue con su texto único (negativa: no menciona la verificación).
+
+### P-7 · `feat/web-impact-card` — "Mi impacto" como tarjeta
+
+**U-14 (Carlos, 2026-10-28):** "Mi impacto" es una tarjeta, no una ruta. Va en `/home` y en el Perfil (`/account`), y las dos usan el mismo componente. La entrada a la barra no cambia.
+
+**Datos:** `GET /account/impact` (`referencia-api-v1.md` §1, nota del 2026-10-25), con el JWT de cualquier cuenta.
+
+| Dato | Se muestra | Regla |
+|---|---|---|
+| `donationsCount` | "N donaciones confirmadas" | Solo cuenta las `CONFIRMED` |
+| `totals` | "Aportaste" y un monto por moneda (`money.ts`) | **Nunca se suman monedas distintas**: una línea por moneda |
+| `campaignsSupported` | "N convocatorias apoyadas" | — |
+| `deliveredUnits` | "Unidades entregadas en las convocatorias que apoyaste": una línea por unidad de medida (`quantity.ts`) | **Texto obligatorio** (P-M21-4): nunca "tus unidades" ni "entregaste" |
+| `truncated` | Nota: "Se cuentan tus 100 donaciones más recientes" | Solo si es `true` |
+
+- **Una cuenta sin donaciones** (ceros y listas vacías) no ve cifras en cero: ve "Aún no tienes donaciones confirmadas", con el enlace "Explorar convocatorias" (→ `/campaigns`).
+- **Estados:** carga con `Skeleton`; si falla, un error con "Reintentar" que no bloquea el resto del inicio ni del Perfil; un 401 sigue el flujo de sesión de siempre.
+- **Estilo:** tarjeta del sistema v2, con la entrada `rise` del inicio (F-A4). Las cifras grandes usan la escala tipográfica, sin hexadecimales.
+- **Tests:**
+  - cada campo y su texto;
+  - dos monedas → dos líneas y ningún total combinado (negativa);
+  - `deliveredUnits` vacío → la sección no aparece;
+  - el texto nunca dice "tus unidades" ni "entregaste" (negativa sobre el DOM);
+  - cuenta sin donaciones → el estado vacío, sin "0";
+  - `truncated` con y sin la nota;
+  - error de red → el resto del inicio sigue visible;
+  - la tarjeta aparece en `/home` y en `/account`, y no existe la ruta `/account/impact` en la web (404 por D5).
+
+### A1.2 Orden
+
+```
+develop (1295184)
+   ├── P-5 (ya)
+   ├── P-7 (ya, después de P-5)
+   └── P-6 (cuando el backend de la Enmienda 2 esté en develop)
+```
+
+No queda ningún pendiente en §6.
