@@ -34,17 +34,22 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (!pathname) return;
+    // U-18 (plan-fase7-puesta-al-dia.md A2.5): "Cerrar sesión" lleva siempre al login, desde cualquier ruta, sin
+    // destino guardado; `replace` para que "atrás" no vuelva a la pantalla con sesión
+    if (sessionState === 'LOGGED_OUT' && session.isLogoutNavigationPending()) {
+      if (category === 'AUTH') {
+        session.clearLogoutNavigation();
+      } else {
+        router.replace('/login');
+        return;
+      }
+    }
     if (category === 'NOT_APPROVED' || category === 'PUBLIC') return;
 
     if (sessionState === 'LOGGED_OUT' && category === 'AUTHENTICATED') {
       session.setPostLoginDestination(pathname);
       router.replace('/login');
     } else if (sessionState === 'AUTHENTICATED' && category === 'AUTH') {
-      // D-F10: en el primer login tras crear la cuenta en la pestaña, LoginScreen muestra la bienvenida
-      // a menos que haya un destino post-login explícito (ej. /invitaciones)
-      if (session.isJustRegistered() && !session.getPostLoginDestination()) {
-        return;
-      }
       // A-3 (plan-fase7-pantallas.md): tras iniciar sesión, el destino guardado; si no hay, el inicio del donante
       // (`/home`) cuando está habilitado y, si no, el panel como hasta ahora
       const dest = session.consumePostLoginDestination();

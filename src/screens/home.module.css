@@ -12,11 +12,12 @@
 .title { margin: 0; font-family: var(--font-display); font-size: var(--font-size-display-3); line-height: 1.15; color: var(--color-text); }
 .sub { margin: var(--space-1) 0 0; font-size: var(--font-size-body-3); color: var(--color-text-secondary); }
 
-.grid { display: grid; grid-template-columns: 1fr; gap: var(--space-4); }
-@media (min-width: 900px) {
+/* U-17 (plan-fase7-puesta-al-dia.md P-9): una columna; dos desde 1024 px, con "Seguir una donación" más ancha (boceto) */
+.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+@media (min-width: 1024px) {
   .grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
-  .grid > * { grid-column: span 4; }
-  .grid > .hero, .grid > .wide { grid-column: span 8; }
+  .grid > * { grid-column: span 5; }
+  .grid > .hero, .grid > .wide { grid-column: span 7; }
   .grid > .full { grid-column: 1 / -1; }
 }
 

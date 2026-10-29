@@ -1,0 +1,44 @@
+/* Ref: plan-fase7-puesta-al-dia.md U-15; paxfide-home.html (.gate, .gcard, .dots). Capa a pantalla completa sobre el
+   inicio con la ciudad detrás desenfocada y una tarjeta sólida centrada de hasta 640 px. Solo tokens semánticos. */
+@keyframes welcomeIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.layer {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-4); overflow-y: auto;
+  background: var(--color-surface-translucent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.card {
+  width: 100%; max-width: 640px; max-height: calc(100vh - 2 * var(--space-4)); overflow-y: auto;
+  background: var(--color-surface); color: var(--color-text);
+  border: 1px solid var(--color-divider); border-radius: var(--radius-surface);
+  box-shadow: var(--shadow-card); padding: var(--space-6) var(--space-8) var(--space-6);
+  animation: welcomeIn var(--duration-normal) var(--ease-out) both;
+}
+.card h2:focus { outline: none; }
+.card h2:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 4px; border-radius: 4px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); }
+.skip {
+  min-height: 44px; padding: 0 var(--space-3); border: 0; background: transparent; cursor: pointer;
+  font: inherit; font-weight: var(--weight-semibold); color: var(--color-link); text-decoration: underline;
+}
+.skip:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: var(--radius-control); }
+.step { animation: welcomeIn var(--duration-normal) var(--ease-out) both; }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); width: 100%; text-align: left; }
+@media (min-width: 560px) { .list { grid-template-columns: 1fr 1fr; } }
+.item { display: flex; gap: var(--space-3); align-items: flex-start; }
+.icon {
+  width: 36px; height: 36px; flex: none; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--color-success-bg); color: var(--color-success-text);
+}
+.icon svg { width: 20px; height: 20px; }
+@media (max-width: 480px) { .card { padding: var(--space-6) var(--space-4) var(--space-4); } }
+/* U-15: con "reducir movimiento", sin animaciones */
+@media (prefers-reduced-motion: reduce) {
+  .card, .step { animation: none; }
+}

@@ -48,3 +48,11 @@ export async function acceptLegal(scope: Page | Locator): Promise<void> {
     if (await box.count()) await box.check();
   }
 }
+
+/** U-16 (P-8): una cuenta nueva ve la bienvenida en su primer /home; "Saltar" la cierra (los tests que no la prueban). */
+export async function skipWelcome(page: Page): Promise<void> {
+  const layer = page.getByTestId('welcome-overlay');
+  await layer.waitFor({ state: 'visible' });
+  await layer.getByRole('button', { name: 'Saltar' }).click();
+  await layer.waitFor({ state: 'detached' });
+}

@@ -43,7 +43,10 @@ test.describe('Fondo animado (VS-3)', () => {
   test('R-F1: el contenido va sobre la superficie translúcida, no directamente sobre la ciudad', async ({ page }) => {
     await page.goto('/campaigns');
     const bg = await page.getByRole('main').evaluate((el) => getComputedStyle(el).backgroundColor);
-    expect(bg).toBe('rgba(255, 255, 255, 0.88)');
+    // U-17 (P-9): 0,82 con desenfoque
+    expect(bg).toBe('rgba(255, 255, 255, 0.82)');
+    const filter = await page.getByRole('main').evaluate((el) => getComputedStyle(el).backdropFilter);
+    expect(filter).toBe('blur(20px) saturate(1.2)');
   });
 
   test('R-F3: con "reducir movimiento", un fotograma quieto y ninguna llamada a requestAnimationFrame', async ({ page }) => {

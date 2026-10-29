@@ -1516,6 +1516,31 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // M-21 — GET /account/impact (referencia-api-v1.md §1, nota del 2026-10-25): las 100 donaciones CONFIRMED más
+  // recientes; totales por moneda y unidades entregadas por unidad de medida, como texto; nunca se mezclan monedas
+  if (p === '/account/impact' && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const confirmed = [...intents.values()].filter((i) => i.donorAccount === actor.accountId && i.status === 'CONFIRMED')
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    const counted = confirmed.slice(0, 100);
+    const totals = new Map();
+    for (const i of counted) totals.set(i.currency, (totals.get(i.currency) || BigInt(0)) + BigInt(i.amount));
+    const funds = new Set(counted.map((i) => i.fundId).filter(Boolean));
+    const units = new Map();
+    for (const a of assets.values()) {
+      if (a.lifecycleStatus !== 'DELIVERED' || !a.fundId || !funds.has(a.fundId)) continue;
+      units.set(a.unitOfMeasure, (units.get(a.unitOfMeasure) || 0) + Number(a.quantity));
+    }
+    send(res, 200, {
+      donationsCount: counted.length,
+      totals: [...totals.entries()].map(([currency, amount]) => ({ currency, amount: String(amount) })),
+      campaignsSupported: new Set(counted.map((i) => i.publicCode)).size,
+      deliveredUnits: [...units.entries()].map(([unitOfMeasure, q]) => ({ unitOfMeasure, quantity: scale4(q) })),
+      truncated: confirmed.length > 100,
+    }, { 'Cache-Control': 'private, no-store' });
+    return;
+  }
+
   // GET /account/donations — JWT obligatorio; sin seudónimo ni donorRef
   if (p === '/account/donations' && req.method === 'GET') {
     if (!actor) { problem(res, 401, 'Unauthorized'); return; }

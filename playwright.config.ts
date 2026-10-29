@@ -10,6 +10,9 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
+    // plan-fase7-puesta-al-dia.md U-16 (P-8): las cuentas sembradas del servidor falso ya cerraron la bienvenida en este
+    // navegador (solo la clave con el accountId). Las cuentas nuevas de cada test la ven y la cierran o la prueban.
+    storageState: 'e2e/support/welcome-done.json',
     // Solo en local: un Chromium preinstalado (PW_CHROMIUM_PATH). En CI se usa el que instala Playwright.
     launchOptions: process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {},
   },

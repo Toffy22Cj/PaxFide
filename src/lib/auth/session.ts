@@ -12,8 +12,9 @@ let currentState: MachineState = 'RESTORING';
 let jwt: string | null = null;
 let postLoginDestination: string | null = null;
 let lastLogoutReason: LogoutReason | null = null;
-// D-F10: aviso en memoria tras crear cuenta en la pestaña para mostrar la bienvenida en el primer login
-let justRegistered = false;
+// U-18 (plan-fase7-puesta-al-dia.md A2.5): tras "Cerrar sesión", la web va a /login sin guardar destino. Queda
+// pendiente hasta que la ruta de acceso se monte (o la sesión vuelva), para que ninguna pasada de RouteGuard lo guarde
+let logoutNavigationPending = false;
 // Último principal leído de GET /me (ficha N1). Solo en memoria y solo para no parpadear entre páginas
 // (D-N1-3): cada página que lo necesita lo vuelve a pedir. Nunca autoriza nada.
 let lastPrincipal: unknown = null;
@@ -60,6 +61,7 @@ export function subscribe(listener: Listener) {
 
 export function login(token: string) {
   jwt = token;
+  logoutNavigationPending = false;
   lastPrincipal = null;
   lastLogoutReason = null;
   setState('AUTHENTICATED');
@@ -90,6 +92,7 @@ export function peekLoginNotice(): string | null { return loginNotice; }
 export function clearLoginNotice() { loginNotice = null; }
 
 function executeLogout(broadcast: boolean, reason: LogoutReason) {
+  logoutNavigationPending = reason === 'MANUAL';
   jwt = null;
   lastPrincipal = null;
   postLoginDestination = null;
@@ -98,6 +101,16 @@ function executeLogout(broadcast: boolean, reason: LogoutReason) {
   if (broadcast && channel) {
     channel.postMessage('LOGOUT_SIGNAL');
   }
+}
+
+/** U-18: hay un cierre voluntario cuya navegación a /login no ha terminado. */
+export function isLogoutNavigationPending(): boolean {
+  return logoutNavigationPending;
+}
+
+/** U-18: la ruta de acceso ya está en pantalla. */
+export function clearLogoutNavigation(): void {
+  logoutNavigationPending = false;
 }
 
 export function getJwt() {
@@ -140,18 +153,6 @@ export function consumePostLoginDestination() {
   return dest;
 }
 
-export function markJustRegistered(): void {
-  justRegistered = true;
-}
-
-export function isJustRegistered(): boolean {
-  return justRegistered;
-}
-
-export function clearJustRegistered(): void {
-  justRegistered = false;
-}
-
 export function _resetForTest() {
   loginNotice = null;
   currentState = 'RESTORING';
@@ -159,7 +160,7 @@ export function _resetForTest() {
   postLoginDestination = null;
   lastLogoutReason = null;
   lastPrincipal = null;
-  justRegistered = false;
+  logoutNavigationPending = false;
   if (typeof window !== 'undefined') {
     currentState = 'LOGGED_OUT';
   }

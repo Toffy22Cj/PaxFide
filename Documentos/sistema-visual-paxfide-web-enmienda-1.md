@@ -76,6 +76,17 @@ En `paxfide-panel.html` la ciudad animada se oculta al entrar en la parte admini
 | R-F6 | Versión oscura propia (§3.1), no un filtro sobre la clara. | `filter: invert()` cambia las tonalidades de marca |
 | R-F7 | `aria-hidden="true"`, sin foco, y no se monta en la parte administrativa. | Decoración |
 
+> **Nota (2026-10-29, enmienda de R-F1 por U-17; `plan-fase7-puesta-al-dia.md` Anexo 2, APROBADO por Carlos).** La opacidad de la superficie translúcida baja a **0,82** en claro (`rgba(255,255,255,.82)`) y en oscuro (`rgba(16,38,29,.82)`), siempre con `backdrop-filter: blur(20px) saturate(1.2)`. En el navegador que no admite `backdrop-filter` vuelve a 0,88 / 0,86 (`@supports not`). Los campos siguen sólidos. Peor caso con el Anexo A (blanco, negro, amarillo de marca y las dos bases; texto principal y secundario); el desenfoque no se cuenta:
+>
+> | Opacidad | Mínimo en oscuro | Mínimo en claro |
+> |---|---|---|
+> | 0,88 / 0,86 (antes) | ≥ 6,25 | ≥ 5,75 |
+> | **0,82** | **5,09** | **5,13** |
+> | 0,80 | 4,74 | 4,71 |
+> | 0,75 | 3,99 | 4,12 (no cumple) |
+>
+> El cálculo de `__tests__/design-tokens.test.ts` da 5,0874 en oscuro (`dark-text-secondary`) y 5,1246 en claro (`brand-neutral-700`); la tabla lo redondea a 5,13.
+
 Los modos interactivos de la ciudad del prototipo ("ver ciudad", arrastrar el mapa) no entran en este corte (`prompts-agentes-estilo-v2.md`, VS-5).
 
 ## 4. Modo oscuro [Carlos: obligatorio]

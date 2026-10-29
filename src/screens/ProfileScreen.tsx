@@ -1,11 +1,13 @@
 'use client';
 
 // Ref: Documentos/plan-fase7-fidelidad.md §2 D-F9; Documentos/paxfide-home.html (vProfile); plan-fase7-puesta-al-dia.md
-// P-1 (X-8: nombre y apellido en "Tus datos"; X-9: tarjeta "Seguridad" con cambiar contraseña y desactivar la cuenta).
+// P-1 (X-8: nombre y apellido en "Tus datos"; X-9: tarjeta "Seguridad" con cambiar contraseña y desactivar la cuenta);
+// P-7 (U-14: tarjeta "Mi impacto"); P-10 (401 por el flujo de sesión).
 import React, { useEffect, useState } from 'react';
-import { fetchAccount, fetchProfile, initialsOf, type AccountProfile, type PersonalProfile } from '../lib/api/account';
+import { fetchAccount, fetchImpact, fetchProfile, initialsOf, type AccountProfile, type PersonalProfile } from '../lib/api/account';
 import { ProfileNameCard } from '../components/account/ProfileNameCard';
 import { SecurityCard, type SecurityClients } from '../components/account/SecurityCard';
+import { ImpactCard } from '../components/impact/ImpactCard';
 import type { NameGateClients } from '../components/access/NameGate';
 import { useRead } from '../lib/api/useRead';
 import * as session from '../lib/auth/session';
@@ -30,10 +32,11 @@ const POS_LABELS: Record<NavPosition, string> = {
   side: 'Izquierda',
 };
 
-export function ProfileScreen({ client = fetchAccount, profileClients, securityClients }: {
+export function ProfileScreen({ client = fetchAccount, profileClients, securityClients, impactClient = fetchImpact }: {
   client?: typeof fetchAccount;
   profileClients?: NameGateClients;
   securityClients?: SecurityClients;
+  impactClient?: typeof fetchImpact;
 }) {
   const { state, reload } = useRead<AccountProfile, 'unauthorized' | 'error'>(async () => {
     const r = await client();
@@ -75,6 +78,9 @@ export function ProfileScreen({ client = fetchAccount, profileClients, securityC
     if (state.status === 'loading') {
       return <SkeletonList aria-label="Cargando tu perfil" />;
     }
+    // P-10 (A2.1): un 401 sigue el flujo de sesión de siempre (T-1: http.ts cierra la sesión y RouteGuard lleva al
+    // login guardando el destino), como el resto de pantallas autenticadas; nunca el error de la pantalla
+    if (state.status === 'unauthorized') return null;
     return <ErrorState onRetry={reload} text="No se pudo cargar la información del perfil." />;
   }
 
@@ -139,6 +145,9 @@ export function ProfileScreen({ client = fetchAccount, profileClients, securityC
             <PauseButton className={s.pauseBtn} />
           </div>
         </section>
+
+        {/* P-7 (U-14): "Mi impacto", la misma tarjeta que en el inicio */}
+        <ImpactCard client={impactClient} />
 
         <SecurityCard clients={securityClients} />
       </div>
