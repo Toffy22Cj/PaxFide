@@ -233,3 +233,49 @@ export async function confirmPasswordReset(token: string, newPassword: string): 
   if (r.status === 400) return { kind: 'bad-request' };
   return { kind: 'error' };
 }
+
+/**
+ * `GET /account/impact` (referencia-api-v1.md §1, nota del 2026-10-25, M-21; plan-fase7-puesta-al-dia.md P-7). Importes
+ * en unidades mínimas por moneda y cantidades por unidad de medida, como texto: nunca se suman entre sí.
+ */
+export interface AccountImpact {
+  donationsCount: number;
+  totals: { currency: string; amount: string }[];
+  campaignsSupported: number;
+  deliveredUnits: { unitOfMeasure: string; quantity: string }[];
+  truncated: boolean;
+}
+
+export type ImpactOutcome =
+  | { kind: 'ok'; impact: AccountImpact }
+  | { kind: 'unauthorized' }
+  | { kind: 'error' };
+
+function impactOf(data: unknown): AccountImpact | null {
+  if (!data || typeof data !== 'object') return null;
+  const d = data as Record<string, unknown>;
+  const count = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : null);
+  const donationsCount = count(d.donationsCount);
+  const campaignsSupported = count(d.campaignsSupported);
+  if (donationsCount === null || campaignsSupported === null || !Array.isArray(d.totals) || !Array.isArray(d.deliveredUnits)) return null;
+  const rec = (v: unknown) => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {});
+  return {
+    donationsCount,
+    campaignsSupported,
+    totals: d.totals.map(rec).filter((t) => typeof t.currency === 'string' && typeof t.amount === 'string')
+      .map((t) => ({ currency: t.currency as string, amount: t.amount as string })),
+    deliveredUnits: d.deliveredUnits.map(rec).filter((u) => typeof u.unitOfMeasure === 'string' && typeof u.quantity === 'string')
+      .map((u) => ({ unitOfMeasure: u.unitOfMeasure as string, quantity: u.quantity as string })),
+    truncated: d.truncated === true,
+  };
+}
+
+export async function fetchImpact(): Promise<ImpactOutcome> {
+  const r = await apiRequest<unknown>({ path: '/account/impact', auth: 'required' });
+  if (r.kind === 'ok') {
+    const impact = impactOf(r.data);
+    return impact ? { kind: 'ok', impact } : { kind: 'error' };
+  }
+  if (r.kind === 'error' && r.status === 401) return { kind: 'unauthorized' };
+  return { kind: 'error' };
+}
