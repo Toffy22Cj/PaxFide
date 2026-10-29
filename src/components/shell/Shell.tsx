@@ -3,8 +3,10 @@
 // Ref: prompts-agentes-estilo-v2.md VS-2; sistema-visual-paxfide-web-enmienda-1.md §8 (data-nav-position y
 // --nav-inset-*); respuesta de Carlos al plan de VS-2 (2026-10-21: B, C, D, E y GET /me en cada ruta); ADR-046 D5;
 // plan-fase7-pantallas.md A-1 (fondo animado en las rutas de D-P2, control de pausa en la cabecera, R-F1 y R-F2) y A-2
-// (en `/` el mundo de la landing en lugar de la ciudad; la misma pausa para los dos) y D-P13 (en `/`, sin cabecera ni barra).
+// (en `/` el mundo de la landing en lugar de la ciudad; la misma pausa para los dos) y D-P13 (en `/`, sin cabecera ni barra);
+// plan-fase7-puesta-al-dia.md A2.5 U-19 ("Iniciar sesión" en la cabecera sin sesión).
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as session from '../../lib/auth/session';
 import { isSurfaceEnabled } from '../../lib/routing/surfaces';
@@ -18,6 +20,7 @@ import { PauseButton } from '../background/PauseButton';
 import { BrandMark } from './BrandMark';
 import { ThemeSelect } from '../theme/ThemeSelect';
 import { backgroundFor, hasAppChrome } from '../../lib/routing/backgroundRoutes';
+import { classifyRoute } from '../../lib/routing/classifier';
 import { districtForRoute } from '../background/cityScene';
 import { CityHud } from './CityHud';
 import { PanelPortal } from './PanelPortal';
@@ -158,6 +161,11 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
                 <button type="button" className={s.logout} data-testid="logout-btn" onClick={() => session.logout()}>
                   Cerrar sesión
                 </button>
+              )}
+              {/* U-19 (plan-fase7-puesta-al-dia.md A2.5): sin sesión, en el mismo sitio, el enlace al login (no en las
+                  rutas de acceso, que no llevan esta cabecera) */}
+              {state === 'LOGGED_OUT' && classifyRoute(pathname) !== 'AUTH' && isSurfaceEnabled('/login') && (
+                <Link href="/login" className={s.logout} data-testid="login-link">Iniciar sesión</Link>
               )}
             </div>
           </div>
