@@ -354,10 +354,36 @@ No queda ningún pendiente en §6.
 - **En todos los casos se arregla el defecto de A2.1:** `ProfileScreen` trata el 401 como cualquier otra pantalla autenticada, con un test que lo prueba.
 - El fallo de `GET /account/profile` no debe tumbar la pantalla: ya está separado, y se comprueba con un test.
 
-### A2.4 Orden
+### A2.5 Añadido (2026-10-28) — Salida al cerrar sesión
+
+Carlos, 2026-10-28: *"cuando cierras sesión debería haber un botón que redirija al login, porque me toca usar las flechas del navegador"*.
+
+**Diagnóstico** (`develop` `1295184`):
+- `Shell.tsx:157` muestra "Cerrar sesión" solo con sesión. `session.logout()` no navega; quien navega es `RouteGuard`, y **solo en rutas autenticadas** (`RouteGuard.tsx:39`).
+- En una ruta **pública con la barra de la app** (`/campaigns`, `/c/…`, `/tracking`, `/terminos`, `/privacidad`, `/invitaciones`, `/recuperar`), al cerrar sesión el botón desaparece y **no queda nada que lleve al login**: ni en la cabecera ni en la barra (`navEntriesFor` no tiene una entrada de login para quien no tiene sesión). Es el caso que describe Carlos.
+- Además, en una ruta autenticada `RouteGuard` guarda esa ruta como destino tras el login (`RouteGuard.tsx:40`). Eso tiene sentido si la sesión caducó, pero no tras un cierre voluntario: el siguiente que entre en ese navegador volvería a la pantalla del anterior.
+- `LoginScreen.tsx:31` no da ningún aviso para `MANUAL`.
+
+| # | Decisión |
+|---|---|
+| U-18 | **Cerrar sesión lleva siempre al login.** Tras `session.logout()` (motivo `MANUAL`), la web navega con `router.replace('/login')` desde cualquier ruta, pública o autenticada. No se guarda destino tras el login. `LoginScreen` muestra "Cerraste sesión." para `MANUAL`. `replace` evita que la flecha "atrás" vuelva a la pantalla con sesión (el invariante 4 de bfcache sigue igual) |
+| U-19 | **Botón "Iniciar sesión" en la cabecera sin sesión.** En el sitio de "Cerrar sesión", cuando la ruta lleva la barra de la app, no es de tipo `AUTH` y no hay sesión, la cabecera muestra un enlace "Iniciar sesión" a `/login`. Cubre la sesión caducada y el cierre desde otra pestaña (`EXPIRED`, `OTHER_TAB`) en las páginas públicas. La landing `/` no cambia: ya tiene sus botones (D-P13) |
+
+**P-11 · `fix/web-logout-destination`** — U-18 y U-19.
+- **Tests:**
+  - cerrar sesión en `/home`, en `/panel` y en `/campaigns` termina en `/login` con "Cerraste sesión.";
+  - tras cerrar sesión, iniciarla de nuevo lleva al destino por defecto, no a la pantalla anterior (negativa del destino guardado);
+  - tras cerrar sesión, `history.back()` no muestra contenido con sesión (negativa, Playwright);
+  - sin sesión en `/campaigns` y `/tracking`, la cabecera muestra "Iniciar sesión" y lleva a `/login`;
+  - en `/login` y `/register` no aparece (negativa), y con sesión tampoco (negativa);
+  - un cierre desde otra pestaña (`OTHER_TAB`) en una ruta pública deja visible "Iniciar sesión";
+  - la caducidad (`EXPIRED`) en una ruta autenticada sigue guardando el destino, como hoy (sin regresión).
+- Sin cambios en `globals.css` ni dependencias nuevas.
+
+### A2.6 Orden
 
 ```
-P-5 → P-7 → P-10 (rápido) → P-8 → P-9
+P-5 → P-7 → P-10 + P-11 (rápidos) → P-8 → P-9
 P-6 cuando el backend de la Enmienda 2 esté en develop
 ```
 
