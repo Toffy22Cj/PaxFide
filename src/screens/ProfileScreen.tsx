@@ -2,7 +2,7 @@
 
 // Ref: Documentos/plan-fase7-fidelidad.md §2 D-F9; Documentos/paxfide-home.html (vProfile); plan-fase7-puesta-al-dia.md
 // P-1 (X-8: nombre y apellido en "Tus datos"; X-9: tarjeta "Seguridad" con cambiar contraseña y desactivar la cuenta);
-// P-7 (U-14: tarjeta "Mi impacto").
+// P-7 (U-14: tarjeta "Mi impacto"); P-10 (401 por el flujo de sesión).
 import React, { useEffect, useState } from 'react';
 import { fetchAccount, fetchImpact, fetchProfile, initialsOf, type AccountProfile, type PersonalProfile } from '../lib/api/account';
 import { ProfileNameCard } from '../components/account/ProfileNameCard';
@@ -78,6 +78,9 @@ export function ProfileScreen({ client = fetchAccount, profileClients, securityC
     if (state.status === 'loading') {
       return <SkeletonList aria-label="Cargando tu perfil" />;
     }
+    // P-10 (A2.1): un 401 sigue el flujo de sesión de siempre (T-1: http.ts cierra la sesión y RouteGuard lleva al
+    // login guardando el destino), como el resto de pantallas autenticadas; nunca el error de la pantalla
+    if (state.status === 'unauthorized') return null;
     return <ErrorState onRetry={reload} text="No se pudo cargar la información del perfil." />;
   }
 
