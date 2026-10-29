@@ -1,0 +1,29 @@
+/* Ref: plan-fase7-puesta-al-dia.md Anexo 1, U-12 y U-13 (comprobante). Solo tokens semánticos. */
+.receipt { margin-top: var(--space-3); }
+.check {
+  display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px;
+  color: var(--color-text); font-size: var(--font-size-body-3);
+}
+.check input { width: 20px; height: 20px; accent-color: var(--color-action); }
+.check input:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
+/* La vista imprimible no se ve en pantalla; al imprimir es lo único visible */
+.print { display: none; }
+.mono { font-family: var(--font-mono); }
+
+@media print {
+  :global(body) * { visibility: hidden; }
+  .print, .print * { visibility: visible; }
+  .print {
+    display: block; position: absolute; inset: 0 auto auto 0; width: 100%;
+    background: var(--color-surface); color: var(--color-text); padding: var(--space-6);
+    font-family: var(--font-body);
+  }
+  .printBrand { margin: 0 0 var(--space-4); font-family: var(--font-display); font-weight: 800; font-size: var(--font-size-display-3); color: var(--color-action); }
+  .printTitle { margin: 0 0 var(--space-3); font-family: var(--font-display); font-size: var(--font-size-display-2); }
+  .printAmount { margin: 0 0 var(--space-4); font-family: var(--font-mono); font-size: var(--font-size-display-2); }
+  .printRows { margin: 0; border-top: 1px solid var(--color-divider); padding-top: var(--space-3); }
+  .printRows dt { color: var(--color-text-secondary); font-size: var(--font-size-body-4); font-weight: 600; margin-top: var(--space-3); }
+  .printRows dd { margin: 0; font-size: var(--font-size-body-1); overflow-wrap: anywhere; }
+  .printFoot { margin: var(--space-4) 0 0; color: var(--color-text-secondary); font-size: var(--font-size-body-4); }
+}

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AccountDonation, fetchAccountDonations } from '../lib/api/account';
+import { AccountDonation, fetchAccountDonations, fetchProfile } from '../lib/api/account';
 import { useRead } from '../lib/api/useRead';
 import { formatMinorUnits } from '../lib/money';
 import { intentStatusLabel, paymentMethodLabel } from '../lib/labels';
@@ -13,18 +13,24 @@ import { Button } from '../components/ui/Button';
 import { EmptyState, ErrorState, ForbiddenState } from '../components/States';
 import { SkeletonList } from '../components/loaders';
 import { LocalDate } from '../components/LocalDate';
+import { ReceiptActions } from '../components/receipt/ReceiptActions';
 import s from './accountDonations.module.css';
 
 /**
  * Mis donaciones (`/account/donations`; ampliación de alcance, Enmienda 1 de ADR-046). El `trackingCode` es una
  * credencial: oculto hasta que el usuario lo pide, y "Ver seguimiento" lo pasa en memoria (DW-16). Estilo v2 y campos de
- * D-P11 (A-5, plan-fase7-pantallas.md).
+ * D-P11 (A-5, plan-fase7-pantallas.md). Comprobante de las `CONFIRMED` (P-5, Anexo 1 de plan-fase7-puesta-al-dia.md).
  */
-export function AccountDonationsScreen({ client = fetchAccountDonations }: { client?: typeof fetchAccountDonations }) {
+export function AccountDonationsScreen({ client = fetchAccountDonations, profileClient = fetchProfile }: {
+  client?: typeof fetchAccountDonations;
+  profileClient?: typeof fetchProfile;
+}) {
   const { state, reload } = useRead<AccountDonation[], 'forbidden' | 'unauthorized' | 'error'>(async () => {
     const r = await client();
     return r.kind === 'ok' ? { status: 'ready', data: r.items } : { status: r.kind };
   }, []);
+  const hasConfirmed = state.status === 'ready' && state.data.some((d) => d.status === 'CONFIRMED');
+  const profileName = useProfileName(profileClient, hasConfirmed);
 
   return (
     <div>
@@ -45,13 +51,32 @@ export function AccountDonationsScreen({ client = fetchAccountDonations }: { cli
         <EmptyState text="Todavía no tienes donaciones hechas con esta cuenta." />
       )}
       {state.status === 'ready' && state.data.length > 0 && (
-        <ul className={s.list}>{state.data.map((d) => <DonationItem key={d.intentId} donation={d} />)}</ul>
+        <ul className={s.list}>{state.data.map((d) => <DonationItem key={d.intentId} donation={d} profileName={profileName} />)}</ul>
       )}
     </div>
   );
 }
 
-function DonationItem({ donation }: { donation: AccountDonation }) {
+/**
+ * U-12: el nombre del perfil (nombre y apellido) para la casilla "Incluir mi nombre". Solo se pide si hay alguna donación
+ * confirmada; si falla o no hay nombre, la casilla no aparece (el comprobante sigue disponible).
+ */
+function useProfileName(profileClient: typeof fetchProfile, enabled: boolean): string | undefined {
+  const [name, setName] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!enabled) return;
+    let alive = true;
+    profileClient().then((r) => {
+      if (!alive || r.kind !== 'ok') return;
+      const full = [r.profile.givenName, r.profile.familyName].filter(Boolean).join(' ').trim();
+      setName(full || undefined);
+    }, () => {});
+    return () => { alive = false; };
+  }, [profileClient, enabled]);
+  return name;
+}
+
+function DonationItem({ donation, profileName }: { donation: AccountDonation; profileName?: string }) {
   const [shown, setShown] = useState(false);
   return (
     <li className={s.item} data-testid="account-donation">
@@ -89,6 +114,7 @@ function DonationItem({ donation }: { donation: AccountDonation }) {
           </Actions>
         </>
       )}
+      <ReceiptActions donation={donation} profileName={profileName} />
     </li>
   );
 }
