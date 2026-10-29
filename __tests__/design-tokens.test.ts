@@ -203,6 +203,38 @@ describe('Design Tokens & Contrast', () => {
     });
   });
 
+  /**
+   * U-17 (plan-fase7-puesta-al-dia.md A2.1): 0,82 en claro y en oscuro. Peor caso con la fórmula del Anexo A (blend) sobre
+   * blanco, negro, amarillo de marca y las dos bases, con el texto principal y el secundario. Falla si baja de 4,5.
+   * Los 0,88 / 0,86 de arriba siguen valiendo para el respaldo sin backdrop-filter.
+   */
+  describe('Peor caso de R-F1 enmendado por U-17 (0,82)', () => {
+    const UNDER = ['#FFFFFF', '#000000', '#F3B544', '#07130E', '#DCE8D6'];
+    const ALPHA = 0.82;
+    const worst = (fg: string, card: string) => Math.min(...UNDER.map((u) => contrast(fg, blend(card, ALPHA, u))));
+
+    it('oscuro: texto principal y secundario ≥ 4,5; el mínimo es 5,09 (dark-text-secondary)', () => {
+      const text = worst(tokens['dark-text'], '#10261D');
+      const secondary = worst(tokens['dark-text-secondary'], '#10261D');
+      expect(text).toBeGreaterThanOrEqual(4.5);
+      expect(secondary).toBeGreaterThanOrEqual(4.5);
+      expect(Math.min(text, secondary)).toBeCloseTo(5.09, 2);
+    });
+
+    it('claro: texto principal y secundario ≥ 4,5; el mínimo es 5,12 (brand-neutral-700; la tabla de A2.1 lo redondea a 5,13)', () => {
+      const text = worst(tokens['brand-green-900'], '#FFFFFF');
+      const secondary = worst(tokens['brand-neutral-700'], '#FFFFFF');
+      expect(text).toBeGreaterThanOrEqual(4.5);
+      expect(secondary).toBeGreaterThanOrEqual(4.5);
+      expect(Math.min(text, secondary)).toBeCloseTo(5.12, 2);
+    });
+
+    it('negativa: con 0,75 el claro ya no cumple con todos los fondos (por eso no se baja más)', () => {
+      const at = (a: number) => Math.min(...UNDER.map((u) => contrast(tokens['brand-neutral-700'], blend('#FFFFFF', a, u))));
+      expect(at(0.75)).toBeLessThan(4.5);
+    });
+  });
+
   describe('Restricciones negativas (W-7)', () => {
     it('brand-blue-700 sobre neutral-50 no cumple 4.5:1', () => {
       const cr = contrast(tokens['brand-blue-700'], tokens['neutral-50']);
@@ -423,10 +455,36 @@ describe('Archivo de tokens (enmienda §4–§7)', () => {
     }
   });
 
-  it('la superficie translúcida usa la opacidad mínima de R-F1, literal (sin token para #10261D)', () => {
-    expect(light()['color-surface-translucent']).toBe('rgba(255, 255, 255, 0.88)');
-    expect(darkForced()['color-surface-translucent']).toBe('rgba(16, 38, 29, 0.86)');
+  it('la superficie translúcida usa la opacidad de R-F1 enmendada por U-17 (0,82), literal (sin token para #10261D)', () => {
+    expect(light()['color-surface-translucent']).toBe('rgba(255, 255, 255, 0.82)');
+    expect(darkMedia()['color-surface-translucent']).toBe('rgba(16, 38, 29, 0.82)');
+    expect(darkForced()['color-surface-translucent']).toBe('rgba(16, 38, 29, 0.82)');
     expect(tokensCss).not.toMatch(/#10261D/i);
+  });
+
+  it('U-17: siempre con desenfoque; @supports not (backdrop-filter…) devuelve la opacidad antigua (0,88 / 0,86)', () => {
+    expect(/--backdrop-translucent:\s*([^;]+);/.exec(tokensCss)?.[1].trim()).toBe('blur(20px) saturate(1.2)');
+    const start = tokensCss.indexOf('@supports not ((backdrop-filter: blur(1px))');
+    expect(start).toBeGreaterThan(0);
+    // El bloque entero (con su @media anidado) hasta la llave que lo cierra
+    let depth = 0, end = start;
+    for (let i = tokensCss.indexOf('{', start); i < tokensCss.length; i++) {
+      if (tokensCss[i] === '{') depth++;
+      if (tokensCss[i] === '}' && --depth === 0) { end = i; break; }
+    }
+    const body = tokensCss.slice(start, end);
+    const values = [...body.matchAll(/--color-surface-translucent\s*:\s*([^;]+);/g)].map((m) => m[1].trim());
+    expect(values).toEqual(['rgba(255, 255, 255, 0.88)', 'rgba(16, 38, 29, 0.86)', 'rgba(16, 38, 29, 0.86)']);
+    expect(body).toMatch(/:root,\s*\[data-theme="light"\]/);
+    expect(body).toMatch(/:root:not\(\[data-theme="light"\]\)/);
+    expect(body).toMatch(/\[data-theme="dark"\]/);
+  });
+
+  it('U-17: la superficie de la ciudad aplica el desenfoque del token', () => {
+    const shell = fs.readFileSync(path.resolve(__dirname, '../src/components/shell/Shell.module.css'), 'utf-8');
+    const onCity = /\.onCity \{([^}]*)\}/.exec(shell)![1];
+    expect(onCity).toMatch(/background: var\(--color-surface-translucent\)/);
+    expect(onCity).toMatch(/(^|\s)backdrop-filter: var\(--backdrop-translucent\)/);
   });
 });
 

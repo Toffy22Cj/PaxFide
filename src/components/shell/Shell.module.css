@@ -136,6 +136,9 @@ a.logout { display: inline-flex; align-items: center; text-decoration: none; }
 .main { position: relative; z-index: 1; }
 .onCity {
   background: var(--color-surface-translucent);
+  /* U-17: siempre con desenfoque (token de globals.css); los campos siguen sólidos */
+  -webkit-backdrop-filter: var(--backdrop-translucent);
+  backdrop-filter: var(--backdrop-translucent);
   border-radius: var(--radius-surface);
   margin-top: var(--space-4);
   margin-bottom: calc(var(--space-4) + var(--nav-inset-bottom));
@@ -189,4 +192,12 @@ a.logout { display: inline-flex; align-items: center; text-decoration: none; }
   pointer-events: none !important;
   transform: scale(0.98);
   transition: opacity var(--duration-normal) var(--ease-out), transform var(--duration-normal) var(--ease-out);
+}
+
+/* U-17 (plan-fase7-puesta-al-dia.md Anexo 2): el inicio crece hasta 1200 px; baja lo justo para que la píldora "Sector"
+   y "Ver ciudad" (CityHud, fija arriba a la izquierda) no tapen ni queden tapadas */
+.main.homeWide { max-width: 1200px; margin-top: var(--space-12); }
+.app[data-has-nav="true"] .main.homeWide {
+  margin-left: max(calc(var(--nav-inset-left) + var(--space-4)), calc((100% - 1200px) / 2));
+  margin-right: max(calc(var(--nav-inset-right) + var(--space-4)), calc((100% - 1200px) / 2));
 }
