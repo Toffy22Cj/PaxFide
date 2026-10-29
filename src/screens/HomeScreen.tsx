@@ -4,12 +4,13 @@
 // Contrato visual: paxfide-home.html (vHome). Desviación X-18 (QR sin lector: tarjeta rápida sin enlace).
 // plan-fase7-puesta-al-dia.md P-1 (X-8): con `givenName` de `GET /account/profile`, saludo con el nombre e iniciales;
 // sin él, D-P7 y el aviso "Completa tu perfil" (azul informativo: el amarillo queda para lo ambiguo, D6).
+// plan-fase7-puesta-al-dia.md P-7 (U-14): tarjeta "Mi impacto".
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { fetchMe, type Principal } from '../lib/api/identity';
 import { usePrincipal } from '../lib/auth/usePrincipal';
-import { fetchAccountDonations, fetchProfile, initialsOf, type AccountDonation, type PersonalProfile } from '../lib/api/account';
+import { fetchAccountDonations, fetchImpact, fetchProfile, initialsOf, type AccountDonation, type PersonalProfile } from '../lib/api/account';
 import { fetchDiscovery, type DiscoveryItem } from '../lib/api/publicCampaigns';
 import { fetchOrganizationCampaigns, type AdminCampaign } from '../lib/api/campaignAdmin';
 import { fetchOrganizationAssets, type OrgAsset } from '../lib/api/organization';
@@ -19,6 +20,7 @@ import { intentStatusLabel, paymentMethodLabel } from '../lib/labels';
 import { handOffTrackingCode } from '../lib/tracking/handoff';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { CampaignCard } from '../components/campaign/CampaignCard';
+import { ImpactCard } from '../components/impact/ImpactCard';
 import { LocalDate } from '../components/LocalDate';
 import { TextField } from '../components/ui/Field';
 import { Button } from '../components/ui/Button';
@@ -469,6 +471,7 @@ export interface HomeScreenProps {
   orgCampaignsClient?: typeof fetchOrganizationCampaigns;
   orgAssetsClient?: typeof fetchOrganizationAssets;
   profileClient?: typeof fetchProfile;
+  impactClient?: typeof fetchImpact;
   now?: number;
 }
 
@@ -479,6 +482,7 @@ export function HomeScreen({
   orgCampaignsClient = fetchOrganizationCampaigns,
   orgAssetsClient = fetchOrganizationAssets,
   profileClient = fetchProfile,
+  impactClient = fetchImpact,
   now,
 }: HomeScreenProps) {
   const greeting = useGreeting();
@@ -536,6 +540,8 @@ export function HomeScreen({
         )}
         <CampaignsCard client={campaignsClient} now={now} cardIndex={cardIdx++} />
         <DonationsCard client={donationsClient} cardIndex={cardIdx++} />
+        {/* P-7 (U-14): "Mi impacto", la misma tarjeta que en el Perfil */}
+        <ImpactCard client={impactClient} cardIndex={cardIdx++} />
         {accountCardsList.map((c) => (
           <section
             key={c.id}
