@@ -1,0 +1,54 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "paxfide.welcome-done.acc-admin",
+          "value": "1"
+        },
+        {
+          "name": "paxfide.welcome-done.acc-employee",
+          "value": "1"
+        },
+        {
+          "name": "paxfide.welcome-done.acc-employee-2",
+          "value": "1"
+        },
+        {
+          "name": "paxfide.welcome-done.acc-employee-3",
+          "value": "1"
+        },
+        {
+          "name": "paxfide.welcome-done.acc-platform",
+          "value": "1"
+        },
+        {
+          "name": "paxfide.welcome-done.acc-platform-2",
+          "value": "1"
+        },
+        {
+          "name": "paxfide.welcome-done.acc-rep",
+          "value": "1"
+        },
+        {
+          "name": "paxfide.welcome-done.acc-admin-2",
+          "value": "1"
+        },
+        {
+          "name": "paxfide.welcome-done.acc-donor",
+          "value": "1"
+        },
+        {
+          "name": "paxfide.welcome-done.acc-no-me",
+          "value": "1"
+        },
+        {
+          "name": "paxfide.welcome-done.acc-legacy",
+          "value": "1"
+        }
+      ]
+    }
+  ]
+}

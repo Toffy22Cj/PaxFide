@@ -87,7 +87,7 @@ test.describe('Fidelidad de Acceso, Bienvenida y Rutas Legales (F-A2)', () => {
     await expect(page.locator('a[href="/panel/organization"]')).toHaveCount(0);
   });
 
-  test('D-F10: Bienvenida (Welcome Gate) en el primer login tras registrarse en la pestaña', async ({ page }) => {
+  test('U-15/U-16 (P-8): la bienvenida sale sobre /home tras registrarse, no en el login, y no vuelve tras cerrarla', async ({ page }) => {
     const email = `bienvenida-${Date.now()}@test.paxfide.local`;
     const password = 'PasswordFuerte2026!';
 
@@ -98,37 +98,43 @@ test.describe('Fidelidad de Acceso, Bienvenida y Rutas Legales (F-A2)', () => {
     await page.getByLabel('Repite la contraseña').fill(password);
     await acceptLegal(page);
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
-
     await expect(page.getByText('Cuenta creada')).toBeVisible();
 
-    // 2. Iniciar sesión en la misma pestaña
+    // 2. Iniciar sesión: el LoginScreen ya no tiene bienvenida (negativa) y se llega a /home
     await page.getByRole('tab', { name: 'Iniciar sesión' }).click();
     await page.getByLabel('Correo electrónico').fill(email);
     await page.getByLabel('Contraseña', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-
-    // 3. Welcome Gate visible con cubos, título y 3 características
-    const welcome = page.getByTestId('welcome-gate');
-    await expect(welcome).toBeVisible();
-    await expect(welcome.getByRole('heading', { level: 1, name: 'Te damos la bienvenida a PaxFide' })).toBeVisible();
-    await expect(welcome.getByText('Dona a convocatorias verificadas')).toBeVisible();
-    await expect(welcome.getByText('Sigue el recorrido de tu ayuda')).toBeVisible();
-    await expect(welcome.getByText('Cada paso queda sellado')).toBeVisible();
-
-    // 4. Continuar lleva a "¿Cómo te llamamos?" (P-1); "Más tarde" navega a /home
-    const continueBtn = welcome.getByRole('button', { name: 'Continuar' });
-    await continueBtn.click();
-    await page.getByTestId('name-gate').getByRole('button', { name: 'Más tarde' }).click();
     await expect(page).toHaveURL(/\/home$/);
+    await expect(page.getByTestId('welcome-gate')).toHaveCount(0);
 
-    // 5. Un login posterior en la misma pestaña ya NO muestra la bienvenida
-    await page.goto('/login');
+    // 3. La capa a pantalla completa sobre el inicio, con los cubos y las tres ideas
+    const welcome = page.getByTestId('welcome-overlay');
+    await expect(welcome).toBeVisible();
+    const dialog = welcome.getByRole('dialog');
+    await expect(dialog.getByRole('heading', { name: 'Te damos la bienvenida a PaxFide' })).toBeVisible();
+    await expect(dialog.getByText('Dona a convocatorias verificadas')).toBeVisible();
+    await expect(dialog.getByText('Sigue el recorrido de tu ayuda')).toBeVisible();
+    await expect(dialog.getByText('Cada paso queda sellado')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Continuar' }).click();
+    await expect(dialog.getByRole('heading', { name: 'Así te mueves por PaxFide' })).toBeVisible();
+    await dialog.getByRole('button', { name: 'Continuar' }).click();
+    await dialog.getByRole('button', { name: 'Después' }).click();
+    await expect(welcome).toHaveCount(0);
+
+    // 4. Un login posterior en el mismo navegador ya NO la muestra (clave en localStorage con el accountId)
+    await page.getByRole('button', { name: 'Cerrar sesión' }).click();
+    await expect(page).toHaveURL(/\/login$/);
     await page.getByLabel('Correo electrónico').fill(email);
     await page.getByLabel('Contraseña', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-    // Va directo a /home sin bienvenida
     await expect(page).toHaveURL(/\/home$/);
-    await expect(page.getByTestId('welcome-gate')).toHaveCount(0);
+    await expect(page.getByTestId('home-greeting')).toBeVisible();
+    await expect(page.getByTestId('welcome-overlay')).toHaveCount(0);
+    const keys = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('paxfide.welcome-done.')));
+    expect(keys.length).toBeGreaterThan(0);
+    const stored = await page.evaluate(() => JSON.stringify({ ...localStorage }));
+    expect(stored).not.toContain(email);
   });
 
   test('D-F17: Rutas legales públicas con versión v1-2026-10 y sin app chrome', async ({ page }) => {

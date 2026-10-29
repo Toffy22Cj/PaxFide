@@ -15,8 +15,6 @@ let lastLogoutReason: LogoutReason | null = null;
 // U-18 (plan-fase7-puesta-al-dia.md A2.5): tras "Cerrar sesión", la web va a /login sin guardar destino. Queda
 // pendiente hasta que la ruta de acceso se monte (o la sesión vuelva), para que ninguna pasada de RouteGuard lo guarde
 let logoutNavigationPending = false;
-// D-F10: aviso en memoria tras crear cuenta en la pestaña para mostrar la bienvenida en el primer login
-let justRegistered = false;
 // Último principal leído de GET /me (ficha N1). Solo en memoria y solo para no parpadear entre páginas
 // (D-N1-3): cada página que lo necesita lo vuelve a pedir. Nunca autoriza nada.
 let lastPrincipal: unknown = null;
@@ -155,18 +153,6 @@ export function consumePostLoginDestination() {
   return dest;
 }
 
-export function markJustRegistered(): void {
-  justRegistered = true;
-}
-
-export function isJustRegistered(): boolean {
-  return justRegistered;
-}
-
-export function clearJustRegistered(): void {
-  justRegistered = false;
-}
-
 export function _resetForTest() {
   loginNotice = null;
   currentState = 'RESTORING';
@@ -174,7 +160,6 @@ export function _resetForTest() {
   postLoginDestination = null;
   lastLogoutReason = null;
   lastPrincipal = null;
-  justRegistered = false;
   logoutNavigationPending = false;
   if (typeof window !== 'undefined') {
     currentState = 'LOGGED_OUT';

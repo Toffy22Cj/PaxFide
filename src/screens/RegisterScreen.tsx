@@ -6,7 +6,6 @@
 // dos casillas legales, sin marcar; sin las dos no se envía nada; el registro lleva las dos versiones de LEGAL_VERSIONS).
 import React, { useState } from 'react';
 import Link from 'next/link';
-import * as session from '../lib/auth/session';
 import { registerAccount, RegisterOutcome } from '../lib/api/identity';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { BrandMark } from '../components/shell/BrandMark';
@@ -52,7 +51,6 @@ export function RegisterScreen({ client = registerAccount }: { client?: (e: stri
     if (r.kind === 'ok') {
       setPassword('');
       setRepeat('');
-      session.markJustRegistered();
     }
     if (r.kind === 'invalid-email') setErrors({ email: 'El correo no es válido.' });
     if (r.kind === 'password-too-short') setErrors({ password: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.` });

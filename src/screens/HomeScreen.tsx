@@ -4,13 +4,13 @@
 // Contrato visual: paxfide-home.html (vHome). Desviación X-18 (QR sin lector: tarjeta rápida sin enlace).
 // plan-fase7-puesta-al-dia.md P-1 (X-8): con `givenName` de `GET /account/profile`, saludo con el nombre e iniciales;
 // sin él, D-P7 y el aviso "Completa tu perfil" (azul informativo: el amarillo queda para lo ambiguo, D6).
-// plan-fase7-puesta-al-dia.md P-7 (U-14): tarjeta "Mi impacto".
+// plan-fase7-puesta-al-dia.md P-7 (U-14): tarjeta "Mi impacto"; P-8 (U-15, U-16): la bienvenida grande.
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { fetchMe, type Principal } from '../lib/api/identity';
 import { usePrincipal } from '../lib/auth/usePrincipal';
-import { fetchAccountDonations, fetchImpact, fetchProfile, initialsOf, type AccountDonation, type PersonalProfile } from '../lib/api/account';
+import { fetchAccountDonations, fetchImpact, fetchProfile, initialsOf, updateProfile, type AccountDonation, type PersonalProfile } from '../lib/api/account';
 import { fetchDiscovery, type DiscoveryItem } from '../lib/api/publicCampaigns';
 import { fetchOrganizationCampaigns, type AdminCampaign } from '../lib/api/campaignAdmin';
 import { fetchOrganizationAssets, type OrgAsset } from '../lib/api/organization';
@@ -21,6 +21,9 @@ import { handOffTrackingCode } from '../lib/tracking/handoff';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { CampaignCard } from '../components/campaign/CampaignCard';
 import { ImpactCard } from '../components/impact/ImpactCard';
+import { WelcomeOverlay, type WelcomeClose } from '../components/welcome/WelcomeOverlay';
+import { markShownThisSession, markWelcomeDone, shouldShowWelcome } from '../lib/welcome/welcome';
+import { navEntriesFor } from '../lib/nav/navEntries';
 import { LocalDate } from '../components/LocalDate';
 import { TextField } from '../components/ui/Field';
 import { Button } from '../components/ui/Button';
@@ -472,6 +475,7 @@ export interface HomeScreenProps {
   orgAssetsClient?: typeof fetchOrganizationAssets;
   profileClient?: typeof fetchProfile;
   impactClient?: typeof fetchImpact;
+  updateProfileClient?: typeof updateProfile;
   now?: number;
 }
 
@@ -483,10 +487,14 @@ export function HomeScreen({
   orgAssetsClient = fetchOrganizationAssets,
   profileClient = fetchProfile,
   impactClient = fetchImpact,
+  updateProfileClient = updateProfile,
   now,
 }: HomeScreenProps) {
   const greeting = useGreeting();
-  const { profile, loaded } = useProfile(profileClient);
+  const read = useProfile(profileClient);
+  const [savedProfile, setSavedProfile] = useState<PersonalProfile | null>(null);
+  const profile = savedProfile ?? read.profile;
+  const loaded = read.loaded;
   const [nudgeHidden, setNudgeHidden] = useState(false);
   const initials = initialsOf(profile);
   const { state } = usePrincipal(meClient);
@@ -495,10 +503,38 @@ export function HomeScreen({
   const accountCardsList = cards.filter((c) => c.id !== 'organization');
   const isMember = !!principal?.organizationId;
 
+  // P-8 (U-16): la bienvenida sale en /home si la cuenta no tiene nombre y en este navegador no se cerró para esa cuenta
+  const accountId = principal?.accountId;
+  const [welcome, setWelcome] = useState(false);
+  const greetingRef = React.useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (!loaded || !accountId) return;
+    if (shouldShowWelcome({ accountId, profile: read.profile })) {
+      markShownThisSession(accountId);
+      setWelcome(true);
+    }
+  }, [loaded, accountId, read.profile]);
+  const closeWelcome = (how: WelcomeClose, saved?: PersonalProfile) => {
+    if (accountId) markWelcomeDone(accountId);
+    if (how === 'saved' && saved) setSavedProfile(saved);
+    setWelcome(false);
+    // El foco vuelve al inicio
+    setTimeout(() => greetingRef.current?.focus(), 0);
+  };
+
   let cardIdx = 0;
 
   return (
-    <div className={s.home} data-testid="home-content">
+    <>
+    {welcome && principal && (
+      <WelcomeOverlay
+        entries={navEntriesFor({ authenticated: true, principal }, isSurfaceEnabled, 'side')}
+        email={profile?.email}
+        update={updateProfileClient}
+        onClose={closeWelcome}
+      />
+    )}
+    <div className={s.home} data-testid="home-content" inert={welcome ? true : undefined}>
       <header className={s.head}>
         <span className={s.avatar} aria-hidden="true" data-testid="home-avatar">
           {initials ?? (
@@ -508,7 +544,7 @@ export function HomeScreen({
           )}
         </span>
         <div>
-          <h1 className={s.title} data-testid="home-greeting">{profile?.givenName ? `${greeting}, ${profile.givenName}` : greeting}</h1>
+          <h1 ref={greetingRef} tabIndex={-1} className={s.title} data-testid="home-greeting">{profile?.givenName ? `${greeting}, ${profile.givenName}` : greeting}</h1>
           <p className={s.sub}>Qué bueno verte por aquí.</p>
         </div>
       </header>
@@ -557,5 +593,6 @@ export function HomeScreen({
         ))}
       </div>
     </div>
+    </>
   );
 }
