@@ -563,7 +563,7 @@ export function HomeScreen({
           </button>
         </div>
       )}
-      <div className={s.grid}>
+      <div className={s.grid} data-testid="home-grid">
         {isSurfaceEnabled('/tracking') && <TrackCard cardIndex={cardIdx++} />}
         <SealCard cardIndex={cardIdx++} />
         {isMember && isSurfaceEnabled('/panel') && principal && (

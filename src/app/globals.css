@@ -134,7 +134,7 @@
   --color-ground: var(--brand-ground);
   --color-surface: var(--white);
   --color-surface-raised: var(--white);
-  --color-surface-translucent: rgba(255, 255, 255, 0.88); /* R-F1 */
+  --color-surface-translucent: rgba(255, 255, 255, 0.82); /* R-F1, enmienda U-17 (0,82 con desenfoque) */
   --color-field: var(--white);
   --color-text: var(--brand-green-900);
   --color-text-secondary: var(--brand-neutral-700);
@@ -167,7 +167,7 @@
     --color-ground: var(--dark-ground);
     --color-surface: var(--dark-surface);
     --color-surface-raised: var(--dark-surface-raised);
-    --color-surface-translucent: rgba(16, 38, 29, 0.86); /* R-F1 */
+    --color-surface-translucent: rgba(16, 38, 29, 0.82); /* R-F1, enmienda U-17 */
     --color-field: var(--dark-field);
     --color-text: var(--dark-text);
     --color-text-secondary: var(--dark-text-secondary);
@@ -201,7 +201,7 @@
   --color-ground: var(--dark-ground);
   --color-surface: var(--dark-surface);
   --color-surface-raised: var(--dark-surface-raised);
-  --color-surface-translucent: rgba(16, 38, 29, 0.86); /* R-F1 */
+  --color-surface-translucent: rgba(16, 38, 29, 0.82); /* R-F1, enmienda U-17 */
   --color-field: var(--dark-field);
   --color-text: var(--dark-text);
   --color-text-secondary: var(--dark-text-secondary);
@@ -226,6 +226,30 @@
   --shadow-card: var(--shadow-card-dark);
   --shadow-hover: var(--shadow-hover-dark);
   --shadow-float: var(--shadow-float-dark);
+}
+
+/*
+ * U-17 (plan-fase7-puesta-al-dia.md Anexo 2; enmienda de R-F1): la superficie translúcida va siempre con desenfoque.
+ * El desenfoque no cuenta para el contraste: con 0,82 el peor caso del Anexo A sigue >= 5,09 (oscuro) y >= 5,13 (claro).
+ * Sin backdrop-filter, la superficie vuelve a la opacidad anterior (0,88 en claro y 0,86 en oscuro).
+ */
+:root {
+  --backdrop-translucent: blur(20px) saturate(1.2);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root,
+  [data-theme="light"] {
+    --color-surface-translucent: rgba(255, 255, 255, 0.88);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --color-surface-translucent: rgba(16, 38, 29, 0.86);
+    }
+  }
+  :root[data-theme="dark"],
+  [data-theme="dark"] {
+    --color-surface-translucent: rgba(16, 38, 29, 0.86);
+  }
 }
 
 *:focus-visible {
