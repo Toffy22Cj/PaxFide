@@ -34,6 +34,16 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (!pathname) return;
+    // U-18 (plan-fase7-puesta-al-dia.md A2.5): "Cerrar sesión" lleva siempre al login, desde cualquier ruta, sin
+    // destino guardado; `replace` para que "atrás" no vuelva a la pantalla con sesión
+    if (sessionState === 'LOGGED_OUT' && session.isLogoutNavigationPending()) {
+      if (category === 'AUTH') {
+        session.clearLogoutNavigation();
+      } else {
+        router.replace('/login');
+        return;
+      }
+    }
     if (category === 'NOT_APPROVED' || category === 'PUBLIC') return;
 
     if (sessionState === 'LOGGED_OUT' && category === 'AUTHENTICATED') {

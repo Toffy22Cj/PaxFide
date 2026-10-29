@@ -28,7 +28,8 @@ type Props = {
 const REASON_TEXT: Record<session.LogoutReason, string | null> = {
   EXPIRED: 'Tu sesión expiró. Vuelve a iniciar sesión.',
   OTHER_TAB: 'Cerraste sesión en otra pestaña.',
-  MANUAL: null,
+  // U-18 (plan-fase7-puesta-al-dia.md A2.5)
+  MANUAL: 'Cerraste sesión.',
   PASSWORD_CHANGED: 'Tu contraseña cambió; vuelve a iniciar sesión.',
   DEACTIVATED: 'Desactivaste tu cuenta. Si fue un error, pide al administrador de la plataforma que la reactive.',
 };
