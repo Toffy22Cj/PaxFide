@@ -465,3 +465,70 @@ Comprobado en `PublicCampaignDiscoveryController` (Donaciones `b0654aa`), no sol
 develop
    └── P-12 feat/web-campaign-search (ya, tras fusionar este anexo)
 ```
+
+---
+
+## Anexo 4 (2026-10-31) — Rutas activas por defecto y pantallas de acceso: tema, marca y cambio sin parpadeo
+
+**Estado: APROBADO — Carlos, 2026-10-31.** Texto de Carlos: *"Puedes activar las rutas y hay ese error en la ventana junto al logo en todas las pantallas, está mal, no está bien diseñado o puesto. Hay un parpadeo cuando pasas de registro a iniciar sesión: haz que ese cambio sea una transacción fluida, puedes usar cualquier animación."* Al preguntarle, eligió:
+- **rutas:** "La normal igual a demo";
+- **el error:** "Tarjeta oscura en Día" y "El logo no está bien, directamente no concuerda con el diseño".
+
+Elegir la animación concreta lo delegó ("cualquier animación"): U-31 la fija. Carlos puede cambiarla en la revisión del PR.
+
+### A4.1 Diagnóstico (código de `develop` `645e226`, con la foto de Carlos del 2026-10-31)
+
+1. **La tarjeta sale oscura con el mundo de día, y su texto apagado.** `AccessLayout.tsx` pone `data-theme` en `access-root` según el mundo (D-F2), y los tokens de `globals.css` se redefinen bien por contenedor (`[data-theme="light"]`, D-F11). Pero `access.module.css` tiene **12 reglas** escritas como `:global([data-theme="dark"]) .card`, `.tabs`, `.input`… Ese selector se cumple con **cualquier** antepasado oscuro, también con `<html data-theme="dark">`, que pone el tema de la app (`theme.ts:59`).
+   - **Resultado:** con la app en oscuro y el mundo en "Día", la tarjeta toma el fondo oscuro de esas reglas y los tokens claros de `access-root`. Queda texto oscuro sobre fondo oscuro. Es la foto.
+   - Afecta a todas las pantallas que usan `access.module.css`: login, registro, recuperar, verificar el correo, invitación y legales.
+2. **La marca dentro de la tarjeta no está en el boceto.** En `paxfide-landing.html` (`.auth-card-head`, línea 1613), la tarjeta empieza por la píldora "TU CUENTA PAXFIDE". La marca solo está arriba, en `.auth-top-brand` ("Pax**Fide**."). La web añadió una fila `.brand`, con `BrandMark` y "PaxFide", dentro de la tarjeta (`RegisterScreen.tsx:76` y equivalentes). Eso duplica la marca y no respeta el boceto.
+3. **El parpadeo entre "Iniciar sesión" y "Crear cuenta".**
+   - En el boceto es la **misma caja**: `switchAuthTab` cambia el contenido sin salir de ella.
+   - En la web son dos rutas (`/login` y `/register`), y **cada pantalla monta su propio `AccessLayout`**. Al cambiar de pestaña se desmonta todo y se vuelve a crear: el mundo animado (`WorldScene`, un lienzo nuevo), la barra de arriba y la tarjeta, que además repite `authCardEnter`.
+   - Encima, `worldMode` empieza en `'auto'` y lee la preferencia guardada **después** del primer pintado (`useEffect`). Con "Noche" guardada, el primer fotograma sale de día.
+4. **Rutas:** el build normal (`pnpm build` y `pnpm dev`) usa `enabled-surfaces.json`, que está vacía: todo da 404. Solo `pnpm build:demo` activa las pantallas (DW-02, RATIFICADA el 2026-10-07).
+
+### A4.2 Decisiones
+
+| # | Decisión |
+|---|---|
+| U-27 | **El build normal activa las mismas superficies que la demo** (Carlos: "La normal igual a demo"). **Supera a DW-02 en un solo punto:** sin perfil, el build ya no responde 404 en todo.<br>- **Una sola lista**, la de demo, para que las dos no se separen. Sin perfil o con `NEXT_PUBLIC_SURFACE_PROFILE=demo`, se usa esa.<br>- Para los tests de 404 queda un perfil explícito `NEXT_PUBLIC_SURFACE_PROFILE=none`, con la lista vacía.<br>- `NEXT_PUBLIC_E2E_SURFACES` sigue mandando en los tests.<br>- `/panel/prediction` sigue fuera (DW-28), y las rutas que hoy dan 404 en todos los builds (como `/tracking/<x>`, DW-01) siguen igual.<br>- La lista **no es autorización** (ADR-046 D5): no cambia nada de lo que el backend permite.<br>- Nota fechada en `decisiones-delegadas-web-2026-10.md`, junto a DW-02, con el texto de Carlos |
+| U-28 | **El tema de las pantallas de acceso depende solo del contenedor más cercano.** Las reglas oscuras de `access.module.css` dejan de mirar cualquier antepasado:<br>- **o** pasan a usar tokens, que `access-root` ya fija;<br>- **o** se acotan con `.root[data-theme="dark"]`, del propio `AccessLayout`.<br>Lo mismo para cualquier otra hoja con `:global([data-theme="dark"])` en una superficie que tenga su propio `data-theme` (se buscan todas). **Regla nueva del sistema visual:** prohibido `:global([data-theme=…]) .x` en componentes. El tema se decide en un único contenedor |
+| U-29 | **Marca fiel al boceto:** se quita la fila de marca de dentro de la tarjeta en todas las pantallas de acceso. La tarjeta empieza por la píldora, como en `.auth-card-head`, y la marca queda solo arriba ("Pax**Fide**.", con los colores del boceto en Día y en Noche). `BrandMark` no se borra: se sigue usando en el Shell |
+| U-30 | **Un solo marco de acceso que no se desmonta.** Las rutas de acceso pasan a un grupo de rutas de Next con su propio `layout.tsx`, que monta **una vez** el mundo, la barra de arriba y el `data-theme`. **Las URL no cambian**: `/login`, `/register`, `/recuperar`, `/verificar-correo`, `/invitaciones`, `/terminos`, `/privacidad`, `/terminos-organizacion`. Las pantallas dejan de envolverse en `AccessLayout`.<br>- Para `/login` y `/register`, un segundo `layout.tsx` anidado mantiene montada **la tarjeta con sus pestañas**. Solo cambia el contenido: el título, el subtítulo y el formulario.<br>- `worldMode` se lee **antes del primer pintado**, con `useSyncExternalStore` y lectura con `try/catch`, para que no salga un fotograma con el modo equivocado. Sin almacenamiento, `'auto'`, como hoy |
+| U-31 | **La animación del cambio de pestaña** (elegida por delegación):<br>- el indicador de la pestaña activa **se desliza** de una a otra (200 ms, `--ease-out`);<br>- el contenido sale con un fundido y entra con fundido y un desplazamiento de 12 px **en la dirección de la pestaña**: hacia la izquierda al ir a "Crear cuenta" y hacia la derecha al volver (220 ms);<br>- **la altura de la tarjeta se anima** de la anterior a la nueva, medida con `ResizeObserver`, sin dependencias, para que la tarjeta no salte;<br>- `authCardEnter` solo se ejecuta al **entrar** en el acceso desde fuera, nunca al cambiar de pestaña;<br>- el mundo y la barra no se tocan.<br>Con "reducir movimiento", el cambio es instantáneo. **Sin dependencias nuevas (D8)**, y nada de la API de transiciones de vista experimental de React o Next |
+
+### A4.3 Tareas
+
+**P-13 · `chore/web-surfaces-default`** — U-27.
+- **Tests:**
+  - sin perfil, `/login`, `/campaigns` y `/verificar-correo` responden 200;
+  - `/panel/prediction` y `/tracking/x` dan 404 (negativas);
+  - con `NEXT_PUBLIC_SURFACE_PROFILE=none`, todo da 404 (`playwright.empty.config.ts` sigue en verde);
+  - `classifier.test.ts` actualizado.
+- `README.md`: cómo levantar la web y que ya no hace falta `build:demo` para ver las pantallas.
+
+**P-14 · `fix/web-access-shell`** — U-28 a U-31. **Antes de cambiar nada, reproduce la foto:** con la app en oscuro (`data-theme="dark"` en `<html>`) y el mundo en "Día", haz una captura de `/register`. Esa es la captura del "antes".
+- **Tests:**
+  - **tema, cruzado:** con la app oscura y el mundo de día, y con la app clara y el mundo de noche, en **cada** pantalla de acceso:
+    - el fondo calculado de la tarjeta corresponde al mundo;
+    - el contraste del título, del subtítulo y de las etiquetas es ≥ 4,5 (fórmula del Anexo A);
+  - **marca:** dentro de la tarjeta no hay ninguna marca (negativa) y arriba hay exactamente una;
+  - **sin desmontar:** al ir de `/login` a `/register` y volver:
+    - el `<canvas>` del mundo y el elemento de la tarjeta son **los mismos nodos** (un `ElementHandle` que sigue `isConnected`);
+    - `authCardEnter` no vuelve a ejecutarse (`getAnimations()`);
+    - la URL cambia y "atrás" funciona;
+    - `aria-selected` se actualiza y el foco va al título de la tarjeta;
+  - **sin fotograma equivocado:** con "Noche" guardada, el primer pintado de `/login` ya tiene `data-theme="dark"`;
+  - **reducir movimiento:** sin animaciones de cambio;
+  - **regresión:** los E2E de login, registro, verificación, recuperación, invitación y legales siguen en verde sin cambios de comportamiento.
+- Capturas antes y después, en claro y oscuro (de la app) × Día y Noche (del mundo), a 390 y 1280 px, junto al boceto. Más un GIF o una secuencia de 5 fotogramas del cambio de pestaña.
+- Sin cambios en `globals.css`, salvo la nota de la regla de U-28 en el sistema visual si hace falta.
+
+### A4.4 Orden
+
+```
+develop
+   ├── P-13 chore/web-surfaces-default   (corta)
+   └── P-14 fix/web-access-shell         (después de P-13; puede ir en paralelo con P-12)
+```
