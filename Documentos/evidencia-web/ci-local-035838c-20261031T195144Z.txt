@@ -1,0 +1,78 @@
+# CI local de paxfide-web (réplica de .github/workflows/ci.yml)
+commit:     035838c54466ae54b701cea25d82a2766a058132
+rama:       HEAD
+fecha UTC:  2026-10-31T19:51:44Z
+node:       v22.22.0
+pnpm:       11.26.0
+workflow:   .github/workflows/ci.yml sha256 58be251021d385529aa74b0f1b0dd601c37705e160a32f4e3a79302944b8992c
+
+===== PASO: Checkout repository =====
+$ git cat-file -e 035838c54466ae54b701cea25d82a2766a058132 && echo 'Árbol limpio en 035838c54466ae54b701cea25d82a2766a058132'
+Árbol limpio en 035838c54466ae54b701cea25d82a2766a058132
+RESULTADO: OK (0 s)
+
+===== PASO: Check for .skip or .only in tests =====
+$ if grep -E '\.(skip|only)\(' -r __tests__/ e2e/; then echo 'Error: Found .skip() or .only() in tests. Please remove them.'; exit 1; fi
+RESULTADO: OK (0 s)
+
+===== PASO: Setup Node.js 22 =====
+$ node -v | grep -Eq '^v22\.' || { echo 'Se exige Node 22.x'; exit 1; }; node -v
+v22.22.0
+RESULTADO: OK (0 s)
+
+===== PASO: Install pnpm =====
+$ [ "$(pnpm -v)" = '11.26.0' ] || { echo 'Se exige pnpm 11.26.0 (npm install -g pnpm@11.26.0)'; exit 1; }; pnpm -v
+11.26.0
+RESULTADO: OK (2 s)
+
+===== PASO: Install dependencies =====
+$ pnpm install --frozen-lockfile
+Already up to date
+Done in 575ms using pnpm v11.26.0
+RESULTADO: OK (1 s)
+
+===== PASO: Typecheck =====
+$ pnpm typecheck
+$ tsc --noEmit
+.next/types/validator.ts(96,39): error TS2307: Cannot find module '../../src/app/invitaciones/page.js' or its corresponding type declarations.
+.next/types/validator.ts(105,39): error TS2307: Cannot find module '../../src/app/login/page.js' or its corresponding type declarations.
+.next/types/validator.ts(213,39): error TS2307: Cannot find module '../../src/app/privacidad/page.js' or its corresponding type declarations.
+.next/types/validator.ts(222,39): error TS2307: Cannot find module '../../src/app/recuperar/page.js' or its corresponding type declarations.
+.next/types/validator.ts(231,39): error TS2307: Cannot find module '../../src/app/register/page.js' or its corresponding type declarations.
+.next/types/validator.ts(240,39): error TS2307: Cannot find module '../../src/app/terminos-organizacion/page.js' or its corresponding type declarations.
+.next/types/validator.ts(249,39): error TS2307: Cannot find module '../../src/app/terminos/page.js' or its corresponding type declarations.
+.next/types/validator.ts(267,39): error TS2307: Cannot find module '../../src/app/verificar-correo/page.js' or its corresponding type declarations.
+.next/types/validator.ts(291,39): error TS2307: Cannot find module '../../src/app/invitaciones/layout.js' or its corresponding type declarations.
+[ELIFECYCLE] Command failed with exit code 2.
+RESULTADO: FALLO (código 2, 5 s)
+
+===== PASO: Vitest =====
+$ pnpm vitest run
+OMITIDO (un paso anterior falló, como en GitHub Actions)
+
+===== PASO: Check Server Imports =====
+$ pnpm check:server
+OMITIDO (un paso anterior falló, como en GitHub Actions)
+
+===== PASO: Install Playwright Chromium =====
+$ pnpm exec playwright install --with-deps chromium
+OMITIDO (un paso anterior falló, como en GitHub Actions)
+
+===== PASO: Playwright E2E Tests =====
+$ pnpm test:e2e
+OMITIDO (un paso anterior falló, como en GitHub Actions)
+
+===== RESUMEN =====
+OK       Checkout repository
+OK       Check for .skip or .only in tests
+OK       Setup Node.js 22
+OK       Install pnpm
+OK       Install dependencies
+FALLO    Typecheck (código 2)
+OMITIDO  Vitest
+OMITIDO  Check Server Imports
+OMITIDO  Install Playwright Chromium
+OMITIDO  Playwright E2E Tests
+CI LOCAL: FALLO
+
+sha256 (de todo lo anterior a la línea en blanco final; verificar con: head -n -2 <archivo> | sha256sum): e6d1ecdb88c3b6a2c98be650e2a2c1a4de9f2836068506b7b38a090f1ff0fba5
