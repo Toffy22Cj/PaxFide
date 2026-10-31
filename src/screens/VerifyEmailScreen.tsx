@@ -13,9 +13,7 @@ import {
 import { captureVerificationToken, takeVerificationToken } from '../lib/auth/verificationToken';
 import * as session from '../lib/auth/session';
 import { ResendVerification } from '../components/access/ResendVerification';
-import { BrandMark } from '../components/shell/BrandMark';
 import { BrandDots } from '../components/loaders/BrandDots';
-import { AccessLayout } from '../components/access/AccessLayout';
 import s from './access.module.css';
 
 export const VERIFIED_TEXT = 'Tu correo quedó verificado';
@@ -55,10 +53,9 @@ export function VerifyEmailScreen({ confirmClient = confirmEmailVerification, re
   }, [confirmClient, router]);
 
   return (
-    <AccessLayout>
+    <>
       <div className={s.page}>
         <div className={s.card} data-world-avoid="" data-testid="verify-email-screen">
-          <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
           <div className={s.badgePill}><span className={s.badgeDot} /><span>TU CUENTA PAXFIDE</span></div>
           <h1 className={s.title}>Confirmar tu correo</h1>
           {(mode === null || mode === 'checking') && (
@@ -81,6 +78,6 @@ export function VerifyEmailScreen({ confirmClient = confirmEmailVerification, re
           </div>
         </div>
       </div>
-    </AccessLayout>
+    </>
   );
 }

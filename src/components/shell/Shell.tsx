@@ -19,7 +19,7 @@ import { usePausedPreference } from '../background/usePausedPreference';
 import { PauseButton } from '../background/PauseButton';
 import { BrandMark } from './BrandMark';
 import { ThemeSelect } from '../theme/ThemeSelect';
-import { backgroundFor, hasAppChrome } from '../../lib/routing/backgroundRoutes';
+import { backgroundFor, hasAppChrome, isAccessRoute } from '../../lib/routing/backgroundRoutes';
 import { classifyRoute } from '../../lib/routing/classifier';
 import { districtForRoute } from '../background/cityScene';
 import { CityHud } from './CityHud';
@@ -191,7 +191,8 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
         </main>
       ) : (
         <div className={[s.main, s.onWorld].join(' ')}>
-          <div key={pathname} className={s.viewIn}>
+          {/* U-30: entre rutas de acceso la clave no cambia, para que su marco no se desmonte (sin parpadeo) */}
+          <div key={isAccessRoute(pathname) ? 'acceso' : pathname} className={s.viewIn}>
             {children}
           </div>
         </div>

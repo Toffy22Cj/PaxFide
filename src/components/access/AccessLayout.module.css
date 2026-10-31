@@ -84,7 +84,8 @@
   letter-spacing: -0.02em;
 }
 .brandAccent {
-  color: var(--color-action);
+  /* U-29: colores del boceto (.auth-brand-text b = --b700), en Día y en Noche. Es un logotipo (WCAG 1.4.3, excepción) */
+  color: var(--brand-blue-700);
 }
 
 .acts {
@@ -183,4 +184,67 @@
 .root[data-theme="dark"] .pauseBtn:hover {
   background: rgba(20, 48, 35, 0.95);
   border-color: var(--color-action);
+}
+
+/* U-28 (plan-fase7-puesta-al-dia.md Anexo 4): el tema del acceso lo decide SOLO este contenedor (data-theme del mundo,
+   D-F2). Las hojas de las pantallas leen estas variables; ninguna mira un antepasado con :global([data-theme]). */
+.root {
+  --acc-a-card-background: rgba(255, 255, 255, 0.95);
+  --acc-a-card-border-color: rgba(27, 81, 65, 0.16);
+  --acc-a-card-box-shadow: 0 24px 64px rgba(18, 38, 28, 0.16), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --acc-a-badgepill-background: rgba(78, 145, 85, 0.12);
+  --acc-a-badgepill-border-color: rgba(78, 145, 85, 0.25);
+  --acc-a-badgedot-box-shadow: 0 0 0 2px rgba(78, 145, 85, 0.3);
+  --acc-a-tabs-background: rgba(27, 81, 65, 0.07);
+  --acc-a-tabactive-background: var(--color-surface);
+  --acc-a-tabactive-box-shadow: 0 4px 12px rgba(27, 81, 65, 0.12);
+  --acc-a-input-background: rgba(247, 250, 248, 0.85);
+  --acc-a-input-border-color: rgba(27, 81, 65, 0.18);
+  --acc-a-input-focus-border-color: var(--color-focus);
+  --acc-a-input-focus-background: var(--color-surface);
+  --acc-a-input-focus-box-shadow: 0 0 0 3px rgba(27, 81, 65, 0.14);
+  --acc-a-strengthtrack-background: rgba(27, 81, 65, 0.1);
+  --acc-a-foundationdetails-background: rgba(78, 145, 85, 0.06);
+  --acc-a-foundationdetails-border-color: var(--color-divider);
+  --acc-a-foot-border-top-color: rgba(27, 81, 65, 0.1);
+  --acc-a-welcomedot-background: rgba(27, 81, 65, 0.2);
+  --acc-l-card-background: rgba(255, 255, 255, 0.95);
+  --acc-l-card-border-color: rgba(27, 81, 65, 0.16);
+  --acc-l-card-box-shadow: 0 24px 64px rgba(18, 38, 28, 0.16), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --acc-l-badgepill-background: rgba(78, 145, 85, 0.12);
+  --acc-l-badgepill-border-color: rgba(78, 145, 85, 0.25);
+  --acc-l-versiontag-background: rgba(27, 81, 65, 0.07);
+  --acc-l-disclaimer-background: rgba(120, 80, 8, 0.08);
+  --acc-l-disclaimer-border-color: rgba(243, 181, 68, 0.35);
+  --acc-l-content-th-background: rgba(27, 81, 65, 0.06);
+}
+.root[data-theme="dark"] {
+  --acc-a-card-background: rgba(14, 34, 25, 0.96);
+  --acc-a-card-border-color: rgba(82, 183, 136, 0.28);
+  --acc-a-card-box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  --acc-a-badgepill-background: rgba(82, 183, 136, 0.15);
+  --acc-a-badgepill-border-color: rgba(82, 183, 136, 0.35);
+  --acc-a-badgedot-box-shadow: 0 0 0 2px rgba(82, 183, 136, 0.4);
+  --acc-a-tabs-background: rgba(255, 255, 255, 0.08);
+  --acc-a-tabactive-background: rgba(255, 255, 255, 0.18);
+  --acc-a-tabactive-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --acc-a-input-background: rgba(255, 255, 255, 0.07);
+  --acc-a-input-border-color: rgba(255, 255, 255, 0.18);
+  --acc-a-input-focus-border-color: var(--color-action);
+  --acc-a-input-focus-background: rgba(255, 255, 255, 0.12);
+  --acc-a-input-focus-box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.2);
+  --acc-a-strengthtrack-background: rgba(255, 255, 255, 0.1);
+  --acc-a-foundationdetails-background: rgba(255, 255, 255, 0.04);
+  --acc-a-foundationdetails-border-color: rgba(255, 255, 255, 0.12);
+  --acc-a-foot-border-top-color: rgba(255, 255, 255, 0.1);
+  --acc-a-welcomedot-background: rgba(255, 255, 255, 0.2);
+  --acc-l-card-background: rgba(14, 34, 25, 0.96);
+  --acc-l-card-border-color: rgba(82, 183, 136, 0.28);
+  --acc-l-card-box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  --acc-l-badgepill-background: rgba(82, 183, 136, 0.15);
+  --acc-l-badgepill-border-color: rgba(82, 183, 136, 0.35);
+  --acc-l-versiontag-background: rgba(255, 255, 255, 0.08);
+  --acc-l-disclaimer-background: rgba(243, 181, 68, 0.12);
+  --acc-l-disclaimer-border-color: rgba(243, 181, 68, 0.3);
+  --acc-l-content-th-background: rgba(255, 255, 255, 0.06);
 }

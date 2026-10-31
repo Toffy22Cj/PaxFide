@@ -11,8 +11,6 @@ import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { Actions, PageHeader, uiClasses as ui } from '../components/ui/Layout';
 import { Button } from '../components/ui/Button';
 import { StatusNotice } from '../components/States';
-import { BrandMark } from '../components/shell/BrandMark';
-import { AccessLayout } from '../components/access/AccessLayout';
 import s from './access.module.css';
 
 const NOT_ACCEPTABLE = 'Esta invitación no es válida para tu cuenta: puede haber caducado, haberse usado, haberse revocado o ser para otro correo. Pide a la organización una nueva.';
@@ -61,10 +59,9 @@ export function InvitationScreen({ client = acceptInvitation }: { client?: typeo
   };
 
   return (
-    <AccessLayout>
+    <>
       <div className={s.page}>
         <div className={s.card} data-world-avoid="">
-          <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
           <div className={s.badgePill}>
             <span className={s.badgeDot} />
             <span>TU CUENTA PAXFIDE</span>
@@ -106,6 +103,6 @@ export function InvitationScreen({ client = acceptInvitation }: { client?: typeo
           )}
         </div>
       </div>
-    </AccessLayout>
+    </>
   );
 }

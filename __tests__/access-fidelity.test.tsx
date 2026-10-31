@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as session from '../src/lib/auth/session';
 import { RegisterScreen } from '../src/screens/RegisterScreen';
+import { AccessLayout } from '../src/components/access/AccessLayout';
 import { LoginScreen } from '../src/screens/LoginScreen';
 
 vi.mock('next/link', () => ({
@@ -110,7 +111,7 @@ describe('Fidelidad del Acceso (F-A2)', () => {
 
   describe('D-F5: Estructura de barra de acceso y retorno', () => {
     it('la barra de acceso contiene "Volver al recorrido" enlazando a "/" y botón de pausa', () => {
-      render(<LoginScreen loginClient={vi.fn()} />);
+      render(<AccessLayout><LoginScreen loginClient={vi.fn()} /></AccessLayout>);
 
       const backLink = screen.getByRole('link', { name: 'Volver al recorrido' });
       expect(backLink).toBeInTheDocument();
