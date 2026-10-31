@@ -13,6 +13,14 @@ const ACCESS_ROUTES = new Set([
   '/terminos-organizacion',
 ]);
 
+/**
+ * U-30 (plan-fase7-puesta-al-dia.md Anexo 4): rutas del grupo `(acceso)`. El Shell no las separa por ruta: el marco del
+ * acceso (mundo, barra y tarjeta) se queda montado entre ellas.
+ */
+export function isAccessRoute(pathname: string): boolean {
+  return ACCESS_ROUTES.has(pathname);
+}
+
 /** Rutas exactas o con parámetro (`/c/:publicCode`) con fondo animado (la ciudad, o el mundo en `/` y acceso). */
 const EXACT = new Set([
   '/',

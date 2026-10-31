@@ -14,9 +14,7 @@ import {
 import { captureResetToken, clearResetToken, getResetToken } from '../lib/auth/resetToken';
 import { calculateStrength } from '../lib/auth/passwordStrength';
 import * as session from '../lib/auth/session';
-import { BrandMark } from '../components/shell/BrandMark';
 import { BrandDots } from '../components/loaders/BrandDots';
-import { AccessLayout } from '../components/access/AccessLayout';
 import s from './access.module.css';
 
 /** El mismo texto exista o no la cuenta (contrato: siempre el mismo 202). */
@@ -46,10 +44,9 @@ export function RecoverScreen({ requestClient = requestPasswordReset, confirmCli
   const toRequest = () => { clearResetToken(); setMode('request'); };
 
   return (
-    <AccessLayout>
+    <>
       <div className={s.page}>
         <div className={s.card} data-world-avoid="" data-testid="recover-screen">
-          <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
           <div className={s.badgePill}><span className={s.badgeDot} /><span>TU CUENTA PAXFIDE</span></div>
           {mode === 'request' && <RequestForm client={requestClient} />}
           {mode === 'confirm' && (
@@ -69,7 +66,7 @@ export function RecoverScreen({ requestClient = requestPasswordReset, confirmCli
           </div>
         </div>
       </div>
-    </AccessLayout>
+    </>
   );
 }
 

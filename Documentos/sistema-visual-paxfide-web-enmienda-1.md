@@ -326,3 +326,6 @@ for under in ['#FFFFFF','#000000','#F3B544','#07130E','#DCE8D6']:
     assert cr('#EEF6EF', blend('#10261D',.86,under)) >= 4.5   # rgba(16,38,29,.86)
     assert cr('#405656', blend('#FFFFFF',.88,under)) >= 4.5   # rgba(255,255,255,.88)
 ```
+
+> **Nota (2026-10-31, regla nueva por U-28; `plan-fase7-puesta-al-dia.md` Anexo 4, APROBADO por Carlos).** El tema de una superficie lo decide **un único contenedor** con `data-theme` (D-F11). **Prohibido** en las hojas de componentes `:global([data-theme=…]) .x`: ese selector se cumple con cualquier antepasado oscuro (también `<html>`) y mezclaba el fondo de un tema con los tokens del otro (la tarjeta oscura con el texto apagado en el acceso). Lo que cambia con el tema va en tokens semánticos o en variables que fija el propio contenedor (en el acceso, `--acc-*` de `AccessLayout.module.css`). Lo comprueba `__tests__/access-theme-u28.test.ts`.
+

@@ -7,6 +7,11 @@
   width: 100%;
 }
 
+/* U-28 (plan-fase7-puesta-al-dia.md Anexo 4): los colores que cambian con el tema son variables --acc-* que fija SOLO el
+   contenedor del acceso (AccessLayout, data-theme del mundo). Las clases que también se usan fuera del acceso (campos,
+   puntos de la bienvenida, "Reenviar" del Perfil) llevan un respaldo con tokens semánticos, que siguen al contenedor más
+   cercano igual. */
+
 /* CAJA DE LOGIN / REGISTRO / ACCESO (D-F5) */
 .card {
   width: 100%;
@@ -14,15 +19,16 @@
   box-sizing: border-box;
   padding: 34px 32px 30px;
   border-radius: 28px;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--acc-a-card-background);
   backdrop-filter: blur(24px) saturate(1.25);
   -webkit-backdrop-filter: blur(24px) saturate(1.25);
   border: 1px solid rgba(27, 81, 65, 0.16);
-  box-shadow: 0 24px 64px rgba(18, 38, 28, 0.16), 0 4px 16px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--acc-a-card-box-shadow);
   color: var(--color-text);
   position: relative;
   animation: authCardEnter var(--duration-normal) cubic-bezier(0.16, 1, 0.3, 1);
   transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease;
+  border-color: var(--acc-a-card-border-color);
 }
 
 @keyframes authCardEnter {
@@ -50,12 +56,6 @@
 }
 
 /* Modo oscuro en la tarjeta de acceso */
-:global([data-theme="dark"]) .card {
-  background: rgba(14, 34, 25, 0.96);
-  border-color: rgba(82, 183, 136, 0.28);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
-  color: var(--color-text);
-}
 
 /* Marca de PaxFide (decorativa, accesible para lectores) */
 .brand {
@@ -75,17 +75,13 @@
   gap: 7px;
   padding: 5px 12px;
   border-radius: 999px;
-  background: rgba(78, 145, 85, 0.12);
+  background: var(--acc-a-badgepill-background);
   border: 1px solid rgba(78, 145, 85, 0.25);
   color: var(--color-success-text);
   font: 700 10.5px var(--font-mono);
   letter-spacing: 0.05em;
   margin-bottom: 12px;
-}
-:global([data-theme="dark"]) .badgePill {
-  background: rgba(82, 183, 136, 0.15);
-  border-color: rgba(82, 183, 136, 0.35);
-  color: var(--color-success-text);
+  border-color: var(--acc-a-badgepill-border-color);
 }
 
 .badgeDot {
@@ -93,12 +89,8 @@
   height: 6px;
   border-radius: 50%;
   background: var(--brand-green-500);
-  box-shadow: 0 0 0 2px rgba(78, 145, 85, 0.3);
+  box-shadow: var(--acc-a-badgedot-box-shadow);
   animation: badgePulse calc(var(--duration-slow) * 4) infinite;
-}
-:global([data-theme="dark"]) .badgeDot {
-  background: var(--brand-green-500);
-  box-shadow: 0 0 0 2px rgba(82, 183, 136, 0.4);
 }
 
 @keyframes badgePulse {
@@ -126,13 +118,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
-  background: rgba(27, 81, 65, 0.07);
+  background: var(--acc-a-tabs-background);
   padding: 5px;
   border-radius: 14px;
   margin-bottom: 20px;
-}
-:global([data-theme="dark"]) .tabs {
-  background: rgba(255, 255, 255, 0.08);
 }
 
 .tabBtn {
@@ -156,14 +145,9 @@
   color: var(--color-text);
 }
 .tabActive {
-  background: var(--color-surface);
+  background: var(--acc-a-tabactive-background);
   color: var(--color-text);
-  box-shadow: 0 4px 12px rgba(27, 81, 65, 0.12);
-}
-:global([data-theme="dark"]) .tabActive {
-  background: rgba(255, 255, 255, 0.18);
-  color: var(--color-text);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--acc-a-tabactive-box-shadow);
 }
 
 /* Formulario e inputs */
@@ -217,28 +201,20 @@
   padding: 0 44px 0 42px;
   border-radius: 12px;
   border: 1px solid rgba(27, 81, 65, 0.18);
-  background: rgba(247, 250, 248, 0.85);
+  background: var(--acc-a-input-background, var(--color-field));
   color: var(--color-text);
   font: 500 14px var(--font-body);
   box-sizing: border-box;
   transition: all var(--duration-fast) ease;
+  border-color: var(--acc-a-input-border-color, var(--color-border-control));
 }
 .input:focus {
   outline: none;
-  border-color: var(--color-focus);
-  background: var(--color-surface);
-  box-shadow: 0 0 0 3px rgba(27, 81, 65, 0.14);
+  border-color: var(--acc-a-input-focus-border-color, var(--color-focus));
+  background: var(--acc-a-input-focus-background, var(--color-field));
+  box-shadow: var(--acc-a-input-focus-box-shadow, none);
 }
-:global([data-theme="dark"]) .input {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.18);
-  color: var(--color-text);
-}
-:global([data-theme="dark"]) .input:focus {
-  border-color: var(--color-action);
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.2);
-}
+
 
 .toggleEye {
   position: absolute;
@@ -278,11 +254,8 @@
   height: 4px;
   width: 100%;
   border-radius: 4px;
-  background: rgba(27, 81, 65, 0.1);
+  background: var(--acc-a-strengthtrack-background);
   overflow: hidden;
-}
-:global([data-theme="dark"]) .strengthTrack {
-  background: rgba(255, 255, 255, 0.1);
 }
 .strengthMeter {
   height: 4px;
@@ -302,13 +275,10 @@
   border: 1px solid var(--color-divider);
   border-radius: 12px;
   padding: 10px 14px;
-  background: rgba(78, 145, 85, 0.06);
+  background: var(--acc-a-foundationdetails-background);
   font-size: 13px;
   transition: background-color var(--duration-fast) ease;
-}
-:global([data-theme="dark"]) .foundationDetails {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--acc-a-foundationdetails-border-color);
 }
 .foundationSummary {
   font-weight: 600;
@@ -425,9 +395,7 @@
   text-align: center;
   font-size: 13px;
   color: var(--color-text-secondary);
-}
-:global([data-theme="dark"]) .foot {
-  border-top-color: rgba(255, 255, 255, 0.1);
+  border-top-color: var(--acc-a-foot-border-top-color);
 }
 
 .switchLink {
@@ -439,9 +407,6 @@
   text-decoration: underline;
   cursor: pointer;
   font-size: 13px;
-}
-:global([data-theme="dark"]) .switchLink {
-  color: var(--color-action);
 }
 
 /* Enlaces alternativos heredados */
@@ -590,11 +555,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: rgba(27, 81, 65, 0.2);
+  background: var(--acc-a-welcomedot-background, var(--color-divider));
   transition: all var(--duration-fast) ease;
-}
-:global([data-theme="dark"]) .welcomeDot {
-  background: rgba(255, 255, 255, 0.2);
 }
 .welcomeDotActive {
   width: 22px;

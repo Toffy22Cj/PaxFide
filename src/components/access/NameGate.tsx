@@ -9,7 +9,6 @@ import {
   fetchProfile, MAX_NAME, nameLength, updateProfile,
   type ProfileOutcome, type UpdateProfileOutcome,
 } from '../../lib/api/account';
-import { BrandMark } from '../shell/BrandMark';
 import { BrandDots } from '../loaders/BrandDots';
 import s from '../../screens/access.module.css';
 
@@ -70,7 +69,6 @@ export function NameGate({ clients = DEFAULT_CLIENTS, onDone }: { clients?: Name
 
   return (
     <form className={[s.welcomeGate, s.nameGate].join(' ')} data-testid="name-gate" onSubmit={(e) => void submit(e)} noValidate aria-labelledby="nameGateTitle">
-      <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
       <h1 id="nameGateTitle" className={s.welcomeTitle}>¿Cómo te llamamos?</h1>
       <p className={s.welcomeLead}>Así te saludamos y te identificamos dentro de tu organización. Puedes completarlo ahora o más tarde desde tu perfil.</p>
       {failure && <div className={[s.feedbackMsg, s.feedbackError].join(' ')} role="alert">{failure}</div>}

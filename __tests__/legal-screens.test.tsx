@@ -2,6 +2,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import { AccessLayout } from '../src/components/access/AccessLayout';
 import { LegalScreen, LEGAL_TERMS, LEGAL_PRIVACY, LEGAL_ORG_TERMS } from '../src/screens/LegalScreen';
 
 vi.mock('next/link', () => ({
@@ -33,7 +34,8 @@ describe('Rutas y pantallas legales (D-F17)', () => {
   });
 
   it('todas las pantallas legales llevan la barra de acceso con "Volver al recorrido"', () => {
-    render(<LegalScreen doc={LEGAL_TERMS} />);
+    // U-30: el marco lo pone el layout del grupo (acceso), como en la ruta real
+    render(<AccessLayout><LegalScreen doc={LEGAL_TERMS} /></AccessLayout>);
     const back = screen.getByRole('link', { name: 'Volver al recorrido' });
     expect(back).toHaveAttribute('href', '/');
   });
