@@ -389,3 +389,79 @@ P-6 cuando el backend de la Enmienda 2 esté en develop
 ```
 
 P-8 va antes que P-6, para que la verificación del correo ya encuentre la bienvenida nueva.
+
+---
+
+## Anexo 3 (2026-10-31) — Búsqueda, filtro y orden de convocatorias (P-12)
+
+**Estado: APROBADO — Carlos, 2026-10-31.** Con él quedan aprobadas U-20 a U-26 con las respuestas de A3.5 y la precisión de U-23. Las reglas de §1 rigen igual.
+
+**Origen:** la ficha R-1 del backend (`Donaciones/Documentos/ficha-R1-busqueda-descubrimiento-convocatorias.md`; `referencia-api-v1.md` §5, nota del 2026-10-29; #159) ya está en `develop` (`b0654aa`). En la web solo existía como pendiente: X-11 de `plan-fase7-fidelidad.md` ("Filtros por causa y búsqueda", ⏳ R-1) y §5 de este plan ("Búsqueda y filtros de convocatorias: R-1 no está en el backend").
+
+> **Aviso de nombres:** en este plan, "R-1" (§1.2) es el registro con las casillas legales. Aquí "ficha R-1" es siempre la del backend.
+
+### A3.1 Contrato comprobado contra el código
+
+Comprobado en `PublicCampaignDiscoveryController` (Donaciones `b0654aa`), no solo en el documento. Coinciden:
+
+| Parámetro | Regla del servidor |
+|---|---|
+| `q` | Se recorta (`strip`) y debe tener **de 2 a 100 puntos de código**. Subcadena del título, sin distinguir mayúsculas ni tildes. `?q=` vacío o de solo espacios → 400 |
+| `donationType` | `MONETARY` o `IN_KIND`; la convocatoria tiene que aceptar ese tipo |
+| `sort` | `ending_soon` (`endDate` ascendente) o `recent` (`startDate` descendente). Sin `sort`, `publicCode` ascendente, como hoy. Desempate siempre por `publicCode` |
+| `cursor` | Versión 2: lleva dentro `q` (normalizado), `donationType` y `sort` de la petición que lo emitió. Con otros filtros → 400. Un cursor v1 solo vale sin filtros ni orden |
+| Errores | **Todos son el mismo 400 `BadRequest` con el cuerpo fijo** (`InvalidRequestFieldException`). La web **no puede saber** qué campo falló, ni si el problema era el cursor |
+| Respuesta | No cambia: `{items, nextCursor?}`. Nunca lista `PRIVATE_LINK` ni `CLOSED` |
+
+### A3.2 La contradicción con el boceto
+
+`paxfide-landing.html` filtra **"por causa"** ("🌾 Nutrición", "💧 Agua limpia"…). **El backend no tiene causas ni categorías:** solo `q` (título), `donationType` y `sort`. Por la regla de los prototipos (`prompts-agentes-estilo-v2.md` §2) **no se inventan categorías** ni se filtra en el cliente para simularlas: buscar "agua" en el título no es una categoría y daría resultados engañosos.
+
+**Propuesta (U-20):** las píldoras del boceto se sustituyen por las dos que el contrato sí tiene, **"Dinero"** y **"Especie (bienes)"** (`donationTypeLabel`), más "Todas". Lo de las causas se lista en el PR como "no implementado: sin contrato".
+
+### A3.3 Decisiones propuestas
+
+| # | Decisión propuesta | Alternativa |
+|---|---|---|
+| U-20 | **Dónde:** la búsqueda, el filtro y el orden van **solo en `/campaigns`**, sobre la lista que ya tiene "Cargar más". La landing conserva su bloque "Convocatorias" (las primeras N) y añade el enlace **"Buscar convocatorias"** → `/campaigns`. Así la landing no duplica la lógica de paginación | (b) También un buscador en la landing que lleva a `/campaigns?q=…` |
+| U-21 | **Controles:** un campo "Buscar por nombre" (`role="search"`, se envía con Enter o con el botón "Buscar", sin búsqueda mientras se escribe), las píldoras "Todas · Dinero · Especie (bienes)" y un selector "Ordenar" con "Más recientes" (`recent`) y "Cierran pronto" (`ending_soon`) | Búsqueda mientras se escribe, con espera de 300 ms: más peticiones y más estados intermedios |
+| U-22 | **Orden por defecto en `/campaigns`: "Más recientes" (`sort=recent`).** Hoy el orden es `publicCode`, que no significa nada para el donante | Mantener el orden de hoy (sin `sort`) |
+| U-23 | **"Cierran pronto" (D-F12) pasa a `sort=ending_soon` del servidor en todos los sitios donde se calcula hoy** (`/home` y la landing), sin depender de U-20 (precisión de Carlos al aprobar, 2026-10-31). Hoy se calcula en el cliente sobre la **primera página en orden de `publicCode`**, así que puede no ver una convocatoria que cierra mañana y está en la página 2. Con `ending_soon` las primeras son las que cierran antes; la regla de D-P9 (7 días o menos) y el respaldo "Convocatorias abiertas" no cambian. Para el respaldo, una segunda petición sin `sort` solo si la primera no trae ninguna a 7 días | No cambiarlo (sigue el fallo descrito) |
+| U-24 | **Validación en el cliente igual que el servidor:** `q` se recorta y se cuentan **puntos de código** (`Array.from`, como `nameLength`), no unidades UTF-16. Menos de 2 → no se envía y se muestra "Escribe al menos 2 caracteres". Más de 100 → "Escribe como máximo 100 caracteres". **Nunca se envía `q` vacío:** campo vacío = sin `q` | — |
+| U-25 | **Cursor v2:** el cursor pertenece a la combinación `{q, donationType, sort}` con la que se pidió. **Cambiar cualquier filtro empieza sin cursor** y vacía la lista. Una respuesta tardía de otra combinación se descarta (como `useRead`). **Un 400 en una petición con cursor** (no se puede distinguir del resto, A3.1) reinicia la lista una vez, sin cursor y con los mismos filtros, con el aviso "La lista se actualizó". Un 400 sin cursor, que con U-24 no debería pasar, es el error de pantalla con "Reintentar" | — |
+| U-26 | **Filtros en la URL:** `?q=…&tipo=dinero|especie&orden=recientes|cierran` (nombres en castellano, mapeados al contrato), escritos con `router.replace`. El enlace se puede compartir y una recarga conserva la búsqueda; "atrás" sale de `/campaigns` en vez de deshacer filtro por filtro. **El cursor nunca va en la URL.** La búsqueda no es un secreto (no es como `trackingCode`), y la web ya va con `referrer: no-referrer`. Un parámetro inválido en la URL se ignora, nunca se reenvía | (b) Sin URL: se pierden al recargar. (c) `router.push`: cada filtro es un paso de "atrás" |
+
+### A3.4 Tarea
+
+**P-12 · `feat/web-campaign-search`** — U-20 a U-26, si se aprueban.
+- `src/lib/api/publicCampaigns.ts`: `fetchDiscovery({q?, donationType?, sort?, cursor?})`, con los parámetros solo si tienen valor.
+- `src/lib/discovery/searchModel.ts` (puro): normaliza y valida `q`, traduce la URL ↔ filtros y da la clave de la combinación para el cursor.
+- `DiscoveryScreen`: los controles de U-21 y el estado de U-25. `HomeScreen` (y la landing, según U-20): U-23.
+- Servidor falso: `q`, `donationType`, `sort` y el cursor v2 con sus 400, con las mismas reglas que el controlador.
+- **Ninguna dependencia nueva (D8).** Sin cambios en `globals.css`.
+
+**Tests propuestos:**
+- validación: `" a "` no se envía; `"ab"` sí; 100 puntos de código con emojis sí y 101 no; nunca sale una petición con `q=` vacío (negativa sobre las URL pedidas);
+- el reinicio del cursor: con una página cargada, cambiar el tipo hace una petición **sin** `cursor`; un 400 en "Cargar más" reinicia la lista una sola vez (sin bucle);
+- respuesta tardía: la de la combinación anterior no se mezcla con la nueva;
+- cero resultados: "No encontramos convocatorias con esa búsqueda", con "Quitar filtros";
+- `PRIVATE_LINK` y `CLOSED` nunca aparecen, tampoco al buscar su título exacto (E2E con el servidor falso);
+- la URL: recargar conserva los filtros; el cursor nunca está en `location.href`; un `?tipo=` inválido se ignora;
+- U-23: con una convocatoria que cierra en 3 días en la segunda página del orden por `publicCode`, "Cierran pronto" la muestra (hoy no);
+- accesibilidad: `role="search"`, etiquetas visibles, las píldoras con `aria-pressed` y objetivos de 44 px; capturas en claro y oscuro a 390 y 1280 px.
+
+### A3.5 Pendientes de Carlos
+
+| # | Pregunta | Respuesta (Carlos, 2026-10-31) |
+|---|---|---|
+| PD-3 | U-20: ¿búsqueda solo en `/campaigns` o también en la landing? | **Solo en `/campaigns`**; en la landing, el enlace "Buscar convocatorias" |
+| PD-4 | U-22: ¿orden por defecto "Más recientes" o el de hoy? | **"Más recientes"** (`sort=recent`) |
+| PD-5 | U-23: ¿"Cierran pronto" pasa a `sort=ending_soon`? | **Sí, en todos los sitios donde se calcula hoy** (`/home` y la landing), sin depender de PD-3 |
+| PD-6 | U-26: ¿filtros en la URL con `replace`, sin URL o con `push`? | **En la URL con `router.replace`**, sin pasos nuevos en el historial |
+
+### A3.6 Orden
+
+```
+develop
+   └── P-12 feat/web-campaign-search (ya, tras fusionar este anexo)
+```
