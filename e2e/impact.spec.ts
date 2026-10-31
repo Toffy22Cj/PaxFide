@@ -1,7 +1,7 @@
 // Ref: plan-fase7-puesta-al-dia.md Anexo 1, P-7 ("Mi impacto" como tarjeta en /home y en /account; sin ruta propia).
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
 import crypto from 'crypto';
-import { skipWelcome } from './support/evidence';
+import { skipWelcome, verifyEmailApi } from './support/evidence';
 
 const API = 'http://localhost:3002';
 const PASSWORD = 'clave-demo-larga';
@@ -11,6 +11,7 @@ async function freshAccount(request: APIRequestContext) {
   await request.post(`${API}/api/v1/auth/register`, {
     data: { email, password: PASSWORD, acceptedTermsVersion: 'v1-2026-10', acceptedDataPolicyVersion: 'v1-2026-10' },
   });
+  await verifyEmailApi(request, email); // P-6: la cuenta nace sin verificar
   const { token } = await (await request.post(`${API}/api/v1/auth/login`, { data: { email, password: PASSWORD } })).json();
   return { email, token: token as string };
 }

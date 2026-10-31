@@ -1,7 +1,7 @@
 // Ref: plan-fase7-puesta-al-dia.md P-1 (F-C1 completa + D7) y §1.2 (el servidor falso responde como el real);
 // referencia-api-v1.md §1 (notas del 2026-10-25: contraseña, desactivación, perfil y recuperación) y §2 (reactivación).
 import { test, expect, type Page, type APIRequestContext, type Request } from '@playwright/test';
-import { acceptLegal, skipWelcome } from './support/evidence';
+import { acceptLegal, skipWelcome, verifyEmailApi } from './support/evidence';
 
 const API = 'http://localhost:3002';
 const PASSWORD = 'clave-demo-larga';
@@ -12,6 +12,7 @@ async function registerApi(request: APIRequestContext, prefix: string) {
     data: { email, password: PASSWORD, acceptedTermsVersion: 'v1-2026-10', acceptedDataPolicyVersion: 'v1-2026-10' },
   });
   const { accountId } = await r.json();
+  await verifyEmailApi(request, email); // P-6: la cuenta nace sin verificar
   return { email, accountId: accountId as string };
 }
 
@@ -154,6 +155,7 @@ test.describe('P-1: seguridad de la cuenta', () => {
     await acceptLegal(page);
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page.getByText('Cuenta creada')).toBeVisible();
+    await verifyEmailApi(page.request, email); // P-6: la cuenta nace sin verificar
     await page.getByRole('tab', { name: 'Iniciar sesión' }).click();
     await page.getByLabel('Correo electrónico').fill(email);
     await page.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
@@ -293,6 +295,7 @@ test.describe('P-1: sin superposiciones (390, 1280 y 1920 px)', () => {
       await acceptLegal(page);
       await page.getByRole('button', { name: 'Crear cuenta' }).click();
       await expect(page.getByText('Cuenta creada')).toBeVisible();
+      await verifyEmailApi(page.request, email); // P-6: la cuenta nace sin verificar
       await page.getByRole('tab', { name: 'Iniciar sesión' }).click();
       await page.getByLabel('Correo electrónico').fill(email);
       await page.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);

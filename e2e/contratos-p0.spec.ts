@@ -1,7 +1,7 @@
 // Ref: plan-fase7-puesta-al-dia.md P-0 (R-1 a R-4, U-2, U-3) y §1.2 (el servidor falso responde como el real);
 // referencia-api-v1.md §1 (notas R-5 y D3) y §6 (ADR-051 T4).
 import { test, expect, type Page, type Request } from '@playwright/test';
-import { acceptLegal, attachDeliveryPhoto, uniquePng } from './support/evidence';
+import { acceptLegal, attachDeliveryPhoto, uniquePng, verifyEmailApi } from './support/evidence';
 
 const API = 'http://localhost:3002';
 
@@ -85,6 +85,7 @@ test.describe('P-0: contratos del backend', () => {
     await acceptLegal(page);
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page.getByText('Cuenta creada')).toBeVisible();
+    await verifyEmailApi(page.request, email); // P-6: la cuenta nace sin verificar
     await request.post(`${API}/__test/acceptance-pending`, { data: { email } });
 
     const logins: Request[] = [];
@@ -111,6 +112,7 @@ test.describe('P-0: contratos del backend', () => {
     await acceptLegal(page);
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page.getByText('Cuenta creada')).toBeVisible();
+    await verifyEmailApi(page.request, email); // P-6: la cuenta nace sin verificar
     await request.post(`${API}/__test/acceptance-pending`, { data: { email } });
     await loginForm(page, email, 'clave-demo-larga');
     await expect(page.getByTestId('acceptance-required')).toBeVisible();
@@ -129,6 +131,7 @@ test.describe('P-0: contratos del backend', () => {
     await acceptLegal(page);
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page.getByText('Cuenta creada')).toBeVisible();
+    await verifyEmailApi(page.request, email); // P-6: la cuenta nace sin verificar
     await loginForm(page, email, 'clave-demo-larga');
     await expect(page).not.toHaveURL(/\/login$/);
     await page.evaluate(() => (window as unknown as { __TEST_ROUTER__: { push: (p: string) => void } }).__TEST_ROUTER__.push('/panel/organization'));

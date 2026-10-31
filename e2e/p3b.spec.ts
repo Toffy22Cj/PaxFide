@@ -1,5 +1,5 @@
 import { test, expect, Page, Browser } from '@playwright/test';
-import { acceptLegal } from './support/evidence';
+import { acceptLegal, verifyEmailApi } from './support/evidence';
 
 const API = 'http://localhost:3002';
 
@@ -55,6 +55,8 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
     await invitee.getByLabel('Repite la contraseña').fill('clave-demo-larga');
     await acceptLegal(invitee);
     await invitee.getByRole('button', { name: 'Crear cuenta' }).click();
+    await expect(invitee.getByTestId('check-email')).toBeVisible();
+    await verifyEmailApi(invitee.request, email); // P-6: la cuenta nace sin verificar
     await invitee.getByRole('link', { name: 'Iniciar sesión' }).click();
     await invitee.getByLabel('Correo electrónico').fill(email);
     await invitee.getByLabel('Contraseña').fill('clave-demo-larga');
@@ -99,6 +101,7 @@ test.describe('P3-B — invitaciones, personas y mis convocatorias', () => {
     await expect(admin.getByText('Invitación enviada.')).toBeVisible();
     const { link } = await (await request.get(`${API}/__test/invitations/last?email=${encodeURIComponent(email)}`)).json();
     const { accountId } = await (await request.post(`${API}/api/v1/auth/register`, { data: { email, password: 'clave-demo-larga', acceptedTermsVersion: 'v1-2026-10', acceptedDataPolicyVersion: 'v1-2026-10' } })).json();
+    await verifyEmailApi(request, email); // P-6: la cuenta nace sin verificar
 
     const emp = await (await browser.newContext()).newPage();
     await emp.goto(link);

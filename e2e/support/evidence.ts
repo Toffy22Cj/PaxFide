@@ -56,3 +56,17 @@ export async function skipWelcome(page: Page): Promise<void> {
   await layer.getByRole('button', { name: 'Saltar' }).click();
   await layer.waitFor({ state: 'detached' });
 }
+
+/**
+ * P-6 (ADR-050 Enmienda 2): una cuenta registrada nace sin verificar. El test hace de buzón (como Mailpit): toma el
+ * último enlace de verificación y lo confirma por la API, sin pasar por la pantalla.
+ */
+export async function verifyEmailApi(request: import('@playwright/test').APIRequestContext, email: string): Promise<void> {
+  const API = 'http://localhost:3002';
+  const r = await request.get(`${API}/__test/email-verification/last?email=${encodeURIComponent(email.toLowerCase())}`);
+  if (!r.ok()) throw new Error(`sin correo de verificación para ${email}`);
+  const { link } = await r.json();
+  const token = new URLSearchParams(String(link).split('#')[1]).get('token');
+  const c = await request.post(`${API}/api/v1/auth/email-verification/confirm`, { data: { token } });
+  if (c.status() !== 204) throw new Error(`confirmación ${c.status()}`);
+}

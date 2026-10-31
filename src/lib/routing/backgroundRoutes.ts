@@ -7,6 +7,7 @@ const ACCESS_ROUTES = new Set([
   '/register',
   '/invitaciones',
   '/recuperar',
+  '/verificar-correo', // plan-fase7-puesta-al-dia.md P-6
   '/terminos',
   '/privacidad',
   '/terminos-organizacion',

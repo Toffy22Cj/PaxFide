@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { acceptLegal } from './support/evidence';
+import { acceptLegal, verifyEmailApi } from './support/evidence';
 
 function future(days: number) {
   const d = new Date(Date.now() + days * 86400000);
@@ -43,6 +43,7 @@ test.describe('P2-A — registro, descubrimiento y narrativa', () => {
     await acceptLegal(page);
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page.getByText('Cuenta creada')).toBeVisible();
+    await verifyEmailApi(page.request, email); // P-6: la cuenta nace sin verificar
 
     // El mismo correo otra vez → 409
     await page.goto('/register');

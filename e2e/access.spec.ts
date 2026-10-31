@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { acceptLegal } from './support/evidence';
+import { acceptLegal, verifyEmailApi } from './support/evidence';
 
 // Ref: Documentos/plan-fase7-fidelidad.md §2 D-F5, D-F10, D-F14, D-F17, X-6, X-7;
 // Documentos/paxfide-landing.html (.auth-top-bar, .auth-card).
@@ -99,6 +99,7 @@ test.describe('Fidelidad de Acceso, Bienvenida y Rutas Legales (F-A2)', () => {
     await acceptLegal(page);
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page.getByText('Cuenta creada')).toBeVisible();
+    await verifyEmailApi(page.request, email); // P-6: la cuenta nace sin verificar
 
     // 2. Iniciar sesión: el LoginScreen ya no tiene bienvenida (negativa) y se llega a /home
     await page.getByRole('tab', { name: 'Iniciar sesión' }).click();

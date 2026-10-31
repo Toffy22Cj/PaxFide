@@ -74,6 +74,7 @@ export default defineConfig({
           '/panel/my-campaigns',
           '/invitaciones',
           '/recuperar',
+          '/verificar-correo',
           'action:member-invite',
           'action:invitation-revoke',
           'action:member-change-role',

@@ -244,6 +244,7 @@ Un solo agente, en serie. Estimación: 5 PR.
 - **Login con 403 `EmailNotVerified`:** "Antes de entrar, confirma tu correo", con "Reenviar". La contraseña se borra del estado.
 - **Perfil:** si `GET /account` trae `emailVerified: false`, un aviso con "Reenviar". Con Q1 (a) no debería pasar, pero el campo existe.
 - **Bienvenida (D-F10):** se muestra en el primer login después de verificar, en la misma pestaña en la que se registró.
+  > **Nota (2026-10-31, corrección de Carlos al implementar P-6):** este punto queda **superado por U-16 (Anexo 2)**. La bienvenida ya no depende de la pestaña ni de un aviso en memoria: sale en `/home` por la clave `paxfide.welcome-done.<accountId>` (P-8). P-6 **no** reintroduce `justRegistered`; tras verificar el correo y entrar, la bienvenida sale igual en cualquier pestaña.
 - **Servidor falso:** las dos rutas, el 403 y `emailVerified`.
 - **Tests:**
   - tras cargar `/verificar-correo` el token ya no está en `location.href`;
