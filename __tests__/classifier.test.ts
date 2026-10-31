@@ -26,12 +26,30 @@ describe('Route Classifier (W-2)', () => {
   });
 
   describe('Perfil de build', () => {
-    it('build por defecto (sin perfil): todo deshabilitado', async () => {
+    it('U-27: build por defecto (sin perfil) = la lista de demo: /login, /campaigns y /verificar-correo existen', async () => {
       vi.stubEnv('NEXT_PUBLIC_E2E_SURFACES', undefined as unknown as string);
       vi.stubEnv('NEXT_PUBLIC_SURFACE_PROFILE', '');
+      const demo: string[] = (await import('../src/lib/routing/enabled-surfaces.demo.json')).default;
       const { classifyRoute } = await import('../src/lib/routing/classifier');
       const { isSurfaceEnabled } = await import('../src/lib/routing/surfaces');
-      for (const r of ['/login', '/panel', '/c/x', '/tracking', '/assets/a', '/account/donations', '/panel/campaigns']) {
+      for (const x of demo) expect(isSurfaceEnabled(x), x).toBe(true);
+      expect(classifyRoute('/login')).toBe('AUTH');
+      expect(classifyRoute('/campaigns')).toBe('PUBLIC');
+      expect(classifyRoute('/verificar-correo')).toBe('PUBLIC');
+      // La predicción, como en la demo (DW-38; Carlos, 2026-10-31)
+      expect(classifyRoute('/panel/prediction')).toBe('AUTHENTICATED');
+      // Negativas: /tracking/<x> no existe en ningún build (DW-01), ni una ruta sin superficie
+      expect(classifyRoute('/tracking/secreto')).toBe('NOT_APPROVED');
+      expect(classifyRoute('/panel/platform/x')).toBe('NOT_APPROVED');
+      expect(classifyRoute('/inventada')).toBe('NOT_APPROVED');
+    });
+
+    it('U-27: perfil none: todo deshabilitado (para los tests de 404)', async () => {
+      vi.stubEnv('NEXT_PUBLIC_E2E_SURFACES', undefined as unknown as string);
+      vi.stubEnv('NEXT_PUBLIC_SURFACE_PROFILE', 'none');
+      const { classifyRoute } = await import('../src/lib/routing/classifier');
+      const { isSurfaceEnabled } = await import('../src/lib/routing/surfaces');
+      for (const r of ['/login', '/panel', '/c/x', '/tracking', '/assets/a', '/account/donations', '/panel/campaigns', '/verificar-correo']) {
         expect(classifyRoute(r)).toBe('NOT_APPROVED');
       }
       expect(isSurfaceEnabled('action:split')).toBe(false);

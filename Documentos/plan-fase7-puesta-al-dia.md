@@ -498,12 +498,14 @@ Elegir la animación concreta lo delegó ("cualquier animación"): U-31 la fija.
 | U-30 | **Un solo marco de acceso que no se desmonta.** Las rutas de acceso pasan a un grupo de rutas de Next con su propio `layout.tsx`, que monta **una vez** el mundo, la barra de arriba y el `data-theme`. **Las URL no cambian**: `/login`, `/register`, `/recuperar`, `/verificar-correo`, `/invitaciones`, `/terminos`, `/privacidad`, `/terminos-organizacion`. Las pantallas dejan de envolverse en `AccessLayout`.<br>- Para `/login` y `/register`, un segundo `layout.tsx` anidado mantiene montada **la tarjeta con sus pestañas**. Solo cambia el contenido: el título, el subtítulo y el formulario.<br>- `worldMode` se lee **antes del primer pintado**, con `useSyncExternalStore` y lectura con `try/catch`, para que no salga un fotograma con el modo equivocado. Sin almacenamiento, `'auto'`, como hoy |
 | U-31 | **La animación del cambio de pestaña** (elegida por delegación):<br>- el indicador de la pestaña activa **se desliza** de una a otra (200 ms, `--ease-out`);<br>- el contenido sale con un fundido y entra con fundido y un desplazamiento de 12 px **en la dirección de la pestaña**: hacia la izquierda al ir a "Crear cuenta" y hacia la derecha al volver (220 ms);<br>- **la altura de la tarjeta se anima** de la anterior a la nueva, medida con `ResizeObserver`, sin dependencias, para que la tarjeta no salte;<br>- `authCardEnter` solo se ejecuta al **entrar** en el acceso desde fuera, nunca al cambiar de pestaña;<br>- el mundo y la barra no se tocan.<br>Con "reducir movimiento", el cambio es instantáneo. **Sin dependencias nuevas (D8)**, y nada de la API de transiciones de vista experimental de React o Next |
 
+> **Nota (2026-10-31, al implementar P-13; decisión de Carlos):** "`/panel/prediction` sigue fuera (DW-28)" contradecía a **DW-38** (ratificada el 2026-10-08, posterior a DW-28), que la habilitó en la demo y está en `enabled-surfaces.demo.json`. Con "la normal igual a demo" y una sola lista no se podían cumplir las dos. Carlos eligió **dejarla dentro, como en la demo**. La negativa de P-13 sobre `/panel/prediction` se sustituye por `/panel/platform/x`
+
 ### A4.3 Tareas
 
 **P-13 · `chore/web-surfaces-default`** — U-27.
 - **Tests:**
   - sin perfil, `/login`, `/campaigns` y `/verificar-correo` responden 200;
-  - `/panel/prediction` y `/tracking/x` dan 404 (negativas);
+  - `/tracking/x` y `/panel/platform/x` dan 404 (negativas); `/panel/prediction` existe, como en la demo (nota de U-27);
   - con `NEXT_PUBLIC_SURFACE_PROFILE=none`, todo da 404 (`playwright.empty.config.ts` sigue en verde);
   - `classifier.test.ts` actualizado.
 - `README.md`: cómo levantar la web y que ya no hace falta `build:demo` para ver las pantallas.
