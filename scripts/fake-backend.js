@@ -22,6 +22,14 @@ const accounts = {
   'representante@demo.test': { password: 'demo-representante', accountId: 'acc-rep', organizationId: 'org-1', roles: ['REPRESENTATIVE'] },
   'admin-sin-verificar@demo.test': { password: 'demo-admin2', accountId: 'acc-admin-2', organizationId: 'org-2', roles: ['ADMINISTRATOR'] },
   'donante@demo.test': { password: 'demo-donante', accountId: 'acc-donor', roles: [] },
+  // Cuentas con dominio demo.paxfide.local (como en la semilla del backend real y credenciales-locales.md)
+  'representante@demo.paxfide.local': { password: 'demo-local-password', accountId: 'acc-rep', organizationId: 'org-1', roles: ['REPRESENTATIVE'] },
+  'administrador@demo.paxfide.local': { password: 'demo-local-password', accountId: 'acc-admin', organizationId: 'org-1', roles: ['ADMINISTRATOR'] },
+  'empleado@demo.paxfide.local': { password: 'demo-local-password', accountId: 'acc-employee', organizationId: 'org-1', roles: ['EMPLOYEE'] },
+  'empleado1@demo.paxfide.local': { password: 'demo-local-password', accountId: 'acc-employee', organizationId: 'org-1', roles: ['EMPLOYEE'] },
+  'empleado2@demo.paxfide.local': { password: 'demo-local-password', accountId: 'acc-employee-2', organizationId: 'org-1', roles: ['EMPLOYEE'] },
+  'donante@demo.paxfide.local': { password: 'demo-local-password', accountId: 'acc-donor', roles: [] },
+  'plataforma@demo.paxfide.local': { password: 'demo-local-password', accountId: 'acc-platform', roles: [], platformAuthority: 'ADMINISTRATOR' },
   // Para probar el backend real de hoy, que todavía no expone /me (S-01): para esta cuenta /me responde 404
   'sin-me@demo.test': { password: 'demo-sin-me', accountId: 'acc-no-me', organizationId: 'org-1', roles: ['ADMINISTRATOR'], noMe: true },
 };
@@ -32,6 +40,38 @@ const tokens = new Map([
   ['fake-jwt-token', 'legacy@demo.test'],
   ['fake-jwt-token-for-security', 'legacy@demo.test'],
 ]);
+
+// referencia-api-v1.md §1, nota R-5 (plan-fase7-puesta-al-dia.md §1.2): versiones legales vigentes. Las cuentas de
+// siempre ya las aceptaron (los E2E existentes no cambian); `/__test/acceptance-pending` deja una cuenta pendiente,
+// como las de la semilla del backend real tras desplegar D3.
+const LEGAL = 'v1-2026-10';
+for (const acc of Object.values(accounts)) { acc.acceptedTermsVersion = LEGAL; acc.acceptedDataPolicyVersion = LEGAL; }
+// ADR-050 Enmienda 2 (referencia-api-v1.md §1, nota del 2026-10-29): las cuentas de la semilla nacen verificadas; las
+// registradas, sin verificar, con un enlace de un solo uso (24 h) a /verificar-correo#token=…
+for (const acc of Object.values(accounts)) acc.emailVerified = true;
+const verifyTokens = new Map(); // token -> { email, used, superseded, at }
+const verifyMails = [];
+const verifyCooldown = new Map(); // email -> ms de la última petición que envió correo
+function sendVerification(email) {
+  for (const v of verifyTokens.values()) if (v.email === email) v.superseded = true;
+  verifyTokens.set('vrf-' + crypto.randomBytes(24).toString('base64url'), { email, used: false, superseded: false, at: Date.now() });
+  verifyCooldown.set(email, Date.now());
+  verifyMails.push(email);
+}
+// ADR-051 T4: fotos de entrega subidas (`evidenceRef` → organización y activo al que quedaron vinculadas)
+const evidences = new Map();
+const EVIDENCE_MAX = 5 * 1024 * 1024;
+const evidenceFailures = [];
+// P-1 (referencia-api-v1.md §1, notas del 2026-10-25): recuperación, revocación y perfil
+const resetTokens = new Map(); // token -> { email, used, superseded, at }
+const resetMails = [];
+const resetCooldown = new Map(); // email -> ms de la última petición que envió correo
+const passwordChange500 = new Set();
+
+/** Revocación (ADR-050 D4): ningún token anterior de esa cuenta vale (todas sus direcciones). */
+function revokeTokensOf(acc) {
+  for (const [t, e] of [...tokens.entries()]) if (accounts[e] && accounts[e].accountId === acc.accountId) tokens.delete(t);
+}
 
 function send(res, status, body, extra = {}) {
   const headers = { ...extra };
@@ -82,6 +122,7 @@ addCampaign('01JDEMOPUBLICC0DEMONETARY1', {
   description: 'Recaudamos fondos para entregar mercados a adultos mayores del barrio.', status: 'OPEN',
   startDate: '2026-10-01T00:00:00Z', endDate: '2026-12-31T23:59:59Z', acceptedDonationTypes: ['MONETARY'],
   acceptedPaymentMethods: ['GATEWAY', 'BANK_TRANSFER'], currency: 'COP', targetAmount: '500000000', clearedAmount: '125000000', targetPolicy: 'FLEXIBLE',
+  organizationLogo: true,
 });
 addCampaign('01JDEMOPUBLICC0DECLOSED001', {
   campaignRef: 'camp-demo-2', organizationRef: 'org-1', organizationName: 'Fundación Demo', title: 'Kits escolares 2025',
@@ -119,6 +160,9 @@ const assets = new Map();
 const narrativeCalls = new Map();
 const splits = new Map();
 
+/** Transiciones sin ubicación: su `locationZone` llega null (referencia-api-v1.md §8, TR-03). */
+const NO_ZONE_EVENTS = new Set(['ASSET_DISPATCHED', 'ASSET_SPLIT', 'ASSET_CUSTODY_TRANSFERRED', 'ASSET_SPLIT_COMPENSATED', 'ASSET_DEPLETED']);
+
 const campaignByRef = (ref) => [...campaigns.values()].find((c) => c.campaignRef === ref);
 
 function newAsset(a) {
@@ -154,11 +198,52 @@ function publicView(c) {
     'acceptedPaymentMethods', 'currency', 'targetAmount', 'clearedAmount']) {
     if (c[k] !== undefined && c[k] !== null) out[k] = c[k];
   }
+  // Notas del 2026-10-18 y del 2026-10-21 (referencia-api-v1.md §5): verificación siempre presente; logo solo si hay
+  out.organizationVerified = organizationStatus.get(c.organizationRef) === 'VERIFIED';
+  if (c.organizationLogo || orgLogos.has(c.organizationRef)) out.organizationLogoUrl = `/api/v1/public/campaigns/${c.publicCode}/organization-logo`;
+  // U-6 (nota del 2026-10-25, Tarea 3): la portada, solo si la tiene
+  if (covers.has(c.publicCode)) out.coverImageUrl = `/api/v1/public/campaigns/${c.publicCode}/cover`;
   return out;
 }
 
+/** Logo de demostración: un PNG de 1×1 (los bytes no importan al front, solo que sea una imagen del backend). */
+// P-4 (ADR-051 F6, F7, F8): logos subidos por organización y portadas por convocatoria, con sus bytes
+const orgLogos = new Map();
+const covers = new Map();
+/** JPEG o PNG por el contenido (como el backend), nunca por el nombre ni el tipo declarado. */
+const isImage = (b) => (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) || b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+const imageType = (b) => (b[0] === 0xff ? 'image/jpeg' : 'image/png');
+const IMAGE_MAX = 2 * 1024 * 1024;
+
+const DEMO_LOGO = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+
 /** Fallos forzados por los tests: el siguiente POST cuya ruta empiece por `prefix` falla con `mode`. */
 const failures = [];
+const delays = [];
+
+const sha256Hex = (text) => crypto.createHash('sha256').update(text, 'utf8').digest('hex');
+/** Árbol de Merkle de E1.3: padre = SHA-256 del texto hexadecimal izquierdo + derecho; el último impar consigo mismo. */
+function merkleLevels(leaves) {
+  const levels = [leaves];
+  while (levels[levels.length - 1].length > 1) {
+    const l = levels[levels.length - 1];
+    const next = [];
+    for (let i = 0; i < l.length; i += 2) next.push(sha256Hex(l[i] + (l[i + 1] ?? l[i])));
+    levels.push(next);
+  }
+  return levels;
+}
+const merkleRoot = (leaves) => { const lv = merkleLevels(leaves); return lv[lv.length - 1][0]; };
+function merklePath(leaves, index) {
+  const path = [];
+  let i = index;
+  for (const l of merkleLevels(leaves).slice(0, -1)) {
+    if (i % 2 === 0) path.push({ side: 'RIGHT', hash: l[i + 1] ?? l[i] });
+    else path.push({ side: 'LEFT', hash: l[i - 1] });
+    i = Math.floor(i / 2);
+  }
+  return path;
+}
 
 function readBody(req) {
   return new Promise((resolve) => {
@@ -170,17 +255,50 @@ function readBody(req) {
   });
 }
 
+function readRaw(req) {
+  return new Promise((resolve) => {
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+  });
+}
+
+/** El primer archivo de un `multipart/form-data` con el campo `name` (suficiente para el navegador de los tests). */
+function multipartFile(req, raw, name) {
+  const m = /boundary=(?:"([^"]+)"|([^;]+))/.exec(req.headers['content-type'] || '');
+  if (!m) return null;
+  const boundary = Buffer.from('--' + (m[1] || m[2]).trim());
+  let start = raw.indexOf(boundary);
+  while (start >= 0) {
+    const next = raw.indexOf(boundary, start + boundary.length);
+    if (next < 0) break;
+    const part = raw.subarray(start + boundary.length + 2, next - 2);
+    const headerEnd = part.indexOf('\r\n\r\n');
+    if (headerEnd >= 0) {
+      const head = part.subarray(0, headerEnd).toString('utf8');
+      if (new RegExp(`name="${name}"`).test(head)) return part.subarray(headerEnd + 4);
+    }
+    start = next;
+  }
+  return null;
+}
+
 function accountOf(req) {
   const h = req.headers['authorization'];
   if (!h || !h.startsWith('Bearer ')) return null;
   const email = tokens.get(h.slice(7));
-  return email ? accounts[email] : null;
+  const acc = email ? accounts[email] : null;
+  return acc && acc.status !== 'INACTIVE' ? acc : null;
+}
+
+function emailOf(req) {
+  return tokens.get(String(req.headers['authorization'] || '').slice(7));
 }
 
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept, Command-Id, Intent-Token');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept, Command-Id, Intent-Token, x-test-delay-ms');
   res.setHeader('Access-Control-Expose-Headers', 'Location');
 
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
@@ -196,7 +314,67 @@ const server = http.createServer(async (req, res) => {
     send(res, 200, { ok: true });
     return;
   }
+  // P-1: el buzón de la recuperación (como Mailpit): el enlace del último correo de recuperación a una dirección
+  if (path === '/__test/password-reset/last' && req.method === 'GET') {
+    const email = (url.searchParams.get('email') || '').toLowerCase();
+    const r = [...resetTokens.entries()].filter(([, v]) => v.email === email).pop();
+    send(res, r ? 200 : 404, r ? { link: `/recuperar#token=${r[0]}`, sent: resetMails.filter((m) => m === email).length } : { ok: false });
+    return;
+  }
+  // P-1: el próximo cambio de contraseña de esa cuenta se aplica y responde 500 (nota ADR-038 #7)
+  // P-6: el buzón de la verificación (como Mailpit): el enlace del último correo de verificación a una dirección
+  if (path === '/__test/email-verification/last' && req.method === 'GET') {
+    const email = (url.searchParams.get('email') || '').toLowerCase();
+    const r = [...verifyTokens.entries()].filter(([, v]) => v.email === email).pop();
+    send(res, r ? 200 : 404, r ? { link: `/verificar-correo#token=${r[0]}`, sent: verifyMails.filter((m) => m === email).length } : { ok: false });
+    return;
+  }
+  // P-6: una cuenta pasa a "sin verificar" con su sesión abierta (cuentas anteriores a la Enmienda 2, Q2 (a))
+  if (path === '/__test/unverify' && req.method === 'POST') {
+    const body = await readBody(req);
+    const acc = body && accounts[String(body.email || '').toLowerCase()];
+    if (!acc) { send(res, 404, { ok: false }); return; }
+    acc.emailVerified = false;
+    send(res, 200, { ok: true });
+    return;
+  }
+  if (path === '/__test/password-change-500' && req.method === 'POST') {
+    const body = await readBody(req);
+    passwordChange500.add(String((body && body.email) || '').toLowerCase());
+    send(res, 200, { ok: true });
+    return;
+  }
+  // La cuenta pasa a tener las versiones legales pendientes (cuentas anteriores a R-5 y semilla tras D3)
+  if (path === '/__test/acceptance-pending' && req.method === 'POST') {
+    const body = await readBody(req);
+    const acc = body && accounts[String(body.email || '').toLowerCase()];
+    if (!acc) { send(res, 404, { ok: false }); return; }
+    if (body.terms !== false) delete acc.acceptedTermsVersion;
+    if (body.dataPolicy !== false) delete acc.acceptedDataPolicyVersion;
+    send(res, 200, { ok: true });
+    return;
+  }
+  // La siguiente subida de evidencia responde con este estado (410 EvidenceRemoved, 503, 413, 415)
+  if (path === '/__test/evidence-fail' && req.method === 'POST') {
+    const body = await readBody(req);
+    evidenceFailures.push(Number(body.status));
+    send(res, 200, { ok: true });
+    return;
+  }
+  // Cuántas fotos de evidencia se subieron (para comprobar que un reintento no vuelve a subir)
+  if (path === '/__test/evidence/count' && req.method === 'GET') {
+    send(res, 200, { uploads: evidences.__uploads || 0 });
+    return;
+  }
+  if (path === '/__test/delay' && req.method === 'POST') {
+
+    const body = await readBody(req);
+    delays.push({ prefix: body.prefix, ms: Number(body.ms) });
+    send(res, 200, { ok: true });
+    return;
+  }
   // Hace de proveedor de pago: confirma (o falla) la intención y aplica los fondos, como el webhook firmado real
+
   if (path === '/__test/payments' && req.method === 'POST') {
     const body = await readBody(req);
     const intent = intents.get(body.intentId);
@@ -205,6 +383,8 @@ const server = http.createServer(async (req, res) => {
       if (intent.status === 'PENDING') intent.status = 'FAILED';
     } else if (intent.status === 'PENDING') {
       intent.status = 'CONFIRMED';
+      intent.confirmedAt = new Date().toISOString();
+      intent.clearedAt = intent.confirmedAt; // G-2: un solo FUNDS_CLEARED (primero y último iguales)
       if (!body.withoutApplying) {
         intent.trackingCode = 'TRK.' + crypto.randomBytes(24).toString('base64url');
         intent.fundId = 'fund-' + crypto.randomUUID();
@@ -239,6 +419,7 @@ const server = http.createServer(async (req, res) => {
       title: body.title || 'Convocatoria de prueba', status: 'OPEN', startDate: '2026-10-01T00:00:00Z',
       endDate: '2026-12-31T23:59:59Z', acceptedDonationTypes: ['MONETARY'], acceptedPaymentMethods: ['GATEWAY', 'BANK_TRANSFER'],
       currency: 'COP', targetAmount: '100000000', clearedAmount: '0',
+      ...(body.visibility === 'PRIVATE_LINK' ? { visibility: 'PRIVATE_LINK' } : {}),
     });
     send(res, 200, { publicCode: code });
     return;
@@ -246,6 +427,17 @@ const server = http.createServer(async (req, res) => {
 
   if (!path.startsWith(BASE)) { send(res, 404); return; }
   const p = path.slice(BASE.length);
+
+  const testDelay = Number(req.headers['x-test-delay-ms'] || 0);
+  if (testDelay > 0) {
+    await new Promise((r) => setTimeout(r, testDelay));
+  }
+
+  const dIdx = delays.findIndex((d) => p.startsWith(d.prefix));
+  if (dIdx >= 0) {
+    const d = delays.splice(dIdx, 1)[0];
+    await new Promise((r) => setTimeout(r, d.ms));
+  }
 
   if (req.method === 'POST') {
     const i = failures.findIndex((f) => p.startsWith(f.prefix));
@@ -269,9 +461,13 @@ const server = http.createServer(async (req, res) => {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email)) { problem(res, 400, 'InvalidEmailFormat'); return; }
     // H-P2-1 del backend: al menos 12 caracteres
     if (String(body.password).length < 12) { problem(res, 400, 'PasswordTooShort'); return; }
+    // R-5: las dos versiones vigentes, o 400 BadRequest sin cuenta creada
+    if (body.acceptedTermsVersion !== LEGAL || body.acceptedDataPolicyVersion !== LEGAL) { problem(res, 400, 'BadRequest'); return; }
     if (accounts[body.email]) { problem(res, 409, 'DuplicateEmail'); return; }
     const accountId = crypto.randomUUID();
-    accounts[body.email] = { password: body.password, accountId, roles: [] };
+    accounts[body.email] = { password: body.password, accountId, roles: [], acceptedTermsVersion: LEGAL, acceptedDataPolicyVersion: LEGAL, emailVerified: false };
+    // Enmienda 2: la cuenta nace sin verificar y se envía el enlace; la respuesta no espera al envío
+    sendVerification(String(body.email).toLowerCase());
     send(res, 201, { accountId, status: 'ACTIVE' });
     return;
   }
@@ -281,7 +477,31 @@ const server = http.createServer(async (req, res) => {
     const body = await readBody(req);
     if (!body || !body.email || !body.password) { problem(res, 400, 'Bad Request'); return; }
     const acc = accounts[body.email];
-    if (!acc || acc.password !== body.password) { problem(res, 401, 'Unauthorized'); return; }
+    // Una cuenta que cambió o recuperó la contraseña solo entra con la suya (sin los atajos de las cuentas de la demo)
+    const passwordMatches = acc && acc.status !== 'INACTIVE' && (acc.passwordChanged ? acc.password === body.password : (
+      acc.password === body.password ||
+      (body.password === 'demo-local-password' && acc.password) ||
+      (acc.password === 'demo-local-password' && (body.password === 'demo-representante' || body.password === 'demo-admin' || body.password === 'demo-empleado'))
+    ));
+    if (!acc || !passwordMatches) { problem(res, 401, 'Unauthorized'); return; }
+    // Enmienda 2 (E2-3): con la contraseña correcta y el correo sin verificar, 403 EmailNotVerified sin token; va antes
+    // que AcceptanceRequired
+    if (acc.emailVerified === false) {
+      send(res, 403, { type: 'about:blank', title: 'EmailNotVerified', status: 403, detail: 'The email must be verified' });
+      return;
+    }
+    // D3: con la contraseña correcta, las versiones que falten tienen que venir EXACTAMENTE en el cuerpo; si no, 403
+    const missingTerms = acc.acceptedTermsVersion !== LEGAL;
+    const missingData = acc.acceptedDataPolicyVersion !== LEGAL;
+    if ((missingTerms && body.acceptedTermsVersion !== LEGAL) || (missingData && body.acceptedDataPolicyVersion !== LEGAL)) {
+      const pending = {};
+      if (missingTerms) pending.pendingTermsVersion = LEGAL;
+      if (missingData) pending.pendingDataPolicyVersion = LEGAL;
+      send(res, 403, { type: 'about:blank', title: 'AcceptanceRequired', status: 403, detail: DETAILS[403], ...pending });
+      return;
+    }
+    if (missingTerms) acc.acceptedTermsVersion = LEGAL;
+    if (missingData) acc.acceptedDataPolicyVersion = LEGAL;
     const token = 'tok-' + crypto.randomUUID();
     tokens.set(token, body.email);
     send(res, 200, { token });
@@ -307,6 +527,26 @@ const server = http.createServer(async (req, res) => {
     const out = { items: page.map((c) => { const v = publicView(c); delete v.description; delete v.acceptedPaymentMethods; return { publicCode: c.publicCode, ...v }; }) };
     if (start + 20 < all.length) out.nextCursor = Buffer.from(page[page.length - 1].publicCode).toString('base64url');
     send(res, 200, out);
+    return;
+  }
+
+  // GET /public/campaigns/{publicCode}/organization-logo (ADR-051 Tarea 2): bytes del logo o 404, siempre el mismo
+  const logoMatch = p.match(/^\/public\/campaigns\/([^/]+)\/organization-logo$/);
+  if (logoMatch && req.method === 'GET') {
+    const c = campaigns.get(decodeURIComponent(logoMatch[1]));
+    const uploaded = c && orgLogos.get(c.organizationRef);
+    if (!c || (!c.organizationLogo && !uploaded)) { problem(res, 404, 'NotFound'); return; }
+    res.writeHead(200, { 'Content-Type': uploaded ? imageType(uploaded) : 'image/png', 'Cache-Control': 'public, max-age=3600' });
+    res.end(uploaded || DEMO_LOGO);
+    return;
+  }
+  // GET /public/campaigns/{publicCode}/cover (Tarea 3): pública; 404 igual sin portada
+  const coverGet = p.match(/^\/public\/campaigns\/([^/]+)\/cover$/);
+  if (coverGet && req.method === 'GET') {
+    const bytes = covers.get(decodeURIComponent(coverGet[1]));
+    if (!bytes) { problem(res, 404, 'NotFound'); return; }
+    res.writeHead(200, { 'Content-Type': imageType(bytes), 'Cache-Control': 'public, max-age=3600' });
+    res.end(bytes);
     return;
   }
 
@@ -355,6 +595,7 @@ const server = http.createServer(async (req, res) => {
       intents.set(intentId, {
         intentId, publicCode: c.publicCode, campaignTitle: c.title, amount: body.amount, currency: body.currency,
         paymentMethod: body.paymentMethod, status: 'PENDING', donorAccount: actor ? actor.accountId : null,
+        createdAt: new Date().toISOString(), organizationName: c.organizationName,
         redirect: body.paymentMethod === 'GATEWAY' ? '/demo/checkout/sim_' + crypto.randomUUID() : null,
       });
       return intentId;
@@ -432,10 +673,33 @@ const server = http.createServer(async (req, res) => {
       return {
         campaignRef: c.campaignRef, publicCode: c.publicCode, title: c.title, status: c.status, visibility: c.visibility || 'PUBLIC',
         currency: c.currency, targetAmount: c.targetAmount, targetPolicy: c.targetPolicy, clearedAmount: c.clearedAmount,
+        startDate: c.startDate, endDate: c.endDate,
         responsibles, assignedEmployeeCount: responsibles.filter((r) => r.actingRole === 'EMPLOYEE').length,
       };
     });
     send(res, 200, { items });
+    return;
+  }
+
+  // S-18: GET /organizations/{organizationId} (solo ADMINISTRATOR o REPRESENTATIVE, el resto 403)
+  const singleOrgMatch = p.match(/^\/organizations\/([^/]+)$/);
+  if (singleOrgMatch && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(singleOrgMatch[1]);
+    if (actor.organizationId !== orgId || (!actor.roles.includes('ADMINISTRATOR') && !actor.roles.includes('REPRESENTATIVE'))) {
+      problem(res, 403, 'Forbidden'); return;
+    }
+    const o = organizations.get(orgId);
+    if (!o) { problem(res, 404, 'NotFound'); return; }
+    const out = {
+      organizationId: orgId,
+      name: o.name,
+      type: o.type,
+      verificationStatus: organizationStatus.get(orgId) || 'PENDING_VERIFICATION',
+      informationRequest: o.informationRequest,
+      logoUrl: o.logoUrl,
+    };
+    send(res, 200, out);
     return;
   }
 
@@ -621,8 +885,66 @@ const server = http.createServer(async (req, res) => {
     const items = [...assets.values()].filter((a) => a.organizationRef === orgId).slice(0, 200).map((a) => ({
       assetRef: a.assetRef, lifecycleStatus: a.lifecycleStatus, currentCustodianRef: a.currentCustodianRef,
       currentLocation: a.currentLocation, quantity: scale4(a.quantity), unitOfMeasure: a.unitOfMeasure, campaignRef: a.campaignRef,
+      assetType: a.assetType,
+      // G-9: el último evento por orden (aquí, el último del historial)
+      ...(a.history && a.history.length ? { lastEventAt: a.history[a.history.length - 1].timestamp } : {}),
     }));
     send(res, 200, { items });
+    return;
+  }
+
+  // P-3 — G-6, G-7 y G-8 (ficha R-6, Bloques B y D; referencia-api-v1.md §3). Valores del doble, por la organización
+  const timeMatch = p.match(/^\/organizations\/([^/]+)\/(funds\/monthly|integrity|activity)$/);
+  if (timeMatch && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(timeMatch[1]);
+    const what = timeMatch[2];
+    const allowed = { 'funds/monthly': ['ADMINISTRATOR', 'EMPLOYEE'], integrity: ['ADMINISTRATOR', 'REPRESENTATIVE'], activity: ['ADMINISTRATOR', 'EMPLOYEE', 'REPRESENTATIVE'] }[what];
+    if (actor.organizationId !== orgId || !actor.roles.some((r) => allowed.includes(r))) { problem(res, 403, 'Forbidden'); return; }
+    const funds = [...intents.values()].filter((i) => i.fundId && campaigns.get(i.publicCode)?.organizationRef === orgId);
+    const orgAssets = [...assets.values()].filter((a) => a.organizationRef === orgId);
+    if (what === 'funds/monthly') {
+      const n = url.searchParams.has('months') ? Number(url.searchParams.get('months')) : 6;
+      if (!Number.isInteger(n) || n < 1 || n > 12) { problem(res, 400, 'BadRequest'); return; }
+      const bogota = (iso) => new Date(Date.parse(iso) - 5 * 3600 * 1000).toISOString().slice(0, 7);
+      const now = new Date(Date.now() - 5 * 3600 * 1000);
+      const months = [];
+      for (let k = n - 1; k >= 0; k--) months.push(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - k, 1)).toISOString().slice(0, 7));
+      const currencies = [...new Set(funds.map((f) => f.currency || 'COP'))];
+      const items = [];
+      for (const c of currencies) for (const m of months) {
+        const sum = funds.filter((f) => (f.currency || 'COP') === c && f.clearedAt && bogota(f.clearedAt) === m).reduce((t, f) => t + BigInt(f.amount), BigInt(0));
+        items.push({ month: m, currency: c, clearedAmount: String(sum) });
+      }
+      send(res, 200, { timezone: 'America/Bogota', items }, { 'Cache-Control': 'no-store' });
+      return;
+    }
+    if (what === 'integrity') {
+      const events = orgAssets.reduce((t, a) => t + (a.history ? a.history.length : 0), 0) + funds.length;
+      send(res, 200, { unanchoredEvents: Math.max(0, events - 2), inPendingBatches: 0, underReviewEvents: 0, lastAnchoredAt: '2026-10-08T10:00:00Z', truncated: false, checkedAt: new Date().toISOString() }, { 'Cache-Control': 'no-store' });
+      return;
+    }
+    // activity: de lo más reciente a lo más antiguo, 20 por página, cursor opaco de esta organización
+    const all = [];
+    for (const a of orgAssets) for (const h of a.history || []) {
+      const it = { type: h.eventType, occurredAt: h.timestamp, subject: { kind: 'ASSET', ref: a.assetRef } };
+      if (h.eventType === 'ASSET_REGISTERED' || h.eventType === 'ASSET_SPLIT') { it.quantity = scale4(a.quantity); it.unitOfMeasure = a.unitOfMeasure; }
+      if (['ASSET_REGISTERED', 'ASSET_RECEIVED', 'ASSET_DELIVERED'].includes(h.eventType)) it.locationZone = 'Zona centro';
+      if (['ASSET_REGISTERED', 'ASSET_DISPATCHED', 'ASSET_RECEIVED', 'ASSET_DELIVERED', 'ASSET_SPLIT'].includes(h.eventType)) all.push(it);
+    }
+    for (const f of funds) if (f.clearedAt) all.push({ type: 'FUNDS_CLEARED', occurredAt: f.clearedAt, subject: { kind: 'FUND', ref: f.fundId } });
+    all.push({ type: 'BATCH_ANCHORED', occurredAt: '2026-10-08T10:00:00Z', eventCount: 2 });
+    all.sort((x, y) => (x.occurredAt < y.occurredAt ? 1 : -1));
+    const cursor = url.searchParams.get('cursor');
+    let start = 0;
+    if (cursor !== null) {
+      const m = /^([^:]+):(\d+)$/.exec(Buffer.from(cursor, 'base64url').toString());
+      if (!m || m[1] !== orgId) { problem(res, 400, 'BadRequest'); return; }
+      start = Number(m[2]);
+    }
+    const out = { items: all.slice(start, start + 20), truncated: false };
+    if (start + 20 < all.length) out.nextCursor = Buffer.from(`${orgId}:${start + 20}`).toString('base64url');
+    send(res, 200, out, { 'Cache-Control': 'no-store' });
     return;
   }
 
@@ -699,7 +1021,14 @@ const server = http.createServer(async (req, res) => {
   if (p === '/platform/administrators' && req.method === 'GET') {
     if (!actor) { problem(res, 401, 'Unauthorized'); return; }
     if (!actor.platformAuthority) { problem(res, 403, 'Forbidden'); return; }
-    const items = Object.values(accounts).filter((a) => a.platformAuthority).map((a) => ({ accountId: a.accountId, status: 'ACTIVE' }));
+    const seen = new Set();
+    const items = [];
+    for (const a of Object.values(accounts)) {
+      if (a.platformAuthority && !seen.has(a.accountId)) {
+        seen.add(a.accountId);
+        items.push({ accountId: a.accountId, status: 'ACTIVE' });
+      }
+    }
     send(res, 200, { items }, { 'Cache-Control': 'no-store' });
     return;
   }
@@ -732,6 +1061,8 @@ const server = http.createServer(async (req, res) => {
     const b = await readBody(req);
     if (!b || !['FOUNDATION', 'COMPANY'].includes(b.type)) { problem(res, 400, 'InvalidRequestField'); return; }
     if (typeof b.name !== 'string' || !b.name.trim() || b.name.length > 200) { problem(res, 400, 'InvalidRequestField'); return; }
+    // R-5: la versión vigente de los términos de organización, o 400 sin organización
+    if (b.acceptedOrganizationTermsVersion !== LEGAL) { problem(res, 400, 'BadRequest'); return; }
     if (actor.organizationId) { problem(res, 409, 'AccountAlreadyBelongsToOrganization'); return; }
     const organizationId = 'org-' + crypto.randomUUID();
     organizations.set(organizationId, { name: b.name.trim(), type: b.type });
@@ -739,6 +1070,99 @@ const server = http.createServer(async (req, res) => {
     actor.organizationId = organizationId;
     actor.roles = ['REPRESENTATIVE'];
     send(res, 201, { organizationId, verificationStatus: 'PENDING_VERIFICATION' });
+    return;
+  }
+
+  // P-4 — logo (ADR-051 F6 y F8, Tarea 2): PUT y DELETE para REPRESENTATIVE o ADMINISTRATOR (403 antes de mirar el
+  // tamaño); GET para cualquier miembro o la plataforma, con no-store y private; 404 sin logo
+  const logoOrg = p.match(/^\/organizations\/([^/]+)\/logo$/);
+  if (logoOrg && ['PUT', 'DELETE', 'GET'].includes(req.method)) {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(logoOrg[1]);
+    const o = organizations.get(orgId);
+    if (req.method === 'GET') {
+      if (!(actor.organizationId === orgId || actor.platformAuthority) || !o) { problem(res, 403, 'Forbidden'); return; }
+      const bytes = orgLogos.get(orgId) || (o.logoUrl ? DEMO_LOGO : null);
+      if (!bytes) { problem(res, 404, 'NotFound'); return; }
+      res.writeHead(200, { 'Content-Type': imageType(bytes), 'Cache-Control': 'no-store, private' });
+      res.end(bytes);
+      return;
+    }
+    if (actor.organizationId !== orgId || !actor.roles.some((r) => r === 'ADMINISTRATOR' || r === 'REPRESENTATIVE') || !o) { problem(res, 403, 'Forbidden'); return; }
+    if (req.method === 'DELETE') { orgLogos.delete(orgId); delete o.logoUrl; res.writeHead(204); res.end(); return; }
+    const raw = await readRaw(req);
+    const file = multipartFile(req, raw, 'file');
+    if (!file) { problem(res, 400, 'BadRequest'); return; }
+    if (file.length > IMAGE_MAX) { problem(res, 413, 'ImageTooLarge'); return; }
+    if (!isImage(file)) { problem(res, 415, 'UnsupportedImageFormat'); return; }
+    orgLogos.set(orgId, file);
+    o.logoUrl = `/api/v1/organizations/${orgId}/logo`;
+    send(res, 200, { logoUrl: o.logoUrl });
+    return;
+  }
+  // P-4 — portada (Tarea 3): solo ADMINISTRATOR de la organización de la convocatoria, nunca el REPRESENTATIVE
+  const coverOrg = p.match(/^\/organizations\/([^/]+)\/campaigns\/([^/]+)\/cover$/);
+  if (coverOrg && (req.method === 'PUT' || req.method === 'DELETE')) {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(coverOrg[1]);
+    const c = campaignByRef(decodeURIComponent(coverOrg[2]));
+    if (actor.organizationId !== orgId || !actor.roles.includes('ADMINISTRATOR') || !c || c.organizationRef !== orgId) { problem(res, 403, 'Forbidden'); return; }
+    if (req.method === 'DELETE') { covers.delete(c.publicCode); res.writeHead(204); res.end(); return; }
+    const raw = await readRaw(req);
+    const file = multipartFile(req, raw, 'file');
+    if (!file) { problem(res, 400, 'BadRequest'); return; }
+    if (file.length > IMAGE_MAX) { problem(res, 413, 'ImageTooLarge'); return; }
+    if (!isImage(file)) { problem(res, 415, 'UnsupportedImageFormat'); return; }
+    covers.set(c.publicCode, file);
+    send(res, 200, { coverImageUrl: `/api/v1/public/campaigns/${c.publicCode}/cover` });
+    return;
+  }
+  // P-4 — retirar una foto (ADR-051 F7): plataforma; 403 antes de validar el cuerpo; 204 también si ya no estaba
+  const removeMatch = p.match(/^\/platform\/organizations\/([^/]+)\/media\/remove$/);
+  if (removeMatch && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    if (!actor.platformAuthority) { problem(res, 403, 'Forbidden'); return; }
+    const orgId = decodeURIComponent(removeMatch[1]);
+    const b = (await readBody(req)) || {};
+    if (typeof b.reason !== 'string' || !b.reason.trim() || b.reason.length > 500) { problem(res, 400, 'BadRequest'); return; }
+    if (b.purpose === 'ORGANIZATION_LOGO') {
+      if (b.ref !== undefined) { problem(res, 400, 'BadRequest'); return; }
+      orgLogos.delete(orgId); const o = organizations.get(orgId); if (o) delete o.logoUrl;
+    } else if (b.purpose === 'CAMPAIGN_COVER') {
+      const c = typeof b.ref === 'string' ? campaignByRef(b.ref) : null;
+      if (!c) { problem(res, 400, 'BadRequest'); return; }
+      if (c.organizationRef === orgId) covers.delete(c.publicCode);
+    } else if (b.purpose === 'DELIVERY_EVIDENCE') {
+      if (typeof b.ref !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(b.ref)) { problem(res, 400, 'BadRequest'); return; }
+      const ev = evidences.get(b.ref);
+      if (!ev || ev.organizationId !== orgId) { problem(res, 404, 'NotFound'); return; }
+      ev.removed = true; delete ev.bytes;
+    } else { problem(res, 400, 'BadRequest'); return; }
+    res.writeHead(204); res.end();
+    return;
+  }
+
+  // ADR-051 T4 (referencia-api-v1.md §6): subir la foto de una entrega. Multipart `file`, JPEG o PNG por contenido,
+  // ≤ 5 MB binarios; solo EMPLOYEE de esa organización (403 antes de leer el archivo); sin Command-Id
+  const evMatch = p.match(/^\/organizations\/([^/]+)\/delivery-evidence$/);
+  if (evMatch && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(evMatch[1]);
+    if (actor.organizationId !== orgId || !(actor.roles || []).includes('EMPLOYEE')) { problem(res, 403, 'Forbidden'); return; }
+    const raw = await readRaw(req);
+    const forced = evidenceFailures.shift();
+    if (forced === 410) { send(res, 410, { type: 'about:blank', title: 'EvidenceRemoved', status: 410, detail: 'The resource was removed.' }); return; }
+    if (forced === 503) { problem(res, 503, 'MediaStorageUnavailable'); return; }
+    const file = multipartFile(req, raw, 'file');
+    if (!file) { problem(res, 400, 'BadRequest'); return; }
+    if (forced === 413 || file.length > EVIDENCE_MAX) { problem(res, 413, 'ImageTooLarge'); return; }
+    const jpeg = file[0] === 0xff && file[1] === 0xd8 && file[2] === 0xff;
+    const png = file.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    if (forced === 415 || !(jpeg || png)) { problem(res, 415, 'UnsupportedImageFormat'); return; }
+    const evidenceRef = 'sha256:' + crypto.createHash('sha256').update(file).digest('hex');
+    if (!evidences.has(evidenceRef)) evidences.set(evidenceRef, { organizationId: orgId, assetRef: null, bytes: file });
+    evidences.__uploads = (evidences.__uploads || 0) + 1;
+    send(res, 201, { evidenceRef });
     return;
   }
 
@@ -947,11 +1371,18 @@ const server = http.createServer(async (req, res) => {
         financialSnapshot: {
           currency: intent.currency, originalAmount: Number(intent.amount), clearedAmount: Number(intent.amount),
           pendingAllocationAmount: 0, confirmedAllocationAmount: items.length ? Number(intent.amount) : 0, refundedAmount: 0,
+          // G-2 (nota del 2026-10-23, §8)
+          ...(intent.clearedAt ? { firstClearedAt: intent.clearedAt, lastClearedAt: intent.clearedAt } : {}),
         },
         campaignRef: c.campaignRef,
+        // G-1 (nota del 2026-10-21, §8): título y organización de la convocatoria
+        campaignTitle: c.title, ...(c.organizationName ? { organizationName: c.organizationName } : {}),
         logistics: items.map((a) => ({
           assetRef: a.assetRef, lifecycleStatus: a.lifecycleStatus, assetType: a.assetType, unitOfMeasure: a.unitOfMeasure,
-          quantity: scale4(a.quantity), locationZone: 'Zona centro', custodianCategory: 'LOCAL_ALLY',
+          // `locationZone` llega null si el activo no tiene ubicación (despachado)
+          quantity: scale4(a.quantity), locationZone: a.lifecycleStatus === 'DISPATCHED' ? null : 'Zona centro', custodianCategory: 'LOCAL_ALLY',
+          // G-4 (nota del 2026-10-25, §8): solo si el padre está en la misma respuesta
+          ...(a.parentAssetRef && items.some((x) => x.assetRef === a.parentAssetRef) ? { parentAssetRef: a.parentAssetRef } : {}),
         })),
         status: items.length ? 'EN_PROCESO' : 'ACTIVA',
       });
@@ -979,10 +1410,203 @@ const server = http.createServer(async (req, res) => {
     if (hist) {
       const a = assets.get(decodeURIComponent(hist[1]));
       if (!a || a.fundId !== intent.fundId) { send(res, 401, { type: 'about:blank', title: 'Unauthorized', status: 401, detail: 'Invalid or missing token' }); return; }
-      send(res, 200, { history: a.history.map((h) => ({ eventType: h.eventType, timestamp: h.timestamp, locationZone: 'Zona centro', custodianCategory: 'LOCAL_ALLY', status: h.status })) });
+      // G-3 y E1 (nota del 2026-10-25, §8): huella por paso; los dos primeros eventos de cada activo forman un lote
+      // ANCHORED con su prueba de Merkle (algoritmo E1.3), el resto espera anclaje. Valores de PRUEBA del doble
+      const hashes = a.history.map((h, i) => sha256Hex(`${a.assetRef}:${i}:${h.eventType}`));
+      const batch = hashes.slice(0, 2);
+      send(res, 200, { history: a.history.map((h, i) => {
+        const out = { eventType: h.eventType, timestamp: h.timestamp, locationZone: NO_ZONE_EVENTS.has(h.eventType) ? null : 'Zona centro', custodianCategory: 'LOCAL_ALLY', status: h.status, eventHash: hashes[i] };
+        if (i < batch.length) {
+          out.anchorStatus = 'ANCHORED';
+          out.anchorProof = { merkleRoot: merkleRoot(batch), leafIndex: i, path: merklePath(batch, i), transactionHash: '0x' + sha256Hex(a.assetRef + ':tx'), network: 'sepolia', anchoredAt: h.timestamp };
+        } else {
+          out.anchorStatus = 'PENDING';
+        }
+        // ADR-051 F6: la huella de la foto, nunca la imagen
+        if (h.eventType === 'ASSET_DELIVERED') {
+          out.evidenceRegistered = !!a.evidenceRef;
+          if (a.evidenceRef && /^sha256:[0-9a-f]{64}$/.test(a.evidenceRef)) out.evidenceRef = a.evidenceRef;
+        }
+        return out;
+      }) });
       return;
     }
     problem(res, 404, 'NotFound');
+    return;
+  }
+
+  // P-1 — POST /auth/password-reset (ADR-050 D8): siempre el mismo 202; solo una cuenta ACTIVE fuera del
+  // enfriamiento de 5 minutos recibe correo; pedir otro sustituye al anterior
+  if (p === '/auth/password-reset' && req.method === 'POST') {
+    const body = await readBody(req);
+    if (!body || typeof body.email !== 'string' || !body.email.trim()) { problem(res, 400, 'BadRequest'); return; }
+    const email = body.email.trim().toLowerCase();
+    const acc = accounts[email];
+    const last = resetCooldown.get(email) || 0;
+    if (acc && acc.status !== 'INACTIVE' && Date.now() - last >= 5 * 60 * 1000) {
+      for (const v of resetTokens.values()) if (v.email === email) v.superseded = true;
+      resetTokens.set('rst-' + crypto.randomBytes(24).toString('base64url'), { email, used: false, superseded: false, at: Date.now() });
+      resetCooldown.set(email, Date.now());
+      resetMails.push(email);
+    }
+    res.writeHead(202, { 'Cache-Control': 'no-store' });
+    res.end();
+    return;
+  }
+  // P-1 — POST /auth/password-reset/confirm: 204 sin iniciar sesión; el mismo 400 para cualquier token que no sirve;
+  // PasswordTooShort no consume el token
+  if (p === '/auth/password-reset/confirm' && req.method === 'POST') {
+    const body = await readBody(req);
+    if (!body || !body.token || !body.newPassword) { problem(res, 400, 'BadRequest'); return; }
+    const t = resetTokens.get(String(body.token));
+    const acc = t && accounts[t.email];
+    if (!t || t.used || t.superseded || Date.now() - t.at > 30 * 60 * 1000 || !acc || acc.status === 'INACTIVE') {
+      problem(res, 400, 'PasswordResetTokenInvalid'); return;
+    }
+    if (String(body.newPassword).length < 12) { problem(res, 400, 'PasswordTooShort'); return; }
+    t.used = true;
+    acc.password = String(body.newPassword);
+    acc.passwordChanged = true;
+    // Enmienda 2: confirmar una recuperación también verifica el correo
+    acc.emailVerified = true;
+    revokeTokensOf(acc);
+    res.writeHead(204, { 'Cache-Control': 'no-store' });
+    res.end();
+    return;
+  }
+
+  // Enmienda 2 — POST /auth/email-verification {email}: siempre el mismo 202 sin cuerpo; solo una cuenta ACTIVE sin
+  // verificar, fuera del enfriamiento de 5 minutos, recibe un correo nuevo (el anterior queda sustituido)
+  if (p === '/auth/email-verification' && req.method === 'POST') {
+    const body = await readBody(req);
+    if (!body || typeof body.email !== 'string' || !body.email.trim()) { problem(res, 400, 'BadRequest'); return; }
+    const email = body.email.trim().toLowerCase();
+    const acc = accounts[email];
+    const last = verifyCooldown.get(email) || 0;
+    if (acc && acc.status !== 'INACTIVE' && acc.emailVerified === false && Date.now() - last >= 5 * 60 * 1000) sendVerification(email);
+    res.writeHead(202, { 'Cache-Control': 'no-store' });
+    res.end();
+    return;
+  }
+  // Enmienda 2 — POST /auth/email-verification/confirm {token}: 204 sin iniciar sesión; el mismo 400
+  // EmailVerificationTokenInvalid para un token desconocido, caducado, usado, sustituido o de una cuenta inactiva
+  if (p === '/auth/email-verification/confirm' && req.method === 'POST') {
+    const body = await readBody(req);
+    if (!body || typeof body.token !== 'string' || !body.token) { problem(res, 400, 'BadRequest'); return; }
+    const t = verifyTokens.get(body.token);
+    const acc = t && accounts[t.email];
+    if (!t || t.used || t.superseded || Date.now() - t.at > 24 * 60 * 60 * 1000 || !acc || acc.status === 'INACTIVE') {
+      problem(res, 400, 'EmailVerificationTokenInvalid'); return;
+    }
+    t.used = true;
+    acc.emailVerified = true;
+    res.writeHead(204, { 'Cache-Control': 'no-store' });
+    res.end();
+    return;
+  }
+
+  // P-1 — POST /account/password (ADR-050 D5): 200 {token}; la sesión sigue con el token nuevo y las demás se revocan
+  if (p === '/account/password' && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const body = await readBody(req);
+    if (!body || !body.currentPassword || !body.newPassword) { problem(res, 400, 'BadRequest'); return; }
+    if (body.currentPassword !== actor.password) { problem(res, 400, 'CurrentPasswordIncorrect'); return; }
+    if (String(body.newPassword).length < 12) { problem(res, 400, 'PasswordTooShort'); return; }
+    const email = emailOf(req);
+    actor.password = String(body.newPassword);
+    actor.passwordChanged = true;
+    revokeTokensOf(actor);
+    if (passwordChange500.delete(email)) { problem(res, 500, 'InternalServerError'); return; }
+    const token = 'tok-' + crypto.randomUUID();
+    tokens.set(token, email);
+    send(res, 200, { token }, { 'Cache-Control': 'no-store' });
+    return;
+  }
+
+  // P-1 — POST /account/deactivate (ADR-050 D6): orden contraseña, administrador, representante, responsable
+  if (p === '/account/deactivate' && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const body = await readBody(req);
+    if (!body || !body.currentPassword) { problem(res, 400, 'BadRequest'); return; }
+    if (body.currentPassword !== actor.password) { problem(res, 400, 'CurrentPasswordIncorrect'); return; }
+    if (actor.platformAuthority) { problem(res, 409, 'PlatformAdministratorDeactivation'); return; }
+    if ((actor.roles || []).includes('REPRESENTATIVE')) { problem(res, 409, 'RepresentativeTransferRequired'); return; }
+    const responsible = [...assignments.entries()].some(([k, v]) => k.endsWith(':' + actor.accountId)
+      && campaignByRef(k.slice(0, k.length - actor.accountId.length - 1))?.status === 'OPEN' && v);
+    if (responsible) { problem(res, 409, 'ActiveCampaignResponsible'); return; }
+    actor.status = 'INACTIVE';
+    revokeTokensOf(actor);
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // P-1 — GET y PUT /account/profile (ADR-050 D1): el nombre es privado; vacío tras recortar o > 100 puntos de código → 400
+  if (p === '/account/profile' && (req.method === 'GET' || req.method === 'PUT')) {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    if (req.method === 'PUT') {
+      const body = (await readBody(req)) || {};
+      const next = {};
+      for (const f of ['givenName', 'familyName']) {
+        const v = body[f];
+        if (v === null || v === undefined) { next[f] = undefined; continue; }
+        if (typeof v !== 'string' || !v.trim() || Array.from(v.trim()).length > 100) { problem(res, 400, 'BadRequest'); return; }
+        next[f] = v.trim();
+      }
+      actor.givenName = next.givenName;
+      actor.familyName = next.familyName;
+    }
+    const out = { email: emailOf(req) };
+    if (actor.givenName) out.givenName = actor.givenName;
+    if (actor.familyName) out.familyName = actor.familyName;
+    send(res, 200, out, { 'Cache-Control': 'no-store' });
+    return;
+  }
+
+  // P-1 / U-7 — POST /platform/accounts/{accountId}/reactivate (ADR-050 D7): 403 uniforme antes de leer la cuenta
+  const reactivateMatch = p.match(/^\/platform\/accounts\/([^/]+)\/reactivate$/);
+  if (reactivateMatch && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    if (!actor.platformAuthority) { problem(res, 403, 'Forbidden'); return; }
+    const id = decodeURIComponent(reactivateMatch[1]);
+    const targets = Object.values(accounts).filter((a) => a.accountId === id);
+    if (targets.length === 0) { problem(res, 404, 'NotFound'); return; }
+    for (const a of targets) a.status = 'ACTIVE';
+    send(res, 200, { accountId: id, status: 'ACTIVE' }, { 'Cache-Control': 'no-store' });
+    return;
+  }
+
+  // GET /account — JWT obligatorio; datos básicos de la cuenta (D-F9)
+  if (p === '/account' && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const email = tokens.get(req.headers['authorization'].slice(7));
+    // Enmienda 2: gana emailVerified (el accountId de este doble no está en el contrato; la web no lo exige)
+    send(res, 200, { accountId: actor.accountId, email, emailVerified: actor.emailVerified !== false }, { 'Cache-Control': 'no-store' });
+    return;
+  }
+
+  // M-21 — GET /account/impact (referencia-api-v1.md §1, nota del 2026-10-25): las 100 donaciones CONFIRMED más
+  // recientes; totales por moneda y unidades entregadas por unidad de medida, como texto; nunca se mezclan monedas
+  if (p === '/account/impact' && req.method === 'GET') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const confirmed = [...intents.values()].filter((i) => i.donorAccount === actor.accountId && i.status === 'CONFIRMED')
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    const counted = confirmed.slice(0, 100);
+    const totals = new Map();
+    for (const i of counted) totals.set(i.currency, (totals.get(i.currency) || BigInt(0)) + BigInt(i.amount));
+    const funds = new Set(counted.map((i) => i.fundId).filter(Boolean));
+    const units = new Map();
+    for (const a of assets.values()) {
+      if (a.lifecycleStatus !== 'DELIVERED' || !a.fundId || !funds.has(a.fundId)) continue;
+      units.set(a.unitOfMeasure, (units.get(a.unitOfMeasure) || 0) + Number(a.quantity));
+    }
+    send(res, 200, {
+      donationsCount: counted.length,
+      totals: [...totals.entries()].map(([currency, amount]) => ({ currency, amount: String(amount) })),
+      campaignsSupported: new Set(counted.map((i) => i.publicCode)).size,
+      deliveredUnits: [...units.entries()].map(([unitOfMeasure, q]) => ({ unitOfMeasure, quantity: scale4(q) })),
+      truncated: confirmed.length > 100,
+    }, { 'Cache-Control': 'private, no-store' });
     return;
   }
 
@@ -992,8 +1616,16 @@ const server = http.createServer(async (req, res) => {
     const items = [...intents.values()].filter((i) => i.donorAccount === actor.accountId).map((i) => {
       const out = { intentId: i.intentId, campaignTitle: i.campaignTitle, amount: i.amount, currency: i.currency, status: i.status };
       if (i.status === 'CONFIRMED' && i.trackingCode) out.trackingCode = i.trackingCode;
+      // Nota del 2026-10-22 (referencia-api-v1.md §1, Enmienda 5 de ADR-037): fechas, organización, medio y publicCode
+      // solo si la convocatoria es PUBLIC al leer
+      out.paymentMethod = i.paymentMethod;
+      if (i.createdAt) out.createdAt = i.createdAt;
+      if (i.confirmedAt && (i.status === 'CONFIRMED' || i.status === 'FUNDING_REJECTED')) out.confirmedAt = i.confirmedAt;
+      if (i.organizationName) out.organizationName = i.organizationName;
+      const c = campaigns.get(i.publicCode);
+      if (c && (c.visibility || 'PUBLIC') === 'PUBLIC') out.publicCode = i.publicCode;
       return out;
-    });
+    }).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
     send(res, 200, { items });
     return;
   }
@@ -1025,6 +1657,19 @@ const server = http.createServer(async (req, res) => {
   // B6-c — activos (PhysicalAssetController)
   if (p.startsWith('/physical-assets')) {
     if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    // P-4 / U-8 — GET /physical-assets/{ref}/evidence (Tarea 5): miembros de la organización del activo o la plataforma;
+    // 404 sin entrega o sin foto; 410 EvidenceRemoved si la plataforma la retiró
+    const evRead = p.match(/^\/physical-assets\/([^/]+)\/evidence$/);
+    if (evRead && req.method === 'GET') {
+      const a = assets.get(decodeURIComponent(evRead[1]));
+      if (!a || !(actor.organizationId === a.organizationRef || actor.platformAuthority)) { problem(res, 403, 'Forbidden'); return; }
+      const ev = a.evidenceRef && evidences.get(a.evidenceRef);
+      if (ev && ev.removed) { send(res, 410, { type: 'about:blank', title: 'EvidenceRemoved', status: 410, detail: 'The resource was removed.' }); return; }
+      if (!ev || !ev.bytes) { problem(res, 404, 'NotFound'); return; }
+      res.writeHead(200, { 'Content-Type': imageType(ev.bytes), 'Cache-Control': 'private, no-store' });
+      res.end(ev.bytes);
+      return;
+    }
     const registerMatch = p === '/physical-assets/register' || p === '/physical-assets/from-donation';
     if (registerMatch && req.method === 'POST') {
       const commandId = commandIdOf(req);
@@ -1085,7 +1730,7 @@ const server = http.createServer(async (req, res) => {
       // La saga crea el hijo de forma asíncrona: PENDING en las dos primeras consultas
       if (sp.polls > 2 && sp.status === 'PENDING') {
         sp.status = 'CHILD_CREATED';
-        newAsset({ ...asset, assetRef: childRef, quantity: sp.quantity, lifecycleStatus: 'REGISTERED',
+        newAsset({ ...asset, assetRef: childRef, parentAssetRef: asset.assetRef, quantity: sp.quantity, lifecycleStatus: 'REGISTERED',
           history: [{ eventType: 'ASSET_REGISTERED', timestamp: new Date().toISOString(), status: 'REGISTERED' }] });
       }
       send(res, 200, { status: sp.status });
@@ -1100,7 +1745,14 @@ const server = http.createServer(async (req, res) => {
       if (!fields.every((k) => text(b[k])) || (action === 'split' && (typeof b.quantity !== 'string' || !QTY.test(b.quantity) || Number(b.quantity) <= 0))) {
         problem(res, 400, 'BadRequest'); return;
       }
+      // ADR-051 T4: `evidenceRef` = `sha256:` + 64 hex en minúscula, antes de consumir el Command-Id ni mirar el activo
+      if (action === 'deliver' && !/^sha256:[0-9a-f]{64}$/.test(b.evidenceRef)) { problem(res, 400, 'InvalidEvidenceRef'); return; }
       if (!allowed) { problem(res, 403, 'Forbidden'); return; }
+      if (action === 'deliver') {
+        const ev = evidences.get(b.evidenceRef);
+        if (!ev || ev.organizationId !== asset.organizationRef) { problem(res, 400, 'EvidenceNotFound'); return; }
+        if (ev.assetRef && ev.assetRef !== asset.assetRef) { problem(res, 409, 'EvidenceAlreadyBound'); return; }
+      }
       const prev = claims.get(commandId);
       if (!prev) {
         if (asset.lifecycleStatus === 'DELIVERED') { problem(res, 409, 'AssetTerminalState'); return; }
@@ -1120,11 +1772,13 @@ const server = http.createServer(async (req, res) => {
         const status = { dispatch: 'DISPATCHED', receive: 'RECEIVED', deliver: 'DELIVERED' }[action];
         asset.lifecycleStatus = status;
         if (action === 'receive') asset.currentLocation = b.facilityLocation;
-        if (action === 'deliver') asset.currentCustodianRef = b.finalCustodianRef;
+        if (action === 'deliver') { asset.currentCustodianRef = b.finalCustodianRef; asset.evidenceRef = b.evidenceRef; evidences.get(b.evidenceRef).assetRef = asset.assetRef; }
         asset.history.push({ eventType: 'ASSET_' + status, timestamp: now, status });
         return { assetRef: asset.assetRef, status };
       });
       if (!r) return;
+      // Ambiguo real (como en la donación): el comando quedó aplicado y la respuesta se pierde
+      if (res.__failAfter) { res.__failAfter === 'drop' ? req.socket.destroy() : problem(res, 503, 'ServiceUnavailable'); return; }
       if (action === 'split') {
         send(res, 202, r.value, { Location: `${BASE}/physical-assets/${asset.assetRef}/splits/${r.value.childAssetRef}` });
       } else send(res, 200, r.value);

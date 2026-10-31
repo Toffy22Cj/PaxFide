@@ -1,0 +1,167 @@
+// Ref: prompts-agentes-estilo-v2.md VS-2; respuesta de Carlos al plan de VS-2 (B, C); ADR-046 D5; enmienda §8 (E4).
+import { describe, it, expect } from 'vitest';
+import { activeEntry, navEntriesFor, positionForWidth, routeFor, MAX_BOTTOM_ENTRIES, type NavIcon } from '../src/lib/nav/navEntries';
+import { nextNavPrincipal } from '../src/lib/nav/navPrincipal';
+import type { Principal } from '../src/lib/api/identity';
+
+const ALL = new Set(['/home', '/campaigns', '/account/donations', '/tracking', '/panel', '/panel/campaigns', '/panel/assets', '/account']);
+const allEnabled = (s: string) => ALL.has(s);
+const ids = (ctx: Parameters<typeof navEntriesFor>[0], en = allEnabled) => navEntriesFor(ctx, en).map((e) => e.id);
+
+const admin: Principal = { accountId: 'a', organizationId: 'org-1', roles: ['ADMINISTRATOR'] };
+const employee: Principal = { accountId: 'e', organizationId: 'org-1', roles: ['EMPLOYEE'] };
+const rep: Principal = { accountId: 'r', organizationId: 'org-1', roles: ['REPRESENTATIVE'] };
+const donor: Principal = { accountId: 'd', roles: [] };
+
+describe('navEntriesFor — entradas según sesión, rol y superficies', () => {
+  it('sin sesión: solo Explorar y Seguimiento', () => {
+    expect(ids({ authenticated: false, principal: null })).toEqual(['explorar', 'seguimiento']);
+  });
+
+  it('cuenta sin organización: Inicio, Explorar, Donaciones, Seguimiento y Perfil; nunca "Organización"', () => {
+    const r = ids({ authenticated: true, principal: donor });
+    expect(r).toEqual(['inicio', 'explorar', 'donaciones', 'seguimiento', 'perfil']);
+    expect(r).not.toContain('organizacion');
+  });
+
+  it('ADMINISTRATOR: también Organización, Convocatorias y Lotes; los miembros ven Donaciones, Seguimiento y Perfil (C)', () => {
+    expect(ids({ authenticated: true, principal: admin })).toEqual(
+      ['inicio', 'explorar', 'donaciones', 'seguimiento', 'organizacion', 'convocatorias', 'lotes', 'perfil']);
+  });
+
+  it('EMPLOYEE: Organización y Lotes, sin Convocatorias', () => {
+    const r = ids({ authenticated: true, principal: employee });
+    expect(r).toEqual(['inicio', 'explorar', 'donaciones', 'seguimiento', 'organizacion', 'lotes', 'perfil']);
+    expect(r).not.toContain('convocatorias');
+  });
+
+  it('REPRESENTATIVE: Organización y Perfil, sin Convocatorias ni Lotes', () => {
+    const r = ids({ authenticated: true, principal: rep });
+    expect(r).toContain('organizacion');
+    expect(r).toContain('perfil');
+    expect(r).not.toContain('convocatorias');
+    expect(r).not.toContain('lotes');
+  });
+
+  it('con sesión y /me sin datos (DW-06): solo las entradas que no dependen del rol', () => {
+    expect(ids({ authenticated: true, principal: null })).toEqual(['inicio', 'explorar', 'donaciones', 'seguimiento', 'perfil']);
+  });
+
+  it('una superficie deshabilitada no aparece (D5), aunque el rol la permita', () => {
+    const without = (s: string) => allEnabled(s) && s !== '/panel/assets' && s !== '/home';
+    const r = ids({ authenticated: true, principal: admin }, without);
+    expect(r).not.toContain('lotes');
+    expect(r).not.toContain('inicio');
+    expect(ids({ authenticated: true, principal: admin }, () => false)).toEqual([]);
+  });
+
+  it('ajustes y QR nunca aparecen: no tienen ruta aprobada (D5); perfil sí (D-F9)', () => {
+    const r = ids({ authenticated: true, principal: admin }, () => true);
+    for (const id of ['ajustes', 'qr'] as NavIcon[]) {
+      expect(r).not.toContain(id);
+      expect(routeFor(id).href).toBeNull();
+    }
+    expect(routeFor('perfil')).toEqual({ label: 'Perfil', href: '/account' });
+    expect(r).toContain('perfil');
+  });
+
+  it('con la lista de demo de hoy, Inicio no aparece (llega con VS-5)', () => {
+    const today = (s: string) => allEnabled(s) && s !== '/home';
+    expect(ids({ authenticated: true, principal: admin }, today)).not.toContain('inicio');
+  });
+
+  it('etiquetas y rutas de la respuesta B', () => {
+    expect(routeFor('organizacion')).toEqual({ label: 'Organización', href: '/panel' });
+  });
+});
+
+describe('barra inferior: máximo 5 entradas (DF7-20)', () => {
+  const bottom = (ctx: Parameters<typeof navEntriesFor>[0], en = allEnabled) => navEntriesFor(ctx, en, 'bottom').map((e) => e.id);
+
+  it('ADMINISTRATOR por debajo de 768 px con D-F15: Explorar, Donaciones, Organización y Perfil (4 sin Inicio)', () => {
+    const today = (x: string) => allEnabled(x) && x !== '/home';
+    const r = bottom({ authenticated: true, principal: admin }, today);
+    expect(r).toEqual(['explorar', 'donaciones', 'organizacion', 'perfil']);
+    expect(r).not.toContain('seguimiento');
+    expect(r).not.toContain('convocatorias');
+    expect(r).not.toContain('lotes');
+  });
+
+  it('con Inicio (A-3) y Perfil (D-F9), el ADMINISTRATOR queda justo en 5 (D-F15, DF7-20)', () => {
+    expect(bottom({ authenticated: true, principal: admin })).toEqual(['inicio', 'explorar', 'donaciones', 'organizacion', 'perfil']);
+  });
+
+  it('cuenta sin organización por debajo de 768 px mantiene Seguimiento y Perfil (D-F15)', () => {
+    expect(bottom({ authenticated: true, principal: null })).toEqual(['inicio', 'explorar', 'donaciones', 'seguimiento', 'perfil']);
+  });
+
+  it('antes de hidratar (auto) se usa el conjunto de la barra inferior', () => {
+    expect(navEntriesFor({ authenticated: true, principal: admin }, allEnabled, 'auto').map((e) => e.id))
+      .toEqual(bottom({ authenticated: true, principal: admin }));
+  });
+
+  it('ninguna combinación de rol y superficies supera 5 en la barra inferior', () => {
+    const routes = [...new Set((['inicio', 'explorar', 'donaciones', 'seguimiento', 'organizacion', 'convocatorias', 'lotes',
+      'perfil', 'ajustes', 'qr'] as NavIcon[]).map((id) => routeFor(id).href).filter((h): h is string => h !== null))];
+    const roleSets: Principal['roles'][] = [[], ['ADMINISTRATOR'], ['EMPLOYEE'], ['REPRESENTATIVE'],
+      ['ADMINISTRATOR', 'EMPLOYEE'], ['ADMINISTRATOR', 'REPRESENTATIVE'], ['EMPLOYEE', 'REPRESENTATIVE'],
+      ['ADMINISTRATOR', 'EMPLOYEE', 'REPRESENTATIVE']];
+    const principals: (Principal | null)[] = [null];
+    for (const roles of roleSets) {
+      for (const platformAuthority of [undefined, 'PLATFORM_ADMINISTRATOR']) {
+        const p: Principal = { accountId: 'x', roles };
+        if (roles.length > 0) p.organizationId = 'org';
+        if (platformAuthority) p.platformAuthority = platformAuthority;
+        principals.push(p);
+      }
+    }
+    let checked = 0;
+    for (let mask = 0; mask < 1 << routes.length; mask++) {
+      const enabled = new Set(routes.filter((_, i) => mask & (1 << i)));
+      for (const authenticated of [false, true]) {
+        for (const principal of principals) {
+          const n = navEntriesFor({ authenticated, principal }, (x) => enabled.has(x), 'bottom').length;
+          expect(n, `${[...enabled].join(',')} ${authenticated} ${JSON.stringify(principal)}`).toBeLessThanOrEqual(MAX_BOTTOM_ENTRIES);
+          checked++;
+        }
+      }
+    }
+    expect(checked).toBe((1 << routes.length) * 2 * principals.length);
+  });
+});
+
+describe('activeEntry', () => {
+  const entries = navEntriesFor({ authenticated: true, principal: admin }, allEnabled);
+  it('el prefijo más largo gana', () => {
+    expect(activeEntry('/panel/campaigns', entries)).toBe('convocatorias');
+    expect(activeEntry('/panel/assets', entries)).toBe('lotes');
+    expect(activeEntry('/panel/funds', entries)).toBe('organizacion');
+    expect(activeEntry('/panel', entries)).toBe('organizacion');
+    expect(activeEntry('/campaigns', entries)).toBe('explorar');
+  });
+  it('por segmentos y sin coincidencias ajenas', () => {
+    expect(activeEntry('/panelx', entries)).toBeNull();
+    expect(activeEntry('/login', entries)).toBeNull();
+    expect(activeEntry('/c/abc', entries)).toBeNull();
+  });
+});
+
+describe('positionForWidth (enmienda §8, E4)', () => {
+  it('767 → bottom; 768 → side', () => {
+    expect(positionForWidth(390)).toBe('bottom');
+    expect(positionForWidth(767)).toBe('bottom');
+    expect(positionForWidth(768)).toBe('side');
+    expect(positionForWidth(1280)).toBe('side');
+  });
+});
+
+describe('nextNavPrincipal (GET /me en cada ruta)', () => {
+  it('ok sustituye; cualquier fallo conserva lo último conocido', () => {
+    expect(nextNavPrincipal(null, { kind: 'ok', principal: admin })).toEqual(admin);
+    expect(nextNavPrincipal(admin, { kind: 'ok', principal: donor })).toEqual(donor);
+    for (const kind of ['error', 'unavailable', 'unauthorized'] as const) {
+      expect(nextNavPrincipal(admin, { kind })).toEqual(admin);
+      expect(nextNavPrincipal(null, { kind })).toBeNull();
+    }
+  });
+});

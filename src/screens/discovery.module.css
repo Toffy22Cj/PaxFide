@@ -1,0 +1,7 @@
+/* Ref: plan-fase7-pantallas.md A-5 (pasada de estilo de /campaigns). Solo tokens semánticos. */
+.grid {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: var(--space-4);
+}
+.item { display: flex; min-width: 0; }
+.item > * { flex: 1; }

@@ -25,9 +25,8 @@ export default defineConfig({
       command: 'NEXT_PUBLIC_API_BASE_URL=http://localhost:3002/api/v1 pnpm build && pnpm start',
       url: 'http://localhost:3000',
       reuseExistingServer: false,
-      env: {
-        NEXT_PUBLIC_E2E_SURFACES: JSON.stringify(['/login', '/panel'])
-      }
+      // U-27: el build normal, sin perfil ni lista de tests: las superficies de la lista única
+      env: {}
     },
     {
       command: 'node scripts/fake-backend.js',

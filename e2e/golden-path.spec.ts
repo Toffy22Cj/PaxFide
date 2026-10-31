@@ -1,4 +1,5 @@
 import { test, expect, Page, Browser } from '@playwright/test';
+import { attachDeliveryPhoto } from './support/evidence';
 
 /**
  * Golden path (`golden-path.md` §2 y §8) recorrido POR LA INTERFAZ contra el backend simulado que sigue los contratos
@@ -14,7 +15,8 @@ const API = 'http://localhost:3002';
 
 async function login(browser: Browser, email: string, password: string): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
-  await page.goto('/login');
+  // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+  await page.goto('/panel');
   await page.getByLabel('Correo electrónico').fill(email);
   await page.getByLabel('Contraseña').fill(password);
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
@@ -42,13 +44,14 @@ async function act(page: Page, button: string, fields: [string, string][]) {
   await page.getByRole('button', { name: button, exact: true }).click();
   const dialog = page.getByRole('dialog');
   for (const [label, value] of fields) await dialog.getByLabel(label).fill(value);
+  if (button === 'Entregar') await attachDeliveryPhoto(dialog); // U-3: la entrega lleva su foto
   await dialog.getByRole('button', { name: 'Confirmar' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 }
 
 const DELIVER: [string, string][] = [
   ['Custodio final (referencia)', 'ALIADO-LOCAL-1'], ['Beneficiario (referencia)', 'BEN-0001'],
-  ['Lugar de entrega (referencia)', 'SALON-COMUNAL'], ['Evidencia (referencia)', 'ACTA-001'],
+  ['Lugar de entrega (referencia)', 'SALON-COMUNAL'],
 ];
 
 test('golden path por la interfaz: convocatoria → donaciones (sin y con cuenta) → activo → división → entrega → seguimiento', async ({ browser, request }) => {
@@ -56,7 +59,7 @@ test('golden path por la interfaz: convocatoria → donaciones (sin y con cuenta
 
   // Paso 2 — la organización crea la convocatoria (PUBLIC, FLEXIBLE) y asigna un EMPLOYEE (criterio 2)
   const admin = await login(browser, 'admin@demo.test', 'demo-admin');
-  await admin.getByRole('link', { name: 'Convocatorias de mi organización' }).click();
+  await admin.getByTestId('new-campaign-button').click();
   await admin.getByRole('button', { name: 'Crear convocatoria' }).click();
   await admin.getByLabel('Título').fill('Mercados golden path');
   await admin.getByLabel(/Visibilidad/).selectOption('PUBLIC');
@@ -95,8 +98,7 @@ test('golden path por la interfaz: convocatoria → donaciones (sin y con cuenta
   await request.post(`${API}/__test/payments`, { data: { intentId: donorIntent } });
   await donor.getByRole('button', { name: 'Consultar estado del pago' }).click();
   await expect(donor.getByTestId('tracking-code')).toBeVisible();
-  await donor.getByRole('link', { name: 'Panel' }).click();
-  await donor.getByRole('link', { name: 'Mis donaciones' }).click();
+  await donor.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Donaciones' }).click();
   await expect(donor.getByTestId('account-donation').filter({ hasText: 'Mercados golden path' })).toContainText('Confirmada');
 
   // La convocatoria refleja lo recaudado (hecho verificable)
@@ -141,8 +143,8 @@ test('golden path por la interfaz: convocatoria → donaciones (sin y con cuenta
   await tracker.getByLabel('Código de seguimiento').fill(anonCode);
   await tracker.getByRole('button', { name: 'Ver seguimiento' }).click();
   await expect(tracker.getByTestId('tracking-original')).toHaveText('200.000 COP');
-  await expect(tracker.getByText('Mercado')).toHaveCount(2);
-  await tracker.getByRole('button', { name: 'Ver recorrido' }).first().click();
-  await expect(tracker.getByRole('cell', { name: 'Entregado' }).first()).toBeVisible();
+  // A-4: un carril por bien, con su recorrido al abrir (en estrecho, una pestaña por bien)
+  await expect(tracker.getByTestId('asset-lane')).toHaveCount(2);
+  await expect(tracker.getByTestId('tracking-step').filter({ hasText: 'Entregado' }).first()).toBeVisible();
   expect(tracker.url()).not.toContain(anonCode);
 });

@@ -1,0 +1,375 @@
+/* Ref: Documentos/sistema-visual-paxfide-web-enmienda-1.md §7.2; Documentos/plan-vs1-movimiento.md §3–§4 */
+
+/* ===== 01 · Cubos encadenados ===== */
+.chain {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cube {
+  width: 30px;
+  height: 34px;
+  animation-name: hop;
+  animation-duration: calc(4 * var(--duration-normal));
+  animation-timing-function: var(--ease-standard);
+  animation-iteration-count: infinite;
+}
+
+.cube2 {
+  animation-delay: var(--duration-fast);
+}
+
+.cube3 {
+  animation-delay: var(--duration-normal);
+}
+
+.chainLink {
+  width: 12px;
+  height: 3px;
+  border-radius: 2px;
+  background-color: var(--brand-blue-500);
+  opacity: 0.35;
+  animation-name: linkPulse;
+  animation-duration: calc(4 * var(--duration-normal));
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.chainLink2 {
+  animation-delay: var(--duration-fast);
+}
+
+@keyframes hop {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-12px);
+  }
+  40% {
+    transform: translateY(0) scaleY(0.9);
+  }
+}
+
+@keyframes linkPulse {
+  0%, 100% {
+    opacity: 0.25;
+  }
+  35% {
+    opacity: 1;
+  }
+}
+
+/* ===== 03 · Camión en ruta ===== */
+.road {
+  position: relative;
+  width: 200px;
+  height: 60px;
+}
+
+.roadLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  height: 3px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--neutral-400) 0 10px,
+    transparent 10px 20px
+  );
+  animation-name: roadMovement;
+  animation-duration: calc(4 * var(--duration-fast));
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.truckSvg {
+  position: absolute;
+  left: 62px;
+  bottom: 14px;
+  width: 70px;
+  animation-name: truckBump;
+  animation-duration: var(--duration-normal);
+  animation-timing-function: var(--ease-in-out);
+  animation-iteration-count: infinite;
+}
+
+@keyframes roadMovement {
+  to {
+    background-position: -20px 0;
+  }
+}
+
+@keyframes truckBump {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* ===== 06 · Puntos de marca (en botón) ===== */
+.dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  animation-name: dotBounce;
+  animation-duration: calc(2 * var(--duration-slow));
+  animation-timing-function: var(--ease-standard);
+  animation-iteration-count: infinite;
+}
+
+.dot1 {
+  background-color: var(--brand-green-50);
+}
+
+.dot2 {
+  background-color: var(--brand-blue-50);
+  animation-delay: calc(0.8 * var(--duration-fast));
+}
+
+.dot3 {
+  background-color: var(--brand-yellow-400);
+  animation-delay: calc(1.6 * var(--duration-fast));
+}
+
+@keyframes dotBounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+  40% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+/* ===== 07 · Esqueleto ===== */
+.skeletonCard {
+  width: 100%;
+  max-width: 260px;
+  background-color: var(--color-surface);
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--color-divider);
+  box-sizing: border-box;
+}
+
+.skeletonList {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeletonListItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--color-divider);
+}
+
+.skeletonItem {
+  border-radius: 7px;
+  background-image: linear-gradient(
+    90deg,
+    var(--color-divider) 0%,
+    var(--color-bg) 45%,
+    var(--color-divider) 90%
+  );
+  background-size: 250% 100%;
+  animation-name: skeletonShimmer;
+  animation-duration: calc(3 * var(--duration-slow));
+  animation-timing-function: var(--ease-in-out);
+  animation-iteration-count: infinite;
+}
+
+@keyframes skeletonShimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+/* ===== 08 · Barra superior ===== */
+.topProgressBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--color-divider);
+  overflow: hidden;
+  z-index: 1000;
+}
+
+.topProgressBarIndicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  background-image: linear-gradient(
+    90deg,
+    var(--brand-green-500),
+    var(--brand-blue-500),
+    var(--brand-yellow-400)
+  );
+  border-radius: 3px;
+  animation-name: indeterminateProgress;
+  animation-duration: calc(5 * var(--duration-normal));
+  animation-timing-function: var(--ease-in-out);
+  animation-iteration-count: infinite;
+}
+
+@keyframes indeterminateProgress {
+  0% {
+    left: -40%;
+    width: 30%;
+  }
+  50% {
+    width: 55%;
+  }
+  100% {
+    left: 100%;
+    width: 30%;
+  }
+}
+
+/* ===== 09 · Árbol de Merkle ===== */
+.merkleWrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.merkleSvg {
+  width: 150px;
+  height: 110px;
+}
+
+.merkleEdge {
+  stroke: var(--brand-blue-700);
+  stroke-width: 2;
+  fill: none;
+  animation-name: merkleEdgeFade;
+  animation-duration: calc(6 * var(--duration-slow));
+  animation-timing-function: var(--ease-out);
+  animation-iteration-count: infinite;
+}
+
+.merkleNode {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-duration: calc(6 * var(--duration-slow));
+  animation-timing-function: var(--ease-spring);
+  animation-iteration-count: infinite;
+}
+
+.merkleLeaf {
+  fill: var(--brand-blue-700);
+  animation-name: merkleLeafScale;
+}
+
+.merkleLeaf2 {
+  animation-delay: calc(0.5 * var(--duration-fast));
+}
+
+.merkleLeaf3 {
+  animation-delay: var(--duration-fast);
+}
+
+.merkleLeaf4 {
+  animation-delay: calc(1.5 * var(--duration-fast));
+}
+
+.merkleBranch {
+  fill: var(--brand-blue-800);
+  animation-name: merkleBranchScale;
+}
+
+.merkleRoot {
+  fill: var(--brand-yellow-400);
+  animation-name: merkleRootScale;
+}
+
+@keyframes merkleLeafScale {
+  0% {
+    transform: scale(0);
+  }
+  12%, 88% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes merkleBranchScale {
+  0%, 25% {
+    transform: scale(0);
+  }
+  38%, 88% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes merkleRootScale {
+  0%, 48% {
+    transform: scale(0);
+  }
+  60%, 88% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes merkleEdgeFade {
+  0%, 22% {
+    opacity: 0;
+  }
+  35%, 88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ===== Reducción de movimiento (prefers-reduced-motion: reduce) ===== */
+/* Acotado a los loaders de este módulo; la animación queda detenida (DF7-07, regla 2.5) */
+@media (prefers-reduced-motion: reduce) {
+  .cube,
+  .chainLink,
+  .roadLine,
+  .truckSvg,
+  .dot,
+  .skeletonItem,
+  .topProgressBarIndicator,
+  .merkleEdge,
+  .merkleNode,
+  .merkleLeaf,
+  .merkleBranch,
+  .merkleRoot {
+    animation-play-state: paused !important;
+  }
+}

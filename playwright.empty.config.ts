@@ -25,8 +25,9 @@ export default defineConfig({
       command: 'NEXT_PUBLIC_E2E_BUILD=true NEXT_PUBLIC_API_BASE_URL=http://localhost:3002/api/v1 pnpm build && pnpm start',
       url: 'http://localhost:3000',
       reuseExistingServer: false,
+      // U-27 (plan-fase7-puesta-al-dia.md Anexo 4): la lista vacía es el perfil explícito `none`
       env: {
-        NEXT_PUBLIC_E2E_SURFACES: ''
+        NEXT_PUBLIC_SURFACE_PROFILE: 'none'
       }
     },
     {

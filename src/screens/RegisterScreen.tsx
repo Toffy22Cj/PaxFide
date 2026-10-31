@@ -1,31 +1,43 @@
 'use client';
 
+// Ref: P2; POST /auth/register; DD-56; H-P2-1 (PasswordTooShort >= 12). plan-fase7-puesta-al-dia.md P-6 ("Revisa tu correo" con "Reenviar", ADR-050 Enmienda 2).
+// Documentos/plan-fase7-fidelidad.md §2 D-F5 (acceso sobre el mundo), D-F10 (bienvenida), D-F14 (fundación), X-4..X-7;
+// Documentos/paxfide-landing.html (.auth-card, #formRegister, checkPassStrength); plan-fase7-puesta-al-dia.md R-1 (las
+// dos casillas legales, sin marcar; sin las dos no se envía nada; el registro lleva las dos versiones de LEGAL_VERSIONS).
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { registerAccount, RegisterOutcome } from '../lib/api/identity';
-import { PageHeader } from '../components/ui/Layout';
-import { TextField, PasswordField } from '../components/ui/Field';
-import { Button } from '../components/ui/Button';
-import { StatusNotice } from '../components/States';
-import s from './login.module.css';
+import { isSurfaceEnabled } from '../lib/routing/surfaces';
+import { BrandDots } from '../components/loaders/BrandDots';
+import { ResendVerification } from '../components/access/ResendVerification';
+import type { EmailVerificationRequestOutcome } from '../lib/api/account';
+import { LegalConsent } from '../components/access/LegalConsent';
+import { calculateStrength } from '../lib/auth/passwordStrength';
+import s from './access.module.css';
 
-/**
- * Registro de cuenta (P2; `POST /auth/register`, DD-56). No inicia sesión ni guarda nada: tras crear la cuenta se
- * entra por `/login`. El backend no fija política de contraseña (H-P2-1); la web solo exige que coincidan.
- */
-/** Política del backend (H-P2-1, `PasswordTooShort`): al menos 12 caracteres. El backend valida igual. */
 const MIN_PASSWORD = 12;
 
-export function RegisterScreen({ client = registerAccount }: { client?: (e: string, p: string) => Promise<RegisterOutcome> }) {
+export function RegisterScreen({ client = registerAccount, resendClient }: {
+  client?: (e: string, p: string) => Promise<RegisterOutcome>;
+  resendClient?: (email: string) => Promise<EmailVerificationRequestOutcome>;
+}) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [repeat, setRepeat] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRepeat, setShowRepeat] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; repeat?: string }>({});
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<RegisterOutcome | null>(null);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptData, setAcceptData] = useState(false);
+  const consented = acceptTerms && acceptData;
+
+  const strength = calculateStrength(password);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!consented) return; // R-1: sin las dos casillas no hay petición
     const next = {
       email: email.trim() ? undefined : 'Este campo es obligatorio.',
       password: !password ? 'Este campo es obligatorio.'
@@ -39,42 +51,202 @@ export function RegisterScreen({ client = registerAccount }: { client?: (e: stri
     const r = await client(email.trim(), password);
     setSending(false);
     setResult(r);
-    if (r.kind === 'ok') { setPassword(''); setRepeat(''); }
+    if (r.kind === 'ok') {
+      setPassword('');
+      setRepeat('');
+    }
     if (r.kind === 'invalid-email') setErrors({ email: 'El correo no es válido.' });
     if (r.kind === 'password-too-short') setErrors({ password: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.` });
   };
 
-  if (result?.kind === 'ok') {
-    return (
-      <div className={s.wrap}>
-        <PageHeader title="Crear cuenta" />
-        <StatusNotice variant="success" title="Cuenta creada" text="Ya puedes iniciar sesión con tu correo y tu contraseña." />
-        <Link href="/login">Iniciar sesión</Link>
-      </div>
-    );
-  }
-
   const failure: Record<string, string> = {
     'duplicate-email': 'Ya existe una cuenta con ese correo.',
     'bad-request': 'Revisa los datos: alguno no es válido.',
+    'legal-rejected': 'No pudimos registrar que aceptaste las condiciones vigentes. Recarga la página y vuelve a intentarlo.',
     'server-error': 'No pudimos crear la cuenta. Inténtalo de nuevo más tarde.',
     network: 'No pudimos conectar. Revisa tu conexión e inténtalo de nuevo.',
   };
 
   return (
-    <div className={s.wrap}>
-      <PageHeader title="Crear cuenta" />
-      {result && failure[result.kind] && <StatusNotice variant="rejected" text={failure[result.kind]} />}
-      <form onSubmit={submit} noValidate>
-        <TextField label="Correo electrónico" type="email" autoComplete="email" value={email}
-          onChange={(e) => setEmail(e.target.value)} error={errors.email} disabled={sending} />
-        <PasswordField label="Contraseña" autoComplete="new-password" value={password} hint={`Al menos ${MIN_PASSWORD} caracteres.`}
-          onChange={(e) => setPassword(e.target.value)} error={errors.password} disabled={sending} />
-        <PasswordField label="Repite la contraseña" autoComplete="new-password" value={repeat}
-          onChange={(e) => setRepeat(e.target.value)} error={errors.repeat} disabled={sending} />
-        <Button type="submit" block sending={sending}>Crear cuenta</Button>
-      </form>
-      <p><Link href="/login">Ya tengo cuenta</Link></p>
-    </div>
+    <>
+
+          {result?.kind === 'ok' ? (
+            /* P-6 (ADR-050 Enmienda 2): la cuenta nace sin verificar; se entra después de abrir el enlace del correo */
+            <section aria-labelledby="checkMailTitle" data-testid="check-email">
+              <div className={[s.feedbackMsg, s.feedbackSuccess].join(' ')} role="status">
+                <b>Cuenta creada</b>.
+              </div>
+              <h2 id="checkMailTitle" className={s.acceptanceTitle}>Revisa tu correo</h2>
+              <p className={s.acceptanceText}>Te enviamos un enlace a <b data-testid="check-email-address">{email.trim()}</b> para confirmar tu correo. Ábrelo y después inicia sesión.</p>
+              <ResendVerification email={email.trim()} client={resendClient} />
+              <div className={s.foot}>
+                <p>
+                  <Link href="/login" className={s.switchLink}>Iniciar sesión</Link>
+                </p>
+              </div>
+            </section>
+          ) : (
+            <>
+              {result && failure[result.kind] && (
+                <div className={[s.feedbackMsg, s.feedbackError].join(' ')} role="alert">
+                  {failure[result.kind]}
+                </div>
+              )}
+
+              <form onSubmit={submit} className={s.form} noValidate>
+                <div className={s.field}>
+                  <label htmlFor="regEmail" className={s.label}>Correo electrónico</label>
+                  <div className={s.inputWrap}>
+                    <svg className={s.fieldIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                      <polyline points="22,6 12,13 2,6" />
+                    </svg>
+                    <input
+                      id="regEmail"
+                      type="email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={sending}
+                      placeholder="tu@correo.com"
+                      className={s.input}
+                    />
+                  </div>
+                  {errors.email && <span className={s.fieldError}>{errors.email}</span>}
+                </div>
+
+                <div className={s.field}>
+                  <label htmlFor="regPass" className={s.label}>Contraseña</label>
+                  <div className={s.inputWrap}>
+                    <svg className={s.fieldIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <input
+                      id="regPass"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={sending}
+                      placeholder="Mínimo 12 caracteres"
+                      className={s.input}
+                    />
+                    <button
+                      type="button"
+                      className={s.toggleEye}
+                      aria-label={showPassword ? 'Ocultar clave' : 'Mostrar clave'}
+                      onClick={() => setShowPassword((p) => !p)}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        {showPassword ? (
+                          <>
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </>
+                        ) : (
+                          <>
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </>
+                        )}
+                      </svg>
+                    </button>
+                  </div>
+                  <span className={s.hint}>Al menos 12 caracteres.</span>
+                  {errors.password && <span className={s.fieldError}>{errors.password}</span>}
+
+                  {/* Barra de seguridad de la contraseña (X-6) */}
+                  <div className={s.passStrengthBar}>
+                    <div className={s.strengthTrack}>
+                      <div className={s.strengthMeter} style={{ width: strength.width, backgroundColor: strength.color }} />
+                    </div>
+                    <span className={s.strengthLabel} style={{ color: strength.color }}>{strength.label}</span>
+                  </div>
+                </div>
+
+                <div className={s.field}>
+                  <label htmlFor="regRepeat" className={s.label}>Repite la contraseña</label>
+                  <div className={s.inputWrap}>
+                    <svg className={s.fieldIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <input
+                      id="regRepeat"
+                      type={showRepeat ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      value={repeat}
+                      onChange={(e) => setRepeat(e.target.value)}
+                      disabled={sending}
+                      placeholder="Repite tu contraseña"
+                      className={s.input}
+                    />
+                    <button
+                      type="button"
+                      className={s.toggleEye}
+                      aria-label={showRepeat ? 'Ocultar clave' : 'Mostrar clave'}
+                      onClick={() => setShowRepeat((p) => !p)}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        {showRepeat ? (
+                          <>
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </>
+                        ) : (
+                          <>
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </>
+                        )}
+                      </svg>
+                    </button>
+                  </div>
+                  {errors.repeat && <span className={s.fieldError}>{errors.repeat}</span>}
+                </div>
+
+                {/* Nota plegable sobre registro de fundaciones (D-F14) */}
+                <details className={s.foundationDetails}>
+                  <summary className={s.foundationSummary}>¿Representas una fundación?</summary>
+                  <div className={s.foundationBody}>
+                    <ol>
+                      <li>Crea tu cuenta aquí, como cualquier donante.</li>
+                      <li>Inicia sesión.</li>
+                      <li>En Inicio, en la tarjeta &ldquo;¿Tienes una fundación?&rdquo;, pulsa &ldquo;Registrar organización&rdquo; y llena sus datos.</li>
+                      <li>La plataforma la revisa (estado &ldquo;Pendiente de verificación&rdquo;); puede pedirte más información.</li>
+                      <li>Cuando esté &ldquo;Verificada&rdquo;, puedes crear convocatorias.</li>
+                    </ol>
+                  </div>
+                </details>
+
+                <div className={s.consents}>
+                  <LegalConsent doc="terms" checked={acceptTerms} onChange={setAcceptTerms} disabled={sending} />
+                  <LegalConsent doc="dataPolicy" checked={acceptData} onChange={setAcceptData} disabled={sending} />
+                </div>
+
+                <button type="submit" className={s.submitBtn} disabled={sending || !consented} aria-busy={sending || undefined}>
+                  <span>Crear cuenta</span>
+                  {sending ? (
+                    <BrandDots aria-hidden="true" />
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </button>
+              </form>
+
+              {isSurfaceEnabled('/login') && (
+                <div className={s.foot}>
+                  <p>
+                    ¿Ya tienes cuenta?{' '}
+                    <Link href="/login" className={s.switchLink} aria-label="Iniciar sesión">Ya tengo cuenta</Link>
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+    </>
   );
 }

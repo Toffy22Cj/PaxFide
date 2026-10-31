@@ -1,0 +1,26 @@
+/* Ref: plan-fase7-puesta-al-dia.md P-3; paxfide-panel.html (.kpi, .feed). Solo tokens semánticos. */
+.kpi { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.kpiLabel { font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.kpiValue { font-family: var(--font-mono); font-size: 22px; font-weight: 800; letter-spacing: -0.02em; overflow-wrap: anywhere; color: var(--color-text); }
+.kpiSub { font-size: var(--font-size-body-4); color: var(--color-text-secondary); }
+.amber { color: var(--color-ambiguous-title); }
+.warn { margin: 0; font-size: var(--font-size-body-4); color: var(--color-ambiguous-title); }
+.spark { display: block; margin-top: 2px; }
+.sparkLine { fill: none; stroke: var(--color-action); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.sparkDot { fill: var(--color-action); }
+.feedCard { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.feedTitle { margin: 0; font-size: var(--font-size-display-5); font-weight: var(--weight-semibold); color: var(--color-text); }
+.sub { margin: 0; font-size: var(--font-size-body-3); color: var(--color-text-secondary); }
+.feed { list-style: none; margin: var(--space-2) 0 0; padding: 0; position: relative; }
+.feed li { position: relative; padding: 0 0 12px 22px; font-size: var(--font-size-body-3); display: flex; flex-direction: column; gap: 2px; color: var(--color-text); }
+.feed li::before { content: ""; position: absolute; left: 5px; top: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--color-success-icon); }
+.feed li::after { content: ""; position: absolute; left: 9px; top: 18px; bottom: 0; width: 1px; background: var(--color-divider); }
+.feed li:last-child::after { display: none; }
+.feed time, .feed li > time { font-family: var(--font-mono); font-size: var(--font-size-mono-3); color: var(--color-text-secondary); }
+.feed a { color: var(--color-link); }
+.more {
+  align-self: flex-start; min-height: 44px; padding: 0 var(--space-4); border-radius: var(--radius-button); cursor: pointer;
+  font: inherit; font-weight: var(--weight-semibold); background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control);
+}
+.more:focus-visible, .feed a:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.warnIcon { display: inline-block; vertical-align: -2px; margin-right: 4px; }

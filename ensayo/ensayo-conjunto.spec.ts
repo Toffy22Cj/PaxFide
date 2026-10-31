@@ -2,6 +2,7 @@ import { test, expect, Page, Browser, APIRequestContext } from '@playwright/test
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { attachDeliveryPhoto, acceptLegal } from '../e2e/support/evidence';
 
 /**
  * Ensayo conjunto: golden path POR LA INTERFAZ contra el backend REAL de la demo local. Cada paso queda en
@@ -70,17 +71,39 @@ async function paso(id: string, via: 'UI' | 'HTTP', run: () => Promise<string | 
 async function login(browser: Browser, who: string): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
   watch(page, who);
-  await page.goto('/login');
+  // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+  await page.goto('/panel');
   await page.getByLabel('Correo electrónico').fill(EMAIL(who));
   await page.getByLabel('Contraseña').fill(PASSWORD);
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+  // plan-fase7-puesta-al-dia.md R-2 / U-2: las cuentas de la semilla anteriores a D3 reciben 403 AcceptanceRequired y
+  // aceptan las condiciones vigentes en la misma tarjeta; el resto entra directo
+  const acceptance = page.getByTestId('acceptance-required');
+  await Promise.race([page.waitForURL(/\/panel$/), acceptance.waitFor()]);
+  if (await acceptance.isVisible()) {
+    reaceptaciones.push(who);
+    await acceptLegal(acceptance);
+    await acceptance.getByRole('button', { name: 'Aceptar y entrar' }).click();
+  }
   await expect(page).toHaveURL(/\/panel$/);
   return page;
 }
 
+/** Cuentas que pasaron por la re-aceptación del login (U-2); van a pasos.json. */
+const reaceptaciones: string[] = [];
+
 /** JWT para los pasos por HTTP: solo en memoria del test. */
 async function jwt(request: APIRequestContext, who: string): Promise<string> {
-  const r = await request.post(`${API}/auth/login`, { data: { email: EMAIL(who), password: PASSWORD } });
+  let r = await request.post(`${API}/auth/login`, { data: { email: EMAIL(who), password: PASSWORD } });
+  // D3: si la cuenta tiene versiones pendientes, se repite con exactamente las que pide el 403
+  if (r.status() === 403) {
+    const b = await r.json();
+    expect(b.title).toBe('AcceptanceRequired');
+    const accept: Record<string, string> = {};
+    if (b.pendingTermsVersion) accept.acceptedTermsVersion = b.pendingTermsVersion;
+    if (b.pendingDataPolicyVersion) accept.acceptedDataPolicyVersion = b.pendingDataPolicyVersion;
+    r = await request.post(`${API}/auth/login`, { data: { email: EMAIL(who), password: PASSWORD, ...accept } });
+  }
   expect(r.status()).toBe(200);
   return (await r.json()).token;
 }
@@ -131,13 +154,14 @@ async function act(page: Page, button: string, fields: [string, string][]) {
   await page.getByRole('button', { name: button, exact: true }).click();
   const dialog = page.getByRole('dialog');
   for (const [label, value] of fields) await dialog.getByLabel(label).fill(value);
+  if (button === 'Entregar') await attachDeliveryPhoto(dialog); // U-3: la entrega lleva su foto
   await dialog.getByRole('button', { name: 'Confirmar' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 15000 });
 }
 
 const DELIVER: [string, string][] = [
   ['Custodio final (referencia)', 'ALIADO-LOCAL-1'], ['Beneficiario (referencia)', 'BEN-0001'],
-  ['Lugar de entrega (referencia)', 'SALON-COMUNAL'], ['Evidencia (referencia)', 'ACTA-001'],
+  ['Lugar de entrega (referencia)', 'SALON-COMUNAL'],
 ];
 
 test('ensayo conjunto: golden path por la interfaz contra el backend real', async ({ browser, request }) => {
@@ -240,7 +264,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   await paso('donar-con-cuenta', 'UI', async () => {
     const d = await login(browser, 'donante');
     s.donor = d;
-    await d.getByRole('link', { name: 'Convocatorias' }).first().click();
+    await d.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Explorar' }).click(); // DF7-18: la barra sustituye al enlace de la cabecera
     await d.getByRole('link', { name: title }).click();
     s.donorRedirect = await donate(d, '40000');
   }, () => s.donor);
@@ -248,8 +272,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   await paso('historial-donante', 'UI', async () => {
     const d = s.donor as Page;
     await waitTrackingCode(d);
-    await d.getByRole('link', { name: 'Panel' }).click();
-    await d.getByRole('link', { name: 'Mis donaciones' }).click();
+    await d.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Donaciones' }).click(); // DF7-18: el donante no tiene organización
     await expect(d.getByTestId('account-donation').filter({ hasText: title })).toBeVisible();
   }, () => s.donor);
 
@@ -265,7 +288,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   // 4. Camino A por la interfaz: el administrador solicita y confirma una asignación; el empleado la elige al registrar
   await paso('fondo-y-asignacion', 'UI', async () => {
     const a = s.admin as Page;
-    await a.getByRole('link', { name: 'Panel' }).click();
+    await a.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await a.getByRole('link', { name: 'Fondos de mi organización' }).click();
     // El fondo de la convocatoria de este ensayo (con la base reutilizada hay fondos de pasadas anteriores)
     const fund = a.getByTestId('fund').filter({ hasText: s.campaignRef }).filter({ hasNotText: 'Disponible0 COP' }).first();
@@ -325,7 +348,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
 
   await paso('activos-organizacion', 'UI', async () => {
     const e = s.employee as Page;
-    await e.getByRole('link', { name: 'Panel' }).click();
+    await e.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await e.getByRole('link', { name: 'Activos de mi organización' }).click();
     // El activo de esta pasada (con la base reutilizada hay activos de pasadas anteriores)
     await expect(e.getByTestId('org-asset').filter({ hasText: s.assetRef })).toContainText('Entregado');
@@ -352,10 +375,9 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     }
     return 'relato individual: no llegó en 30 s';
   }, () => s.tracker);
-  // S-22: integridad a petición, con el mismo código en Authorization. Solo se registran resultados y estados
+  // S-22: integridad al abrir el seguimiento (A-4), con el mismo código en Authorization. Solo resultados y estados
   await paso('integridad', 'UI', async () => {
     const t = s.tracker as Page;
-    await t.getByRole('button', { name: 'Comprobar integridad' }).click();
     const box = t.getByTestId('integrity');
     await expect(box.or(t.getByRole('alert'))).toBeVisible({ timeout: 30000 });
     await expect(box).toBeVisible();
@@ -363,14 +385,14 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     const n = await groups.count();
     const results: string[] = [];
     for (let i = 0; i < n; i++) results.push(`${await groups.nth(i).getAttribute('data-result')}`);
-    const pending = (await box.textContent())?.match(/Hay (\d+) eventos? de tu donación que todavía no/)?.[1] ?? '0';
+    const pending = (await box.textContent())?.match(/(\d+) eventos? de tu donación todavía no/)?.[1] ?? '0';
     return `${n} grupo(s): ${results.join(', ') || '—'}; eventos sin anclar: ${pending}`;
   }, () => s.tracker);
 
   // Panel: listado, estimación y narrativa
   await paso('estimacion', 'UI', async () => {
     const a = s.admin as Page;
-    await a.getByRole('link', { name: 'Panel' }).click();
+    await a.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await a.getByRole('link', { name: 'Estimación de convocatorias' }).click();
     await a.getByLabel('Convocatoria').selectOption({ label: title });
     await a.getByRole('button', { name: 'Ver estimación' }).click();
@@ -413,7 +435,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   // P3 — mis convocatorias (empleado de la semilla, responsable de la convocatoria del ensayo)
   await paso('mis-convocatorias', 'UI', async () => {
     const e = s.employee as Page;
-    await e.getByRole('link', { name: 'Panel' }).click();
+    await e.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await e.getByRole('link', { name: 'Mis convocatorias' }).click();
     await expect(e.getByTestId('my-campaign').filter({ hasText: title })).toContainText('Empleado');
   }, () => s.employee);
@@ -421,7 +443,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   // P3 — configuración: con donaciones, guardar sin aprobación da 409; la solicitud la aprueba el representante
   await paso('configuracion-solicitud', 'UI', async () => {
     const a = s.admin as Page;
-    await a.getByRole('link', { name: 'Panel' }).click();
+    await a.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await a.getByRole('link', { name: 'Configuración de convocatorias' }).click();
     await a.getByLabel('Convocatoria').selectOption({ label: title });
     await a.getByRole('button', { name: 'Ver configuración' }).click();
@@ -459,7 +481,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   const invited = `invitada-${Date.now()}@demo.paxfide.local`;
   await paso('invitar', 'UI', async () => {
     const a = s.admin as Page;
-    await a.getByRole('link', { name: 'Panel' }).click();
+    await a.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await a.getByRole('link', { name: 'Personas de mi organización' }).click();
     await a.getByRole('button', { name: 'Invitar' }).click();
     await a.getByRole('dialog').getByLabel('Correo electrónico').fill(invited);
@@ -496,10 +518,12 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     await i.goto(s.inviteLink);
     await expect(i.getByText(/inicia sesión con la cuenta del correo/)).toBeVisible();
     expect(i.url()).not.toContain(token);
+    await acceptLegal(i);
     await i.getByRole('button', { name: 'Crear cuenta' }).click();
     await i.getByLabel('Correo electrónico').fill(invited);
     await i.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
     await i.getByLabel('Repite la contraseña').fill(PASSWORD);
+    await acceptLegal(i);
     await i.getByRole('button', { name: 'Crear cuenta' }).click();
     await i.getByRole('link', { name: 'Iniciar sesión' }).click();
     await i.getByLabel('Correo electrónico').fill(invited);
@@ -519,7 +543,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   await paso('personas', 'UI', async () => {
     const a = s.admin as Page;
     // Navegación de cliente: recargar cerraría la sesión (JWT solo en memoria)
-    await a.getByRole('link', { name: 'Panel' }).click();
+    await a.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
     await a.getByRole('link', { name: 'Personas de mi organización' }).click();
     await expect(a.getByTestId('member').filter({ hasText: 'Empleado' }).first()).toBeVisible();
     const count = await a.getByTestId('member').count();
@@ -537,15 +561,25 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
     await n.getByLabel('Correo electrónico').fill(email);
     await n.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
     await n.getByLabel('Repite la contraseña').fill(PASSWORD);
+    await acceptLegal(n);
     await n.getByRole('button', { name: 'Crear cuenta' }).click();
     await n.getByRole('link', { name: 'Iniciar sesión' }).click();
     await n.getByLabel('Correo electrónico').fill(email);
-    await n.getByLabel('Contraseña').fill(PASSWORD);
+    await n.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
     await n.getByRole('button', { name: 'Iniciar sesión' }).click();
+    if (await n.getByRole('button', { name: 'Continuar' }).isVisible({ timeout: 2000 }).catch(() => false)) {
+      await n.getByRole('button', { name: 'Continuar' }).click();
+      // P-1: "¿Cómo te llamamos?" es opcional
+      await n.getByTestId('name-gate').getByRole('button', { name: 'Más tarde' }).click();
+    }
+    if (!n.url().endsWith('/panel')) {
+      await n.goto('/panel');
+    }
     await n.getByRole('link', { name: 'Crear organización' }).click();
     await n.getByRole('button', { name: 'Crear organización' }).click();
     await n.getByRole('dialog').getByLabel('Tipo').selectOption('FOUNDATION');
     await n.getByRole('dialog').getByLabel('Nombre').fill(orgName);
+    await n.getByRole('dialog').getByTestId('consent-organizationTerms').check();
     await n.getByRole('dialog').getByRole('button', { name: 'Crear organización' }).click();
     await expect(n.getByTestId('organization-status')).toHaveText('Pendiente de verificación');
     await expect(n.getByTestId('organization-roles')).toHaveText('Representante');
@@ -553,7 +587,10 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
 
   await paso('cola-pedir-informacion', 'UI', async () => {
     const q = s.platform as Page;
-    await q.getByRole('link', { name: 'Panel' }).click();
+    // La cuenta de plataforma no tiene organización (DF7-18, B): no hay entrada de la barra hacia /panel. Sigue en
+    // /panel/platform desde el paso 1; se vuelve al panel por el historial (navegación de cliente, la sesión sigue)
+    await q.goBack();
+    await expect(q).toHaveURL(/\/panel$/);
     await q.getByRole('link', { name: 'Plataforma: verificación y administradores' }).click();
     const row = q.getByTestId('queue-item').filter({ hasText: orgName });
     await expect(row).toContainText('Pendiente de verificación');
@@ -567,6 +604,7 @@ test('ensayo conjunto: golden path por la interfaz contra el backend real', asyn
   }, () => s.platform);
 
   fs.writeFileSync(path.join(OUT, 'pasos.json'), JSON.stringify(pasos, null, 2) + '\n');
+  fs.writeFileSync(path.join(OUT, 'reaceptaciones.json'), JSON.stringify(reaceptaciones, null, 2) + '\n');
   fs.writeFileSync(path.join(OUT, 'red.json'), JSON.stringify(red, null, 2) + '\n');
   expect(pasos.filter((p) => p.resultado !== 'OK')).toEqual([]);
 });

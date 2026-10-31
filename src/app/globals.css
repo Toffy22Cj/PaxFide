@@ -22,6 +22,34 @@
   --danger-700: #B42318;
   --danger-50: #FEF3F2;
 
+  /* Enmienda 1 §5 (E3: degradado de la tarjeta de marca) y §3.2 (E1: base clara del fondo animado) */
+  --brand-green-700: #297A62;
+  --brand-ground: #DCE8D6;
+
+  /* Enmienda 1 §4.2 (E2): tokens oscuros. Solo la capa semántica los usa; ningún componente los nombra directamente */
+  --dark-ground: #07130E;
+  --dark-bg: #0E1B16;
+  --dark-surface: #132C22;
+  --dark-surface-raised: #192F26;
+  --dark-field: #0F261D;
+  --dark-text: #EEF6EF;
+  --dark-text-secondary: #B9C6BE;
+  --dark-border-control: #76847D;
+  --dark-divider: #2F453D;
+  --dark-action: #20604C;
+  --dark-on-action: #FFFFFF;
+  --dark-link: #8CC3DE;
+  --dark-focus: #8CD39A;
+  --dark-accent-yellow: #F3B544;
+  --dark-ambiguous-bg: #323F27;
+  --dark-ambiguous-text: #F8CF7E;
+  --dark-info-bg: #193B39;
+  --dark-info-text: #BFE0F0;
+  --dark-success-bg: #214430;
+  --dark-success-text: #A9E6B0;
+  --dark-danger-bg: #332A20;
+  --dark-danger-text: #FCA5A5;
+
   /* Neutros y overlay (W-7) */
   --neutral-50: #F8FAFA;
   --neutral-100: #F0F4F4;
@@ -38,14 +66,50 @@
   --space-8: 32px;
   --space-12: 48px;
 
-  /* Radio */
-  --radius-control: 6px;
-  --radius-surface: 8px;
+  /* Radio (enmienda 1 §7.1; control y superficie con la opción (a) de Carlos, 2026-10-21) */
+  --radius-control: 12px;
+  --radius-surface: 24px;
+  --radius-card: 18px;
+  --radius-button: 999px;
 
   /* Sombra */
   --shadow-modal: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  /* Enmienda 1 §7.1 (claro) y §4.2 (oscuro: .30 / .40 / .45, Carlos, 2026-10-21) */
+  --shadow-card-light: 0 12px 32px rgba(27, 81, 65, 0.08);
+  --shadow-hover-light: 0 20px 42px rgba(29, 92, 66, 0.16);
+  --shadow-float-light: 0 24px 60px rgba(27, 81, 65, 0.14);
+  --shadow-card-dark: 0 12px 32px rgba(0, 0, 0, 0.3);
+  --shadow-hover-dark: 0 20px 42px rgba(0, 0, 0, 0.4);
+  --shadow-float-dark: 0 24px 60px rgba(0, 0, 0, 0.45);
 
-  /* Tipografía */
+  /* Movimiento (enmienda 1 §7.2): tres duraciones y cuatro curvas; ninguna animación usa valores sueltos */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 450ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* Fuentes: --font-display y --font-mono las define next/font/local en <html> (src/app/fonts.ts); el cuerpo sigue en system-ui */
+  --font-body: var(--font-family-sans);
+
+  /* Escala tipográfica v2 (enmienda 1 §6). Solo para pantallas nuevas; las existentes siguen con --text-* (v1) hasta VS-8 */
+  --font-size-display-1: 48px;
+  --font-size-display-2: 34px;
+  --font-size-display-3: 26px;
+  --font-size-display-4: 21px;
+  --font-size-display-5: 18px;
+  --font-size-body-1: 16px;
+  --font-size-body-2: 15px;
+  --font-size-body-3: 14px;
+  --font-size-body-4: 13px;
+  --font-size-mono-1: 15px;
+  --font-size-mono-2: 13px;
+  --font-size-mono-3: 12px;
+  --font-size-mono-4: 11px;
+
+  /* Tipografía (v1) */
   --text-sm: 14px;
   --text-md: 16px;
   --text-lg: 20px;
@@ -58,8 +122,138 @@
   --gutter-mobile: 16px;
 }
 
+/*
+ * Capa semántica (DF7-08, D-F11; valores de la enmienda 1 §4.1–§4.3 y §5).
+ * Los selectores funcionan a nivel de :root y en cualquier contenedor con [data-theme="..."] (D-F11).
+ * Claro por defecto y con [data-theme="light"]; oscuro con prefers-color-scheme salvo data-theme="light",
+ * y forzado en contenedor o raíz con [data-theme="dark"].
+ */
+:root,
+[data-theme="light"] {
+  --color-bg: var(--neutral-50);
+  --color-ground: var(--brand-ground);
+  --color-surface: var(--white);
+  --color-surface-raised: var(--white);
+  --color-surface-translucent: rgba(255, 255, 255, 0.82); /* R-F1, enmienda U-17 (0,82 con desenfoque) */
+  --color-field: var(--white);
+  --color-text: var(--brand-green-900);
+  --color-text-secondary: var(--brand-neutral-700);
+  --color-border-control: var(--neutral-400);
+  --color-divider: var(--neutral-200);
+  --color-action: var(--brand-green-900);
+  --color-on-action: var(--white);
+  --color-gradient-from: var(--brand-green-900);
+  --color-gradient-to: var(--brand-green-700);
+  --color-link: var(--brand-blue-800);
+  --color-focus: var(--brand-green-900);
+  --color-success-bg: var(--brand-green-50);
+  --color-success-text: var(--brand-green-900);
+  --color-success-icon: var(--brand-green-900);
+  --color-danger-bg: var(--danger-50);
+  --color-danger-text: var(--danger-700);
+  --color-ambiguous-bg: var(--brand-yellow-50);
+  --color-ambiguous-text: var(--brand-green-900);
+  --color-ambiguous-title: var(--brand-yellow-900);
+  --color-info-bg: var(--brand-blue-50);
+  --color-info-text: var(--brand-blue-800);
+  --shadow-card: var(--shadow-card-light);
+  --shadow-hover: var(--shadow-hover-light);
+  --shadow-float: var(--shadow-float-light);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: var(--dark-bg);
+    --color-ground: var(--dark-ground);
+    --color-surface: var(--dark-surface);
+    --color-surface-raised: var(--dark-surface-raised);
+    --color-surface-translucent: rgba(16, 38, 29, 0.82); /* R-F1, enmienda U-17 */
+    --color-field: var(--dark-field);
+    --color-text: var(--dark-text);
+    --color-text-secondary: var(--dark-text-secondary);
+    --color-border-control: var(--dark-border-control);
+    --color-divider: var(--dark-divider);
+    --color-action: var(--dark-action);
+    --color-on-action: var(--dark-on-action);
+    --color-gradient-from: var(--brand-green-900);
+    --color-gradient-to: var(--brand-green-700);
+    --color-link: var(--dark-link);
+    --color-focus: var(--dark-focus);
+    --color-success-bg: var(--dark-success-bg);
+    --color-success-text: var(--dark-success-text);
+    --color-success-icon: var(--dark-success-text);
+    --color-danger-bg: var(--dark-danger-bg);
+    --color-danger-text: var(--dark-danger-text);
+    --color-ambiguous-bg: var(--dark-ambiguous-bg);
+    --color-ambiguous-text: var(--dark-ambiguous-text);
+    --color-ambiguous-title: var(--dark-ambiguous-text);
+    --color-info-bg: var(--dark-info-bg);
+    --color-info-text: var(--dark-info-text);
+    --shadow-card: var(--shadow-card-dark);
+    --shadow-hover: var(--shadow-hover-dark);
+    --shadow-float: var(--shadow-float-dark);
+  }
+}
+
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  --color-bg: var(--dark-bg);
+  --color-ground: var(--dark-ground);
+  --color-surface: var(--dark-surface);
+  --color-surface-raised: var(--dark-surface-raised);
+  --color-surface-translucent: rgba(16, 38, 29, 0.82); /* R-F1, enmienda U-17 */
+  --color-field: var(--dark-field);
+  --color-text: var(--dark-text);
+  --color-text-secondary: var(--dark-text-secondary);
+  --color-border-control: var(--dark-border-control);
+  --color-divider: var(--dark-divider);
+  --color-action: var(--dark-action);
+  --color-on-action: var(--dark-on-action);
+  --color-gradient-from: var(--brand-green-900);
+  --color-gradient-to: var(--brand-green-700);
+  --color-link: var(--dark-link);
+  --color-focus: var(--dark-focus);
+  --color-success-bg: var(--dark-success-bg);
+  --color-success-text: var(--dark-success-text);
+  --color-success-icon: var(--dark-success-text);
+  --color-danger-bg: var(--dark-danger-bg);
+  --color-danger-text: var(--dark-danger-text);
+  --color-ambiguous-bg: var(--dark-ambiguous-bg);
+  --color-ambiguous-text: var(--dark-ambiguous-text);
+  --color-ambiguous-title: var(--dark-ambiguous-text);
+  --color-info-bg: var(--dark-info-bg);
+  --color-info-text: var(--dark-info-text);
+  --shadow-card: var(--shadow-card-dark);
+  --shadow-hover: var(--shadow-hover-dark);
+  --shadow-float: var(--shadow-float-dark);
+}
+
+/*
+ * U-17 (plan-fase7-puesta-al-dia.md Anexo 2; enmienda de R-F1): la superficie translúcida va siempre con desenfoque.
+ * El desenfoque no cuenta para el contraste: con 0,82 el peor caso del Anexo A sigue >= 5,09 (oscuro) y >= 5,13 (claro).
+ * Sin backdrop-filter, la superficie vuelve a la opacidad anterior (0,88 en claro y 0,86 en oscuro).
+ */
+:root {
+  --backdrop-translucent: blur(20px) saturate(1.2);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root,
+  [data-theme="light"] {
+    --color-surface-translucent: rgba(255, 255, 255, 0.88);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --color-surface-translucent: rgba(16, 38, 29, 0.86);
+    }
+  }
+  :root[data-theme="dark"],
+  [data-theme="dark"] {
+    --color-surface-translucent: rgba(16, 38, 29, 0.86);
+  }
+}
+
 *:focus-visible {
-  outline: 2px solid var(--brand-green-900);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -68,13 +262,13 @@ html { -webkit-text-size-adjust: 100%; }
 body {
   font-family: var(--font-family-sans);
   margin: 0;
-  background: var(--neutral-50);
-  color: var(--brand-green-900);
+  background: var(--color-bg);
+  color: var(--color-text);
   font-size: var(--text-md);
   line-height: 1.5;
 }
 
-/* Sobre neutral-50 los enlaces van en brand-blue-800 (diseno-ux §3.2) */
-a { color: var(--brand-blue-800); }
+/* En semántico los enlaces usan --color-link (diseno-ux §3.2, enmienda §4.3) */
+a { color: var(--color-link); }
 
 *, *::before, *::after { box-sizing: border-box; }

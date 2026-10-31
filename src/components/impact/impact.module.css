@@ -1,0 +1,42 @@
+/* Ref: plan-fase7-puesta-al-dia.md P-7 (tarjeta del sistema v2 con la entrada rise de F-A4). Solo tokens semánticos. */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+.card {
+  display: flex; flex-direction: column; gap: var(--space-3); min-width: 0;
+  background: var(--color-surface); color: var(--color-text);
+  border: 1px solid var(--color-divider); border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card); padding: var(--space-6);
+  animation: rise var(--duration-normal) var(--ease-out) both;
+  animation-delay: calc(var(--card-index, 0) * var(--duration-fast));
+}
+@media (prefers-reduced-motion: reduce) {
+  .card { animation: none; opacity: 1; transform: none; }
+}
+.title {
+  display: flex; align-items: center; gap: var(--space-2); margin: 0;
+  font-family: var(--font-display); font-size: var(--font-size-display-5); color: var(--color-text);
+}
+.icon { flex: none; color: var(--color-success-icon); }
+.loading { display: flex; flex-direction: column; gap: var(--space-2); }
+.block { display: flex; flex-direction: column; gap: var(--space-1); }
+.label { font-size: var(--font-size-body-4); color: var(--color-text-secondary); font-weight: var(--weight-semibold); }
+.lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.big {
+  font-family: var(--font-mono); font-size: var(--font-size-display-4); font-weight: var(--weight-semibold);
+  line-height: 1.15; color: var(--color-text); overflow-wrap: anywhere;
+}
+.unit { font-family: var(--font-mono); font-size: var(--font-size-mono-1); color: var(--color-text); }
+.facts {
+  list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4);
+  font-size: var(--font-size-body-3); color: var(--color-text);
+}
+.text { margin: 0; font-size: var(--font-size-body-2); color: var(--color-text-secondary); }
+.empty { display: flex; flex-direction: column; gap: var(--space-2); align-items: flex-start; }
+.link {
+  display: inline-flex; align-items: center; min-height: 44px; color: var(--color-link);
+  font-weight: var(--weight-semibold); text-decoration: underline;
+}
+.link:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.note { margin: 0; font-size: var(--font-size-body-4); color: var(--color-text-secondary); }

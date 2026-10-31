@@ -1,0 +1,36 @@
+/* Ref: plan-fase7-pantallas.md A-2 y D-P10; DF7-22. Solo tokens semánticos; superficie sólida (R-F1). */
+.card {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  background: var(--color-surface); color: var(--color-text);
+  border: 1px solid var(--color-divider); border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4); min-width: 0;
+}
+.org { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.logo { width: 40px; height: 40px; border-radius: var(--radius-control); object-fit: cover; flex: none; background: var(--color-surface-raised); }
+.initial {
+  width: 40px; height: 40px; flex: none; border-radius: var(--radius-control);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--color-success-bg); color: var(--color-success-text);
+  font-family: var(--font-display); font-weight: var(--weight-semibold); font-size: var(--font-size-display-5);
+}
+.orgText { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.orgName { margin: 0; font-size: var(--font-size-body-3); color: var(--color-text-secondary); overflow-wrap: anywhere; }
+.verified {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: var(--space-1);
+  padding: 2px var(--space-2); border-radius: var(--radius-button);
+  background: var(--color-success-bg); color: var(--color-success-text);
+  font-size: var(--font-size-body-4); font-weight: var(--weight-semibold);
+}
+.title { margin: 0; font-family: var(--font-display); font-size: var(--font-size-display-5); line-height: 1.2; overflow-wrap: anywhere; }
+.title a { color: var(--color-text); text-decoration: none; }
+.title a:hover { text-decoration: underline; }
+.title a:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 4px; }
+.progress { display: flex; flex-direction: column; gap: var(--space-2); }
+.track { height: 8px; border-radius: var(--radius-button); background: var(--color-divider); overflow: hidden; }
+.fill { height: 100%; background: var(--color-action); border-radius: inherit; }
+.amounts { margin: 0; font-family: var(--font-mono); font-size: var(--font-size-mono-2); color: var(--color-text); }
+.dates { margin: 0; font-size: var(--font-size-body-3); color: var(--color-text-secondary); }
+
+/* U-6: la portada arriba de la tarjeta, sin bloquear la carga (lazy) */
+.cover { display: block; width: calc(100% + 2 * var(--space-4)); margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) 0; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-card) var(--radius-card) 0 0; background: var(--color-bg); }

@@ -1,8 +1,203 @@
-.header { background: var(--white); border-bottom: 1px solid var(--neutral-200); }
-.bar { max-width: 1120px; margin: 0 auto; padding: 0 var(--gutter-mobile); min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
-.brand { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--brand-green-900); font-weight: var(--weight-semibold); font-size: var(--text-lg); text-decoration: none; }
-.nav { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
-.navLink { color: var(--brand-blue-800); font-size: var(--text-sm); }
-.logout { min-height: var(--control-height); padding: 0 var(--space-4); border-radius: var(--radius-control); font: inherit; font-weight: var(--weight-semibold); cursor: pointer; background: var(--white); color: var(--brand-green-900); border: 1px solid var(--neutral-400); }
-.main { max-width: var(--width-detail); margin: 0 auto; padding: var(--space-8) var(--gutter-mobile) var(--space-12); }
+/* Ref: sistema-visual-paxfide-web-enmienda-1.md §8 (el contenedor pone data-nav-position y --nav-inset-*; el contenido
+   solo usa esas variables). Cabecera y contenedor: solo tokens semánticos (respuesta de Carlos al plan de VS-2, D). */
+.app {
+  --nav-inset-top: 56px;
+  --nav-width-side: 108px;
+  --nav-height-bottom: 66px;
+  --nav-height-top: 66px;
+  --nav-inset-bottom: 0px;
+  --nav-inset-left: 0px;
+  --nav-inset-right: 0px;
+}
+.app[data-has-nav="true"][data-nav-position="bottom"] { --nav-inset-bottom: calc(var(--nav-height-bottom) + env(safe-area-inset-bottom, 0px)); }
+.app[data-has-nav="true"][data-nav-position="side"],
+.app[data-has-nav="true"][data-nav-position="left"] { --nav-inset-left: var(--nav-width-side); }
+.app[data-has-nav="true"][data-nav-position="right"] { --nav-inset-right: var(--nav-width-side); }
+.app[data-has-nav="true"][data-nav-position="top"] { --nav-inset-top: calc(56px + var(--nav-height-top)); }
+@media (max-width: 767.98px) {
+  .app[data-has-nav="true"][data-nav-position="auto"] { --nav-inset-bottom: calc(var(--nav-height-bottom) + env(safe-area-inset-bottom, 0px)); }
+}
+@media (min-width: 768px) {
+  .app[data-has-nav="true"][data-nav-position="auto"] { --nav-inset-left: var(--nav-width-side); }
+  :global(html[data-nav-position="top"]) .app[data-has-nav="true"][data-nav-position="auto"] { --nav-inset-top: calc(56px + var(--nav-height-top)); --nav-inset-left: 0px; }
+  :global(html[data-nav-position="bottom"]) .app[data-has-nav="true"][data-nav-position="auto"] { --nav-inset-bottom: calc(var(--nav-height-bottom) + env(safe-area-inset-bottom, 0px)); --nav-inset-left: 0px; }
+  :global(html[data-nav-position="right"]) .app[data-has-nav="true"][data-nav-position="auto"] { --nav-inset-right: var(--nav-width-side); --nav-inset-left: 0px; }
+}
+
+.header {
+  position: sticky; top: 0; z-index: 30;
+  height: 56px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-divider);
+}
+.bar { max-width: 1120px; height: 100%; margin: 0 auto; padding: 0 var(--gutter-mobile); display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.brand { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-text); font-weight: var(--weight-semibold); font-size: var(--text-lg); text-decoration: none; flex-shrink: 0; }
+.actions { display: flex; align-items: center; gap: var(--space-3); }
+.themeSelect {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text);
+  font-size: var(--font-size-body-4);
+}
+.themeSelect label {
+  font-weight: var(--weight-semibold);
+}
+.themeSelect select {
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-control);
+  font: inherit;
+  font-size: var(--font-size-body-1);
+  font-weight: var(--weight-semibold);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-control);
+  cursor: pointer;
+}
+.themeSelect select:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .bar {
+    padding: 0 var(--space-2);
+    gap: var(--space-2);
+  }
+  .actions {
+    gap: var(--space-2);
+  }
+  .themeSelect label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .themeSelect select {
+    max-width: 92px;
+    padding: 0 var(--space-1);
+    text-overflow: ellipsis;
+  }
+  .logout {
+    padding: 0 var(--space-2);
+    font-size: var(--font-size-body-4);
+  }
+}
+.logout {
+  min-height: 44px; padding: 0 var(--space-4);
+  border-radius: var(--radius-control);
+  font: inherit; font-weight: var(--weight-semibold); cursor: pointer;
+  background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control);
+}
+.logout:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+/* U-19: el enlace "Iniciar sesión" ocupa el sitio de "Cerrar sesión" con su misma forma */
+a.logout { display: inline-flex; align-items: center; text-decoration: none; }
+/* Pausa de la ciudad (R-F2): icono siempre; el texto visible desde 768 px (el nombre accesible es el mismo) */
+.pause {
+  min-height: 44px; min-width: 44px; padding: 0 var(--space-3);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  border-radius: var(--radius-button);
+  font: inherit; font-weight: var(--weight-semibold); cursor: pointer;
+  background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control);
+}
+.pause:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.pauseText { display: none; }
+@media (min-width: 768px) { .pauseText { display: inline; } }
+.main {
+  max-width: var(--width-detail); margin: 0 auto;
+  padding: var(--space-8) var(--gutter-mobile) calc(var(--space-12) + var(--nav-inset-bottom));
+}
+.app[data-has-nav="true"] .main { margin-left: max(var(--nav-inset-left), calc((100% - var(--width-detail)) / 2)); }
+.app[data-has-nav="true"] .main.wide { margin-left: max(var(--nav-inset-left), calc((100% - 1120px) / 2)); }
+.app[data-has-nav="true"][data-nav-position="right"] .main {
+  margin-left: auto;
+  margin-right: max(var(--nav-inset-right), calc((100% - var(--width-detail)) / 2));
+}
+.app[data-has-nav="true"][data-nav-position="right"] .main.wide {
+  margin-left: auto;
+  margin-right: max(var(--nav-inset-right), calc((100% - 1120px) / 2));
+}
+.app[data-has-nav="true"][data-nav-position="top"] .main,
+.app[data-has-nav="true"][data-nav-position="bottom"] .main {
+  margin-left: auto;
+  margin-right: auto;
+}
+.app[data-has-nav="true"][data-nav-position="top"] .main {
+  margin-top: calc(var(--nav-height-top) + var(--space-4));
+}
 .wide { max-width: 1120px; }
+/* Rutas con ciudad (R-F1): ningún texto directamente sobre el fondo animado; el contenido va en una superficie
+   translúcida con la opacidad mínima. El canvas está detrás (z-index 0). */
+.main { position: relative; z-index: 1; }
+.onCity {
+  background: var(--color-surface-translucent);
+  /* U-17: siempre con desenfoque (token de globals.css); los campos siguen sólidos */
+  -webkit-backdrop-filter: var(--backdrop-translucent);
+  backdrop-filter: var(--backdrop-translucent);
+  border-radius: var(--radius-surface);
+  margin-top: var(--space-4);
+  margin-bottom: calc(var(--space-4) + var(--nav-inset-bottom));
+  padding-bottom: var(--space-8);
+}
+/* Landing (A-2): el mundo va detrás de toda la página y cada bloque lleva su propia superficie (R-F1), así que el
+   contenedor no pone ni ancho máximo ni superficie. */
+.main.onWorld { max-width: none; margin: 0; padding: 0 0 calc(var(--space-12) + var(--nav-inset-bottom)); }
+.app[data-has-nav="true"] .main.onWorld { margin-left: var(--nav-inset-left); }
+
+/* Transiciones suaves entre rutas (D-F6) */
+.viewIn {
+  animation: viewIn var(--duration-normal) var(--ease-out);
+}
+.viewPn {
+  animation: pnIn var(--duration-fast) var(--ease-out);
+}
+
+@keyframes viewIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pnIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewIn,
+  .viewPn {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* Modo Ver ciudad despejada (D-F3) */
+.peeking {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: scale(0.98);
+  transition: opacity var(--duration-normal) var(--ease-out), transform var(--duration-normal) var(--ease-out);
+}
+
+/* U-17 (plan-fase7-puesta-al-dia.md Anexo 2): el inicio crece hasta 1200 px; baja lo justo para que la píldora "Sector"
+   y "Ver ciudad" (CityHud, fija arriba a la izquierda) no tapen ni queden tapadas */
+.main.homeWide { max-width: 1200px; margin-top: var(--space-12); }
+.app[data-has-nav="true"] .main.homeWide {
+  margin-left: max(calc(var(--nav-inset-left) + var(--space-4)), calc((100% - 1200px) / 2));
+  margin-right: max(calc(var(--nav-inset-right) + var(--space-4)), calc((100% - 1200px) / 2));
+}

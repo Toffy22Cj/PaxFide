@@ -16,7 +16,7 @@ describe('Mis donaciones (/account/donations)', () => {
   it('cargando', async () => {
     const { AccountDonationsScreen } = await load();
     render(<AccountDonationsScreen client={() => new Promise(() => {})} />);
-    expect(screen.getByText('Cargando…')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Cargando tus donaciones' })).toBeInTheDocument();
   });
 
   it('vacío', async () => {
@@ -54,5 +54,34 @@ describe('Mis donaciones (/account/donations)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mostrar código de seguimiento' }));
     expect(screen.getByTestId('account-tracking-code')).toHaveTextContent('TRK.x');
     expect(screen.getAllByRole('link', { name: 'Ver seguimiento' })).toHaveLength(1);
+  });
+
+  it('D-P11 (A-5): organización, fecha y medio de pago si llegan; enlace a la convocatoria solo con publicCode', async () => {
+    vi.resetModules();
+    vi.stubEnv('NEXT_PUBLIC_E2E_SURFACES', JSON.stringify(['/account/donations', '/tracking', '/c/:publicCode']));
+    const { AccountDonationsScreen } = await import('../src/screens/AccountDonationsScreen');
+    render(<AccountDonationsScreen client={async () => ({ kind: 'ok', items: [
+      { intentId: 'a', campaignTitle: 'Pública', amount: '100', currency: 'COP', status: 'CONFIRMED',
+        organizationName: 'Fundación Demo', createdAt: '2026-10-20T15:00:00Z', paymentMethod: 'BANK_TRANSFER', publicCode: 'PUB1' },
+      { intentId: 'b', campaignTitle: 'Privada', amount: '100', currency: 'COP', status: 'PENDING', paymentMethod: 'GATEWAY' },
+    ] })} />);
+    const items = await screen.findAllByTestId('account-donation');
+    expect(items[0]).toHaveTextContent('Fundación Demo');
+    expect(items[0]).toHaveTextContent('Transferencia bancaria');
+    expect(items[0].querySelector('time')).toHaveAttribute('datetime', '2026-10-20T15:00:00Z');
+    expect(items[0].querySelector('a[href="/c/PUB1"]')).not.toBeNull();
+    // Sin publicCode (p. ej. PRIVATE_LINK), sin enlace; sin organización ni fecha, sin esas filas
+    expect(items[1].querySelector('a[href^="/c/"]')).toBeNull();
+    expect(items[1]).not.toHaveTextContent('Organización');
+    expect(items[1]).not.toHaveTextContent('Fecha');
+    expect(items[1]).toHaveTextContent('Pasarela de pago');
+  });
+
+  it('D-F15: muestra enlace "Seguir con un código" hacia /tracking', async () => {
+    const { AccountDonationsScreen } = await load();
+    render(<AccountDonationsScreen client={async () => ({ kind: 'ok', items: [] })} />);
+    const link = await screen.findByTestId('link-track-code');
+    expect(link).toHaveAttribute('href', '/tracking');
+    expect(link).toHaveTextContent('Seguir con un código');
   });
 });

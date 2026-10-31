@@ -1,0 +1,203 @@
+/* Ref: Documentos/plan-fase7-fidelidad.md §2 D-F9; Documentos/paxfide-home.html (vProfile) */
+.profile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-button);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  font-size: var(--font-size-display-5);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-display-3);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.emailSub {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-body-2);
+  color: var(--color-text-secondary);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-card);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-card);
+}
+
+.cardTitle {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-display-5);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.sub {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-body-3);
+  color: var(--color-text-secondary);
+}
+
+.dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--font-size-body-2);
+}
+
+.dt {
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-regular);
+}
+
+.dd {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+  word-break: break-all;
+}
+
+.settingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.settingRow:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.settingLabel {
+  color: var(--color-text);
+  font-size: var(--font-size-body-2);
+  font-weight: var(--weight-regular);
+}
+
+.tuneBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-body-2);
+  font-weight: var(--weight-regular);
+  cursor: pointer;
+}
+
+.tuneBtn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.tuneVal {
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.pauseBtn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-button);
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  font-size: var(--font-size-body-3);
+  cursor: pointer;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-control);
+}
+
+.pauseBtn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: var(--space-2);
+}
+
+.logoutBtn {
+  min-height: 44px;
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-button);
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  font-size: var(--font-size-body-2);
+  cursor: pointer;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-control);
+}
+
+.logoutBtn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* P-6 (ADR-050 Enmienda 2): aviso de correo sin verificar, azul informativo (el amarillo queda para lo ambiguo, D6) */
+.verifyBlock {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  background: var(--color-surface); border: 1px solid var(--color-divider); border-radius: var(--radius-card);
+  padding: var(--space-4); box-shadow: var(--shadow-card);
+}
+.verifyNotice {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  background: var(--color-info-bg); color: var(--color-info-text);
+  border-radius: var(--radius-card); padding: var(--space-4) var(--space-6);
+}
+.verifyNoticeTitle { margin: 0; font-size: var(--font-size-display-5); color: var(--color-info-text); }
+.verifyNoticeText { margin: 0; font-size: var(--font-size-body-3); color: var(--color-info-text); overflow-wrap: anywhere; }

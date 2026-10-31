@@ -1,0 +1,17 @@
+/* Ref: plan-fase7-pantallas.md B-3 (pasada de estilo v2 de las pantallas del panel, sin cambiar comportamiento).
+   Detalles de listas y desplegables compartidos por esas pantallas. Solo tokens semánticos. */
+.details { margin: var(--space-3) 0; }
+.details summary {
+  cursor: pointer; display: inline-flex; align-items: center; min-height: 44px;
+  font-weight: var(--weight-semibold); color: var(--color-link);
+}
+.details summary:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.detailsBody { margin-top: var(--space-3); }
+/* Fila con su acción a la derecha (asignaciones de un fondo, administradores de plataforma) */
+.row {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2);
+  padding: var(--space-2) 0; border-bottom: 1px solid var(--color-divider);
+}
+/* Elemento de lista separado del siguiente (personas, cola de verificación) */
+.divided { border-bottom: 1px solid var(--color-divider); padding-bottom: var(--space-4); }
+.spaced { margin-top: var(--space-6); }

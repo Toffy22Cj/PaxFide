@@ -1,0 +1,607 @@
+/* Ref: Documentos/plan-fase7-fidelidad.md §2 D-F5, D-F10, D-F14; Documentos/paxfide-landing.html (.auth-card, etc.) */
+
+/* Envoltorio de página para compatibilidad y alineación */
+.page {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* U-28 (plan-fase7-puesta-al-dia.md Anexo 4): los colores que cambian con el tema son variables --acc-* que fija SOLO el
+   contenedor del acceso (AccessLayout, data-theme del mundo). Las clases que también se usan fuera del acceso (campos,
+   puntos de la bienvenida, "Reenviar" del Perfil) llevan un respaldo con tokens semánticos, que siguen al contenedor más
+   cercano igual. */
+
+/* CAJA DE LOGIN / REGISTRO / ACCESO (D-F5) */
+.card {
+  width: 100%;
+  max-width: 480px;
+  box-sizing: border-box;
+  padding: 34px 32px 30px;
+  border-radius: 28px;
+  background: var(--acc-a-card-background);
+  backdrop-filter: blur(24px) saturate(1.25);
+  -webkit-backdrop-filter: blur(24px) saturate(1.25);
+  border: 1px solid rgba(27, 81, 65, 0.16);
+  box-shadow: var(--acc-a-card-box-shadow);
+  color: var(--color-text);
+  position: relative;
+  animation: authCardEnter var(--duration-normal) cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease;
+  border-color: var(--acc-a-card-border-color);
+}
+
+@keyframes authCardEnter {
+  0% {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .card {
+    padding: 24px 20px 22px;
+    border-radius: 22px;
+  }
+}
+
+/* Modo oscuro en la tarjeta de acceso */
+
+/* Marca de PaxFide (decorativa, accesible para lectores) */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-display-5);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+/* Píldora "TU CUENTA PAXFIDE" */
+.badgePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--acc-a-badgepill-background);
+  border: 1px solid rgba(78, 145, 85, 0.25);
+  color: var(--color-success-text);
+  font: 700 10.5px var(--font-mono);
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+  border-color: var(--acc-a-badgepill-border-color);
+}
+
+.badgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand-green-500);
+  box-shadow: var(--acc-a-badgedot-box-shadow);
+  animation: badgePulse calc(var(--duration-slow) * 4) infinite;
+}
+
+@keyframes badgePulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.title {
+  font: 700 clamp(24px, 3.2vw, 30px)/1.1 var(--font-display);
+  letter-spacing: -0.025em;
+  margin: 0 0 8px;
+  color: var(--color-text);
+}
+
+.subtitle {
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+/* Pestañas de acceso dentro de la caja */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: var(--acc-a-tabs-background);
+  padding: 5px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+}
+
+.tabBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: 700 13px var(--font-body);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--duration-fast) ease;
+  box-sizing: border-box;
+}
+.tabBtn:hover:not(.tabActive) {
+  color: var(--color-text);
+}
+.tabActive {
+  background: var(--acc-a-tabactive-background);
+  color: var(--color-text);
+  box-shadow: var(--acc-a-tabactive-box-shadow);
+}
+
+/* Formulario e inputs */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.label {
+  font: 600 12.5px var(--font-body);
+  color: var(--color-text);
+}
+
+.hint {
+  font-size: 11.5px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.inputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.fieldIcon {
+  position: absolute;
+  left: 14px;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+  width: 18px;
+  height: 18px;
+}
+
+.input {
+  width: 100%;
+  height: 44px;
+  padding: 0 44px 0 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(27, 81, 65, 0.18);
+  background: var(--acc-a-input-background, var(--color-field));
+  color: var(--color-text);
+  font: 500 14px var(--font-body);
+  box-sizing: border-box;
+  transition: all var(--duration-fast) ease;
+  border-color: var(--acc-a-input-border-color, var(--color-border-control));
+}
+.input:focus {
+  outline: none;
+  border-color: var(--acc-a-input-focus-border-color, var(--color-focus));
+  background: var(--acc-a-input-focus-background, var(--color-field));
+  box-shadow: var(--acc-a-input-focus-box-shadow, none);
+}
+
+
+.toggleEye {
+  position: absolute;
+  right: 2px;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: color var(--duration-fast) ease;
+}
+.toggleEye:hover {
+  color: var(--color-text);
+}
+.toggleEye:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.fieldError {
+  font-size: 12px;
+  color: var(--color-danger);
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+/* Medidor de seguridad de contraseña (X-6: mínimo 12) */
+.passStrengthBar {
+  margin-top: 4px;
+}
+.strengthTrack {
+  height: 4px;
+  width: 100%;
+  border-radius: 4px;
+  background: var(--acc-a-strengthtrack-background);
+  overflow: hidden;
+}
+.strengthMeter {
+  height: 4px;
+  border-radius: 4px;
+  transition: width var(--duration-normal) ease, background-color var(--duration-normal) ease;
+}
+.strengthLabel {
+  font: 500 11px var(--font-mono);
+  color: var(--color-text-secondary);
+  display: block;
+  margin-top: 4px;
+}
+
+/* Nota plegable "¿Representas una fundación?" (D-F14) */
+.foundationDetails {
+  margin-top: 6px;
+  border: 1px solid var(--color-divider);
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: var(--acc-a-foundationdetails-background);
+  font-size: 13px;
+  transition: background-color var(--duration-fast) ease;
+  border-color: var(--acc-a-foundationdetails-border-color);
+}
+.foundationSummary {
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--color-text);
+  outline: none;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+}
+.foundationSummary:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.foundationBody {
+  margin-top: 10px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  font-size: 12.5px;
+}
+.foundationBody ol {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Botón principal de submit */
+.submitBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 46px;
+  border-radius: 14px;
+  border: 0;
+  background: var(--color-action);
+  color: var(--color-on-action);
+  font: 700 14.5px var(--font-body);
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(27, 81, 65, 0.26);
+  transition: all var(--duration-fast) var(--ease-out);
+  position: relative;
+  overflow: hidden;
+  margin-top: 6px;
+  text-decoration: none;
+}
+.submitBtn:hover {
+  background: var(--color-action);
+  filter: brightness(0.95);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(27, 81, 65, 0.35);
+}
+.submitBtn:active {
+  transform: translateY(0);
+}
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.submitBtn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Feedback / Avisos con animación feedbackSlide */
+.feedbackMsg {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 600;
+  text-align: center;
+  animation: feedbackSlide var(--duration-fast) ease-out;
+}
+
+@keyframes feedbackSlide {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedbackMsg {
+    animation: none;
+  }
+}
+
+.feedbackSuccess {
+  background: rgba(78, 145, 85, 0.16);
+  border: 1px solid rgba(78, 145, 85, 0.35);
+  color: var(--color-success-text);
+}
+.feedbackError {
+  background: rgba(186, 26, 26, 0.12);
+  border: 1px solid rgba(186, 26, 26, 0.35);
+  color: var(--color-danger-text);
+}
+.feedbackInfo {
+  background: rgba(58, 152, 204, 0.14);
+  border: 1px solid rgba(58, 152, 204, 0.35);
+  color: var(--color-info-text);
+}
+
+/* Pie de la caja */
+.foot {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(27, 81, 65, 0.1);
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  border-top-color: var(--acc-a-foot-border-top-color);
+}
+
+.switchLink {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--color-action);
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+/* Enlaces alternativos heredados */
+.alt {
+  margin: var(--space-6) 0 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-divider);
+  text-align: center;
+  font-size: var(--font-size-body-2);
+  color: var(--color-text-secondary);
+}
+
+.section {
+  margin-top: var(--space-4);
+}
+.section p {
+  color: var(--color-text-secondary);
+}
+
+/* BIENVENIDA (D-F10): Cubos encadenados y 3 diapositivas */
+.welcomeGate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.chain {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 12px 0 8px;
+}
+.chainCube {
+  width: 44px;
+  height: 44px;
+}
+.chainLink {
+  width: 12px;
+  height: 2px;
+  background: var(--color-divider);
+  border-radius: 2px;
+}
+.seal {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-action);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(27, 81, 65, 0.3);
+  color: var(--color-on-action);
+}
+
+.welcomeTitle {
+  font: 700 clamp(22px, 3vw, 26px)/1.15 var(--font-display);
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.welcomeLead {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+  margin: 0 0 8px;
+}
+
+.featuresList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+  width: 100%;
+}
+
+.featureItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.featureIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--color-on-action);
+}
+
+.featureIconGreen {
+  background: var(--brand-green-500);
+}
+.featureIconBlue {
+  background: var(--brand-blue-700);
+}
+.featureIconYellow {
+  background: var(--brand-yellow-900);
+}
+
+.cubeBlueTop { fill: var(--brand-blue-500); }
+.cubeBlueLeft { fill: var(--brand-blue-700); }
+.cubeBlueRight { fill: var(--brand-blue-800); }
+
+.cubeGreenTop { fill: var(--brand-green-500); }
+.cubeGreenLeft { fill: var(--brand-green-800); }
+.cubeGreenRight { fill: var(--brand-green-900); }
+
+.cubeYellowTop { fill: var(--brand-yellow-400); }
+.cubeYellowLeft { fill: var(--brand-yellow-900); }
+.cubeYellowRight { fill: var(--brand-yellow-400); }
+
+.featureText b {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.featureText span {
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.welcomeDots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.welcomeDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--acc-a-welcomedot-background, var(--color-divider));
+  transition: all var(--duration-fast) ease;
+}
+.welcomeDotActive {
+  width: 22px;
+  border-radius: 999px;
+  background: var(--color-action);
+}
+
+/* plan-fase7-puesta-al-dia.md R-1 y U-2: las casillas legales del registro y de la re-aceptación del login */
+.consents { display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-2); }
+.acceptance { display: flex; flex-direction: column; gap: var(--space-3); }
+.acceptanceTitle { margin: 0; font-family: var(--font-display); font-size: var(--font-size-display-5); color: var(--color-text); }
+.acceptanceText { margin: 0; font-size: var(--font-size-body-3); line-height: 1.5; color: var(--color-text-secondary); }
+.acceptanceActions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.secondaryBtn {
+  min-height: 44px; padding: 0 var(--space-4); border-radius: var(--radius-control); cursor: pointer;
+  font: inherit; font-weight: var(--weight-semibold);
+  background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control);
+}
+.secondaryBtn:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
+/* plan-fase7-puesta-al-dia.md P-1: "¿Olvidaste tu contraseña?" (paxfide-landing.html .auth-forgot-link) */
+.forgotLink {
+  display: inline-flex; align-items: center; min-height: 24px;
+  font-size: 12px; font-weight: 600; color: var(--color-action); text-decoration: none;
+}
+.forgotLink:hover { text-decoration: underline; }
+.forgotLink:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; border-radius: 4px; }
+
+/* "¿Cómo te llamamos?" (paxfide-home.html #sData) */
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+@media (max-width: 420px) { .row2 { grid-template-columns: 1fr; } }
+.gateFields { text-align: left; width: 100%; }
+/* "¿Cómo te llamamos?" va alineado a la izquierda (paxfide-home.html #sData), a diferencia de la bienvenida */
+.nameGate { align-items: stretch; text-align: left; }
+.nameGate .gateActions { flex-direction: column; }
+.nameGate .gateActions > * { flex: none; width: 100%; }
+.nameGate .welcomeDots { align-self: center; }
+/* Sin icono a la izquierda ni botón a la derecha */
+.inputPlain { padding: 0 14px; }
+.readonlyInput { background: var(--color-bg); color: var(--color-text-secondary); }
+.privacy {
+  display: flex; gap: var(--space-2); align-items: flex-start; margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4); border-radius: var(--radius-control);
+  background: var(--color-info-bg); color: var(--color-info-text); font-size: 13.5px;
+}
+.privacy svg { flex: none; margin-top: 2px; }
+.gateActions { display: flex; gap: var(--space-3); justify-content: flex-end; margin-top: var(--space-4); flex-wrap: wrap; }
+.gateActions > * { flex: 1 1 140px; }

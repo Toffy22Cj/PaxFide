@@ -7,12 +7,21 @@ import { CampaignNarrative } from '../src/components/campaign/CampaignNarrative'
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...rest }: any) => <a href={href} {...rest}>{children}</a> }));
 
+/** R-1 (plan-fase7-puesta-al-dia.md): sin las dos casillas no se puede enviar; las marca si aún no lo están. */
+function consentAll() {
+  for (const id of ['consent-terms', 'consent-dataPolicy']) {
+    const box = screen.getByTestId(id) as HTMLInputElement;
+    if (!box.checked) fireEvent.click(box);
+  }
+}
+
+
 describe('Registro de cuenta (POST /auth/register)', () => {
   function fill(email: string, p1: string, p2: string) {
     fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: email } });
     fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: p1 } });
     fireEvent.change(screen.getByLabelText('Repite la contraseña'), { target: { value: p2 } });
-    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+    consentAll(); fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
   }
 
   it('validación local: vacíos y contraseñas distintas no llaman al backend', () => {
@@ -54,15 +63,15 @@ describe('Registro de cuenta (POST /auth/register)', () => {
     render(<RegisterScreen client={client} />);
     fill('a@demo.test', 'clave-de-prueba', 'clave-de-prueba');
     expect(await screen.findByText('Ya existe una cuenta con ese correo.')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+    consentAll(); fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
     expect(await screen.findByText('El correo no es válido.')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'clave-de-prueba' } });
     fireEvent.change(screen.getByLabelText('Repite la contraseña'), { target: { value: 'clave-de-prueba' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+    consentAll(); fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
     expect(await screen.findByText(/No pudimos crear la cuenta/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'clave-de-prueba' } });
     fireEvent.change(screen.getByLabelText('Repite la contraseña'), { target: { value: 'clave-de-prueba' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+    consentAll(); fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
     expect(await screen.findByText(/No pudimos conectar/)).toBeInTheDocument();
   });
 });
@@ -74,7 +83,7 @@ const ITEM = (n: number) => ({ publicCode: `PC${n}`, title: `Convocatoria ${n}`,
 describe('Descubrimiento público (GET /public/campaigns)', () => {
   it('cargando, error con reintento y vacío', async () => {
     const r1 = render(<DiscoveryScreen client={() => new Promise(() => {})} />);
-    expect(screen.getByText('Cargando…')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Cargando convocatorias' })).toBeInTheDocument();
     r1.unmount();
     const client = vi.fn().mockResolvedValueOnce({ kind: 'error' }).mockResolvedValueOnce({ kind: 'ok', items: [] });
     render(<DiscoveryScreen client={client} />);

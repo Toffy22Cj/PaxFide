@@ -3,13 +3,14 @@ import crypto from 'crypto';
 
 const API = 'http://localhost:3002';
 
-async function login(browser: Browser, email: string, password: string): Promise<Page> {
+async function login(browser: Browser, email: string, password: string, destination = '/panel'): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
-  await page.goto('/login');
+  // A-3: el inicio por defecto es /home; pedir el destino sin sesión lo guarda como destino y se vuelve ahí tras entrar
+  await page.goto(destination);
   await page.getByLabel('Correo electrónico').fill(email);
   await page.getByLabel('Contraseña').fill(password);
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-  await expect(page).toHaveURL(/\/panel$/);
+  await expect(page).toHaveURL(new RegExp(`${destination}$`));
   return page;
 }
 
@@ -27,8 +28,7 @@ test.describe('P2-C — fondos, activos de la organización y verificación', ()
   test('fondos: el administrador solicita y confirma una asignación; el empleado registra el camino A eligiéndolas', async ({ browser, request }) => {
     const fundId = await fundedDonation(request);
 
-    const admin = await login(browser, 'admin@demo.test', 'demo-admin');
-    await admin.getByRole('link', { name: 'Fondos de mi organización' }).click();
+    const admin = await login(browser, 'admin@demo.test', 'demo-admin', '/panel/funds');
     const fund = admin.getByTestId('fund').filter({ hasText: fundId });
     await expect(fund.getByTestId('fund-available')).toHaveText('50.000 COP');
     await fund.getByRole('button', { name: 'Solicitar asignación' }).click();
@@ -51,7 +51,7 @@ test.describe('P2-C — fondos, activos de la organización y verificación', ()
     await expect(fund.getByTestId('allocation')).toContainText('Confirmada');
 
     const employee = await login(browser, 'empleado@demo.test', 'demo-empleado');
-    await expect(employee.getByRole('link', { name: 'Fondos de mi organización' })).toBeVisible();
+    await expect(employee.getByRole('button', { name: 'Registrar activo' })).toBeVisible();
     await employee.getByRole('button', { name: 'Registrar activo' }).click();
     await employee.getByLabel('Compra con fondos de una donación').check();
     await employee.getByLabel('Fondo', { exact: true }).selectOption(fundId);
@@ -69,8 +69,8 @@ test.describe('P2-C — fondos, activos de la organización y verificación', ()
     const assetRef = decodeURIComponent(employee.url().split('/assets/')[1]);
 
     // Activos de la organización: aparece, con enlace a su página
-    await employee.getByRole('link', { name: 'Panel' }).click();
-    await employee.getByRole('link', { name: 'Activos de mi organización' }).click();
+    await employee.evaluate((url) => (window as any).__TEST_ROUTER__.push(url), '/panel/assets');
+    await expect(employee).toHaveURL(/\/panel\/assets$/);
     const row = employee.getByTestId('org-asset').filter({ hasText: assetRef });
     await expect(row).toContainText('Bodega P2-C');
     await row.getByRole('link').click();

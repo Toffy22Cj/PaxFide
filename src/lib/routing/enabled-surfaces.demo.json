@@ -1,4 +1,6 @@
 [
+  "/",
+  "/home",
   "/login",
   "/panel",
   "/panel/campaigns",
@@ -33,9 +35,12 @@
   "action:create-organization",
   "action:platform-grant-admin",
   "action:platform-revoke-admin",
+  "action:platform-reactivate-account",
   "/panel/members",
   "/panel/my-campaigns",
   "/invitaciones",
+  "/recuperar",
+  "/verificar-correo",
   "action:member-invite",
   "action:invitation-revoke",
   "action:member-change-role",
@@ -44,5 +49,12 @@
   "action:configuration-edit",
   "action:configuration-request",
   "action:configuration-approve",
-  "action:configuration-reject"
+  "action:configuration-reject",
+  "/terminos",
+  "/privacidad",
+  "/terminos-organizacion",
+  "/account",
+  "action:organization-logo",
+  "action:campaign-cover",
+  "action:platform-remove-media"
 ]

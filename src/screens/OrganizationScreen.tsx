@@ -5,11 +5,13 @@ import { fetchMe } from '../lib/api/identity';
 import { usePrincipal } from '../lib/auth/usePrincipal';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { createOrganizationRequest } from '../lib/api/organization';
+import { LEGAL_VERSIONS } from '../lib/legal/versions';
 import { organizationTypeLabel, roleLabel, verificationStatusLabel } from '../lib/labels';
 import { Actions, DefinitionList, PageHeader, Surface, uiClasses as ui } from '../components/ui/Layout';
 import { Button } from '../components/ui/Button';
 import { ErrorState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
 import { CommandModal } from '../components/asset/CommandModal';
+import { OrganizationLogoCard } from '../components/media/OrganizationLogoCard';
 
 const TYPES = [{ value: 'FOUNDATION', label: 'Fundación' }, { value: 'COMPANY', label: 'Empresa' }];
 
@@ -59,6 +61,11 @@ export function OrganizationScreen({ meClient = fetchMe }: { meClient?: typeof f
           {!created && <UnavailableState what="El estado de verificación de tu organización" />}
         </Surface>
       )}
+      {/* U-5 (plan-fase7-puesta-al-dia.md): el logo, para REPRESENTATIVE y ADMINISTRATOR */}
+      {state.status === 'ready' && state.data.organizationId && isSurfaceEnabled('action:organization-logo')
+        && state.data.roles.some((r) => r === 'REPRESENTATIVE' || r === 'ADMINISTRATOR') && (
+        <OrganizationLogoCard organizationId={state.data.organizationId} />
+      )}
       {creating && (
         <CommandModal<{ organizationId?: string; verificationStatus?: string }>
           title="Crear organización" submitLabel="Crear organización"
@@ -66,7 +73,9 @@ export function OrganizationScreen({ meClient = fetchMe }: { meClient?: typeof f
             { name: 'type', label: 'Tipo', options: TYPES },
             { name: 'name', label: 'Nombre', hint: 'Entre 1 y 200 caracteres.', parse: (raw) => (raw.length <= 200 ? raw : null), invalid: 'Máximo 200 caracteres.' },
           ]}
-          builder={createOrganizationRequest}
+          consent="organizationTerms"
+          // R-3 (plan-fase7-puesta-al-dia.md; referencia-api-v1.md §1, nota R-5): la versión de los términos aceptada
+          builder={(payload) => createOrganizationRequest({ ...(payload as object), acceptedOrganizationTermsVersion: LEGAL_VERSIONS.organizationTerms })}
           onClose={() => setCreating(false)}
           onSuccess={(data, _location, sentPayload) => {
             setCreated({

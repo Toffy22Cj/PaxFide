@@ -1,11 +1,12 @@
 'use client';
+// Ref: Documentos/plan-fase7-pantallas.md §5 B-1; Documentos/sistema-visual-paxfide-web-enmienda-1.md §7.1.
 
 import React, { useEffect, useId, useRef } from 'react';
 import s from './ui.module.css';
 import { Icon } from './Icons';
 
 /**
- * Modal (§4): un título, contenido, Cancelar + Primario. Foco atrapado; Escape = Cancelar; al cerrar, el foco vuelve
+ * Modal (§4): superficie elevada, sombra flotante, un título, contenido, Cancelar + Primario. Foco atrapado; Escape = Cancelar; al cerrar, el foco vuelve
  * al elemento que lo abrió. No es una ruta y no se restaura.
  */
 export function Modal({ title, onCancel, children }: { title: string; onCancel: () => void; children: React.ReactNode }) {

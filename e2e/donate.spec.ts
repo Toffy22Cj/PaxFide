@@ -124,13 +124,13 @@ test.describe('A3 — aviso antes de salir con una donación sin confirmar', () 
     await expect(page.getByText('Intención de donación registrada')).toBeVisible();
   });
 
-  test('con sesión: el enlace "Panel" pide confirmación; al cancelar se queda en la donación', async ({ page, request }) => {
+  test('con sesión: un enlace de la barra pide confirmación; al cancelar se queda en la donación', async ({ page, request }) => {
     const code = await newCampaign(request);
     await page.goto('/login');
     await page.getByLabel('Correo electrónico').fill('donante@demo.test');
     await page.getByLabel('Contraseña').fill('demo-donante');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-    await expect(page).toHaveURL(/\/panel$/);
+    await expect(page).toHaveURL(/\/home$/);
     await page.waitForFunction(() => !!(window as any).__TEST_ROUTER__);
     await page.evaluate((c) => (window as any).__TEST_ROUTER__.push(`/c/${c}`), code);
     await page.getByLabel('Monto (COP)').fill('10000');
@@ -140,7 +140,7 @@ test.describe('A3 — aviso antes de salir con una donación sin confirmar', () 
 
     const messages: string[] = [];
     page.once('dialog', async (d) => { messages.push(d.message()); await d.dismiss(); });
-    await page.getByRole('link', { name: 'Panel' }).click();
+    await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Donaciones' }).click();
     await expect.poll(() => messages.length).toBe(1);
     expect(messages[0]).toMatch(/perderás el acceso al estado de tu donación/);
     await expect(page).toHaveURL(new RegExp(`/c/${code}$`));

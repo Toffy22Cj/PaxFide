@@ -1,0 +1,13 @@
+/* Ref: plan-fase7-puesta-al-dia.md U-3. El campo de la foto con la forma de los campos de B-1 (ui.module.css); solo
+   tokens semánticos; el selector de archivo es un objetivo táctil de 44 px. */
+.field { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-4); }
+.label { font-size: var(--font-size-body-1); font-weight: var(--weight-semibold); color: var(--color-text); }
+.hint { font-size: var(--font-size-body-3); color: var(--color-text-secondary); }
+.file {
+  min-height: 44px; padding: var(--space-2); font: inherit; font-size: var(--font-size-body-1); color: var(--color-text);
+  border: 1.5px dashed var(--color-border-control); border-radius: var(--radius-control); background: var(--color-field);
+}
+.file:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.error { font-size: var(--font-size-body-3); color: var(--color-danger-text); }
+.progress { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-3); color: var(--color-text); font-size: var(--font-size-body-3); }
+.progress progress { width: 100%; height: 8px; accent-color: var(--color-action); }

@@ -8,14 +8,15 @@ import { acceptInvitation, AcceptOutcome } from '../lib/api/members';
 import { captureInvitationToken, clearInvitationToken, getInvitationToken } from '../lib/invitations/token';
 import { roleLabel } from '../lib/labels';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
-import { Actions, PageHeader, Surface } from '../components/ui/Layout';
+import { Actions, PageHeader, uiClasses as ui } from '../components/ui/Layout';
 import { Button } from '../components/ui/Button';
 import { StatusNotice } from '../components/States';
+import s from './access.module.css';
 
 const NOT_ACCEPTABLE = 'Esta invitación no es válida para tu cuenta: puede haber caducado, haberse usado, haberse revocado o ser para otro correo. Pide a la organización una nueva.';
 
 /**
- * `/invitaciones` (Autorización (2) §2.4; DW-48). El token se toma del fragmento y se borra de la barra al cargar; vive
+ * `/invitaciones` (Autorización (2) §2.4; DW-48; D-F5). El token se toma del fragmento y se borra de la barra al cargar; vive
  * solo en memoria. Sin sesión: se pide iniciar sesión o crear la cuenta con el correo invitado y se vuelve aquí. Con
  * sesión: se acepta con un botón (la aceptación no es automática). Al terminar, el token se descarta.
  */
@@ -58,40 +59,50 @@ export function InvitationScreen({ client = acceptInvitation }: { client?: typeo
   };
 
   return (
-    <div>
-      <PageHeader title="Invitación a una organización" />
-      {result?.kind === 'ok' && (
-        <StatusNotice variant="success" title="Invitación aceptada">
-          <p>Ya formas parte de la organización{result.roles.length > 0 ? ` como ${result.roles.map(roleLabel).join(', ').toLowerCase()}` : ''}.</p>
-          <Link href="/panel">Ir al panel</Link>
-        </StatusNotice>
-      )}
-      {result?.kind === 'not-acceptable' && <StatusNotice variant="rejected" text={NOT_ACCEPTABLE} />}
-      {result?.kind === 'already-member' && (
-        <StatusNotice variant="rejected" text="Tu cuenta ya pertenece a una organización: no puede aceptar esta invitación." />
-      )}
-      {result?.kind === 'error' && (
-        <StatusNotice variant="rejected" text="No pudimos aceptar la invitación. Inténtalo de nuevo." />
-      )}
-      {result === null && !hasToken && state !== 'RESTORING' && (
-        <StatusNotice variant="info" text="No hay ninguna invitación en esta página. Abre el enlace del correo que recibiste." />
-      )}
-      {hasToken && state === 'LOGGED_OUT' && (
-        <Surface title="Tienes una invitación">
-          <p>Para aceptarla, inicia sesión con la cuenta del correo al que llegó la invitación, o crea una cuenta con ese
-            correo. Después volverás aquí. No recargues esta página: la invitación solo se conserva en esta pestaña.</p>
-          <Actions>
-            <Button onClick={() => go('/login')}>Iniciar sesión</Button>
-            {isSurfaceEnabled('/register') && <Button variant="secondary" onClick={() => go('/register')}>Crear cuenta</Button>}
-          </Actions>
-        </Surface>
-      )}
-      {hasToken && state === 'AUTHENTICATED' && (result === null || result.kind === 'error') && (
-        <Surface title="Tienes una invitación">
-          <p>Al aceptarla, tu cuenta pasa a formar parte de la organización que te invitó, con el papel indicado en el correo.</p>
-          <Actions><Button onClick={() => void accept()} sending={sending}>Aceptar invitación</Button></Actions>
-        </Surface>
-      )}
-    </div>
+    <>
+      <div className={s.page}>
+        <div className={s.card} data-world-avoid="">
+          <div className={s.badgePill}>
+            <span className={s.badgeDot} />
+            <span>TU CUENTA PAXFIDE</span>
+          </div>
+          <PageHeader title="Invitación a una organización" />
+          {result?.kind === 'ok' && (
+            <StatusNotice variant="success" title="Invitación aceptada">
+              <p>Ya formas parte de la organización{result.roles.length > 0 ? ` como ${result.roles.map(roleLabel).join(', ').toLowerCase()}` : ''}.</p>
+              <Link href="/panel">Ir al panel</Link>
+            </StatusNotice>
+          )}
+          {result?.kind === 'not-acceptable' && <StatusNotice variant="rejected" text={NOT_ACCEPTABLE} />}
+          {result?.kind === 'already-member' && (
+            <StatusNotice variant="rejected" text="Tu cuenta ya pertenece a una organización: no puede aceptar esta invitación." />
+          )}
+          {result?.kind === 'error' && (
+            <StatusNotice variant="rejected" text="No pudimos aceptar la invitación. Inténtalo de nuevo." />
+          )}
+          {result === null && !hasToken && state !== 'RESTORING' && (
+            <StatusNotice variant="info" text="No hay ninguna invitación en esta página. Abre el enlace del correo que recibiste." />
+          )}
+          {hasToken && state === 'LOGGED_OUT' && (
+            <section className={s.section} aria-labelledby="invitation-title">
+              <h2 id="invitation-title" className={ui.sectionTitle}>Tienes una invitación</h2>
+              <p>Para aceptarla, inicia sesión con la cuenta del correo al que llegó la invitación, o crea una cuenta con ese
+                correo. Después volverás aquí. No recargues esta página: la invitación solo se conserva en esta pestaña.</p>
+              <Actions>
+                <Button onClick={() => go('/login')}>Iniciar sesión</Button>
+                {isSurfaceEnabled('/register') && <Button variant="secondary" onClick={() => go('/register')}>Crear cuenta</Button>}
+              </Actions>
+            </section>
+          )}
+          {hasToken && state === 'AUTHENTICATED' && (result === null || result.kind === 'error') && (
+            <section className={s.section} aria-labelledby="invitation-title">
+              <h2 id="invitation-title" className={ui.sectionTitle}>Tienes una invitación</h2>
+              <p>Al aceptarla, tu cuenta pasa a formar parte de la organización que te invitó, con el papel indicado en el correo.</p>
+              <Actions><Button onClick={() => void accept()} sending={sending}>Aceptar invitación</Button></Actions>
+            </section>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

@@ -1,3 +1,4 @@
+// Ref: Documentos/plan-fase7-pantallas.md §5 B-1; Documentos/sistema-visual-paxfide-web-enmienda-1.md §7.1.
 import React from 'react';
 import s from './ui.module.css';
 

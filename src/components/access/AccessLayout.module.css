@@ -1,0 +1,250 @@
+/* Ref: Documentos/plan-fase7-fidelidad.md §2 D-F5, D-F2; Documentos/paxfide-landing.html (.auth-top-bar, .auth-view) */
+.root {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+
+/* Barra superior del acceso (D-F5) */
+.topBar {
+  position: fixed;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(1120px, calc(100% - 32px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  z-index: 105;
+  pointer-events: none;
+}
+.topBar > * {
+  pointer-events: auto;
+}
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(27, 81, 65, 0.18);
+  box-shadow: 0 8px 24px rgba(27, 81, 65, 0.12);
+  color: var(--color-text);
+  font: 700 14px var(--font-body);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out);
+}
+.backBtn:hover {
+  background: var(--color-surface);
+  border-color: var(--color-text);
+  transform: translateX(-3px);
+}
+.backBtn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.backBtn svg {
+  transition: transform var(--duration-fast) var(--ease-out);
+  color: currentColor;
+}
+.backBtn:hover svg {
+  transform: translateX(-2px);
+}
+
+.topBrand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(27, 81, 65, 0.14);
+  padding: 0 18px;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(27, 81, 65, 0.08);
+}
+.brandText {
+  font: 800 18px/1 var(--font-display);
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+.brandAccent {
+  /* U-29: colores del boceto (.auth-brand-text b = --b700), en Día y en Noche. Es un logotipo (WCAG 1.4.3, excepción) */
+  color: var(--brand-blue-700);
+}
+
+.acts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pauseBtn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: 999px;
+  font: 600 12.5px var(--font-mono);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: var(--color-text);
+  border: 1px solid rgba(27, 81, 65, 0.18);
+  box-shadow: 0 8px 24px rgba(27, 81, 65, 0.12);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+.pauseBtn:hover {
+  background: var(--color-surface);
+  transform: translateY(-1px);
+}
+.pauseBtn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.pauseText {
+  display: none;
+}
+@media (min-width: 600px) {
+  .pauseText {
+    display: inline;
+  }
+}
+
+/* Envoltorio centrado */
+.cardWrap {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  max-width: 480px;
+  margin: auto;
+  padding-top: 84px;
+  padding-bottom: 40px;
+  padding-left: 16px;
+  padding-right: 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Barra en pantallas estrechas (< 900px) */
+@media (max-width: 900px) {
+  .topBar {
+    position: sticky;
+    top: 0;
+    left: auto;
+    transform: none;
+    width: 100%;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 14px;
+    background: linear-gradient(rgba(238, 244, 234, 0.97) 72%, rgba(238, 244, 234, 0));
+    pointer-events: auto;
+    box-sizing: border-box;
+  }
+  .topBrand {
+    display: none;
+  }
+  .cardWrap {
+    padding-top: 12px;
+  }
+}
+
+/* Modo oscuro en el contenedor (D-F2, D-F11) */
+.root[data-theme="dark"] .topBar {
+  background: linear-gradient(rgba(10, 26, 20, 0.94) 72%, rgba(10, 26, 20, 0));
+}
+.root[data-theme="dark"] .backBtn,
+.root[data-theme="dark"] .topBrand,
+.root[data-theme="dark"] .pauseBtn {
+  background: rgba(14, 34, 25, 0.88);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--color-text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.root[data-theme="dark"] .backBtn:hover,
+.root[data-theme="dark"] .pauseBtn:hover {
+  background: rgba(20, 48, 35, 0.95);
+  border-color: var(--color-action);
+}
+
+/* U-28 (plan-fase7-puesta-al-dia.md Anexo 4): el tema del acceso lo decide SOLO este contenedor (data-theme del mundo,
+   D-F2). Las hojas de las pantallas leen estas variables; ninguna mira un antepasado con :global([data-theme]). */
+.root {
+  --acc-a-card-background: rgba(255, 255, 255, 0.95);
+  --acc-a-card-border-color: rgba(27, 81, 65, 0.16);
+  --acc-a-card-box-shadow: 0 24px 64px rgba(18, 38, 28, 0.16), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --acc-a-badgepill-background: rgba(78, 145, 85, 0.12);
+  --acc-a-badgepill-border-color: rgba(78, 145, 85, 0.25);
+  --acc-a-badgedot-box-shadow: 0 0 0 2px rgba(78, 145, 85, 0.3);
+  --acc-a-tabs-background: rgba(27, 81, 65, 0.07);
+  --acc-a-tabactive-background: var(--color-surface);
+  --acc-a-tabactive-box-shadow: 0 4px 12px rgba(27, 81, 65, 0.12);
+  --acc-a-input-background: rgba(247, 250, 248, 0.85);
+  --acc-a-input-border-color: rgba(27, 81, 65, 0.18);
+  --acc-a-input-focus-border-color: var(--color-focus);
+  --acc-a-input-focus-background: var(--color-surface);
+  --acc-a-input-focus-box-shadow: 0 0 0 3px rgba(27, 81, 65, 0.14);
+  --acc-a-strengthtrack-background: rgba(27, 81, 65, 0.1);
+  --acc-a-foundationdetails-background: rgba(78, 145, 85, 0.06);
+  --acc-a-foundationdetails-border-color: var(--color-divider);
+  --acc-a-foot-border-top-color: rgba(27, 81, 65, 0.1);
+  --acc-a-welcomedot-background: rgba(27, 81, 65, 0.2);
+  --acc-l-card-background: rgba(255, 255, 255, 0.95);
+  --acc-l-card-border-color: rgba(27, 81, 65, 0.16);
+  --acc-l-card-box-shadow: 0 24px 64px rgba(18, 38, 28, 0.16), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --acc-l-badgepill-background: rgba(78, 145, 85, 0.12);
+  --acc-l-badgepill-border-color: rgba(78, 145, 85, 0.25);
+  --acc-l-versiontag-background: rgba(27, 81, 65, 0.07);
+  --acc-l-disclaimer-background: rgba(120, 80, 8, 0.08);
+  --acc-l-disclaimer-border-color: rgba(243, 181, 68, 0.35);
+  --acc-l-content-th-background: rgba(27, 81, 65, 0.06);
+}
+.root[data-theme="dark"] {
+  --acc-a-card-background: rgba(14, 34, 25, 0.96);
+  --acc-a-card-border-color: rgba(82, 183, 136, 0.28);
+  --acc-a-card-box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  --acc-a-badgepill-background: rgba(82, 183, 136, 0.15);
+  --acc-a-badgepill-border-color: rgba(82, 183, 136, 0.35);
+  --acc-a-badgedot-box-shadow: 0 0 0 2px rgba(82, 183, 136, 0.4);
+  --acc-a-tabs-background: rgba(255, 255, 255, 0.08);
+  --acc-a-tabactive-background: rgba(255, 255, 255, 0.18);
+  --acc-a-tabactive-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --acc-a-input-background: rgba(255, 255, 255, 0.07);
+  --acc-a-input-border-color: rgba(255, 255, 255, 0.18);
+  --acc-a-input-focus-border-color: var(--color-action);
+  --acc-a-input-focus-background: rgba(255, 255, 255, 0.12);
+  --acc-a-input-focus-box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.2);
+  --acc-a-strengthtrack-background: rgba(255, 255, 255, 0.1);
+  --acc-a-foundationdetails-background: rgba(255, 255, 255, 0.04);
+  --acc-a-foundationdetails-border-color: rgba(255, 255, 255, 0.12);
+  --acc-a-foot-border-top-color: rgba(255, 255, 255, 0.1);
+  --acc-a-welcomedot-background: rgba(255, 255, 255, 0.2);
+  --acc-l-card-background: rgba(14, 34, 25, 0.96);
+  --acc-l-card-border-color: rgba(82, 183, 136, 0.28);
+  --acc-l-card-box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  --acc-l-badgepill-background: rgba(82, 183, 136, 0.15);
+  --acc-l-badgepill-border-color: rgba(82, 183, 136, 0.35);
+  --acc-l-versiontag-background: rgba(255, 255, 255, 0.08);
+  --acc-l-disclaimer-background: rgba(243, 181, 68, 0.12);
+  --acc-l-disclaimer-border-color: rgba(243, 181, 68, 0.3);
+  --acc-l-content-th-background: rgba(255, 255, 255, 0.06);
+}

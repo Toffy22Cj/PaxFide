@@ -1,0 +1,47 @@
+/* Ref: plan-fase7-puesta-al-dia.md Anexo 4, U-31 (cambio de pestaña sin parpadeo). Solo tokens; duraciones y curvas
+   del sistema (enmienda §7): 200, 220 y 140 ms de U-31 salen de --duration-fast (150 ms). Con "reducir movimiento",
+   el cambio es instantáneo. */
+.tabs, .viewport, .content, .ghost {
+  --u31-slide: calc(var(--duration-fast) * 4 / 3);
+  --u31-enter: calc(var(--duration-fast) * 22 / 15);
+  --u31-exit: calc(var(--duration-fast) * 14 / 15);
+}
+.title:focus { outline: none; }
+.title:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 4px; border-radius: 4px; }
+
+/* El indicador de la pestaña activa se desliza (200 ms, --ease-out) */
+.tabs { position: relative; isolation: isolate; grid-template-columns: repeat(var(--tab-count, 2), minmax(0, 1fr)); }
+.indicator {
+  position: absolute; z-index: -1; top: 5px; bottom: 5px; left: 5px;
+  width: calc((100% - 10px - (var(--tab-count, 2) - 1) * 6px) / var(--tab-count, 2));
+  transform: translateX(calc(var(--tab-index, 0) * (100% + 6px)));
+  border-radius: 10px;
+  background: var(--acc-a-tabactive-background, var(--color-surface));
+  box-shadow: var(--acc-a-tabactive-box-shadow, none);
+  transition: transform var(--u31-slide) var(--ease-out);
+}
+.tabBtn { position: relative; }
+/* El fondo lo pone el indicador: la pestaña activa solo cambia el color del texto */
+.tabActive { color: var(--color-text); }
+
+/* La altura se anima del contenido anterior al nuevo */
+.viewport { position: relative; transition: height var(--u31-enter) var(--ease-out); }
+.content { position: relative; }
+.ghosts { position: absolute; inset: 0 0 auto 0; pointer-events: none; z-index: 1; }
+
+@keyframes enterFromRight { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+@keyframes enterFromLeft { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+@keyframes exitToLeft { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(-12px); } }
+@keyframes exitToRight { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateX(12px); } }
+
+.entering[data-enter="from-right"] { animation: enterFromRight var(--u31-enter) var(--ease-out) both; }
+.entering[data-enter="from-left"] { animation: enterFromLeft var(--u31-enter) var(--ease-out) both; }
+.ghost { position: absolute; inset: 0 0 auto 0; }
+.ghost[data-exit="to-left"] { animation: exitToLeft var(--u31-exit) var(--ease-out) both; }
+.ghost[data-exit="to-right"] { animation: exitToRight var(--u31-exit) var(--ease-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .indicator, .viewport { transition: none; }
+  .entering[data-enter], .ghost[data-exit] { animation: none; }
+  .ghost { display: none; }
+}

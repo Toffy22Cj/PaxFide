@@ -5,11 +5,14 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : (process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : 4),
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
+    // plan-fase7-puesta-al-dia.md U-16 (P-8): las cuentas sembradas del servidor falso ya cerraron la bienvenida en este
+    // navegador (solo la clave con el accountId). Las cuentas nuevas de cada test la ven y la cierran o la prueban.
+    storageState: 'e2e/support/welcome-done.json',
     // Solo en local: un Chromium preinstalado (PW_CHROMIUM_PATH). En CI se usa el que instala Playwright.
     launchOptions: process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {},
   },
@@ -27,6 +30,8 @@ export default defineConfig({
       reuseExistingServer: false,
       env: {
         NEXT_PUBLIC_E2E_SURFACES: JSON.stringify([
+          '/',
+          '/home',
           '/login',
           '/panel',
           '/panel/campaigns',
@@ -61,9 +66,15 @@ export default defineConfig({
           'action:create-organization',
           'action:platform-grant-admin',
           'action:platform-revoke-admin',
+          'action:platform-reactivate-account',
+          'action:organization-logo',
+          'action:campaign-cover',
+          'action:platform-remove-media',
           '/panel/members',
           '/panel/my-campaigns',
           '/invitaciones',
+          '/recuperar',
+          '/verificar-correo',
           'action:member-invite',
           'action:invitation-revoke',
           'action:member-change-role',
@@ -72,7 +83,11 @@ export default defineConfig({
           'action:configuration-edit',
           'action:configuration-request',
           'action:configuration-approve',
-          'action:configuration-reject'
+          'action:configuration-reject',
+          '/terminos',
+          '/privacidad',
+          '/terminos-organizacion',
+          '/account'
         ])
       }
     },

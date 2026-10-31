@@ -1,8 +1,10 @@
 import { test, expect, Page, Browser } from '@playwright/test';
+import { acceptLegal, verifyEmailApi } from './support/evidence';
 
 async function login(browser: Browser, email: string, password: string): Promise<Page> {
   const page = await (await browser.newContext()).newPage();
-  await page.goto('/login');
+  // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+  await page.goto('/panel');
   await page.getByLabel('Correo electrónico').fill(email);
   await page.getByLabel('Contraseña').fill(password);
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
@@ -11,6 +13,9 @@ async function login(browser: Browser, email: string, password: string): Promise
 }
 
 test.describe('P3-A — crear organización, cola de verificación y administradores de plataforma', () => {
+  // Varias sesiones a la vez: con 4 workers en CI rondaban los 30 s del límite por defecto (p3a 27,9 s en el ci-local
+  // de 6ce9006). Más margen, sin saltar nada
+  test.describe.configure({ timeout: 60_000 });
   test('cuenta nueva → crea su organización (pendiente) → la plataforma la ve en la cola, pide información y la verifica', async ({ browser }) => {
     const email = `rep-${Date.now()}@demo.test`;
     const name = `Fundación e2e ${Date.now()}`;
@@ -19,8 +24,10 @@ test.describe('P3-A — crear organización, cola de verificación y administrad
     await reg.getByLabel('Correo electrónico').fill(email);
     await reg.getByLabel('Contraseña', { exact: true }).fill('clave-demo-larga');
     await reg.getByLabel('Repite la contraseña').fill('clave-demo-larga');
+    await acceptLegal(reg);
     await reg.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(reg.getByText('Cuenta creada')).toBeVisible();
+    await verifyEmailApi(reg.request, email); // P-6: la cuenta nace sin verificar
 
     const rep = await login(browser, email, 'clave-demo-larga');
     await rep.getByRole('link', { name: 'Crear organización' }).click();
@@ -28,6 +35,7 @@ test.describe('P3-A — crear organización, cola de verificación y administrad
     const dialog = rep.getByRole('dialog');
     await dialog.getByLabel('Tipo').selectOption('FOUNDATION');
     await dialog.getByLabel('Nombre').fill(name);
+    await dialog.getByTestId('consent-organizationTerms').check();
     await dialog.getByRole('button', { name: 'Crear organización' }).click();
     await expect(rep.getByTestId('organization-status')).toHaveText('Pendiente de verificación');
     await expect(rep.getByTestId('organization-roles')).toHaveText('Representante');

@@ -1,0 +1,9 @@
+# Ensayo conjunto (VS-2) — salida literal de: pnpm exec playwright test -c playwright.ensayo.config.ts
+# web: 9e2efc1 (perfil demo, API http://localhost:8080/api/v1); backend Toffy22Cj/Donaciones develop fdccd99 (perfil dev, semilla), sin modificar
+# fecha UTC: 2026-10-22T01:40:41Z
+
+Running 1 test using 1 worker
+
+  ✓  1 ensayo/ensayo-conjunto.spec.ts:143:5 › ensayo conjunto: golden path por la interfaz contra el backend real (42.9s)
+
+  1 passed (43.9s)

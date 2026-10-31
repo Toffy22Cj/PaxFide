@@ -1,0 +1,3094 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>PaxFide — Línea de Tiempo de Donación (Multi-Activo y Trazabilidad)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@500;600;700&display=swap">
+  <style>
+    /* ========================================================
+       SISTEMA DE DISEÑO PAXFIDE: LÍNEA DE TIEMPO CON RAMAS
+       ======================================================== */
+    :root {
+      color-scheme: light;
+      --g900: #1B5141;
+      --g800: #20604C;
+      --g500: #4E9155;
+      --g50: #EEF6EF;
+      --b800: #255E79;
+      --b700: #327DA2;
+      --b50: #EBF5F9;
+      --y900: #785008;
+      --y400: #F3B544;
+      --y50: #FDF4E2;
+      --n700: #405656;
+      --n400: #739797;
+      --n200: #E2E9E9;
+      --n50: #F8FAFA;
+      --danger: #B42318;
+      --danger50: #FEF3F2;
+      --ground: #EEF4EA;
+      --white: #FFFFFF;
+      --f-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+      --f-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --f-mono: "JetBrains Mono", ui-monospace, monospace;
+      --ease: cubic-bezier(.22, 1, .36, 1);
+      --e-back: cubic-bezier(.175, .885, .32, 1.275);
+
+      /* Tokens del componente (Modo Día) */
+      --page-bg: #EEF4EA;
+      --tl-bg: rgba(255, 255, 255, .92);
+      --tl-card-bg: rgba(255, 255, 255, .96);
+      --tl-fg: var(--g900);
+      --tl-muted: var(--n700);
+      --tl-line: rgba(27, 81, 65, .15);
+      --tl-soft: rgba(27, 81, 65, .05);
+      --tl-road: #D4DCD2;
+      --tl-road-asphalt: #2B3E34;
+      --tl-road-border: rgba(18, 38, 28, .22);
+      --tl-road-marking: #F3B544;
+      --tl-road-marking-dim: rgba(243, 181, 68, .4);
+      --tl-road-pending: #84968C;
+      --tl-done: var(--g500);
+      --tl-node: #FFFFFF;
+      --tl-node-border: #C8D4C5;
+      --tl-shadow: 0 18px 48px rgba(18, 38, 28, .10);
+      --tl-branch-active: var(--g500);
+      --tl-branch-pending: #CCD6C8;
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --page-bg: #0D2119;
+      --tl-bg: rgba(16, 42, 31, .94);
+      --tl-card-bg: rgba(20, 52, 39, .95);
+      --tl-fg: #FFFFFF;
+      --tl-muted: rgba(255, 255, 255, .74);
+      --tl-line: rgba(255, 255, 255, .15);
+      --tl-soft: rgba(255, 255, 255, .06);
+      --tl-road: #264639;
+      --tl-road-asphalt: #182E24;
+      --tl-road-border: rgba(255, 255, 255, .15);
+      --tl-road-marking: #F3B544;
+      --tl-road-marking-dim: rgba(243, 181, 68, .35);
+      --tl-road-pending: #2A3F35;
+      --tl-done: #6DBF7A;
+      --tl-node: #163629;
+      --tl-node-border: rgba(255, 255, 255, .22);
+      --tl-shadow: 0 20px 52px rgba(0, 0, 0, .45);
+      --tl-branch-active: #6DBF7A;
+      --tl-branch-pending: rgba(255, 255, 255, .18);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--page-bg);
+      color: var(--tl-fg);
+      font-family: var(--f-body);
+      font-size: 15px;
+      line-height: 1.5;
+      padding: 32px max(16px, env(safe-area-inset-right, 0px)) 64px max(16px, env(safe-area-inset-left, 0px));
+      min-height: 100vh;
+      transition: background-color .4s ease, color .4s ease;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Fondo ambiental sutil */
+    .ambient-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .65;
+      background-image:
+        radial-gradient(circle at 15% 15%, rgba(78, 145, 85, .12) 0%, transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(50, 125, 162, .10) 0%, transparent 45%);
+    }
+    [data-theme="dark"] .ambient-bg {
+      opacity: .45;
+      background-image:
+        radial-gradient(circle at 15% 15%, rgba(109, 191, 122, .14) 0%, transparent 50%),
+        radial-gradient(circle at 85% 80%, rgba(54, 136, 176, .12) 0%, transparent 50%);
+    }
+
+    /* Envoltorio principal (Workspace Tri-Panel) */
+    .wrap {
+      max-width: 1560px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Barra superior de controles del demostrador */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 18px;
+      background: var(--tl-bg);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--tl-line);
+      border-radius: 999px;
+      box-shadow: 0 8px 24px rgba(18, 38, 28, .06);
+    }
+    .brand-tag {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font: 800 17px/1 var(--f-display);
+      letter-spacing: -.02em;
+      color: var(--tl-fg);
+    }
+    .brand-tag span {
+      color: var(--b700);
+    }
+    .brand-tag b {
+      color: var(--y400);
+    }
+    .brand-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--g500);
+      box-shadow: 0 0 0 3px rgba(78, 145, 85, .25);
+    }
+
+    .demo-scenarios {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .demo-lbl {
+      font: 600 11px var(--f-mono);
+      letter-spacing: .06em;
+      color: var(--tl-muted);
+      margin-right: 4px;
+    }
+    .chip {
+      border: 1px solid var(--tl-line);
+      background: var(--tl-card-bg);
+      color: var(--tl-fg);
+      border-radius: 999px;
+      padding: 6px 13px;
+      font: 600 12px var(--f-mono);
+      cursor: pointer;
+      transition: all .2s var(--ease);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .chip:hover {
+      background: var(--g50);
+      border-color: var(--g500);
+      transform: translateY(-1px);
+    }
+    [data-theme="dark"] .chip:hover {
+      background: rgba(109, 191, 122, .12);
+    }
+    .chip[aria-pressed="true"] {
+      background: var(--g900);
+      color: #fff;
+      border-color: var(--g900);
+      box-shadow: 0 4px 12px rgba(27, 81, 65, .28);
+    }
+    [data-theme="dark"] .chip[aria-pressed="true"] {
+      background: var(--y400);
+      color: var(--g900);
+      border-color: var(--y400);
+    }
+    .chip.warn[aria-pressed="true"] {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #fff;
+    }
+
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--tl-line);
+      background: var(--tl-card-bg);
+      color: var(--tl-fg);
+      font: 600 12px var(--f-mono);
+      cursor: pointer;
+      transition: all .2s ease;
+    }
+    .theme-toggle-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    /* Pills reutilizables */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      font: 600 11.5px var(--f-mono);
+      background: var(--g50);
+      color: var(--g800);
+      border: 1px solid rgba(78, 145, 85, .28);
+      white-space: nowrap;
+    }
+    .pill i {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      display: inline-block;
+    }
+    .pill.wait {
+      background: var(--y50);
+      color: var(--y900);
+      border-color: rgba(243, 181, 68, .4);
+    }
+    .pill.fail {
+      background: var(--danger50);
+      color: var(--danger);
+      border-color: rgba(180, 35, 24, .3);
+    }
+    [data-theme="dark"] .pill {
+      background: rgba(109, 191, 122, .16);
+      color: #A9E6B0;
+      border-color: rgba(109, 191, 122, .3);
+    }
+    [data-theme="dark"] .pill.wait {
+      background: rgba(243, 181, 68, .15);
+      color: var(--y400);
+      border-color: rgba(243, 181, 68, .35);
+    }
+    [data-theme="dark"] .pill.fail {
+      background: rgba(180, 35, 24, .2);
+      color: #FCA5A5;
+      border-color: rgba(180, 35, 24, .4);
+    }
+
+    /* ========================================================
+       TARJETA PRINCIPAL DE LA LÍNEA DE TIEMPO
+       ======================================================== */
+    .tl-card {
+      background: var(--tl-bg);
+      backdrop-filter: blur(18px) saturate(1.2);
+      -webkit-backdrop-filter: blur(18px) saturate(1.2);
+      border: 1px solid var(--tl-line);
+      border-radius: 28px;
+      padding: 34px 32px 32px;
+      box-shadow: var(--tl-shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .tl-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--tl-line);
+    }
+    .tl-kicker-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font: 600 11.5px var(--f-mono);
+      letter-spacing: .08em;
+      color: var(--y900);
+      background: var(--y50);
+      border: 1px solid rgba(243, 181, 68, .35);
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    [data-theme="dark"] .tl-kicker-badge {
+      background: rgba(243, 181, 68, .15);
+      color: var(--y400);
+      border-color: rgba(243, 181, 68, .3);
+    }
+    .tl-title-wrap h1 {
+      font: 800 clamp(26px, 3.2vw, 36px)/1.1 var(--f-display);
+      letter-spacing: -.025em;
+      color: var(--tl-fg);
+      margin: 0 0 6px;
+    }
+    .tl-title-wrap p {
+      font-size: 14.5px;
+      color: var(--tl-muted);
+      margin: 0;
+    }
+
+    .tl-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font: 600 13px var(--f-body);
+      background: var(--g50);
+      color: var(--g800);
+      border: 1px solid rgba(78, 145, 85, .25);
+      white-space: nowrap;
+    }
+    .tl-status-pill.fail {
+      background: var(--danger50);
+      color: var(--danger);
+      border-color: rgba(180, 35, 24, .3);
+    }
+    [data-theme="dark"] .tl-status-pill {
+      background: rgba(109, 191, 122, .18);
+      color: #A9E6B0;
+      border-color: rgba(109, 191, 122, .3);
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 0 3px rgba(78, 145, 85, .22);
+      animation: pulseDot 2s infinite ease-in-out;
+    }
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: .7; }
+    }
+
+    /* ========================================================
+       WORKSPACE TRIPANEL:
+       IZQUIERDA (DETALLE) | CENTRO (ÁRBOL) | DERECHA (SERPIENTE)
+       ======================================================== */
+    .tl-workspace {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr) 360px;
+      gap: 24px;
+      align-items: start;
+      width: 100%;
+      position: relative;
+    }
+
+    .tl-left-col,
+    .tl-right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: sticky;
+      top: 24px;
+      z-index: 10;
+    }
+
+    .col-header-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font: 700 11px var(--f-mono);
+      letter-spacing: .08em;
+      color: var(--tl-muted);
+      text-transform: uppercase;
+      padding: 0 4px;
+    }
+    .col-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--b700);
+      box-shadow: 0 0 0 2px rgba(50, 125, 162, .25);
+    }
+    .col-dot.gold {
+      background: var(--y400);
+      box-shadow: 0 0 0 2px rgba(243, 181, 68, .25);
+    }
+
+    /* ========================================================
+       COLUMNA IZQUIERDA: PANEL DE DETALLE (#detailCard afuera de #treeStage)
+       ======================================================== */
+    .detail-card {
+      background: var(--tl-card-bg);
+      border: 1.5px solid var(--tl-line);
+      border-radius: 22px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 10px 28px rgba(18, 38, 28, .06);
+      transition: all .25s ease;
+      width: 100%;
+      position: relative;
+    }
+    .detail-card.failed {
+      border-color: rgba(180, 35, 24, .4);
+      background: var(--danger50);
+    }
+    [data-theme="dark"] .detail-card.failed {
+      background: rgba(180, 35, 24, .12);
+    }
+
+    .d-badge-ic {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: var(--g900);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      box-shadow: 0 4px 12px rgba(27, 81, 65, .25);
+    }
+    .detail-card.failed .d-badge-ic {
+      background: var(--danger);
+      box-shadow: 0 4px 12px rgba(180, 35, 24, .25);
+    }
+    .d-badge-ic svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .d-main-txt {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .d-main-txt > b {
+      display: block;
+      font: 700 17px/1.2 var(--f-display);
+      color: var(--tl-fg);
+    }
+    .d-main-txt > p {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: var(--tl-muted);
+      margin: 0;
+    }
+
+    .d-meta-row {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-top: 4px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--tl-line);
+      font: 500 11.5px var(--f-mono);
+      color: var(--tl-muted);
+    }
+    .d-meta-row span {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 5px;
+    }
+    .d-meta-row b {
+      color: var(--tl-fg);
+      font-weight: 600;
+    }
+    .d-meta-row code {
+      color: var(--b700);
+      background: var(--tl-soft);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--tl-line);
+    }
+    [data-theme="dark"] .d-meta-row code {
+      color: var(--y400);
+    }
+
+    .d-side-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid var(--tl-line);
+    }
+    .d-timestamp {
+      font: 600 11.5px var(--f-mono);
+      color: var(--tl-muted);
+    }
+
+    /* ========================================================
+       COLUMNA CENTRAL: ÁRBOL MULTI-ACTIVO (#treeStage)
+       ======================================================== */
+    .tree-stage {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 44px;
+      width: 100%;
+      padding: 10px 0;
+    }
+
+    /* SVG de ramas conectoras estilo carretera de asfalto */
+    .tree-canvas-overlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      overflow: visible;
+    }
+    .road-segment {
+      transition: opacity .4s ease;
+    }
+    .road-asphalt {
+      fill: none;
+      stroke: var(--tl-road-asphalt);
+      stroke-width: 16px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 3px 6px rgba(18, 38, 28, .16));
+      transition: stroke .3s ease;
+    }
+    [data-theme="dark"] .road-asphalt {
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .45));
+    }
+    .road-asphalt.pending {
+      stroke: var(--tl-road-pending);
+      opacity: .55;
+    }
+    .road-marking {
+      fill: none;
+      stroke: var(--tl-road-marking);
+      stroke-width: 2.2px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 6 6;
+      transition: stroke .3s ease, stroke-dashoffset .5s ease;
+    }
+    .road-marking.pending {
+      stroke: var(--tl-road-marking-dim);
+      stroke-dasharray: 4 6;
+      opacity: .5;
+    }
+
+    /* Nivel raíz: DONADA */
+    .tree-root-level {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+
+    /* Contenedor de ramas de activos */
+    .branches-grid {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 20px;
+      width: 100%;
+      align-items: start;
+    }
+
+    /* Columna de activo (Lote) */
+    .asset-branch {
+      background: var(--tl-card-bg);
+      border: 1.5px solid var(--tl-line);
+      border-radius: 22px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+      transition: transform .25s var(--ease), border-color .25s;
+    }
+    .asset-branch:hover {
+      border-color: var(--g500);
+    }
+    .asset-badge-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px dashed var(--tl-line);
+    }
+    .asset-tag {
+      font: 700 13px/1.2 var(--f-display);
+      color: var(--tl-fg);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .asset-icon-pill {
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      background: var(--tl-soft);
+      border: 1px solid var(--tl-line);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--g800);
+    }
+    [data-theme="dark"] .asset-icon-pill {
+      color: var(--y400);
+    }
+    .asset-units {
+      font: 600 11px var(--f-mono);
+      color: var(--tl-muted);
+      background: var(--tl-soft);
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+
+    /* Lista vertical de pasos por lote */
+    .steps-chain {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Carretera vertical que conecta los pasos del lote */
+    .steps-chain::before {
+      content: "";
+      position: absolute;
+      left: 19px;
+      top: 18px;
+      bottom: 18px;
+      width: 16px;
+      border-radius: 999px;
+      background-color: var(--tl-road-asphalt);
+      border: 1px solid var(--tl-road-border);
+      background-image: repeating-linear-gradient(
+        180deg,
+        var(--tl-road-marking) 0px,
+        var(--tl-road-marking) 7px,
+        transparent 7px,
+        transparent 14px
+      );
+      background-size: 2.2px 100%;
+      background-position: center;
+      background-repeat: no-repeat;
+      box-shadow: 0 2px 6px rgba(18, 38, 28, .14);
+      z-index: 1;
+    }
+
+    /* Nodo individual de paso */
+    .step-item {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 6px 8px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: background-color .2s ease, transform .2s var(--ease);
+      outline: none;
+    }
+    .step-item:hover {
+      background: var(--tl-soft);
+      transform: translateX(2px);
+    }
+    .step-item:focus-visible {
+      outline: 2px solid var(--g900);
+      outline-offset: 2px;
+    }
+    .step-item[aria-selected="true"] {
+      background: var(--tl-soft);
+      box-shadow: inset 0 0 0 1.5px var(--g500);
+      padding-right: 82px;
+    }
+
+    /* Ícono del paso (Squircle) */
+    .step-node-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: var(--tl-node);
+      border: 2px solid var(--tl-node-border);
+      color: var(--n400);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      position: relative;
+      transition: all .3s var(--ease);
+      box-shadow: 0 4px 10px rgba(18, 38, 28, .05);
+    }
+    .step-node-icon svg {
+      width: 19px;
+      height: 19px;
+    }
+
+    /* Estados del nodo */
+    .step-item.done .step-node-icon {
+      background: var(--g900);
+      border-color: var(--g900);
+      color: #fff;
+      box-shadow: 0 3px 0 #123A2F;
+    }
+    .step-item[aria-selected="true"].done .step-node-icon,
+    .step-item.now .step-node-icon {
+      background: var(--y400);
+      border-color: var(--y400);
+      color: var(--g900);
+      box-shadow: 0 0 0 5px rgba(243, 181, 68, .28), 0 3px 0 #C98A22;
+    }
+    .step-item.failed .step-node-icon {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #fff;
+      box-shadow: 0 0 0 5px rgba(180, 35, 24, .20);
+    }
+
+    /* Pasos que aún no ocurren se muestran APAGADOS y SIN FECHA */
+    .step-item.pending {
+      opacity: .42;
+      filter: grayscale(.75);
+    }
+    .step-item.pending .step-date-badge {
+      display: none !important;
+    }
+
+    /* Sello criptográfico anclado en Merkle */
+    .merkle-seal {
+      position: absolute;
+      right: -6px;
+      top: -6px;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--tl-node);
+      background: var(--b700);
+      color: #fff;
+      font-size: 9px;
+    }
+    .merkle-seal svg {
+      width: 10px;
+      height: 10px;
+    }
+    .merkle-seal.wait {
+      background: var(--y50);
+      color: var(--y900);
+      border-color: rgba(243, 181, 68, .5);
+    }
+    .merkle-seal[hidden] {
+      display: none;
+    }
+
+    /* Cuerpo informativo del paso */
+    .step-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .step-header-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .step-title {
+      font: 700 14px/1.2 var(--f-display);
+      color: var(--tl-fg);
+    }
+    .step-date-badge {
+      font: 600 11px var(--f-mono);
+      color: var(--tl-muted);
+      background: var(--tl-soft);
+      padding: 2px 7px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
+    /* Metadatos: locationZone y Custodio como categoría */
+    .step-meta-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 5px;
+    }
+    .meta-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font: 500 11px var(--f-mono);
+      color: var(--tl-muted);
+      background: var(--tl-soft);
+      border: 1px solid var(--tl-line);
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+    .meta-chip.custodian {
+      font-weight: 600;
+      color: var(--g800);
+    }
+    [data-theme="dark"] .meta-chip.custodian {
+      color: #BFE6C4;
+    }
+
+    /* Sub-rama de lote hijo */
+    .sub-branch-group {
+      margin-top: 10px;
+      padding-left: 20px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .sub-branch-group::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: -10px;
+      bottom: 20px;
+      width: 12px;
+      border-radius: 999px;
+      background-color: var(--tl-road-asphalt);
+      border: 1px solid var(--tl-road-border);
+      background-image: repeating-linear-gradient(
+        180deg,
+        var(--tl-road-marking) 0px,
+        var(--tl-road-marking) 5px,
+        transparent 5px,
+        transparent 10px
+      );
+      background-size: 2px 100%;
+      background-position: center;
+      background-repeat: no-repeat;
+      box-shadow: 0 2px 5px rgba(18, 38, 28, .12);
+      z-index: 1;
+    }
+    .sub-branch-box {
+      background: var(--tl-soft);
+      border: 1px solid var(--tl-line);
+      border-radius: 16px;
+      padding: 12px 14px;
+    }
+    .sub-branch-title {
+      font: 700 12.5px var(--f-mono);
+      color: var(--y900);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    [data-theme="dark"] .sub-branch-title {
+      color: var(--y400);
+    }
+
+    /* ========================================================
+       COLUMNA DERECHA: RECORRIDO EN CARRETERA SERPIENTE (DE ARRIBA A ABAJO)
+       ======================================================== */
+    .snake-card {
+      background: var(--tl-card-bg);
+      border: 1.5px solid var(--tl-line);
+      border-radius: 24px;
+      padding: 20px 18px 24px;
+      box-shadow: 0 10px 28px rgba(18, 38, 28, .06);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      position: relative;
+    }
+    .snake-head {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--tl-line);
+    }
+    .snake-head-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .snake-kicker {
+      font: 600 10.5px var(--f-mono);
+      letter-spacing: .08em;
+      color: var(--y900);
+    }
+    [data-theme="dark"] .snake-kicker {
+      color: var(--y400);
+    }
+    .snake-title {
+      font: 800 19px/1.15 var(--f-display);
+      letter-spacing: -.02em;
+      color: var(--tl-fg);
+      margin: 2px 0 0;
+    }
+    .snake-sub {
+      font-size: 12px;
+      color: var(--tl-muted);
+      line-height: 1.35;
+      margin: 0;
+    }
+    .snake-pill-row {
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Pista de carretera en serpiente vertical */
+    .snake-track {
+      position: relative;
+      width: 100%;
+      max-width: 320px;
+      height: 620px;
+      margin: 4px auto 0;
+      user-select: none;
+    }
+    .snake-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
+    }
+
+    /* Trazados de carretera en serpiente */
+    .snake-road-base {
+      fill: none;
+      stroke: var(--tl-road);
+      stroke-width: 22px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 4px 8px rgba(18, 38, 28, .12));
+    }
+    [data-theme="dark"] .snake-road-base {
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .45));
+    }
+    .snake-road-asphalt {
+      fill: none;
+      stroke: var(--tl-road-asphalt);
+      stroke-width: 16px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke .3s ease;
+    }
+    .snake-road-done {
+      fill: none;
+      stroke: var(--tl-done);
+      stroke-width: 16px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke .3s ease;
+    }
+    .snake-track.fail .snake-road-done {
+      stroke: var(--danger);
+    }
+    .snake-road-marking {
+      fill: none;
+      stroke: var(--tl-road-marking);
+      stroke-width: 2px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 6 7;
+      opacity: .85;
+      pointer-events: none;
+    }
+
+    /* Vehículo en la serpiente */
+    .snake-truck {
+      pointer-events: none;
+      z-index: 15;
+      filter: drop-shadow(0 5px 10px rgba(0, 0, 0, .28));
+    }
+
+    /* Estaciones sobre la serpiente */
+    .snake-stations-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .snake-st-item {
+      position: absolute;
+      width: 0;
+      height: 0;
+      pointer-events: auto;
+    }
+    .snake-st-btn {
+      position: relative;
+      background: none;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+      color: inherit;
+      font: inherit;
+      text-decoration: none;
+      outline: none;
+    }
+
+    /* Ícono cuadrado redondeado centrado exactamente sobre la curva */
+    .snake-st-post {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform: translate(-50%, -50%);
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--tl-node);
+      border: 2px solid var(--tl-node-border);
+      color: var(--n400);
+      transition: all .3s var(--ease);
+      box-shadow: 0 4px 10px rgba(18, 38, 28, .14);
+      z-index: 3;
+    }
+    .snake-st-post svg {
+      width: 18px;
+      height: 18px;
+    }
+    .snake-st-btn:hover .snake-st-post {
+      transform: translate(-50%, -50%) scale(1.08);
+    }
+    .snake-st-btn:focus-visible .snake-st-post {
+      outline: 2px solid var(--g900);
+      outline-offset: 3px;
+    }
+    [data-theme="dark"] .snake-st-btn:focus-visible .snake-st-post {
+      outline-color: var(--y400);
+    }
+
+    /* Estados de la estación en la serpiente (Idénticos a la barra horizontal) */
+    .snake-st-btn.done .snake-st-post {
+      background: var(--g900);
+      border-color: var(--g900);
+      color: #fff;
+      box-shadow: 0 3px 0 #123A2F, 0 4px 10px rgba(27, 81, 65, .28);
+    }
+    [data-theme="dark"] .snake-st-btn.done .snake-st-post {
+      background: #1D5B47;
+      border-color: #2E7D63;
+      color: #fff;
+    }
+    .snake-st-btn.now .snake-st-post {
+      background: var(--y400);
+      border-color: var(--y400);
+      color: var(--g900);
+      box-shadow: 0 0 0 5px rgba(243, 181, 68, .28), 0 3px 0 #C98A22;
+      transform: translate(-50%, -50%) scale(1.08);
+    }
+    .snake-st-btn.failed .snake-st-post {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #fff;
+      box-shadow: 0 0 0 5px rgba(180, 35, 24, .25);
+    }
+    .snake-st-btn.pending .snake-st-post {
+      opacity: .55;
+    }
+
+    /* Sello Merkle en la estación de la serpiente */
+    .snake-st-seal {
+      position: absolute;
+      right: -6px;
+      top: -6px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--tl-node);
+    }
+    .snake-st-seal svg {
+      width: 9px;
+      height: 9px;
+    }
+    .snake-st-seal.on {
+      background: var(--b700);
+      color: #fff;
+    }
+    .snake-st-seal.wait {
+      background: var(--y50);
+      color: var(--y900);
+      border-color: rgba(243, 181, 68, .5);
+    }
+    .snake-st-seal[hidden] {
+      display: none;
+    }
+
+    /* Etiquetas de la estación posicionadas hacia el interior de cada curva */
+    .snake-st-txt {
+      position: absolute;
+      top: 0;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      width: 138px;
+      background: var(--tl-card-bg);
+      border: 1px solid var(--tl-line);
+      border-radius: 10px;
+      padding: 5px 9px;
+      box-shadow: 0 4px 12px rgba(18, 38, 28, .06);
+      transition: border-color .2s ease, transform .2s ease;
+      z-index: 2;
+    }
+    .snake-st-txt.to-right {
+      left: 28px;
+      text-align: left;
+      align-items: flex-start;
+    }
+    .snake-st-txt.to-left {
+      right: 28px;
+      text-align: right;
+      align-items: flex-end;
+    }
+    .snake-st-btn.now .snake-st-txt {
+      border-color: var(--y400);
+      box-shadow: 0 4px 14px rgba(243, 181, 68, .18);
+    }
+    .snake-st-lbl {
+      font: 700 12px/1.2 var(--f-body);
+      color: var(--tl-muted);
+      transition: color .2s ease;
+    }
+    .snake-st-btn.done .snake-st-lbl,
+    .snake-st-btn.now .snake-st-lbl {
+      color: var(--tl-fg);
+    }
+    .snake-st-btn.failed .snake-st-lbl {
+      color: var(--danger);
+    }
+    .snake-st-btn.now .snake-st-lbl {
+      text-decoration: underline;
+      text-decoration-color: var(--y400);
+      text-underline-offset: 3px;
+    }
+    .snake-st-date {
+      font: 600 10.5px var(--f-mono);
+      color: var(--n400);
+      margin-top: 2px;
+    }
+    .snake-st-btn.pending .snake-st-date {
+      display: none;
+    }
+
+    .privacy-notice {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      border-radius: 14px;
+      background: var(--tl-soft);
+      border: 1px solid var(--tl-line);
+      font-size: 12.5px;
+      color: var(--tl-muted);
+      line-height: 1.45;
+    }
+    .privacy-notice svg {
+      flex: none;
+      color: var(--g500);
+    }
+
+    /* ========================================================
+       VEHÍCULO / CAMIÓN EN RUTA DEL ÁRBOL CENTRAL
+       ======================================================== */
+    .truck {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 66px;
+      height: 42px;
+      pointer-events: none;
+      z-index: 25;
+      transform-origin: center center;
+      will-change: transform;
+      filter: drop-shadow(0 6px 14px rgba(18, 38, 28, .22));
+      transition: filter .3s ease, opacity .35s ease;
+    }
+    .truck.active-truck {
+      opacity: 1;
+      z-index: 28;
+      filter: drop-shadow(0 8px 18px rgba(18, 38, 28, .30));
+    }
+    .truck.parked-truck {
+      opacity: .88;
+      z-index: 20;
+    }
+    .step-item.has-truck {
+      padding-right: 82px !important;
+    }
+
+    /* Pestañas de selector de líneas en la tarjeta de serpiente */
+    .snake-line-tabs {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--tl-line);
+      flex-wrap: wrap;
+    }
+    .snake-line-tab {
+      flex: 1;
+      min-width: 120px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      font: 600 11px var(--f-mono);
+      background: var(--tl-soft);
+      border: 1px solid var(--tl-line);
+      color: var(--tl-muted);
+      cursor: pointer;
+      transition: all .2s var(--ease);
+      user-select: none;
+    }
+    .snake-line-tab:hover {
+      background: rgba(27, 81, 65, .08);
+      color: var(--tl-fg);
+    }
+    .snake-line-tab[aria-selected="true"] {
+      color: #fff !important;
+      box-shadow: 0 3px 10px rgba(18, 38, 28, .18);
+    }
+    .snake-line-tab[data-asset="asset-a"][aria-selected="true"] {
+      background: var(--g900);
+      border-color: var(--g900);
+    }
+    .snake-line-tab[data-asset="asset-b"][aria-selected="true"] {
+      background: var(--b700);
+      border-color: var(--b700);
+    }
+    [data-theme="dark"] .snake-line-tab[data-asset="asset-a"][aria-selected="true"] {
+      background: var(--g500);
+      border-color: var(--g500);
+      color: #0D2119 !important;
+    }
+    [data-theme="dark"] .snake-line-tab[data-asset="asset-b"][aria-selected="true"] {
+      background: #3688B0;
+      border-color: #3688B0;
+      color: #fff !important;
+    }
+    .snake-line-tab .tab-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex: none;
+    }
+    .snake-line-tab .tab-dot.gold {
+      background: var(--y400);
+      box-shadow: 0 0 0 2px rgba(243, 181, 68, .35);
+    }
+    .snake-line-tab .tab-dot.blue {
+      background: #3688B0;
+      box-shadow: 0 0 0 2px rgba(50, 125, 162, .35);
+    }
+    .truck svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    .truck .wheel {
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+    .truck.moving .wheel {
+      animation: truckSpin .45s linear infinite;
+    }
+    .truck.moving .body {
+      animation: truckBump .22s ease-in-out infinite;
+    }
+    .truck.stopped .wheel,
+    .truck.stopped .body {
+      animation: none;
+    }
+    .truck.fail svg {
+      filter: grayscale(.75);
+      opacity: .85;
+    }
+
+    @keyframes truckSpin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes truckBump {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-1.6px); }
+    }
+
+    .puff {
+      position: absolute;
+      left: -4px;
+      top: 24px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--n400);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .truck.moving .puff {
+      animation: truckPuff .65s ease-out infinite;
+    }
+    .truck.moving .puff:nth-of-type(2) {
+      animation-delay: .32s;
+    }
+    @keyframes truckPuff {
+      0% { opacity: .6; transform: translate(0, 0) scale(.5); }
+      100% { opacity: 0; transform: translate(-16px, -8px) scale(1.5); }
+    }
+
+    .truck-cargo-tag {
+      position: absolute;
+      top: -21px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--g900);
+      color: #fff;
+      font: 700 10px var(--f-mono);
+      padding: 2px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, .22);
+      pointer-events: none;
+      transition: background-color .3s ease, color .3s ease;
+      letter-spacing: .02em;
+    }
+    [data-theme="dark"] .truck-cargo-tag {
+      background: var(--y400);
+      color: var(--g900);
+    }
+    .truck.fail .truck-cargo-tag {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    /* Animaciones reducidas */
+    @media (prefers-reduced-motion: reduce) {
+      .step-item, .pulse-dot, .merkle-seal, .snake-road-done, .snake-truck,
+      .truck.moving .wheel, .truck.moving .body, .puff {
+        transition: none !important;
+        animation: none !important;
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 1320px) {
+      .tl-workspace {
+        grid-template-columns: 290px minmax(0, 1fr) 330px;
+        gap: 16px;
+      }
+    }
+
+    @media (max-width: 1080px) {
+      .tl-workspace {
+        grid-template-columns: 1fr;
+      }
+      .tl-left-col,
+      .tl-right-col {
+        position: static;
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .step-item[aria-selected="true"] {
+        padding-right: 68px !important;
+      }
+      .tl-card {
+        padding: 22px 18px 20px;
+        border-radius: 22px;
+      }
+      .branches-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
+      }
+      .toolbar {
+        border-radius: 20px;
+      }
+      .truck {
+        width: 54px;
+        height: 34px;
+      }
+      .truck-cargo-tag {
+        font-size: 9px;
+        padding: 1.5px 6px;
+        top: -18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-bg" aria-hidden="true"></div>
+
+  <main class="wrap">
+    <!-- Barra superior de pruebas interactivas -->
+    <header class="toolbar" role="region" aria-label="Controles del demostrador">
+      <div class="brand-tag">
+        <span class="brand-dot"></span>
+        <span>Pax<b>Fide</b>.</span>
+        <small style="font-size:12px; font-weight:600; color:var(--tl-muted); margin-left:4px;">Árbol de Trazabilidad</small>
+      </div>
+
+      <div class="demo-scenarios" role="group" aria-label="Seleccionar escenario de donación">
+        <span class="demo-lbl">ESCENARIO:</span>
+        <button type="button" class="chip" id="btnSceneSplit" aria-pressed="true">🌿 Multi-Activo (2 Lotes + Hijos)</button>
+        <button type="button" class="chip" id="btnSceneDirect" aria-pressed="false">📦 Donación Directa (1 Lote)</button>
+        <button type="button" class="chip warn" id="btnSceneFail" aria-pressed="false">❌ Pago rechazado</button>
+        <button type="button" class="chip" id="btnReplayTour" title="Iniciar recorrido animado continuo">↻ Recorrido en vivo</button>
+      </div>
+
+      <button type="button" class="theme-toggle-btn" id="btnThemeToggle" aria-label="Cambiar ciclo Día / Noche">
+        <span id="themeIcon">☀️</span>
+        <span id="themeText">Día</span>
+      </button>
+    </header>
+
+    <!-- ========================================================
+         COMPONENTE PRINCIPAL DE LÍNEA DE TIEMPO MULTI-ACTIVO
+         ======================================================== -->
+    <section class="tl-card" id="tlCard" aria-labelledby="tlMainTitle">
+      <header class="tl-header">
+        <div class="tl-title-wrap">
+          <div class="tl-kicker-badge" id="tlKicker">DONACIÓN TRK-2026-8841 · $300.000 COP</div>
+          <h1 id="tlMainTitle">Historia de tu donación</h1>
+          <p id="tlSub">Inundaciones La Mojana · Córdoba · Fundación Manos Unidas</p>
+        </div>
+        <div class="tl-status-pill" id="tlPill">
+          <span class="pulse-dot"></span>
+          <span id="tlPillText">En distribución · 2 Lotes en proceso</span>
+        </div>
+      </header>
+
+      <!-- Workspace Tri-Panel: Izquierda (#detailCard) | Centro (#treeStage) | Derecha (#snakeCard) -->
+      <div class="tl-workspace" id="tlWorkspace">
+
+        <!-- ================= COLUMNA IZQUIERDA (AFUERA DE #treeStage) ================= -->
+        <aside class="tl-left-col" aria-label="Verificación Criptográfica">
+          <div class="col-header-tag">
+            <span class="col-dot"></span>
+            <span>Detalle y Verificación</span>
+          </div>
+          <div class="detail-card" id="detailCard" aria-live="polite"></div>
+        </aside>
+
+        <!-- ================= COLUMNA CENTRAL (#treeStage) ================= -->
+        <div class="tree-stage" id="treeStage">
+          <!-- SVG de ramas que conectan la donación con los lotes -->
+          <svg class="tree-canvas-overlay" id="treeSvg" aria-hidden="true"></svg>
+
+          <!-- Nivel 1 (Arriba): DONADA (Recepción de fondos) -->
+          <div class="tree-root-level" id="rootLevel"></div>
+
+          <!-- Nivel 2 en adelante: RAMAS POR ACTIVO -->
+          <div class="branches-grid" id="branchesGrid"></div>
+
+          <!-- Contenedor dinámico de camiones por línea en el árbol -->
+          <div id="treeTrucksContainer"></div>
+        </div>
+
+        <!-- ================= COLUMNA DERECHA (AFUERA DE #treeStage) ================= -->
+        <!-- Recorrido de tu donación: Carretera en serpiente de arriba hacia abajo -->
+        <aside class="tl-right-col" aria-label="Recorrido de tu donación">
+          <div class="col-header-tag">
+            <span class="col-dot gold"></span>
+            <span>Recorrido en Serpiente (6 Estaciones)</span>
+          </div>
+          <section class="snake-card" id="snakeCard">
+            <header class="snake-head">
+              <div class="snake-head-top">
+                <div class="snake-kicker" id="snakeKicker">TRK-····-8841 · LOTE A</div>
+                <span class="pill" id="snakePill"><i></i><span id="snakePillTxt">En camino · 4 de 6</span></span>
+              </div>
+              <h2 class="snake-title" id="snakeTitle">Recorrido de tu donación</h2>
+              <p class="snake-sub" id="snakeSub">Emergencia invernal · Córdoba · Fundación Manos Unidas</p>
+
+              <!-- Selector de línea / lote sincronizado -->
+              <div class="snake-line-tabs" id="snakeLineTabs" role="tablist" aria-label="Seleccionar línea de activo"></div>
+            </header>
+
+            <!-- Pista de carretera en serpiente vertical con curvas -->
+            <div class="snake-track" id="snakeTrack">
+              <svg class="snake-svg" id="snakeSvg" viewBox="0 0 320 620" preserveAspectRatio="none" aria-hidden="true">
+                <!-- Borde exterior de la carretera en serpiente -->
+                <path class="snake-road-base" d="M 62 50 C 62 110, 258 95, 258 155 C 258 215, 62 200, 62 260 C 62 320, 258 305, 258 365 C 258 425, 62 410, 62 470 C 62 530, 258 515, 258 575"/>
+
+                <!-- Asfalto principal -->
+                <path id="snakeRoadAsphalt" class="snake-road-asphalt" d="M 62 50 C 62 110, 258 95, 258 155 C 258 215, 62 200, 62 260 C 62 320, 258 305, 258 365 C 258 425, 62 410, 62 470 C 62 530, 258 515, 258 575"/>
+
+                <!-- Tramo recorrido en color dinámico según la línea -->
+                <path id="snakeRoadDone" class="snake-road-done" d="M 62 50 C 62 110, 258 95, 258 155 C 258 215, 62 200, 62 260 C 62 320, 258 305, 258 365 C 258 425, 62 410, 62 470 C 62 530, 258 515, 258 575"/>
+
+                <!-- Línea amarilla punteada central -->
+                <path class="snake-road-marking" d="M 62 50 C 62 110, 258 95, 258 155 C 258 215, 62 200, 62 260 C 62 320, 258 305, 258 365 C 258 425, 62 410, 62 470 C 62 530, 258 515, 258 575"/>
+
+                <!-- Camión animado que viaja por las curvas de la serpiente (correspondiente a la línea) -->
+                <g id="snakeTruck" class="snake-truck" transform="translate(62, 50)">
+                  <g id="snakeTruckInner" transform="translate(-22, -16) scale(0.66)">
+                    <!-- Etiqueta de carga sobre el vehículo de la serpiente -->
+                    <g id="snakeCargoTagGroup" transform="translate(20, -6)">
+                      <rect id="snakeCargoTagBg" x="-38" y="-13" width="94" height="15" rx="7.5" fill="#1B5141"/>
+                      <text id="snakeCargoTagText" x="9" y="-2.5" fill="#ffffff" font-size="8.5" font-weight="700" font-family="'JetBrains Mono', monospace" text-anchor="middle">Lote A · Alimentos</text>
+                    </g>
+                    <rect id="snakeCargoBox" x="2" y="8" width="38" height="22" rx="3" fill="#F3B544"/>
+                    <rect id="snakeCargoTrim" x="2" y="8" width="38" height="5" rx="2" fill="#D9962C"/>
+                    <path id="snakeCargoIcon" d="M15 24.5c-3-2-4.2-3.7-3.5-5.2.6-1.2 2-1.1 3.5.4 1.4-1 2.8-.6 3.3.8.6 1.5-.5 2.9-3.3 4z" fill="#1B5141"/>
+                    <g id="snakeQrBadge">
+                      <rect x="25" y="15" width="9" height="9" rx="1" fill="#fff"/>
+                      <rect id="snakeQr1" x="26.5" y="16.5" width="3" height="3" fill="#1B5141"/>
+                      <rect id="snakeQr2" x="30" y="20" width="2.5" height="2.5" fill="#1B5141"/>
+                    </g>
+                    <path id="snakeCabin" d="M40 14h12l9 9v7H40z" fill="#20604C"/>
+                    <path d="M43 16h8l6 6h-14z" fill="#CDE7EE"/>
+                    <rect id="snakeChassis" x="0" y="29" width="63" height="3" rx="1.5" fill="#1B5141"/>
+                    <circle cx="14" cy="34" r="5.5" fill="#22302B"/>
+                    <circle cx="14" cy="34" r="2" fill="#B8C4BE"/>
+                    <circle cx="51" cy="34" r="5.5" fill="#22302B"/>
+                    <circle cx="51" cy="34" r="2" fill="#B8C4BE"/>
+                  </g>
+                </g>
+              </svg>
+
+              <!-- Estaciones interactivas superpuestas sobre cada curva -->
+              <ol class="snake-stations-list" id="snakeStationsList" role="tablist" aria-label="Estaciones del recorrido"></ol>
+            </div>
+          </section>
+        </aside>
+
+      </div>
+
+      <!-- Nota de Privacidad -->
+      <div class="privacy-notice">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+        <span>
+          <b>Privacidad y transparencia:</b> Los custodios se identifican exclusivamente por su categoría institucional (bodega, transportista, centro comunitario). La identidad de conductores y familias beneficiarias está resguardada bajo secreto criptográfico.
+        </span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const ICONS = {
+        pay: '<rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20M6 15h4"/>',
+        buy: '<ellipse cx="12" cy="7" rx="7" ry="3"/><path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7"/><path d="M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/>',
+        qr: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 18h2v2h-2z"/>',
+        truck: '<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',
+        box: '<path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/>',
+        heart: '<path d="M12 19s-7-4.3-7-9.2A3.8 3.8 0 0 1 12 8a3.8 3.8 0 0 1 7 1.8C19 14.7 12 19 12 19z"/>',
+        x: '<path d="M6 6l12 12M18 6L6 18"/>',
+        lock: '<rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.5"/>',
+        clock: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2.5"/>'
+      };
+      const svgIcon = (name, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra}>${ICONS[name] || ''}</svg>`;
+
+      /* Coordenadas de las 6 estaciones a lo largo de la carretera en serpiente (viewBox 320x620) */
+      const SNAKE_COORDS = [
+        { x: 62,  y: 50,  side: 'to-right' }, // 0: Pago confirmado
+        { x: 258, y: 155, side: 'to-left'  }, // 1: Fondos asignados
+        { x: 62,  y: 260, side: 'to-right' }, // 2: Lote registrado
+        { x: 258, y: 365, side: 'to-left'  }, // 3: Despachado
+        { x: 62,  y: 470, side: 'to-right' }, // 4: Recibido
+        { x: 258, y: 575, side: 'to-left'  }  // 5: Entregado
+      ];
+
+      /* ========================================================
+         DATOS DE ESCENARIOS
+         ======================================================== */
+      const SCENARIOS = {
+        split: {
+          kicker: 'DONACIÓN TRK-2026-8841 · $300.000 COP',
+          sub: 'Inundaciones La Mojana · Córdoba · Fundación Manos Unidas',
+          pill: { text: 'En distribución · 2 Lotes en proceso', fail: false },
+          root: {
+            id: 'root-pay',
+            k: 'pay',
+            snakeIdx: 0,
+            lbl: 'Donada',
+            ev: 'FUNDS_CLEARED',
+            date: '02 oct 2026 · 10:14',
+            shortDate: '02 oct',
+            status: 'done',
+            custodianCategory: 'Pasarela de pago',
+            locationZone: null,
+            hash: 'a3f9…c801',
+            sealed: true,
+            txt: 'Pago confirmado por la pasarela de pagos. Tu aporte de $300.000 se transforma en activos verificables.'
+          },
+          assets: [
+            {
+              id: 'asset-a',
+              name: 'Lote A · 120 Kits de alimentos',
+              units: '120 unidades',
+              type: 'Alimentación infantil y familiar',
+              steps: [
+                {
+                  id: 'a-step-buy',
+                  k: 'buy',
+                  snakeIdx: 2,
+                  lbl: 'Comprada y registrada',
+                  ev: 'ASSET_REGISTERED',
+                  date: '03 oct 2026 · 14:20',
+                  shortDate: '03 oct',
+                  status: 'done',
+                  custodianCategory: 'Bodega de acopio',
+                  locationZone: 'Montería, Córdoba',
+                  hash: 'b14e…7a20',
+                  sealed: true,
+                  txt: 'Adquisición mayorista de insumos y generación de código QR individual por lote.'
+                },
+                {
+                  id: 'a-step-truck',
+                  k: 'truck',
+                  snakeIdx: 3,
+                  lbl: 'Enviada',
+                  ev: 'ASSET_DISPATCHED',
+                  date: '06 oct 2026 · 07:30',
+                  shortDate: '06 oct',
+                  status: 'done',
+                  custodianCategory: 'Transportista logístico',
+                  locationZone: 'Ruta Montería - Lorica',
+                  hash: '5c22…9f14',
+                  sealed: true,
+                  txt: 'Lote cargado y en tránsito por vía terrestre hacia el centro comunitario.'
+                },
+                {
+                  id: 'a-step-box',
+                  k: 'box',
+                  snakeIdx: 4,
+                  lbl: 'Recibida',
+                  ev: 'ASSET_RECEIVED',
+                  date: '08 oct 2026 · 11:05',
+                  shortDate: '08 oct',
+                  status: 'done',
+                  custodianCategory: 'Centro comunitario',
+                  locationZone: 'Lorica, Córdoba',
+                  hash: '2d7c…e110',
+                  sealed: true,
+                  txt: 'Arribo a punto comunal. Verificación física de sellos QR intactos.'
+                },
+                {
+                  id: 'a-step-heart',
+                  k: 'heart',
+                  snakeIdx: 5,
+                  lbl: 'Entregada',
+                  ev: 'ASSET_DELIVERED',
+                  date: '09 oct 2026 · 15:20',
+                  shortDate: '09 oct',
+                  status: 'done',
+                  custodianCategory: 'Organización comunitaria',
+                  locationZone: 'Lorica, Córdoba',
+                  hash: 'e804…33b9',
+                  sealed: true,
+                  txt: 'Distribución final a familias afectadas. Listado privado validado en Merkle.'
+                }
+              ]
+            },
+            {
+              id: 'asset-b',
+              name: 'Lote B · 80 Kits escolares',
+              units: '80 unidades',
+              type: 'Educación y material didáctico',
+              steps: [
+                {
+                  id: 'b-step-buy',
+                  k: 'buy',
+                  snakeIdx: 2,
+                  lbl: 'Comprada y registrada',
+                  ev: 'ASSET_REGISTERED',
+                  date: '04 oct 2026 · 09:15',
+                  shortDate: '04 oct',
+                  status: 'done',
+                  custodianCategory: 'Bodega de acopio',
+                  locationZone: 'Cereté, Córdoba',
+                  hash: '3f82…91b0',
+                  sealed: true,
+                  txt: 'Compra mayorista de útiles escolares para comunidades rurales.'
+                },
+                {
+                  id: 'b-step-truck',
+                  k: 'truck',
+                  snakeIdx: 3,
+                  lbl: 'Enviada',
+                  ev: 'ASSET_DISPATCHED',
+                  date: '07 oct 2026 · 08:00',
+                  shortDate: '07 oct',
+                  status: 'done',
+                  custodianCategory: 'Transportista logístico',
+                  locationZone: null,
+                  hash: '7a19…cc44',
+                  sealed: true,
+                  txt: 'Despacho hacia subcentros educativos.'
+                }
+              ],
+              children: [
+                {
+                  id: 'sub-b1',
+                  name: 'Sublote B1 · 40 Kits (Escuela San José)',
+                  steps: [
+                    {
+                      id: 'b1-step-box',
+                      k: 'box',
+                      snakeIdx: 4,
+                      lbl: 'Recibida',
+                      ev: 'ASSET_RECEIVED',
+                      date: '09 oct 2026 · 10:30',
+                      shortDate: '09 oct',
+                      status: 'done',
+                      custodianCategory: 'Centro comunitario',
+                      locationZone: 'Ciénaga de Oro, Córdoba',
+                      hash: '88cd…ef12',
+                      sealed: false,
+                      txt: 'Recepción en sede escolar San José. Pendiente de próximo bloque de anclaje.'
+                    },
+                    {
+                      id: 'b1-step-heart',
+                      k: 'heart',
+                      snakeIdx: 5,
+                      lbl: 'Entregada',
+                      ev: 'ASSET_DELIVERED',
+                      date: null,
+                      shortDate: '',
+                      status: 'pending',
+                      custodianCategory: 'Organización comunitaria',
+                      locationZone: 'Ciénaga de Oro, Córdoba',
+                      hash: null,
+                      sealed: false,
+                      txt: 'Paso futuro: Jornada de entrega programada con docentes y directiva escolar.'
+                    }
+                  ]
+                },
+                {
+                  id: 'sub-b2',
+                  name: 'Sublote B2 · 40 Kits (Escuela La Palma)',
+                  steps: [
+                    {
+                      id: 'b2-step-box',
+                      k: 'box',
+                      snakeIdx: 4,
+                      lbl: 'Recibida',
+                      ev: 'ASSET_RECEIVED',
+                      date: null,
+                      shortDate: '',
+                      status: 'pending',
+                      custodianCategory: 'Centro comunitario',
+                      locationZone: null,
+                      hash: null,
+                      sealed: false,
+                      txt: 'Paso en curso: Transporte en camino a sede rural La Palma.'
+                    },
+                    {
+                      id: 'b2-step-heart',
+                      k: 'heart',
+                      snakeIdx: 5,
+                      lbl: 'Entregada',
+                      ev: 'ASSET_DELIVERED',
+                      date: null,
+                      shortDate: '',
+                      status: 'pending',
+                      custodianCategory: 'Organización comunitaria',
+                      locationZone: null,
+                      hash: null,
+                      sealed: false,
+                      txt: 'Paso futuro: Entrega final a estudiantes de vereda.'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+
+        direct: {
+          kicker: 'DONACIÓN TRK-2026-1102 · $150.000 COP',
+          sub: 'Brigada de Salud Rural · Tierralta, Córdoba · Cruz Roja',
+          pill: { text: 'En camino hacia Tierralta', fail: false },
+          root: {
+            id: 'root-pay-dir',
+            k: 'pay',
+            snakeIdx: 0,
+            lbl: 'Donada',
+            ev: 'FUNDS_CLEARED',
+            date: '10 oct 2026 · 16:02',
+            shortDate: '10 oct',
+            status: 'done',
+            custodianCategory: 'Pasarela de pago',
+            locationZone: null,
+            hash: '4d11…90ac',
+            sealed: true,
+            txt: 'Donación directa recibida para medicamentos de atención primaria.'
+          },
+          assets: [
+            {
+              id: 'asset-dir',
+              name: 'Lote Único #94 · Medicamentos y Sueros',
+              units: '45 botiquines completos',
+              type: 'Salud y primeros auxilios',
+              steps: [
+                {
+                  id: 'dir-step-buy',
+                  k: 'buy',
+                  snakeIdx: 2,
+                  lbl: 'Comprada y registrada',
+                  ev: 'ASSET_REGISTERED',
+                  date: '11 oct 2026 · 11:30',
+                  shortDate: '11 oct',
+                  status: 'done',
+                  custodianCategory: 'Bodega de insumos',
+                  locationZone: 'Montería, Córdoba',
+                  hash: 'f942…00a1',
+                  sealed: true,
+                  txt: 'Medicamentos inventariados y etiquetados con QR de cadena de frío.'
+                },
+                {
+                  id: 'dir-step-truck',
+                  k: 'truck',
+                  snakeIdx: 3,
+                  lbl: 'Enviada',
+                  ev: 'ASSET_DISPATCHED',
+                  date: '12 oct 2026 · 06:15',
+                  shortDate: '12 oct',
+                  status: 'done',
+                  custodianCategory: 'Transportista logístico',
+                  locationZone: 'Carretera al Alto Sinú',
+                  hash: '77bc…22df',
+                  sealed: false,
+                  txt: 'Vehículo médico despachado en ruta hacia la zona rural.'
+                },
+                {
+                  id: 'dir-step-box',
+                  k: 'box',
+                  snakeIdx: 4,
+                  lbl: 'Recibida',
+                  ev: 'ASSET_RECEIVED',
+                  date: null,
+                  shortDate: '',
+                  status: 'pending',
+                  custodianCategory: 'Centro comunitario',
+                  locationZone: 'Tierralta, Córdoba',
+                  hash: null,
+                  sealed: false,
+                  txt: 'Paso pendiente: Esperando llegada y verificación en puesto de salud.'
+                },
+                {
+                  id: 'dir-step-heart',
+                  k: 'heart',
+                  snakeIdx: 5,
+                  lbl: 'Entregada',
+                  ev: 'ASSET_DELIVERED',
+                  date: null,
+                  shortDate: '',
+                  status: 'pending',
+                  custodianCategory: 'Personal asistencial',
+                  locationZone: 'Tierralta, Córdoba',
+                  hash: null,
+                  sealed: false,
+                  txt: 'Paso pendiente: Atención a pacientes y brigada.'
+                }
+              ]
+            }
+          ]
+        },
+
+        fail: {
+          kicker: 'DONACIÓN TRK-2026-0033 · $80.000 COP',
+          sub: 'Comedor Infantil · San Pelayo, Córdoba',
+          pill: { text: 'Pago rechazado', fail: true },
+          root: {
+            id: 'root-pay-fail',
+            k: 'x',
+            snakeIdx: 0,
+            lbl: 'Pago rechazado',
+            ev: 'PAYMENT_FAILED',
+            date: '14 oct 2026 · 18:40',
+            shortDate: '14 oct',
+            status: 'failed',
+            custodianCategory: 'Pasarela de pago',
+            locationZone: null,
+            hash: 'fail…0000',
+            sealed: false,
+            txt: 'La entidad bancaria rechazó la transacción. No se realizó ningún cobro a tu cuenta y el recorrido no fue iniciado.'
+          },
+          assets: []
+        }
+      };
+
+      let currentScenarioKey = 'split';
+      let selectedStep = null;
+      let themeMode = 'light';
+
+      const rootLevelEl = document.getElementById('rootLevel');
+      const branchesGridEl = document.getElementById('branchesGrid');
+      const treeSvgEl = document.getElementById('treeSvg');
+      const detailCardEl = document.getElementById('detailCard');
+      const tlKickerEl = document.getElementById('tlKicker');
+      const tlSubEl = document.getElementById('tlSub');
+      const tlPillEl = document.getElementById('tlPill');
+      const tlPillTextEl = document.getElementById('tlPillText');
+
+      const treeTrucksContainer = document.getElementById('treeTrucksContainer');
+
+      // Elementos de la serpiente derecha
+      const snakeTrackEl = document.getElementById('snakeTrack');
+      const snakeRoadAsphaltEl = document.getElementById('snakeRoadAsphalt');
+      const snakeRoadDoneEl = document.getElementById('snakeRoadDone');
+      const snakeTruckEl = document.getElementById('snakeTruck');
+      const snakeStationsListEl = document.getElementById('snakeStationsList');
+      const snakeKickerEl = document.getElementById('snakeKicker');
+      const snakeSubEl = document.getElementById('snakeSub');
+      const snakePillEl = document.getElementById('snakePill');
+      const snakePillTxtEl = document.getElementById('snakePillTxt');
+      const snakeLineTabsEl = document.getElementById('snakeLineTabs');
+
+      // Partes dinámicas del camión en la serpiente derecha
+      const snakeCargoBoxEl = document.getElementById('snakeCargoBox');
+      const snakeCargoTrimEl = document.getElementById('snakeCargoTrim');
+      const snakeCabinEl = document.getElementById('snakeCabin');
+      const snakeChassisEl = document.getElementById('snakeChassis');
+      const snakeCargoTagBgEl = document.getElementById('snakeCargoTagBg');
+      const snakeCargoTagTextEl = document.getElementById('snakeCargoTagText');
+      const snakeCargoTagGroupEl = document.getElementById('snakeCargoTagGroup');
+
+      // Botones de escenario
+      const btnSplit = document.getElementById('btnSceneSplit');
+      const btnDirect = document.getElementById('btnSceneDirect');
+      const btnFail = document.getElementById('btnSceneFail');
+      const btnTheme = document.getElementById('btnThemeToggle');
+      const themeIcon = document.getElementById('themeIcon');
+      const themeText = document.getElementById('themeText');
+
+      let currentSnakeLen = 0;
+      let snakeAnimFrame = null;
+
+      /* ========================================================
+         CREACIÓN DE ELEMENTO DE PASO EN EL ÁRBOL CENTRAL
+         ======================================================== */
+      function createStepElement(step) {
+        const item = document.createElement('div');
+        item.className = `step-item ${step.status}`;
+        item.id = step.id;
+        item.tabIndex = 0;
+        item.setAttribute('role', 'button');
+        item.setAttribute('aria-label', `${step.lbl}: ${step.status === 'done' ? 'Completado' : step.status === 'pending' ? 'Pendiente' : 'Rechazado'}`);
+
+        const isPending = step.status === 'pending';
+
+        let sealHtml = '';
+        if (step.status === 'done') {
+          sealHtml = `<span class="merkle-seal ${step.sealed ? 'on' : 'wait'}" title="${step.sealed ? 'Anclado en blockchain' : 'Esperando el próximo anclaje'}">${svgIcon(step.sealed ? 'lock' : 'clock')}</span>`;
+        }
+
+        let locationHtml = step.locationZone ? `<span class="meta-chip">📍 ${step.locationZone}</span>` : '';
+        let custodianHtml = step.custodianCategory ? `<span class="meta-chip custodian">🏢 ${step.custodianCategory}</span>` : '';
+        let dateHtml = (!isPending && step.date) ? `<span class="step-date-badge">${step.date}</span>` : '';
+
+        item.innerHTML = `
+          <div class="step-node-icon">
+            ${svgIcon(step.k)}
+            ${sealHtml}
+          </div>
+          <div class="step-info">
+            <div class="step-header-line">
+              <span class="step-title">${step.lbl}</span>
+              ${dateHtml}
+            </div>
+            <div class="step-meta-chips">
+              ${locationHtml}
+              ${custodianHtml}
+            </div>
+          </div>
+        `;
+
+        item.addEventListener('click', () => selectStep(step));
+        item.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectStep(step);
+          }
+        });
+
+        return item;
+      }
+
+      /* ========================================================
+         DETALLE DEL PASO EN COLUMNA IZQUIERDA (#detailCard)
+         ======================================================== */
+      function showDetail(step) {
+        if (!detailCardEl || !step) return;
+
+        const isFailed = step.status === 'failed';
+        const isPending = step.status === 'pending';
+
+        detailCardEl.className = `detail-card ${isFailed ? 'failed' : ''}`;
+
+        let sealBadge = '';
+        if (step.status === 'done') {
+          sealBadge = step.sealed
+            ? `<span class="pill" style="color:var(--b700); background:var(--b50); border-color:rgba(50,125,162,.3);">🔒 Anclado en Blockchain (Merkle)</span>`
+            : `<span class="pill wait">⏳ Esperando próximo anclaje</span>`;
+        } else if (isFailed) {
+          sealBadge = `<span class="pill fail">Operación no concretada</span>`;
+        } else {
+          sealBadge = `<span class="pill" style="opacity:.6;">Paso futuro</span>`;
+        }
+
+        const timeTxt = step.time || (isPending ? 'Pendiente' : (step.date || ''));
+        const locRow = step.locationZone ? `<span>📍 Zona: ${step.locationZone}</span>` : '';
+        const custRow = step.custodianCategory ? `<span>Custodio responsable: <b>${step.custodianCategory}</b></span>` : '';
+        const hashRow = step.hash ? `<span>Huella criptográfica: <code>${step.hash}</code></span>` : '';
+
+        detailCardEl.innerHTML = `
+          <div class="d-badge-ic">
+            ${svgIcon(step.k)}
+          </div>
+          <div class="d-main-txt">
+            <b>${step.lbl}</b>
+            <p>${step.txt || 'Registro trazable de la donación.'}</p>
+            <div class="d-meta-row">
+              <span>Evento: <b>${step.ev}</b></span>
+              ${custRow}
+              ${locRow}
+              ${hashRow}
+            </div>
+          </div>
+          <div class="d-side-panel">
+            <span class="d-timestamp">${timeTxt}</span>
+            ${sealBadge}
+            ${isFailed ? '<button class="chip" type="button" onclick="window.retryDemo()" style="margin-top:6px;">Reintentar donación</button>' : ''}
+          </div>
+        `;
+      }
+
+      /* ========================================================
+         CONSTRUCCIÓN Y SINCRONIZACIÓN DE LAS 6 ESTACIONES EN SERPIENTE
+         ======================================================== */
+      function buildSnakeStationsForContext(step) {
+        const scenario = SCENARIOS[currentScenarioKey];
+        const ctx = getAssetContextForStep(step ? step.id : null);
+
+        if (currentScenarioKey === 'fail') {
+          return [
+            {
+              idx: 0, k: 'x', lbl: 'Pago rechazado', shortDate: '14 oct',
+              status: 'failed', sealed: false, refStep: scenario.root
+            },
+            { idx: 1, k: 'buy', lbl: 'Fondos asignados', shortDate: '', status: 'pending', sealed: false },
+            { idx: 2, k: 'qr', lbl: 'Lote registrado', shortDate: '', status: 'pending', sealed: false },
+            { idx: 3, k: 'truck', lbl: 'Despachado', shortDate: '', status: 'pending', sealed: false },
+            { idx: 4, k: 'box', lbl: 'Recibido', shortDate: '', status: 'pending', sealed: false },
+            { idx: 5, k: 'heart', lbl: 'Entregado', shortDate: '', status: 'pending', sealed: false }
+          ];
+        }
+
+        // Determinar de qué rama/lote extraer los pasos para las 6 estaciones de la serpiente
+        let branchAsset = scenario.assets[0];
+        let subLot = null;
+
+        if (ctx && ctx.assetId && ctx.assetId !== 'root') {
+          branchAsset = scenario.assets.find(a => a.id === ctx.assetId) || scenario.assets[0];
+          if (ctx.subLotId && branchAsset.children) {
+            subLot = branchAsset.children.find(c => c.id === ctx.subLotId) || null;
+          } else if (branchAsset.children && branchAsset.children.length > 0) {
+            subLot = branchAsset.children[0];
+          }
+        }
+
+        const stepBuy = branchAsset ? branchAsset.steps[0] : null;
+        const stepTruck = branchAsset ? branchAsset.steps[1] : null;
+        const stepBox = subLot ? subLot.steps[0] : (branchAsset ? branchAsset.steps[2] : null);
+        const stepHeart = subLot ? subLot.steps[1] : (branchAsset ? branchAsset.steps[3] : null);
+
+        // Estación intermedia 1: Fondos asignados (como en la versión horizontal)
+        const allocStep = {
+          id: 'virtual-alloc',
+          k: 'buy',
+          snakeIdx: 1,
+          lbl: 'Fondos asignados',
+          ev: 'ALLOCATION_CONFIRMED',
+          date: stepBuy ? stepBuy.date.replace(/\d{2}:\d{2}/, '09:02') : '03 oct 2026 · 09:02',
+          shortDate: stepBuy ? stepBuy.shortDate : '03 oct',
+          status: 'done',
+          custodianCategory: 'Fundación Manos Unidas',
+          locationZone: stepBuy ? stepBuy.locationZone : 'Córdoba',
+          hash: '91be…07aa',
+          sealed: false,
+          txt: `La organización destinó tu aporte a la compra de insumos (${branchAsset ? branchAsset.name : 'Lote activo'}).`,
+          fallbackRef: stepBuy || scenario.root
+        };
+
+        return [
+          {
+            idx: 0,
+            k: 'pay',
+            lbl: 'Pago confirmado',
+            shortDate: scenario.root.shortDate || '02 oct',
+            status: scenario.root.status,
+            sealed: scenario.root.sealed,
+            refStep: scenario.root
+          },
+          {
+            idx: 1,
+            k: 'buy',
+            lbl: 'Fondos asignados',
+            shortDate: allocStep.shortDate,
+            status: 'done',
+            sealed: false,
+            refStep: allocStep
+          },
+          {
+            idx: 2,
+            k: 'qr',
+            lbl: 'Lote registrado',
+            shortDate: stepBuy ? (stepBuy.shortDate || '03 oct') : '',
+            status: stepBuy ? stepBuy.status : 'pending',
+            sealed: stepBuy ? stepBuy.sealed : false,
+            refStep: stepBuy
+          },
+          {
+            idx: 3,
+            k: 'truck',
+            lbl: 'Despachado',
+            shortDate: stepTruck ? (stepTruck.shortDate || '06 oct') : '',
+            status: stepTruck ? stepTruck.status : 'pending',
+            sealed: stepTruck ? stepTruck.sealed : false,
+            refStep: stepTruck
+          },
+          {
+            idx: 4,
+            k: 'box',
+            lbl: 'Recibido',
+            shortDate: (stepBox && stepBox.status !== 'pending') ? (stepBox.shortDate || '08 oct') : '',
+            status: stepBox ? stepBox.status : 'pending',
+            sealed: stepBox ? stepBox.sealed : false,
+            refStep: stepBox
+          },
+          {
+            idx: 5,
+            k: 'heart',
+            lbl: 'Entregado',
+            shortDate: (stepHeart && stepHeart.status !== 'pending') ? (stepHeart.shortDate || '09 oct') : '',
+            status: stepHeart ? stepHeart.status : 'pending',
+            sealed: stepHeart ? stepHeart.sealed : false,
+            refStep: stepHeart
+          }
+        ];
+      }
+
+      function updateSnakeVehicleAppearance(step) {
+        if (!snakeCargoBoxEl) return;
+
+        const ctx = getAssetContextForStep(step ? step.id : null);
+        const isFailed = step && step.status === 'failed';
+
+        let boxColor = '#F3B544';
+        let trimColor = '#D9962C';
+        let cabinColor = '#1B5141';
+        let tagBg = '#1B5141';
+        let tagText = 'Lote A · Alimentos';
+        let roadStroke = '#20604C';
+
+        if (isFailed) {
+          boxColor = '#9B2226';
+          trimColor = '#6A040F';
+          cabinColor = '#405656';
+          tagBg = '#9B2226';
+          tagText = '❌ Rechazado';
+          roadStroke = 'var(--danger)';
+        } else if (!ctx || ctx.type === 'root') {
+          boxColor = '#E0A838';
+          trimColor = '#B88520';
+          cabinColor = '#1B5141';
+          tagBg = '#785008';
+          tagText = 'Fondo Donado';
+          roadStroke = '#E0A838';
+        } else if (ctx.assetId === 'asset-a') {
+          boxColor = '#F3B544';
+          trimColor = '#D9962C';
+          cabinColor = '#1B5141';
+          tagBg = '#1B5141';
+          tagText = 'Lote A · Alimentos';
+          roadStroke = '#20604C';
+        } else if (ctx.assetId === 'asset-b') {
+          if (ctx.subLotId === 'sub-b1') {
+            boxColor = '#3688B0';
+            trimColor = '#255E79';
+            cabinColor = '#20604C';
+            tagBg = '#255E79';
+            tagText = 'Sublote B1 · San José';
+          } else if (ctx.subLotId === 'sub-b2') {
+            boxColor = '#327DA2';
+            trimColor = '#1E4E63';
+            cabinColor = '#20604C';
+            tagBg = '#1E4E63';
+            tagText = 'Sublote B2 · La Palma';
+          } else {
+            boxColor = '#327DA2';
+            trimColor = '#255E79';
+            cabinColor = '#20604C';
+            tagBg = '#255E79';
+            tagText = 'Lote B · Escolares';
+          }
+          roadStroke = '#327DA2';
+        } else if (ctx.assetId === 'asset-dir') {
+          boxColor = '#4E9155';
+          trimColor = '#20604C';
+          cabinColor = '#1B5141';
+          tagBg = '#1B5141';
+          tagText = 'Lote Único · Botiquines';
+          roadStroke = '#4E9155';
+        }
+
+        snakeCargoBoxEl.setAttribute('fill', boxColor);
+        snakeCargoTrimEl.setAttribute('fill', trimColor);
+        snakeCabinEl.setAttribute('fill', cabinColor);
+        if (snakeChassisEl) snakeChassisEl.setAttribute('fill', cabinColor);
+        if (snakeCargoTagBgEl) snakeCargoTagBgEl.setAttribute('fill', tagBg);
+        if (snakeCargoTagTextEl) snakeCargoTagTextEl.textContent = tagText;
+        if (snakeRoadDoneEl) snakeRoadDoneEl.style.stroke = roadStroke;
+      }
+
+      function renderSnakeLineTabs(activeAssetId) {
+        if (!snakeLineTabsEl) return;
+        const scenario = SCENARIOS[currentScenarioKey];
+        if (!scenario) return;
+
+        snakeLineTabsEl.innerHTML = '';
+
+        if (currentScenarioKey === 'split' && scenario.assets) {
+          scenario.assets.forEach(asset => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'snake-line-tab';
+            btn.dataset.asset = asset.id;
+            const isSel = asset.id === activeAssetId;
+            btn.setAttribute('aria-selected', String(isSel));
+            const dotClass = asset.id === 'asset-a' ? 'gold' : 'blue';
+            const shortTitle = asset.id === 'asset-a' ? 'Lote A · Alimentos' : 'Lote B · Escolares';
+            btn.innerHTML = `<span class="tab-dot ${dotClass}"></span> <span>${shortTitle}</span>`;
+
+            btn.addEventListener('click', () => {
+              const truckInst = truckInstances[asset.id];
+              let targetStep = null;
+              if (truckInst && truckInst.currentStepId) {
+                targetStep = findStepById(scenario, truckInst.currentStepId);
+              }
+              if (!targetStep) {
+                targetStep = asset.steps[1] || asset.steps[0];
+              }
+              if (targetStep) selectStep(targetStep, true);
+            });
+
+            snakeLineTabsEl.appendChild(btn);
+          });
+        } else if (currentScenarioKey === 'direct') {
+          const span = document.createElement('div');
+          span.className = 'snake-line-tab';
+          span.setAttribute('aria-selected', 'true');
+          span.innerHTML = `<span class="tab-dot" style="background:#4E9155;"></span> <span>Lote Único · Botiquines</span>`;
+          snakeLineTabsEl.appendChild(span);
+        } else if (currentScenarioKey === 'fail') {
+          const span = document.createElement('div');
+          span.className = 'snake-line-tab';
+          span.setAttribute('aria-selected', 'true');
+          span.innerHTML = `<span class="tab-dot" style="background:#B42318;"></span> <span>Transacción rechazada</span>`;
+          snakeLineTabsEl.appendChild(span);
+        }
+      }
+
+      function animateSnakeToIndex(activeIdx, isFailed = false, animate = true) {
+        if (!snakeRoadAsphaltEl || !snakeRoadDoneEl || !snakeTruckEl) return;
+
+        const totalLength = snakeRoadAsphaltEl.getTotalLength();
+        snakeRoadDoneEl.style.strokeDasharray = `${totalLength}`;
+
+        const targetRatio = Math.max(0, Math.min(1, activeIdx / 5));
+        const targetLen = isFailed ? 26 : targetRatio * totalLength;
+
+        if (snakeAnimFrame) {
+          cancelAnimationFrame(snakeAnimFrame);
+          snakeAnimFrame = null;
+        }
+
+        const isReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function applySnakeAtLength(len) {
+          currentSnakeLen = len;
+          snakeRoadDoneEl.style.strokeDashoffset = `${Math.max(0, totalLength - len)}`;
+
+          // Estacionar el camión ligeramente antes del centro del ícono activo sobre la curva
+          const truckLen = activeIdx === 0
+            ? Math.min(totalLength, 18)
+            : Math.max(0, len - 26);
+
+          const pt = snakeRoadAsphaltEl.getPointAtLength(truckLen);
+          const ptAhead = snakeRoadAsphaltEl.getPointAtLength(Math.min(totalLength, truckLen + 4));
+          const dx = ptAhead.x - pt.x;
+          const dy = ptAhead.y - pt.y;
+
+          const facingLeft = dx < -0.25;
+          const scaleX = facingLeft ? -1 : 1;
+          let rawAngle = Math.atan2(dy, Math.abs(dx)) * (180 / Math.PI);
+          rawAngle = Math.max(-18, Math.min(18, rawAngle * 0.45));
+          const finalAngle = facingLeft ? -rawAngle : rawAngle;
+
+          snakeTruckEl.setAttribute(
+            'transform',
+            `translate(${pt.x.toFixed(1)}, ${pt.y.toFixed(1)}) rotate(${finalAngle.toFixed(1)}) scale(${scaleX}, 1)`
+          );
+
+          if (snakeCargoTagGroupEl) {
+            snakeCargoTagGroupEl.setAttribute('transform', `translate(20, -6) scale(${scaleX}, 1)`);
+          }
+        }
+
+        if (!animate || isReduced) {
+          applySnakeAtLength(targetLen);
+          return;
+        }
+
+        const startLen = currentSnakeLen;
+        const diff = targetLen - startLen;
+        if (Math.abs(diff) < 1) {
+          applySnakeAtLength(targetLen);
+          return;
+        }
+
+        const duration = Math.min(900, Math.max(420, Math.abs(diff) * 1.1));
+        let startTime = null;
+
+        function stepFrame(ts) {
+          if (!startTime) startTime = ts;
+          const t = Math.min(1, (ts - startTime) / duration);
+          const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+          applySnakeAtLength(startLen + diff * ease);
+
+          if (t < 1) {
+            snakeAnimFrame = requestAnimationFrame(stepFrame);
+          } else {
+            snakeAnimFrame = null;
+            applySnakeAtLength(targetLen);
+          }
+        }
+
+        snakeAnimFrame = requestAnimationFrame(stepFrame);
+      }
+
+      function renderSnakePanel(step, animate = true) {
+        if (!snakeStationsListEl || !step) return;
+
+        const stations = buildSnakeStationsForContext(step);
+        const activeIdx = typeof step.snakeIdx === 'number' ? step.snakeIdx : 0;
+        const isFailed = step.status === 'failed';
+        const ctx = getAssetContextForStep(step.id);
+
+        snakeTrackEl.classList.toggle('fail', isFailed);
+
+        // Actualizar vehículo y carretera de la serpiente
+        updateSnakeVehicleAppearance(step);
+
+        // Actualizar encabezados del panel derecho
+        if (isFailed) {
+          snakeKickerEl.textContent = 'TRK-····-0033 · TRANSACCIÓN RECHAZADA';
+          snakePillEl.className = 'pill fail';
+          snakePillTxtEl.textContent = 'Pago rechazado';
+        } else {
+          let lotLabel = '120 KITS DE ALIMENTOS';
+          if (ctx && ctx.name) {
+            lotLabel = ctx.name.toUpperCase();
+          } else if (SCENARIOS[currentScenarioKey].assets && SCENARIOS[currentScenarioKey].assets[0]) {
+            lotLabel = SCENARIOS[currentScenarioKey].assets[0].name.toUpperCase();
+          }
+          snakeKickerEl.textContent = `TRK-····-8841 · ${lotLabel}`;
+          snakePillEl.className = activeIdx === 5 && step.status === 'done' ? 'pill' : 'pill';
+          const stageNum = activeIdx + 1;
+          snakePillTxtEl.textContent = stageNum === 6 && step.status === 'done'
+            ? `Entregado · 6 de 6`
+            : `En camino · ${stageNum} de 6`;
+        }
+        snakeSubEl.textContent = SCENARIOS[currentScenarioKey].sub;
+
+        // Renderizar las 6 estaciones a lo largo de la serpiente
+        snakeStationsListEl.innerHTML = '';
+
+        stations.forEach((st) => {
+          const coord = SNAKE_COORDS[st.idx];
+          const li = document.createElement('li');
+          li.className = 'snake-st-item';
+          li.style.left = `${(coord.x / 320) * 100}%`;
+          li.style.top = `${(coord.y / 620) * 100}%`;
+
+          let visualState = st.status;
+          if (!isFailed) {
+            if (st.idx === activeIdx) {
+              visualState = 'now';
+            } else if (st.idx < activeIdx && st.status === 'done') {
+              visualState = 'done';
+            }
+          }
+
+          let sealHtml = '';
+          if (st.status === 'done') {
+            sealHtml = `<span class="snake-st-seal ${st.sealed ? 'on' : 'wait'}" title="${st.sealed ? 'Anclado en blockchain' : 'Esperando próximo anclaje'}">${svgIcon(st.sealed ? 'lock' : 'clock')}</span>`;
+          }
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `snake-st-btn ${visualState}`;
+          btn.setAttribute('role', 'tab');
+          btn.setAttribute('aria-selected', String(st.idx === activeIdx));
+
+          btn.innerHTML = `
+            <span class="snake-st-post">
+              ${svgIcon(st.k)}
+              ${sealHtml}
+            </span>
+            <span class="snake-st-txt ${coord.side}">
+              <span class="snake-st-lbl">${st.lbl}</span>
+              <span class="snake-st-date">${st.shortDate || ''}</span>
+            </span>
+          `;
+
+          btn.addEventListener('click', () => {
+            if (!st.refStep) return;
+            if (st.refStep.id === 'virtual-alloc') {
+              showDetail(st.refStep);
+              renderSnakePanel(st.refStep, true);
+              if (st.refStep.fallbackRef) {
+                updateTreeTruckForStep(st.refStep.fallbackRef, true);
+              }
+            } else {
+              selectStep(st.refStep, true);
+            }
+          });
+
+          li.appendChild(btn);
+          snakeStationsListEl.appendChild(li);
+        });
+
+        animateSnakeToIndex(activeIdx, isFailed, animate);
+      }
+
+      /* ========================================================
+         SISTEMA DE VEHÍCULOS DEL ÁRBOL CENTRAL (#treeTrucksContainer)
+         Cada línea activa tiene su propio vehículo dedicado y sincronizado
+         ======================================================== */
+      const truckInstances = {};
+      const btnReplayTour = document.getElementById('btnReplayTour');
+      let isReplayingTour = false;
+
+      function getAssetContextForStep(stepId) {
+        const scenario = SCENARIOS[currentScenarioKey];
+        if (!scenario || !stepId) return null;
+        if (scenario.root && scenario.root.id === stepId) {
+          return { type: 'root', assetId: 'root', name: 'Recepción' };
+        }
+        if (!scenario.assets) return null;
+        for (const asset of scenario.assets) {
+          if (asset.steps && asset.steps.some(s => s.id === stepId)) {
+            return { type: 'asset', assetId: asset.id, name: asset.name };
+          }
+          if (asset.children) {
+            for (const child of asset.children) {
+              if (child.steps && child.steps.some(s => s.id === stepId)) {
+                return { type: 'sublot', assetId: asset.id, subLotId: child.id, name: child.name };
+              }
+            }
+          }
+        }
+        return null;
+      }
+
+      function findStepById(scenario, stepId) {
+        if (!scenario || !stepId) return null;
+        if (scenario.root && scenario.root.id === stepId) return scenario.root;
+        if (scenario.assets) {
+          for (const a of scenario.assets) {
+            if (a.steps) {
+              const s = a.steps.find(st => st.id === stepId);
+              if (s) return s;
+            }
+            if (a.children) {
+              for (const c of a.children) {
+                if (c.steps) {
+                  const s = c.steps.find(st => st.id === stepId);
+                  if (s) return s;
+                }
+              }
+            }
+          }
+        }
+        return null;
+      }
+
+      function createTruckForAsset(assetId, defaultTag, colors) {
+        const truckDiv = document.createElement('div');
+        truckDiv.className = 'truck stopped';
+        truckDiv.id = `truck-${assetId}`;
+        truckDiv.setAttribute('aria-hidden', 'true');
+        truckDiv.innerHTML = `
+          <div class="truck-cargo-tag">${defaultTag}</div>
+          <span class="puff"></span><span class="puff"></span>
+          <svg viewBox="0 0 66 42">
+            <g class="body">
+              <rect class="truck-cargo-box" x="2" y="8" width="38" height="22" rx="3" fill="${colors.box}"/>
+              <rect class="truck-cargo-trim" x="2" y="8" width="38" height="5" rx="2" fill="${colors.trim}"/>
+              <path class="truck-cargo-icon" d="M15 24.5c-3-2-4.2-3.7-3.5-5.2.6-1.2 2-1.1 3.5.4 1.4-1 2.8-.6 3.3.8.6 1.5-.5 2.9-3.3 4z" fill="${colors.icon || '#1B5141'}"/>
+              <g class="truck-qr-badge">
+                <rect x="25" y="15" width="9" height="9" rx="1" fill="#fff"/>
+                <rect class="truck-qr-pt" x="26.5" y="16.5" width="3" height="3" fill="${colors.icon || '#1B5141'}"/>
+                <rect class="truck-qr-pt2" x="30" y="20" width="2.5" height="2.5" fill="${colors.icon || '#1B5141'}"/>
+              </g>
+              <path class="truck-cabin" d="M40 14h12l9 9v7H40z" fill="${colors.cabin}"/>
+              <path d="M43 16h8l6 6h-14z" fill="#CDE7EE"/>
+              <rect class="truck-chassis" x="0" y="29" width="63" height="3" rx="1.5" fill="${colors.cabin}"/>
+            </g>
+            <g class="wheel">
+              <circle cx="14" cy="34" r="6" fill="#22302B"/>
+              <circle cx="14" cy="34" r="2.2" fill="#B8C4BE"/>
+              <rect x="13.4" y="29" width="1.2" height="10" fill="#B8C4BE" opacity=".5"/>
+            </g>
+            <g class="wheel">
+              <circle cx="51" cy="34" r="6" fill="#22302B"/>
+              <circle cx="51" cy="34" r="2.2" fill="#B8C4BE"/>
+              <rect x="50.4" y="29" width="1.2" height="10" fill="#B8C4BE" opacity=".5"/>
+            </g>
+          </svg>
+        `;
+        return {
+          assetId,
+          el: truckDiv,
+          cargoTagEl: truckDiv.querySelector('.truck-cargo-tag'),
+          cargoBoxEl: truckDiv.querySelector('.truck-cargo-box'),
+          cargoTrimEl: truckDiv.querySelector('.truck-cargo-trim'),
+          cabinEl: truckDiv.querySelector('.truck-cabin'),
+          pos: { x: null, y: null },
+          currentStepId: null,
+          animFrame: null,
+          defaultColors: colors,
+          defaultTag
+        };
+      }
+
+      function initTreeTrucksForScenario(scenarioKey) {
+        if (!treeTrucksContainer) return;
+        treeTrucksContainer.innerHTML = '';
+        Object.keys(truckInstances).forEach(k => delete truckInstances[k]);
+
+        if (scenarioKey === 'split') {
+          const truckA = createTruckForAsset('asset-a', 'Lote A · Alimentos', {
+            box: '#F3B544', trim: '#D9962C', cabin: '#1B5141', icon: '#1B5141'
+          });
+          truckA.currentStepId = 'a-step-truck';
+          treeTrucksContainer.appendChild(truckA.el);
+          truckInstances['asset-a'] = truckA;
+
+          const truckB = createTruckForAsset('asset-b', 'Lote B · Escolares', {
+            box: '#327DA2', trim: '#255E79', cabin: '#20604C', icon: '#20604C'
+          });
+          truckB.currentStepId = 'b-step-truck';
+          treeTrucksContainer.appendChild(truckB.el);
+          truckInstances['asset-b'] = truckB;
+        } else if (scenarioKey === 'direct') {
+          const truckDir = createTruckForAsset('asset-dir', 'Lote Único · Botiquines', {
+            box: '#4E9155', trim: '#20604C', cabin: '#1B5141', icon: '#1B5141'
+          });
+          truckDir.currentStepId = 'dir-step-truck';
+          treeTrucksContainer.appendChild(truckDir.el);
+          truckInstances['asset-dir'] = truckDir;
+        } else if (scenarioKey === 'fail') {
+          const truckFail = createTruckForAsset('root', '❌ Pago rechazado', {
+            box: '#9B2226', trim: '#6A040F', cabin: '#405656', icon: '#405656'
+          });
+          truckFail.el.classList.add('fail');
+          truckFail.currentStepId = 'root-pay';
+          treeTrucksContainer.appendChild(truckFail.el);
+          truckInstances['root'] = truckFail;
+        }
+      }
+
+      function getTruckDockCoords(targetEl) {
+        const stageEl = document.getElementById('treeStage');
+        if (!stageEl || !targetEl) return { x: 0, y: 0 };
+
+        const stageRect = stageEl.getBoundingClientRect();
+        const elRect = targetEl.getBoundingClientRect();
+        const isMobile = window.innerWidth <= 720;
+
+        const truckW = isMobile ? 54 : 66;
+        const truckH = isMobile ? 34 : 42;
+        const rightMargin = isMobile ? (truckW + 8) : (truckW + 10);
+
+        const targetX = (elRect.right - stageRect.left) - rightMargin;
+        const targetY = (elRect.top - stageRect.top) + (elRect.height / 2) - (truckH / 2);
+
+        return { x: targetX, y: targetY };
+      }
+
+      function driveTruckInstanceTo(inst, targetX, targetY, animate = true) {
+        if (!inst || !inst.el) return;
+
+        if (inst.animFrame) {
+          cancelAnimationFrame(inst.animFrame);
+          inst.animFrame = null;
+        }
+
+        const isReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        if (inst.pos.x === null || !animate || isReduced) {
+          inst.pos.x = targetX;
+          inst.pos.y = targetY;
+          inst.el.style.transform = `translate3d(${targetX}px, ${targetY}px, 0)`;
+          inst.el.classList.remove('moving');
+          inst.el.classList.add('stopped');
+          return;
+        }
+
+        const startX = inst.pos.x;
+        const startY = inst.pos.y;
+        const dist = Math.hypot(targetX - startX, targetY - startY);
+
+        if (dist < 4) {
+          inst.pos.x = targetX;
+          inst.pos.y = targetY;
+          inst.el.style.transform = `translate3d(${targetX}px, ${targetY}px, 0)`;
+          inst.el.classList.remove('moving');
+          inst.el.classList.add('stopped');
+          return;
+        }
+
+        const duration = Math.min(1000, Math.max(450, dist * 1.3));
+        const isCrossBranch = Math.abs(targetX - startX) > 40;
+        const midX = (startX + targetX) / 2;
+        const midY = isCrossBranch
+          ? Math.min(startY, targetY) - Math.min(70, Math.max(25, dist * 0.25))
+          : (startY + targetY) / 2;
+
+        inst.el.classList.remove('stopped');
+        inst.el.classList.add('moving');
+
+        let startTime = null;
+
+        function stepAnim(timestamp) {
+          if (!startTime) startTime = timestamp;
+          const elapsed = timestamp - startTime;
+          const t = Math.min(1, elapsed / duration);
+          const p = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+          const curX = (1 - p) * (1 - p) * startX + 2 * (1 - p) * p * midX + p * p * targetX;
+          const curY = (1 - p) * (1 - p) * startY + 2 * (1 - p) * p * midY + p * p * targetY;
+
+          const dx = 2 * (1 - p) * (midX - startX) + 2 * p * (targetX - midX);
+          const dy = 2 * (1 - p) * (midY - startY) + 2 * p * (targetY - midY);
+
+          const movingLeft = dx < -1.8;
+          const scaleX = movingLeft ? -1 : 1;
+
+          let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+          if (movingLeft) {
+            angle = (angle > 0 ? 180 - angle : -180 - angle);
+          }
+
+          let clampedAngle = Math.max(-24, Math.min(24, angle));
+          if (t > 0.78) {
+            clampedAngle *= (1 - (t - 0.78) / 0.22);
+          }
+
+          inst.pos.x = curX;
+          inst.pos.y = curY;
+          inst.el.style.transform = `translate3d(${curX}px, ${curY}px, 0) scaleX(${scaleX}) rotate(${clampedAngle}deg)`;
+
+          if (t < 1) {
+            inst.animFrame = requestAnimationFrame(stepAnim);
+          } else {
+            inst.animFrame = null;
+            inst.pos.x = targetX;
+            inst.pos.y = targetY;
+            inst.el.style.transform = `translate3d(${targetX}px, ${targetY}px, 0) scaleX(1) rotate(0deg)`;
+            inst.el.classList.remove('moving');
+            inst.el.classList.add('stopped');
+          }
+        }
+
+        inst.animFrame = requestAnimationFrame(stepAnim);
+      }
+
+      function updateTreeTruckForStep(step, animate = true) {
+        if (!step) return;
+        const ctx = getAssetContextForStep(step.id);
+        const targetEl = document.getElementById(step.id);
+        if (!targetEl) return;
+
+        let activeAssetId = ctx && ctx.assetId ? ctx.assetId : 'root';
+        if (activeAssetId === 'root' && currentScenarioKey === 'split') {
+          activeAssetId = 'asset-a';
+        }
+
+        const activeInst = truckInstances[activeAssetId] || Object.values(truckInstances)[0];
+
+        // Alternar estados activo / estacionado
+        Object.values(truckInstances).forEach(inst => {
+          const isCurrent = inst === activeInst;
+          inst.el.classList.toggle('active-truck', isCurrent);
+          inst.el.classList.toggle('parked-truck', !isCurrent);
+        });
+
+        if (activeInst) {
+          activeInst.currentStepId = step.id;
+
+          // Actualizar apariencia específica por sublote o estado
+          if (ctx && ctx.subLotId === 'sub-b1') {
+            activeInst.cargoBoxEl.setAttribute('fill', '#3688B0');
+            activeInst.cargoTrimEl.setAttribute('fill', '#255E79');
+            activeInst.cargoTagEl.textContent = 'Sublote B1 · San José';
+          } else if (ctx && ctx.subLotId === 'sub-b2') {
+            activeInst.cargoBoxEl.setAttribute('fill', '#327DA2');
+            activeInst.cargoTrimEl.setAttribute('fill', '#1E4E63');
+            activeInst.cargoTagEl.textContent = 'Sublote B2 · La Palma';
+          } else if (step.status === 'failed') {
+            activeInst.el.classList.add('fail');
+            activeInst.cargoBoxEl.setAttribute('fill', '#9B2226');
+            activeInst.cargoTrimEl.setAttribute('fill', '#6A040F');
+            activeInst.cabinEl.setAttribute('fill', '#405656');
+            activeInst.cargoTagEl.textContent = '❌ Pago rechazado';
+          } else {
+            activeInst.el.classList.remove('fail');
+            activeInst.cargoBoxEl.setAttribute('fill', activeInst.defaultColors.box);
+            activeInst.cargoTrimEl.setAttribute('fill', activeInst.defaultColors.trim);
+            activeInst.cabinEl.setAttribute('fill', activeInst.defaultColors.cabin);
+            activeInst.cargoTagEl.textContent = activeInst.defaultTag;
+          }
+
+          const coords = getTruckDockCoords(targetEl);
+          driveTruckInstanceTo(activeInst, coords.x, coords.y, animate);
+        }
+
+        // Marcar todos los pasos donde hay camiones estacionados con padding adecuado
+        document.querySelectorAll('.step-item').forEach(el => el.classList.remove('has-truck'));
+        Object.values(truckInstances).forEach(inst => {
+          if (inst.currentStepId) {
+            const stepDom = document.getElementById(inst.currentStepId);
+            if (stepDom) stepDom.classList.add('has-truck');
+          }
+        });
+      }
+
+      function selectStep(step, animateTruck = true) {
+        selectedStep = step;
+        document.querySelectorAll('.step-item').forEach(el => {
+          el.removeAttribute('aria-selected');
+        });
+        const currentEl = document.getElementById(step.id);
+        if (currentEl) currentEl.setAttribute('aria-selected', 'true');
+
+        const ctx = getAssetContextForStep(step.id);
+        const activeAssetId = ctx && ctx.assetId ? ctx.assetId : 'asset-a';
+
+        // 1. Actualizar Ficha Izquierda (#detailCard)
+        showDetail(step);
+        // 2. Mover Camión correspondiente en el Árbol Central
+        updateTreeTruckForStep(step, animateTruck);
+        // 3. Actualizar Serpiente Derecha (#snakeCard): ruta, vehículo y estaciones
+        renderSnakePanel(step, animateTruck);
+        // 4. Actualizar pestañas selectoras de línea
+        renderSnakeLineTabs(activeAssetId);
+      }
+
+      /* ========================================================
+         DIBUJO DE CARRETERAS SVG DEL ÁRBOL CENTRAL (#treeSvg)
+         Conecta directamente el nodo raíz (Donada) con cada rama
+         ======================================================== */
+      function createRoadSvgPath(pathData, isPending = false) {
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.setAttribute('class', `road-segment ${isPending ? 'pending' : 'active'}`);
+
+        const asphalt = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        asphalt.setAttribute('d', pathData);
+        asphalt.setAttribute('class', `road-asphalt ${isPending ? 'pending' : 'active'}`);
+
+        const marking = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        marking.setAttribute('d', pathData);
+        marking.setAttribute('class', `road-marking ${isPending ? 'pending' : 'active'}`);
+
+        group.appendChild(asphalt);
+        group.appendChild(marking);
+        return group;
+      }
+
+      function renderTreeConnections() {
+        if (!treeSvgEl) return;
+        treeSvgEl.innerHTML = '';
+
+        const rootNodeEl = document.querySelector('#rootLevel .step-item');
+        const stageEl = document.getElementById('treeStage');
+        if (!rootNodeEl || !stageEl) return;
+
+        const stageRect = stageEl.getBoundingClientRect();
+        const rootRect = rootNodeEl.getBoundingClientRect();
+
+        // Punto inferior central del nodo raíz (Donada)
+        const rootX = (rootRect.left + rootRect.width / 2) - stageRect.left;
+        const rootY = (rootRect.bottom - 2) - stageRect.top;
+
+        const assetBranches = Array.from(document.querySelectorAll('.asset-branch'));
+        if (assetBranches.length === 0) return;
+
+        const isMobileStacked = window.innerWidth <= 720 && assetBranches.length > 1;
+
+        if (!isMobileStacked) {
+          // Bifurcación directa desde el nodo raíz hacia el primer paso de cada lote
+          assetBranches.forEach((branchEl) => {
+            const firstStepEl = branchEl.querySelector('.step-item');
+            if (!firstStepEl) return;
+
+            const stepRect = firstStepEl.getBoundingClientRect();
+            const targetX = (stepRect.left + 27) - stageRect.left;
+            const targetY = (stepRect.top + stepRect.height / 2) - stageRect.top;
+
+            const midY = rootY + (targetY - rootY) * 0.45;
+            const pathData = `M ${rootX} ${rootY} C ${rootX} ${midY}, ${targetX} ${midY}, ${targetX} ${targetY}`;
+
+            treeSvgEl.appendChild(createRoadSvgPath(pathData, false));
+          });
+        } else {
+          const firstBranch = assetBranches[0];
+          const firstStepEl = firstBranch.querySelector('.step-item');
+          if (firstStepEl) {
+            const stepRect = firstStepEl.getBoundingClientRect();
+            const targetX = (stepRect.left + 27) - stageRect.left;
+            const targetY = (stepRect.top + stepRect.height / 2) - stageRect.top;
+            const midY = rootY + (targetY - rootY) * 0.45;
+            const pathData = `M ${rootX} ${rootY} C ${rootX} ${midY}, ${targetX} ${midY}, ${targetX} ${targetY}`;
+
+            treeSvgEl.appendChild(createRoadSvgPath(pathData, false));
+          }
+
+          for (let i = 0; i < assetBranches.length - 1; i++) {
+            const prevBranch = assetBranches[i];
+            const nextBranch = assetBranches[i + 1];
+            const prevRect = prevBranch.getBoundingClientRect();
+            const nextStep = nextBranch.querySelector('.step-item');
+            if (nextStep) {
+              const nextStepRect = nextStep.getBoundingClientRect();
+              const connX = (nextStepRect.left + 27) - stageRect.left;
+              const startY = prevRect.bottom - stageRect.top;
+              const endY = (nextStepRect.top + nextStepRect.height / 2) - stageRect.top;
+
+              const pathData = `M ${connX} ${startY} L ${connX} ${endY}`;
+              treeSvgEl.appendChild(createRoadSvgPath(pathData, false));
+            }
+          }
+        }
+      }
+
+      /* ========================================================
+         RENDERIZADO DEL ESCENARIO COMPLETO
+         ======================================================== */
+      function renderScenario(key) {
+        currentScenarioKey = key;
+        const data = SCENARIOS[key];
+        if (!data) return;
+
+        tlKickerEl.textContent = data.kicker;
+        tlSubEl.textContent = data.sub;
+
+        tlPillEl.className = `tl-status-pill ${data.pill.fail ? 'fail' : ''}`;
+        tlPillTextEl.textContent = data.pill.text;
+
+        // Renderizar nodo raíz (DONADA)
+        rootLevelEl.innerHTML = '';
+        const rootNode = createStepElement(data.root);
+        rootNode.style.maxWidth = '360px';
+        rootNode.style.width = '100%';
+        rootNode.style.background = 'var(--tl-card-bg)';
+        rootNode.style.border = '1.5px solid var(--tl-line)';
+        rootNode.style.boxShadow = '0 6px 18px rgba(18, 38, 28, .06)';
+        rootLevelEl.appendChild(rootNode);
+
+        // Renderizar ramas de activos
+        branchesGridEl.innerHTML = '';
+        if (data.assets && data.assets.length > 0) {
+          data.assets.forEach(asset => {
+            const branchEl = document.createElement('section');
+            branchEl.className = 'asset-branch';
+            branchEl.setAttribute('aria-label', asset.name);
+
+            const headEl = document.createElement('div');
+            headEl.className = 'asset-badge-head';
+            headEl.innerHTML = `
+              <span class="asset-tag">
+                <span class="asset-icon-pill">${svgIcon('box')}</span>
+                ${asset.name}
+              </span>
+              <span class="asset-units">${asset.units}</span>
+            `;
+            branchEl.appendChild(headEl);
+
+            const stepsList = document.createElement('ol');
+            stepsList.className = 'steps-chain';
+            asset.steps.forEach(st => {
+              const li = document.createElement('li');
+              li.style.listStyle = 'none';
+              li.appendChild(createStepElement(st));
+              stepsList.appendChild(li);
+            });
+            branchEl.appendChild(stepsList);
+
+            if (asset.children && asset.children.length > 0) {
+              const subGroup = document.createElement('div');
+              subGroup.className = 'sub-branch-group';
+
+              asset.children.forEach(subLot => {
+                const subBox = document.createElement('div');
+                subBox.className = 'sub-branch-box';
+
+                const subTitle = document.createElement('div');
+                subTitle.className = 'sub-branch-title';
+                subTitle.innerHTML = `<span>🌿</span> <span>${subLot.name}</span>`;
+                subBox.appendChild(subTitle);
+
+                const subStepsList = document.createElement('ol');
+                subStepsList.className = 'steps-chain';
+                subLot.steps.forEach(subSt => {
+                  const li = document.createElement('li');
+                  li.style.listStyle = 'none';
+                  li.appendChild(createStepElement(subSt));
+                  subStepsList.appendChild(li);
+                });
+                subBox.appendChild(subStepsList);
+                subGroup.appendChild(subBox);
+              });
+
+              branchEl.appendChild(subGroup);
+            }
+
+            branchesGridEl.appendChild(branchEl);
+          });
+        }
+
+        // Inicializar camiones dedicados para este escenario
+        initTreeTrucksForScenario(key);
+
+        // Selección inicial
+        if (key === 'fail') {
+          selectStep(data.root, false);
+        } else if (data.assets[0] && data.assets[0].steps[1]) {
+          selectStep(data.assets[0].steps[1], false); // "Enviada / Despachado" por defecto
+        } else {
+          selectStep(data.root, false);
+        }
+
+        btnSplit.setAttribute('aria-pressed', String(key === 'split'));
+        btnDirect.setAttribute('aria-pressed', String(key === 'direct'));
+        btnFail.setAttribute('aria-pressed', String(key === 'fail'));
+
+        setTimeout(() => {
+          renderTreeConnections();
+          Object.values(truckInstances).forEach(inst => {
+            if (inst.currentStepId) {
+              const stepEl = document.getElementById(inst.currentStepId);
+              if (stepEl) {
+                const coords = getTruckDockCoords(stepEl);
+                driveTruckInstanceTo(inst, coords.x, coords.y, false);
+              }
+            }
+          });
+        }, 60);
+      }
+
+      window.retryDemo = function () {
+        renderScenario('split');
+      };
+
+      btnSplit.addEventListener('click', () => renderScenario('split'));
+      btnDirect.addEventListener('click', () => renderScenario('direct'));
+      btnFail.addEventListener('click', () => renderScenario('fail'));
+
+      btnTheme.addEventListener('click', () => {
+        themeMode = themeMode === 'light' ? 'dark' : 'light';
+        document.documentElement.dataset.theme = themeMode;
+        themeIcon.textContent = themeMode === 'light' ? '☀️' : '🌙';
+        themeText.textContent = themeMode === 'light' ? 'Día' : 'Noche';
+        renderTreeConnections();
+      });
+
+      window.addEventListener('resize', () => {
+        renderTreeConnections();
+        Object.values(truckInstances).forEach(inst => {
+          if (inst.currentStepId) {
+            const stepEl = document.getElementById(inst.currentStepId);
+            if (stepEl) {
+              const coords = getTruckDockCoords(stepEl);
+              driveTruckInstanceTo(inst, coords.x, coords.y, false);
+            }
+          }
+        });
+      });
+
+      if (btnReplayTour) {
+        btnReplayTour.addEventListener('click', () => {
+          if (isReplayingTour) return;
+          isReplayingTour = true;
+          btnReplayTour.setAttribute('aria-pressed', 'true');
+
+          const scenario = SCENARIOS[currentScenarioKey];
+          if (!scenario) return;
+
+          const stepsToVisit = [scenario.root];
+          if (scenario.assets) {
+            scenario.assets.forEach(asset => {
+              if (asset.steps) asset.steps.forEach(s => stepsToVisit.push(s));
+              if (asset.children) {
+                asset.children.forEach(c => {
+                  if (c.steps) c.steps.forEach(s => stepsToVisit.push(s));
+                });
+              }
+            });
+          }
+
+          let idx = 0;
+          function runNext() {
+            if (idx >= stepsToVisit.length) {
+              isReplayingTour = false;
+              btnReplayTour.setAttribute('aria-pressed', 'false');
+              return;
+            }
+            selectStep(stepsToVisit[idx], true);
+            idx++;
+            setTimeout(runNext, 1200);
+          }
+
+          runNext();
+        });
+      }
+
+      // Iniciar en escenario multi-activo
+      renderScenario('split');
+    })();
+  </script>
+</body>
+</html>

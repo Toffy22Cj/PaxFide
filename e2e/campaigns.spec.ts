@@ -1,11 +1,12 @@
 import { test, expect, Page } from '@playwright/test';
 
-async function login(page: Page, email: string, password: string) {
-  await page.goto('/login');
+async function login(page: Page, email: string, password: string, destination = '/panel') {
+  // A-3: el inicio por defecto es /home; pedir el destino sin sesión lo guarda como destino y se vuelve ahí tras entrar
+  await page.goto(destination);
   await page.getByLabel('Correo electrónico').fill(email);
   await page.getByLabel('Contraseña').fill(password);
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-  await expect(page).toHaveURL(/\/panel$/);
+  await expect(page).toHaveURL(new RegExp(`${destination}$`));
 }
 
 function future(days: number) {
@@ -31,7 +32,7 @@ async function fillCampaign(page: Page, title: string) {
 test.describe('Panel de convocatorias (CV-01, CV-02)', () => {
   test('crear por la interfaz → página pública con los medios aceptados → asignar responsable', async ({ page }) => {
     await login(page, 'admin@demo.test', 'demo-admin');
-    await page.getByRole('link', { name: 'Convocatorias de mi organización' }).click();
+    await page.getByTestId('new-campaign-button').click();
     const post = page.waitForRequest((r) => r.url().includes('/organizations/org-1/campaigns') && r.method() === 'POST');
     await fillCampaign(page, 'Agua potable e2e');
     const body = (await post).postDataJSON();
@@ -66,7 +67,7 @@ test.describe('Panel de convocatorias (CV-01, CV-02)', () => {
 
   test('listado real: designar administrador, retirar responsable con reemplazo, cerrar y estimación', async ({ page }) => {
     await login(page, 'admin@demo.test', 'demo-admin');
-    await page.getByRole('link', { name: 'Convocatorias de mi organización' }).click();
+    await page.getByTestId('new-campaign-button').click();
     await fillCampaign(page, 'Ciclo completo e2e');
     await expect(page.getByText('Convocatoria creada')).toBeVisible();
     const row = page.getByTestId('org-campaign').filter({ hasText: 'Ciclo completo e2e' });
@@ -108,8 +109,8 @@ test.describe('Panel de convocatorias (CV-01, CV-02)', () => {
     await expect(history.getByTestId('history-warnings')).toContainText('la tasa de fallos es 0');
 
     // Cerrar: confirmación; después, sin acciones
-    await page.getByRole('link', { name: 'Panel' }).click();
-    await page.getByRole('link', { name: 'Convocatorias de mi organización' }).click();
+    await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Organización' }).click();
+    await page.getByTestId('new-campaign-button').click();
     await row.getByRole('button', { name: 'Cerrar convocatoria' }).click();
     await expect(dialog.getByText(/Cerrar es definitivo/)).toBeVisible();
     await dialog.getByRole('button', { name: 'Cerrar convocatoria' }).click();
@@ -119,9 +120,7 @@ test.describe('Panel de convocatorias (CV-01, CV-02)', () => {
   });
 
   test('representante: estimación con la referencia escrita (el listado no le está permitido)', async ({ page }) => {
-    await login(page, 'representante@demo.test', 'demo-representante');
-    // Navegación de cliente: recargar perdería la sesión (JWT solo en memoria, D2)
-    await page.getByRole('link', { name: 'Estimación de convocatorias' }).click();
+    await login(page, 'representante@demo.test', 'demo-representante', '/panel/prediction');
     await page.getByLabel('Referencia de la convocatoria').fill('camp-demo-1');
     await page.getByRole('button', { name: 'Ver estimación' }).click();
     await expect(page.getByTestId('prediction-estimate').getByTestId('basic-final')).toContainText('104 %');
@@ -129,13 +128,13 @@ test.describe('Panel de convocatorias (CV-01, CV-02)', () => {
 
   test('organización sin verificar → 409 con su texto', async ({ page }) => {
     await login(page, 'admin-sin-verificar@demo.test', 'demo-admin2');
-    await page.getByRole('link', { name: 'Convocatorias de mi organización' }).click();
+    await page.getByRole('link', { name: 'Convocatorias', exact: true }).click();
     await fillCampaign(page, 'No debería crearse');
     await expect(page.locator('main').getByRole('alert')).toHaveText('Tu organización todavía no está verificada. No puede crear convocatorias.');
   });
 
   test('un empleado no ve las acciones de convocatoria (representa; el backend autoriza)', async ({ page }) => {
     await login(page, 'empleado@demo.test', 'demo-empleado');
-    await expect(page.getByRole('link', { name: 'Convocatorias de mi organización' })).toHaveCount(0);
+    await expect(page.getByTestId('new-campaign-button')).toHaveCount(0);
   });
 });

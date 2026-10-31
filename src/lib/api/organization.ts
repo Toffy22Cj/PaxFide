@@ -61,6 +61,9 @@ export interface OrgAsset {
   quantity?: string;
   unitOfMeasure?: string;
   campaignRef?: string;
+  assetType?: string;
+  /** G-9 (nota del 2026-10-25, §3): el último evento del lote por `sequence`; falta si no hay fecha. */
+  lastEventAt?: string;
 }
 
 export async function fetchOrganizationAssets(organizationId: string): Promise<ListOutcome<OrgAsset>> {
@@ -68,6 +71,7 @@ export async function fetchOrganizationAssets(organizationId: string): Promise<L
   return listOutcome(r, (a) => (a && typeof a.assetRef === 'string' ? {
     assetRef: a.assetRef, lifecycleStatus: String(a.lifecycleStatus), currentCustodianRef: opt(a.currentCustodianRef),
     currentLocation: opt(a.currentLocation), quantity: opt(a.quantity), unitOfMeasure: opt(a.unitOfMeasure), campaignRef: opt(a.campaignRef),
+    assetType: opt(a.assetType), lastEventAt: opt(a.lastEventAt),
   } : null));
 }
 
@@ -154,10 +158,84 @@ export const revokePlatformAdminRequest = (accountId: string) => () => ({
 });
 
 /**
- * Crear organización (`POST /organizations`, R9; DD-68): cualquier cuenta activa sin organización; `{type, name}`
- * (1–200) → `201 {organizationId, verificationStatus: "PENDING_VERIFICATION"}`. Quien la crea queda como
+ * Crear organización (`POST /organizations`, R9; DD-68): cualquier cuenta activa sin organización; `{type, name,
+ * acceptedOrganizationTermsVersion}` (nombre de 1 a 200; la versión, la vigente: referencia-api-v1.md §1, nota R-5) →
+ * `201 {organizationId, verificationStatus: "PENDING_VERIFICATION"}`; sin la versión, 400 sin organización. Quien la crea queda como
  * `REPRESENTATIVE`; la sesión lo ve en el siguiente `/me`.
  */
 export const createOrganizationRequest = (payload: unknown) => ({
   path: '/organizations', body: payload, auth: 'required' as const,
 });
+
+/**
+ * `GET /organizations/{organizationId}` (S-18): `ADMINISTRATOR` o `REPRESENTATIVE`.
+ * Devuelve información de la organización, incluyendo logo si existe.
+ */
+export interface OrganizationDetails {
+  organizationId: string;
+  name?: string;
+  type: string;
+  verificationStatus: string;
+  informationRequest?: string;
+  logoUrl?: string;
+}
+
+export type OrganizationOutcome =
+  | { kind: 'ok'; organization: OrganizationDetails }
+  | { kind: 'forbidden' }
+  | { kind: 'unauthorized' }
+  | { kind: 'error' };
+
+export async function fetchOrganization(organizationId: string): Promise<OrganizationOutcome> {
+  const r = await apiRequest<{
+    organizationId?: unknown;
+    name?: unknown;
+    type?: unknown;
+    verificationStatus?: unknown;
+    informationRequest?: unknown;
+    logoUrl?: unknown;
+  }>({ path: `/organizations/${segment(organizationId)}`, auth: 'required' });
+
+  if (r.kind === 'ok' && r.data && typeof r.data.organizationId === 'string') {
+    return {
+      kind: 'ok',
+      organization: {
+        organizationId: r.data.organizationId,
+        name: opt(r.data.name),
+        type: String(r.data.type ?? ''),
+        verificationStatus: String(r.data.verificationStatus ?? ''),
+        informationRequest: opt(r.data.informationRequest),
+        logoUrl: opt(r.data.logoUrl),
+      },
+    };
+  }
+  if (r.kind === 'error' && r.status === 403) return { kind: 'forbidden' };
+  if (r.kind === 'error' && r.status === 401) return { kind: 'unauthorized' };
+  return { kind: 'error' };
+}
+
+/**
+ * `POST /platform/accounts/{accountId}/reactivate` (referencia-api-v1.md §2, ADR-050 D7; plan-fase7-puesta-al-dia.md
+ * U-7). Ya activa → 200 igual. Sin `Command-Id`.
+ */
+export type ReactivateOutcome =
+  | { kind: 'ok' }
+  | { kind: 'not-found' }
+  | { kind: 'forbidden' }
+  | { kind: 'bad-request' }
+  | { kind: 'network' }
+  | { kind: 'unauthorized' }
+  | { kind: 'error' };
+
+export async function reactivateAccount(accountId: string): Promise<ReactivateOutcome> {
+  const r = await apiRequest<{ status?: unknown }>({
+    path: `/platform/accounts/${segment(accountId)}/reactivate`, method: 'POST', auth: 'required',
+  });
+  if (r.kind === 'network') return { kind: 'network' };
+  if (r.kind === 'ok') return r.data?.status === 'ACTIVE' ? { kind: 'ok' } : { kind: 'error' };
+  if (r.status === 404) return { kind: 'not-found' };
+  if (r.status === 403) return { kind: 'forbidden' };
+  if (r.status === 400) return { kind: 'bad-request' };
+  if (r.status === 401) return { kind: 'unauthorized' };
+  return { kind: 'error' };
+}

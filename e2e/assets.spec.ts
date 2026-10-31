@@ -1,7 +1,9 @@
 import { test, expect, Page, Request } from '@playwright/test';
+import { attachDeliveryPhoto } from './support/evidence';
 
 async function login(page: Page) {
-  await page.goto('/login');
+  // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+  await page.goto('/panel');
   await page.getByLabel('Correo electrónico').fill('empleado@demo.test');
   await page.getByLabel('Contraseña').fill('demo-empleado');
   await page.getByRole('button', { name: 'Iniciar sesión' }).click();
@@ -12,13 +14,14 @@ async function act(page: Page, button: string, fields: [string, string][]) {
   await page.getByRole('button', { name: button, exact: true }).click();
   const dialog = page.getByRole('dialog');
   for (const [label, value] of fields) await dialog.getByLabel(label).fill(value);
+  if (button === 'Entregar') await attachDeliveryPhoto(dialog); // U-3: la entrega lleva su foto
   await dialog.getByRole('button', { name: 'Confirmar' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 }
 
 const DELIVER: [string, string][] = [
   ['Custodio final (referencia)', 'ALIADO-1'], ['Beneficiario (referencia)', 'BEN-1'],
-  ['Lugar de entrega (referencia)', 'LUGAR-1'], ['Evidencia (referencia)', 'EVID-1'],
+  ['Lugar de entrega (referencia)', 'LUGAR-1'],
 ];
 
 test.describe('Panel de activos (registrar, dividir, despachar, recibir, entregar)', () => {

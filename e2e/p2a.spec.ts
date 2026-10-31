@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import { acceptLegal, verifyEmailApi } from './support/evidence';
 
 function future(days: number) {
   const d = new Date(Date.now() + days * 86400000);
@@ -39,33 +40,38 @@ test.describe('P2-A — registro, descubrimiento y narrativa', () => {
     await page.getByLabel('Correo electrónico').fill(email);
     await page.getByLabel('Contraseña', { exact: true }).fill('clave-demo-larga');
     await page.getByLabel('Repite la contraseña').fill('clave-demo-larga');
+    await acceptLegal(page);
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page.getByText('Cuenta creada')).toBeVisible();
+    await verifyEmailApi(page.request, email); // P-6: la cuenta nace sin verificar
 
     // El mismo correo otra vez → 409
     await page.goto('/register');
     await page.getByLabel('Correo electrónico').fill(email);
     await page.getByLabel('Contraseña', { exact: true }).fill('clave-demo-larga');
     await page.getByLabel('Repite la contraseña').fill('clave-demo-larga');
+    await acceptLegal(page);
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page.getByText('Ya existe una cuenta con ese correo.')).toBeVisible();
 
-    await page.goto('/login');
+    // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+    await page.goto('/panel');
     await page.getByLabel('Correo electrónico').fill(email);
     await page.getByLabel('Contraseña').fill('clave-demo-larga');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
     await expect(page).toHaveURL(/\/panel$/);
-    await expect(page.getByRole('link', { name: 'Mis donaciones' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Convocatorias de mi organización' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Donaciones' })).toBeVisible();
+    await expect(page.getByTestId('new-campaign-button')).toHaveCount(0);
   });
 
   test('descubrimiento: aparece la convocatoria pública y nunca la de enlace privado', async ({ page, browser }) => {
     const stamp = Date.now();
-    await page.goto('/login');
+    // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
+    await page.goto('/panel');
     await page.getByLabel('Correo electrónico').fill('admin@demo.test');
     await page.getByLabel('Contraseña').fill('demo-admin');
     await page.getByRole('button', { name: 'Iniciar sesión' }).click();
-    await page.getByRole('link', { name: 'Convocatorias de mi organización' }).click();
+    await page.getByTestId('new-campaign-button').click();
     await createCampaign(page, `Pública ${stamp}`, 'PUBLIC');
     await createCampaign(page, `Privada ${stamp}`, 'PRIVATE_LINK');
 
