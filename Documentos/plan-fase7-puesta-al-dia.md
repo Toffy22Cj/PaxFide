@@ -393,7 +393,7 @@ P-8 va antes que P-6, para que la verificación del correo ya encuentre la bienv
 
 ## Anexo 3 (2026-10-31) — Búsqueda, filtro y orden de convocatorias (P-12)
 
-**Estado: PROPUESTO — espera la aprobación de Carlos.** No se implementa nada hasta entonces. Las reglas de §1 rigen igual.
+**Estado: APROBADO — Carlos, 2026-10-31.** Con él quedan aprobadas U-20 a U-26 con las respuestas de A3.5 y la precisión de U-23. Las reglas de §1 rigen igual.
 
 **Origen:** la ficha R-1 del backend (`Donaciones/Documentos/ficha-R1-busqueda-descubrimiento-convocatorias.md`; `referencia-api-v1.md` §5, nota del 2026-10-29; #159) ya está en `develop` (`b0654aa`). En la web solo existía como pendiente: X-11 de `plan-fase7-fidelidad.md` ("Filtros por causa y búsqueda", ⏳ R-1) y §5 de este plan ("Búsqueda y filtros de convocatorias: R-1 no está en el backend").
 
@@ -425,7 +425,7 @@ Comprobado en `PublicCampaignDiscoveryController` (Donaciones `b0654aa`), no sol
 | U-20 | **Dónde:** la búsqueda, el filtro y el orden van **solo en `/campaigns`**, sobre la lista que ya tiene "Cargar más". La landing conserva su bloque "Convocatorias" (las primeras N) y añade el enlace **"Buscar convocatorias"** → `/campaigns`. Así la landing no duplica la lógica de paginación | (b) También un buscador en la landing que lleva a `/campaigns?q=…` |
 | U-21 | **Controles:** un campo "Buscar por nombre" (`role="search"`, se envía con Enter o con el botón "Buscar", sin búsqueda mientras se escribe), las píldoras "Todas · Dinero · Especie (bienes)" y un selector "Ordenar" con "Más recientes" (`recent`) y "Cierran pronto" (`ending_soon`) | Búsqueda mientras se escribe, con espera de 300 ms: más peticiones y más estados intermedios |
 | U-22 | **Orden por defecto en `/campaigns`: "Más recientes" (`sort=recent`).** Hoy el orden es `publicCode`, que no significa nada para el donante | Mantener el orden de hoy (sin `sort`) |
-| U-23 | **"Cierran pronto" (D-F12) pasa a `sort=ending_soon` del servidor**, en `/home` y en "Cierran pronto" de la landing si se aprueba (b) de U-20. Hoy se calcula en el cliente sobre la **primera página en orden de `publicCode`**, así que puede no ver una convocatoria que cierra mañana y está en la página 2. Con `ending_soon` las primeras son las que cierran antes; la regla de D-P9 (7 días o menos) y el respaldo "Convocatorias abiertas" no cambian. Para el respaldo, una segunda petición sin `sort` solo si la primera no trae ninguna a 7 días | No cambiarlo (sigue el fallo descrito) |
+| U-23 | **"Cierran pronto" (D-F12) pasa a `sort=ending_soon` del servidor en todos los sitios donde se calcula hoy** (`/home` y la landing), sin depender de U-20 (precisión de Carlos al aprobar, 2026-10-31). Hoy se calcula en el cliente sobre la **primera página en orden de `publicCode`**, así que puede no ver una convocatoria que cierra mañana y está en la página 2. Con `ending_soon` las primeras son las que cierran antes; la regla de D-P9 (7 días o menos) y el respaldo "Convocatorias abiertas" no cambian. Para el respaldo, una segunda petición sin `sort` solo si la primera no trae ninguna a 7 días | No cambiarlo (sigue el fallo descrito) |
 | U-24 | **Validación en el cliente igual que el servidor:** `q` se recorta y se cuentan **puntos de código** (`Array.from`, como `nameLength`), no unidades UTF-16. Menos de 2 → no se envía y se muestra "Escribe al menos 2 caracteres". Más de 100 → "Escribe como máximo 100 caracteres". **Nunca se envía `q` vacío:** campo vacío = sin `q` | — |
 | U-25 | **Cursor v2:** el cursor pertenece a la combinación `{q, donationType, sort}` con la que se pidió. **Cambiar cualquier filtro empieza sin cursor** y vacía la lista. Una respuesta tardía de otra combinación se descarta (como `useRead`). **Un 400 en una petición con cursor** (no se puede distinguir del resto, A3.1) reinicia la lista una vez, sin cursor y con los mismos filtros, con el aviso "La lista se actualizó". Un 400 sin cursor, que con U-24 no debería pasar, es el error de pantalla con "Reintentar" | — |
 | U-26 | **Filtros en la URL:** `?q=…&tipo=dinero|especie&orden=recientes|cierran` (nombres en castellano, mapeados al contrato), escritos con `router.replace`. El enlace se puede compartir y una recarga conserva la búsqueda; "atrás" sale de `/campaigns` en vez de deshacer filtro por filtro. **El cursor nunca va en la URL.** La búsqueda no es un secreto (no es como `trackingCode`), y la web ya va con `referrer: no-referrer`. Un parámetro inválido en la URL se ignora, nunca se reenvía | (b) Sin URL: se pierden al recargar. (c) `router.push`: cada filtro es un paso de "atrás" |
@@ -451,16 +451,16 @@ Comprobado en `PublicCampaignDiscoveryController` (Donaciones `b0654aa`), no sol
 
 ### A3.5 Pendientes de Carlos
 
-| # | Pregunta |
-|---|---|
-| PD-3 | U-20: ¿búsqueda solo en `/campaigns` (recomendada) o también en la landing? |
-| PD-4 | U-22: ¿orden por defecto "Más recientes" (recomendada) o el de hoy? |
-| PD-5 | U-23: ¿"Cierran pronto" pasa a `sort=ending_soon` (recomendada)? |
-| PD-6 | U-26: ¿filtros en la URL con `replace` (recomendada), sin URL o con `push`? |
+| # | Pregunta | Respuesta (Carlos, 2026-10-31) |
+|---|---|---|
+| PD-3 | U-20: ¿búsqueda solo en `/campaigns` o también en la landing? | **Solo en `/campaigns`**; en la landing, el enlace "Buscar convocatorias" |
+| PD-4 | U-22: ¿orden por defecto "Más recientes" o el de hoy? | **"Más recientes"** (`sort=recent`) |
+| PD-5 | U-23: ¿"Cierran pronto" pasa a `sort=ending_soon`? | **Sí, en todos los sitios donde se calcula hoy** (`/home` y la landing), sin depender de PD-3 |
+| PD-6 | U-26: ¿filtros en la URL con `replace`, sin URL o con `push`? | **En la URL con `router.replace`**, sin pasos nuevos en el historial |
 
 ### A3.6 Orden
 
 ```
 develop
-   └── P-12 (cuando se apruebe este anexo)
+   └── P-12 feat/web-campaign-search (ya, tras fusionar este anexo)
 ```
