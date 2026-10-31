@@ -2,12 +2,13 @@
 
 // Ref: Documentos/plan-fase7-fidelidad.md §2 D-F9; Documentos/paxfide-home.html (vProfile); plan-fase7-puesta-al-dia.md
 // P-1 (X-8: nombre y apellido en "Tus datos"; X-9: tarjeta "Seguridad" con cambiar contraseña y desactivar la cuenta);
-// P-7 (U-14: tarjeta "Mi impacto"); P-10 (401 por el flujo de sesión).
+// P-7 (U-14: tarjeta "Mi impacto"); P-10 (401 por el flujo de sesión); P-6 (aviso de correo sin verificar).
 import React, { useEffect, useState } from 'react';
 import { fetchAccount, fetchImpact, fetchProfile, initialsOf, type AccountProfile, type PersonalProfile } from '../lib/api/account';
 import { ProfileNameCard } from '../components/account/ProfileNameCard';
 import { SecurityCard, type SecurityClients } from '../components/account/SecurityCard';
 import { ImpactCard } from '../components/impact/ImpactCard';
+import { ResendVerification } from '../components/access/ResendVerification';
 import type { NameGateClients } from '../components/access/NameGate';
 import { useRead } from '../lib/api/useRead';
 import * as session from '../lib/auth/session';
@@ -102,6 +103,18 @@ export function ProfileScreen({ client = fetchAccount, profileClients, securityC
           <p className={s.emailSub} data-testid="profile-email-header">{account.email}</p>
         </div>
       </header>
+
+      {/* P-6 (ADR-050 Enmienda 2): GET /account con emailVerified: false → aviso con "Reenviar" (azul informativo) */}
+      {account.emailVerified === false && (
+        <section className={s.verifyBlock} aria-labelledby="verifyNoticeTitle" data-testid="email-unverified-notice">
+          <div className={s.verifyNotice} role="status">
+            <h2 id="verifyNoticeTitle" className={s.verifyNoticeTitle}>Confirma tu correo</h2>
+            <p className={s.verifyNoticeText}>Todavía no confirmaste {account.email}. Abre el enlace que te enviamos o pide uno nuevo.</p>
+          </div>
+          {/* Ningún control dentro de un aviso de color (prompts-agentes-estilo-v2.md §4) */}
+          <ResendVerification email={account.email} />
+        </section>
+      )}
 
       <div className={s.grid}>
         {/* Card: Tus datos */}

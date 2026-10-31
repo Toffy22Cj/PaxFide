@@ -1,6 +1,6 @@
 'use client';
 
-// Ref: P2; POST /auth/register; DD-56; H-P2-1 (PasswordTooShort >= 12).
+// Ref: P2; POST /auth/register; DD-56; H-P2-1 (PasswordTooShort >= 12). plan-fase7-puesta-al-dia.md P-6 ("Revisa tu correo" con "Reenviar", ADR-050 Enmienda 2).
 // Documentos/plan-fase7-fidelidad.md §2 D-F5 (acceso sobre el mundo), D-F10 (bienvenida), D-F14 (fundación), X-4..X-7;
 // Documentos/paxfide-landing.html (.auth-card, #formRegister, checkPassStrength); plan-fase7-puesta-al-dia.md R-1 (las
 // dos casillas legales, sin marcar; sin las dos no se envía nada; el registro lleva las dos versiones de LEGAL_VERSIONS).
@@ -10,6 +10,8 @@ import { registerAccount, RegisterOutcome } from '../lib/api/identity';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { BrandMark } from '../components/shell/BrandMark';
 import { BrandDots } from '../components/loaders/BrandDots';
+import { ResendVerification } from '../components/access/ResendVerification';
+import type { EmailVerificationRequestOutcome } from '../lib/api/account';
 import { AccessLayout } from '../components/access/AccessLayout';
 import { LegalConsent } from '../components/access/LegalConsent';
 import { calculateStrength } from '../lib/auth/passwordStrength';
@@ -17,7 +19,10 @@ import s from './access.module.css';
 
 const MIN_PASSWORD = 12;
 
-export function RegisterScreen({ client = registerAccount }: { client?: (e: string, p: string) => Promise<RegisterOutcome> }) {
+export function RegisterScreen({ client = registerAccount, resendClient }: {
+  client?: (e: string, p: string) => Promise<RegisterOutcome>;
+  resendClient?: (email: string) => Promise<EmailVerificationRequestOutcome>;
+}) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [repeat, setRepeat] = useState('');
@@ -100,16 +105,20 @@ export function RegisterScreen({ client = registerAccount }: { client?: (e: stri
           </div>
 
           {result?.kind === 'ok' ? (
-            <div>
+            /* P-6 (ADR-050 Enmienda 2): la cuenta nace sin verificar; se entra después de abrir el enlace del correo */
+            <section aria-labelledby="checkMailTitle" data-testid="check-email">
               <div className={[s.feedbackMsg, s.feedbackSuccess].join(' ')} role="status">
-                <b>Cuenta creada</b>. Ya puedes iniciar sesión con tu correo y tu contraseña.
+                <b>Cuenta creada</b>.
               </div>
+              <h2 id="checkMailTitle" className={s.acceptanceTitle}>Revisa tu correo</h2>
+              <p className={s.acceptanceText}>Te enviamos un enlace a <b data-testid="check-email-address">{email.trim()}</b> para confirmar tu correo. Ábrelo y después inicia sesión.</p>
+              <ResendVerification email={email.trim()} client={resendClient} />
               <div className={s.foot}>
                 <p>
                   <Link href="/login" className={s.switchLink}>Iniciar sesión</Link>
                 </p>
               </div>
-            </div>
+            </section>
           ) : (
             <>
               {result && failure[result.kind] && (

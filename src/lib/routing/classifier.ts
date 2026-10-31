@@ -37,6 +37,9 @@ export function classifyRoute(pathname: string): RouteCategory {
   // Recuperar la contraseña (plan-fase7-puesta-al-dia.md P-1): pública, como `/invitaciones`, para borrar el token
   // del fragmento antes de nada. Sin sesión se pide el correo; con `#token=` se pide la contraseña nueva
   if (parts.length === 1 && a === 'recuperar') return when('/recuperar', 'PUBLIC');
+  // Verificar el correo (plan-fase7-puesta-al-dia.md P-6, ADR-050 Enmienda 2): pública como `/recuperar`; el token del
+  // fragmento se borra antes de nada
+  if (parts.length === 1 && a === 'verificar-correo') return when('/verificar-correo', 'PUBLIC');
 
   if (parts.length === 2 && a === 'c') {
     return isValidParam(b) ? when('/c/:publicCode', 'PUBLIC') : 'NOT_APPROVED';

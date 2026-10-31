@@ -46,6 +46,18 @@ const tokens = new Map([
 // como las de la semilla del backend real tras desplegar D3.
 const LEGAL = 'v1-2026-10';
 for (const acc of Object.values(accounts)) { acc.acceptedTermsVersion = LEGAL; acc.acceptedDataPolicyVersion = LEGAL; }
+// ADR-050 Enmienda 2 (referencia-api-v1.md §1, nota del 2026-10-29): las cuentas de la semilla nacen verificadas; las
+// registradas, sin verificar, con un enlace de un solo uso (24 h) a /verificar-correo#token=…
+for (const acc of Object.values(accounts)) acc.emailVerified = true;
+const verifyTokens = new Map(); // token -> { email, used, superseded, at }
+const verifyMails = [];
+const verifyCooldown = new Map(); // email -> ms de la última petición que envió correo
+function sendVerification(email) {
+  for (const v of verifyTokens.values()) if (v.email === email) v.superseded = true;
+  verifyTokens.set('vrf-' + crypto.randomBytes(24).toString('base64url'), { email, used: false, superseded: false, at: Date.now() });
+  verifyCooldown.set(email, Date.now());
+  verifyMails.push(email);
+}
 // ADR-051 T4: fotos de entrega subidas (`evidenceRef` → organización y activo al que quedaron vinculadas)
 const evidences = new Map();
 const EVIDENCE_MAX = 5 * 1024 * 1024;
@@ -310,6 +322,22 @@ const server = http.createServer(async (req, res) => {
     return;
   }
   // P-1: el próximo cambio de contraseña de esa cuenta se aplica y responde 500 (nota ADR-038 #7)
+  // P-6: el buzón de la verificación (como Mailpit): el enlace del último correo de verificación a una dirección
+  if (path === '/__test/email-verification/last' && req.method === 'GET') {
+    const email = (url.searchParams.get('email') || '').toLowerCase();
+    const r = [...verifyTokens.entries()].filter(([, v]) => v.email === email).pop();
+    send(res, r ? 200 : 404, r ? { link: `/verificar-correo#token=${r[0]}`, sent: verifyMails.filter((m) => m === email).length } : { ok: false });
+    return;
+  }
+  // P-6: una cuenta pasa a "sin verificar" con su sesión abierta (cuentas anteriores a la Enmienda 2, Q2 (a))
+  if (path === '/__test/unverify' && req.method === 'POST') {
+    const body = await readBody(req);
+    const acc = body && accounts[String(body.email || '').toLowerCase()];
+    if (!acc) { send(res, 404, { ok: false }); return; }
+    acc.emailVerified = false;
+    send(res, 200, { ok: true });
+    return;
+  }
   if (path === '/__test/password-change-500' && req.method === 'POST') {
     const body = await readBody(req);
     passwordChange500.add(String((body && body.email) || '').toLowerCase());
@@ -437,7 +465,9 @@ const server = http.createServer(async (req, res) => {
     if (body.acceptedTermsVersion !== LEGAL || body.acceptedDataPolicyVersion !== LEGAL) { problem(res, 400, 'BadRequest'); return; }
     if (accounts[body.email]) { problem(res, 409, 'DuplicateEmail'); return; }
     const accountId = crypto.randomUUID();
-    accounts[body.email] = { password: body.password, accountId, roles: [], acceptedTermsVersion: LEGAL, acceptedDataPolicyVersion: LEGAL };
+    accounts[body.email] = { password: body.password, accountId, roles: [], acceptedTermsVersion: LEGAL, acceptedDataPolicyVersion: LEGAL, emailVerified: false };
+    // Enmienda 2: la cuenta nace sin verificar y se envía el enlace; la respuesta no espera al envío
+    sendVerification(String(body.email).toLowerCase());
     send(res, 201, { accountId, status: 'ACTIVE' });
     return;
   }
@@ -454,6 +484,12 @@ const server = http.createServer(async (req, res) => {
       (acc.password === 'demo-local-password' && (body.password === 'demo-representante' || body.password === 'demo-admin' || body.password === 'demo-empleado'))
     ));
     if (!acc || !passwordMatches) { problem(res, 401, 'Unauthorized'); return; }
+    // Enmienda 2 (E2-3): con la contraseña correcta y el correo sin verificar, 403 EmailNotVerified sin token; va antes
+    // que AcceptanceRequired
+    if (acc.emailVerified === false) {
+      send(res, 403, { type: 'about:blank', title: 'EmailNotVerified', status: 403, detail: 'The email must be verified' });
+      return;
+    }
     // D3: con la contraseña correcta, las versiones que falten tienen que venir EXACTAMENTE en el cuerpo; si no, 403
     const missingTerms = acc.acceptedTermsVersion !== LEGAL;
     const missingData = acc.acceptedDataPolicyVersion !== LEGAL;
@@ -1431,7 +1467,39 @@ const server = http.createServer(async (req, res) => {
     t.used = true;
     acc.password = String(body.newPassword);
     acc.passwordChanged = true;
+    // Enmienda 2: confirmar una recuperación también verifica el correo
+    acc.emailVerified = true;
     revokeTokensOf(acc);
+    res.writeHead(204, { 'Cache-Control': 'no-store' });
+    res.end();
+    return;
+  }
+
+  // Enmienda 2 — POST /auth/email-verification {email}: siempre el mismo 202 sin cuerpo; solo una cuenta ACTIVE sin
+  // verificar, fuera del enfriamiento de 5 minutos, recibe un correo nuevo (el anterior queda sustituido)
+  if (p === '/auth/email-verification' && req.method === 'POST') {
+    const body = await readBody(req);
+    if (!body || typeof body.email !== 'string' || !body.email.trim()) { problem(res, 400, 'BadRequest'); return; }
+    const email = body.email.trim().toLowerCase();
+    const acc = accounts[email];
+    const last = verifyCooldown.get(email) || 0;
+    if (acc && acc.status !== 'INACTIVE' && acc.emailVerified === false && Date.now() - last >= 5 * 60 * 1000) sendVerification(email);
+    res.writeHead(202, { 'Cache-Control': 'no-store' });
+    res.end();
+    return;
+  }
+  // Enmienda 2 — POST /auth/email-verification/confirm {token}: 204 sin iniciar sesión; el mismo 400
+  // EmailVerificationTokenInvalid para un token desconocido, caducado, usado, sustituido o de una cuenta inactiva
+  if (p === '/auth/email-verification/confirm' && req.method === 'POST') {
+    const body = await readBody(req);
+    if (!body || typeof body.token !== 'string' || !body.token) { problem(res, 400, 'BadRequest'); return; }
+    const t = verifyTokens.get(body.token);
+    const acc = t && accounts[t.email];
+    if (!t || t.used || t.superseded || Date.now() - t.at > 24 * 60 * 60 * 1000 || !acc || acc.status === 'INACTIVE') {
+      problem(res, 400, 'EmailVerificationTokenInvalid'); return;
+    }
+    t.used = true;
+    acc.emailVerified = true;
     res.writeHead(204, { 'Cache-Control': 'no-store' });
     res.end();
     return;
@@ -1512,7 +1580,8 @@ const server = http.createServer(async (req, res) => {
   if (p === '/account' && req.method === 'GET') {
     if (!actor) { problem(res, 401, 'Unauthorized'); return; }
     const email = tokens.get(req.headers['authorization'].slice(7));
-    send(res, 200, { accountId: actor.accountId, email }, { 'Cache-Control': 'no-store' });
+    // Enmienda 2: gana emailVerified (el accountId de este doble no está en el contrato; la web no lo exige)
+    send(res, 200, { accountId: actor.accountId, email, emailVerified: actor.emailVerified !== false }, { 'Cache-Control': 'no-store' });
     return;
   }
 

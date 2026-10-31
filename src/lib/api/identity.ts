@@ -7,10 +7,13 @@ import { LEGAL_VERSIONS } from '../legal/versions';
  * ID-01: `POST /api/v1/auth/login` → `200 {token}`; 400 campos vacíos; 401 cualquier fallo; 500 al emitir.
  * referencia-api-v1.md §1, nota D3 (plan-fase7-puesta-al-dia.md R-2, U-2): con la contraseña correcta y alguna versión
  * legal sin aceptar, `403 AcceptanceRequired` con las versiones pendientes y sin token. El 401 no cambia.
+ * Nota del 2026-10-29 (ADR-050 Enmienda 2; plan-fase7-puesta-al-dia.md P-6): con la contraseña correcta y el correo sin
+ * verificar, `403 EmailNotVerified` sin token; va antes que `AcceptanceRequired`.
  */
 export type LoginOutcome =
   | { kind: 'ok'; token: string }
   | { kind: 'invalid-credentials' }
+  | { kind: 'email-not-verified' }
   | { kind: 'acceptance-required'; pendingTermsVersion?: string; pendingDataPolicyVersion?: string }
   | { kind: 'bad-request' }
   | { kind: 'server-error' }
@@ -32,6 +35,7 @@ export async function login(email: string, password: string, acceptance?: LoginA
     return token ? { kind: 'ok', token } : { kind: 'server-error' };
   }
   if (r.status === 401) return { kind: 'invalid-credentials' };
+  if (r.status === 403 && r.problem.title === 'EmailNotVerified') return { kind: 'email-not-verified' };
   if (r.status === 403 && r.problem.title === 'AcceptanceRequired') {
     const out: LoginOutcome = { kind: 'acceptance-required' };
     if (r.problem.pendingTermsVersion) out.pendingTermsVersion = r.problem.pendingTermsVersion;

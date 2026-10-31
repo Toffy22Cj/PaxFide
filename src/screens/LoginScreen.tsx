@@ -5,12 +5,15 @@
 // Documentos/paxfide-landing.html (.auth-card, #formLogin); plan-fase7-puesta-al-dia.md R-2 y U-2 (403
 // AcceptanceRequired: "Actualizamos nuestras condiciones" en la misma tarjeta; la contraseña sigue solo en el estado);
 // P-1: "¿Olvidaste tu contraseña?" (→ /recuperar) y el aviso tras recuperarla. plan-fase7-puesta-al-dia.md U-16 (P-8):
-// la bienvenida de D-F10 y "¿Cómo te llamamos?" salen de aquí y pasan a /home (WelcomeOverlay).
+// la bienvenida de D-F10 y "¿Cómo te llamamos?" salen de aquí y pasan a /home (WelcomeOverlay). P-6 (ADR-050 Enmienda 2):
+// 403 EmailNotVerified → "Antes de entrar, confirma tu correo" con "Reenviar"; la contraseña sale del estado.
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import * as session from '../lib/auth/session';
 import { acceptanceFor, login as loginRequest, LoginAcceptance, LoginOutcome } from '../lib/api/identity';
 import { LegalConsent } from '../components/access/LegalConsent';
+import { ResendVerification } from '../components/access/ResendVerification';
+import type { EmailVerificationRequestOutcome } from '../lib/api/account';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { BrandMark } from '../components/shell/BrandMark';
 import { BrandDots } from '../components/loaders/BrandDots';
@@ -19,6 +22,7 @@ import s from './access.module.css';
 
 type Props = {
   loginClient?: (email: string, password: string, acceptance?: LoginAcceptance) => Promise<LoginOutcome>;
+  resendClient?: (email: string) => Promise<EmailVerificationRequestOutcome>;
 };
 
 const REASON_TEXT: Record<session.LogoutReason, string | null> = {
@@ -30,7 +34,7 @@ const REASON_TEXT: Record<session.LogoutReason, string | null> = {
   DEACTIVATED: 'Desactivaste tu cuenta. Si fue un error, pide al administrador de la plataforma que la reactive.',
 };
 
-export function LoginScreen({ loginClient = loginRequest }: Props) {
+export function LoginScreen({ loginClient = loginRequest, resendClient }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -43,6 +47,8 @@ export function LoginScreen({ loginClient = loginRequest }: Props) {
   useEffect(() => { if (notice) session.clearLoginNotice(); }, [notice]);
   /** U-2: las versiones pendientes que se aceptan al repetir el login; `unsupported` si la web no tiene ese texto. */
   const [pending, setPending] = useState<LoginAcceptance | 'unsupported' | null>(null);
+  /** P-6: 403 `EmailNotVerified` (va antes que `AcceptanceRequired`): el correo al que se puede reenviar el enlace. */
+  const [unverified, setUnverified] = useState<string | null>(null);
   const [checks, setChecks] = useState<{ terms: boolean; data: boolean }>({ terms: false, data: false });
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -63,6 +69,7 @@ export function LoginScreen({ loginClient = loginRequest }: Props) {
     const outcome = await loginClient(email.trim(), password, acceptance);
     setSending(false);
     if (outcome.kind !== 'acceptance-required') setPending(null);
+    if (outcome.kind !== 'email-not-verified') setUnverified(null);
     switch (outcome.kind) {
       case 'ok':
         setPassword('');
@@ -70,6 +77,11 @@ export function LoginScreen({ loginClient = loginRequest }: Props) {
         return;
       case 'invalid-credentials':
         setFailure('Correo o contraseña incorrectos.');
+        return;
+      case 'email-not-verified':
+        // La contraseña sale del estado (y del DOM): para entrar después de confirmar se vuelve a escribir
+        setPassword('');
+        setUnverified(email.trim());
         return;
       case 'acceptance-required':
         setChecks({ terms: false, data: false });
@@ -146,7 +158,16 @@ export function LoginScreen({ loginClient = loginRequest }: Props) {
               {reasonText && <div className={[s.feedbackMsg, s.feedbackInfo].join(' ')} role="status">{reasonText}</div>}
               {failure && <div className={[s.feedbackMsg, s.feedbackError].join(' ')} role="alert">{failure}</div>}
 
-              {pending !== null ? (
+              {unverified !== null ? (
+                <section className={s.acceptance} aria-labelledby="unverified-title" data-testid="email-not-verified">
+                  <h2 id="unverified-title" className={s.acceptanceTitle}>Antes de entrar, confirma tu correo</h2>
+                  <p className={s.acceptanceText}>Te enviamos un enlace a <b>{unverified}</b>. Ábrelo para confirmar tu correo y vuelve a iniciar sesión.</p>
+                  <ResendVerification email={unverified} client={resendClient} />
+                  <div className={s.acceptanceActions}>
+                    <button type="button" className={s.secondaryBtn} onClick={() => { setUnverified(null); setFailure(null); }}>Volver</button>
+                  </div>
+                </section>
+              ) : pending !== null ? (
                 <section className={s.acceptance} aria-labelledby="acceptance-title" data-testid="acceptance-required">
                   <h2 id="acceptance-title" className={s.acceptanceTitle}>Actualizamos nuestras condiciones</h2>
                   {pending === 'unsupported' ? (
@@ -258,7 +279,7 @@ export function LoginScreen({ loginClient = loginRequest }: Props) {
               </form>
               )}
 
-              {pending === null && isSurfaceEnabled('/register') && (
+              {pending === null && unverified === null && isSurfaceEnabled('/register') && (
                 <div className={s.foot}>
                   <p>
                     ¿No tienes una cuenta aún?{' '}

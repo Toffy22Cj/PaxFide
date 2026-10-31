@@ -187,3 +187,17 @@
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
+
+/* P-6 (ADR-050 Enmienda 2): aviso de correo sin verificar, azul informativo (el amarillo queda para lo ambiguo, D6) */
+.verifyBlock {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  background: var(--color-surface); border: 1px solid var(--color-divider); border-radius: var(--radius-card);
+  padding: var(--space-4); box-shadow: var(--shadow-card);
+}
+.verifyNotice {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  background: var(--color-info-bg); color: var(--color-info-text);
+  border-radius: var(--radius-card); padding: var(--space-4) var(--space-6);
+}
+.verifyNoticeTitle { margin: 0; font-size: var(--font-size-display-5); color: var(--color-info-text); }
+.verifyNoticeText { margin: 0; font-size: var(--font-size-body-3); color: var(--color-info-text); overflow-wrap: anywhere; }

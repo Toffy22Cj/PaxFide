@@ -55,6 +55,8 @@ export async function fetchAccountDonations(): Promise<AccountDonationsOutcome> 
 export interface AccountProfile {
   accountId: string;
   email: string;
+  /** ADR-050 Enmienda 2 (nota del 2026-10-29): `false` → aviso con "Reenviar" en el Perfil. Sin el campo, no se sabe. */
+  emailVerified?: boolean;
 }
 
 export type FetchAccountOutcome =
@@ -63,13 +65,14 @@ export type FetchAccountOutcome =
   | { kind: 'error' };
 
 export async function fetchAccount(): Promise<FetchAccountOutcome> {
-  const r = await apiRequest<{ accountId?: unknown; email?: unknown }>({ path: '/account', auth: 'required' });
+  const r = await apiRequest<{ accountId?: unknown; email?: unknown; emailVerified?: unknown }>({ path: '/account', auth: 'required' });
   if (r.kind === 'ok' && r.data && typeof r.data.email === 'string') {
     return {
       kind: 'ok',
       account: {
         accountId: typeof r.data.accountId === 'string' ? r.data.accountId : '',
         email: r.data.email,
+        ...(typeof r.data.emailVerified === 'boolean' ? { emailVerified: r.data.emailVerified } : {}),
       },
     };
   }
@@ -277,5 +280,39 @@ export async function fetchImpact(): Promise<ImpactOutcome> {
     return impact ? { kind: 'ok', impact } : { kind: 'error' };
   }
   if (r.kind === 'error' && r.status === 401) return { kind: 'unauthorized' };
+  return { kind: 'error' };
+}
+
+/**
+ * `POST /auth/email-verification {email}` (ADR-050 Enmienda 2; referencia-api-v1.md §1, nota del 2026-10-29): siempre el
+ * mismo 202 sin cuerpo, exista o no la cuenta y esté o no verificada (enfriamiento de 5 minutos en el servidor).
+ */
+export type EmailVerificationRequestOutcome = { kind: 'ok' } | { kind: 'bad-request' } | { kind: 'network' } | { kind: 'error' };
+
+export async function requestEmailVerification(email: string): Promise<EmailVerificationRequestOutcome> {
+  const r = await apiRequest<unknown>({ path: '/auth/email-verification', method: 'POST', body: { email }, auth: 'none' });
+  if (r.kind === 'network') return { kind: 'network' };
+  if (r.kind === 'ok') return { kind: 'ok' };
+  if (r.status === 400) return { kind: 'bad-request' };
+  return { kind: 'error' };
+}
+
+/**
+ * `POST /auth/email-verification/confirm {token}`: 204 **no inicia sesión**; el mismo 400 `EmailVerificationTokenInvalid`
+ * para un token desconocido, caducado, usado, sustituido o de una cuenta inactiva.
+ */
+export type EmailVerificationConfirmOutcome =
+  | { kind: 'ok' }
+  | { kind: 'token-invalid' }
+  | { kind: 'bad-request' }
+  | { kind: 'network' }
+  | { kind: 'error' };
+
+export async function confirmEmailVerification(token: string): Promise<EmailVerificationConfirmOutcome> {
+  const r = await apiRequest<unknown>({ path: '/auth/email-verification/confirm', method: 'POST', body: { token }, auth: 'none' });
+  if (r.kind === 'network') return { kind: 'network' };
+  if (r.kind === 'ok') return { kind: 'ok' };
+  if (r.status === 400 && r.problem.title === 'EmailVerificationTokenInvalid') return { kind: 'token-invalid' };
+  if (r.status === 400) return { kind: 'bad-request' };
   return { kind: 'error' };
 }
