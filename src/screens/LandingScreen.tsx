@@ -262,7 +262,7 @@ function OpenCampaigns({ client }: { client: typeof fetchDiscovery }) {
   const load = async () => {
     setState('loading');
     const r = await client();
-    if (r.kind === 'error') { setState('error'); return; }
+    if (r.kind !== 'ok') { setState('error'); return; }
     setItems(r.items.slice(0, LANDING_CAMPAIGNS));
     setState('ready');
   };
@@ -283,8 +283,12 @@ function OpenCampaigns({ client }: { client: typeof fetchDiscovery }) {
             {items.map((c) => <li key={c.publicCode}><CampaignCard campaign={c} /></li>)}
           </ul>
         )}
+        {/* U-20 (plan-fase7-puesta-al-dia.md Anexo 3): la búsqueda vive solo en /campaigns; aquí, el enlace */}
         {state === 'ready' && isSurfaceEnabled('/campaigns') && (
-          <p className={s.more}><Link className={s.btnSecondary} href="/campaigns">Ver todas</Link></p>
+          <p className={s.more}>
+            <Link className={s.btnSecondary} href="/campaigns">Ver todas</Link>
+            <Link className={s.btnSecondary} href="/campaigns" data-testid="landing-search-link">Buscar convocatorias</Link>
+          </p>
         )}
       </div>
     </section>

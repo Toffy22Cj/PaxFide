@@ -5,6 +5,7 @@ import { RegisterScreen } from '../src/screens/RegisterScreen';
 import { DiscoveryScreen } from '../src/screens/DiscoveryScreen';
 import { CampaignNarrative } from '../src/components/campaign/CampaignNarrative';
 
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), usePathname: () => '/campaigns' }));
 vi.mock('next/link', () => ({ default: ({ href, children, ...rest }: any) => <a href={href} {...rest}>{children}</a> }));
 
 /** R-1 (plan-fase7-puesta-al-dia.md): sin las dos casillas no se puede enviar; las marca si aún no lo están. */
@@ -100,7 +101,8 @@ describe('Descubrimiento público (GET /public/campaigns)', () => {
     expect(screen.getByText('250 COP de 1.000 COP (25 %)')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }));
     expect(await screen.findByRole('link', { name: 'Convocatoria 2' })).toBeInTheDocument();
-    expect(client).toHaveBeenNthCalledWith(2, 'opaco==');
+    // P-12 (U-25): el cursor viaja con los mismos filtros de la primera página
+    expect(client).toHaveBeenNthCalledWith(2, { sort: 'recent', cursor: 'opaco==' });
     expect(screen.getAllByTestId('discovery-item')).toHaveLength(2);
     expect(screen.queryByRole('button', { name: 'Cargar más' })).toBeNull();
   });

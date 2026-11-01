@@ -68,7 +68,10 @@ export async function fetchIntentStatus(intentId: string, statusToken: string): 
   return { kind: 'error' };
 }
 
-/** `GET /public/campaigns?cursor=` (P2.6; DD-52/53): solo `PUBLIC` y `OPEN`; cursor opaco; sin `nextCursor` al final. */
+/**
+ * `GET /public/campaigns?q=&donationType=&sort=&cursor=` (P2.6; DD-52/53; ficha R-1): solo `PUBLIC` y `OPEN`; cursor
+ * opaco (v2: lleva dentro los filtros); sin `nextCursor` al final.
+ */
 export interface DiscoveryItem {
   publicCode: string;
   title: string;
@@ -103,12 +106,35 @@ function apiAssetUrl(v: unknown): string | undefined {
   }
 }
 
-export type DiscoveryOutcome = { kind: 'ok'; items: DiscoveryItem[]; nextCursor?: string } | { kind: 'error' };
+/**
+ * Un 400 (`bad-request`) se distingue del resto de errores: con la ficha R-1 todos los 400 llevan el mismo cuerpo y la
+ * web no sabe qué parámetro falló; con un cursor, la pantalla reinicia la lista (U-25).
+ */
+export type DiscoveryOutcome =
+  | { kind: 'ok'; items: DiscoveryItem[]; nextCursor?: string }
+  | { kind: 'bad-request' }
+  | { kind: 'error' };
 
-export async function fetchDiscovery(cursor?: string): Promise<DiscoveryOutcome> {
+/** Filtros de la ficha R-1 (`referencia-api-v1.md` §5, nota del 2026-10-29). Solo se envía lo que tiene valor. */
+export interface DiscoveryParams {
+  q?: string;
+  donationType?: 'MONETARY' | 'IN_KIND';
+  sort?: 'ending_soon' | 'recent';
+  cursor?: string;
+}
+
+export async function fetchDiscovery(params: DiscoveryParams = {}): Promise<DiscoveryOutcome> {
+  const qs = new URLSearchParams();
+  // U-24: nunca un `q` vacío (el servidor lo rechaza con 400)
+  if (params.q && params.q.trim()) qs.set('q', params.q.trim());
+  if (params.donationType) qs.set('donationType', params.donationType);
+  if (params.sort) qs.set('sort', params.sort);
+  if (params.cursor) qs.set('cursor', params.cursor);
+  const query = qs.toString();
   const r = await apiRequest<{ items?: unknown; nextCursor?: unknown }>({
-    path: `/public/campaigns${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`, auth: 'none',
+    path: `/public/campaigns${query ? `?${query}` : ''}`, auth: 'none',
   });
+  if (r.kind === 'error' && r.status === 400) return { kind: 'bad-request' };
   if (r.kind !== 'ok' || !Array.isArray(r.data?.items)) return { kind: 'error' };
   const items = r.data.items.filter((i: any) => i && typeof i.publicCode === 'string' && typeof i.title === 'string')
     .map((i: any) => ({
