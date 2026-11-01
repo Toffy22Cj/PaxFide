@@ -13,6 +13,33 @@ export interface PublicCampaign {
   clearedAmount?: string;
   /** U-6 (nota del 2026-10-25, ADR-051 Tarea 3): ruta pública de la portada, solo si la tiene. */
   coverImageUrl?: string;
+  /**
+   * Ficha R-7 (U-38): lo público del perfil de la organización. **Nunca** NIT, razón social, teléfono ni régimen: el
+   * modelo solo copia estos cuatro campos, aunque el servidor enviara otros.
+   */
+  organizationProfile?: PublicOrganizationProfile;
+}
+
+export interface PublicOrganizationProfile {
+  description?: string;
+  website?: string;
+  location?: { departmentName: string; municipalityName: string };
+  contactEmail?: string;
+}
+
+function publicProfile(v: unknown): PublicOrganizationProfile | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const d = v as Record<string, unknown>;
+  const loc = d.location && typeof d.location === 'object' ? (d.location as Record<string, unknown>) : null;
+  const out: PublicOrganizationProfile = {};
+  if (str(d.description)) out.description = str(d.description);
+  // Solo https (el backend lo exige); cualquier otra cosa no se enlaza
+  if (str(d.website)?.startsWith('https://')) out.website = str(d.website);
+  if (loc && str(loc.departmentName) && str(loc.municipalityName)) {
+    out.location = { departmentName: str(loc.departmentName)!, municipalityName: str(loc.municipalityName)! };
+  }
+  if (str(d.contactEmail)) out.contactEmail = str(d.contactEmail);
+  return Object.keys(out).length ? out : undefined;
 }
 
 /**
@@ -63,6 +90,7 @@ export function parsePublicCampaign(data: unknown): PublicCampaign | null {
     targetAmount: str(d.targetAmount),
     clearedAmount: str(d.clearedAmount),
     coverImageUrl: str(d.coverImageUrl)?.startsWith('/') ? str(d.coverImageUrl) : undefined,
+    organizationProfile: publicProfile(d.organizationProfile),
   };
 }
 
