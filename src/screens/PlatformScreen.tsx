@@ -43,6 +43,19 @@ const FILTERS: { value: '' | QueueStatus; label: string }[] = [
   { value: 'NEEDS_MORE_INFORMATION', label: 'Con información pedida' },
 ];
 
+/** U-37: lo que la plataforma revisa; si falta la razón social o el NIT, se dice (verificar daría 409 VerificationDataMissing). */
+function verificationRows(o: QueueItem): { label: string; value: React.ReactNode; testId?: string }[] {
+  const p = o.profile ?? {};
+  return [
+    { label: 'Razón social', value: p.legalName ?? 'Sin dato', testId: 'queue-legal-name' },
+    { label: 'NIT', value: p.nit ? <span className={ui.mono}>{`${p.nit}-${p.nitCheckDigit ?? ''}`}</span> : 'Sin dato', testId: 'queue-nit' },
+    ...(o.type === 'FOUNDATION' ? [{ label: 'Régimen tributario especial', value: p.specialTaxRegime ? 'Sí' : 'No' }] : []),
+    ...(p.contactPhone ? [{ label: 'Teléfono', value: p.contactPhone }] : []),
+    ...(p.contactEmail ? [{ label: 'Correo de contacto', value: p.contactEmail }] : []),
+    ...(p.website ? [{ label: 'Sitio web', value: p.website }] : []),
+  ];
+}
+
 type Queue = { status: 'loading' } | { status: 'error' } | { status: 'forbidden' } | { status: 'ready'; items: QueueItem[]; nextCursor?: string; more: boolean };
 
 /** Cola de verificación (DW-44): paginada por cursor, con filtro, y decisión por fila (sin escribir identificadores). */
@@ -89,6 +102,8 @@ function VerificationQueue({ queueClient }: { queueClient: typeof fetchVerificat
                 { label: 'Estado', value: verificationStatusLabel(o.verificationStatus) },
                 ...(o.informationRequest ? [{ label: 'Información pedida', value: o.informationRequest }] : []),
                 { label: 'Identificador', value: <span className={ui.mono}>{o.organizationId}</span> },
+                // U-37 (plan-fase7-puesta-al-dia.md Anexo 5): los datos de verificación, solo para la plataforma
+                ...verificationRows(o),
               ]} />
               {actions.length > 0 && (
                 <Actions>

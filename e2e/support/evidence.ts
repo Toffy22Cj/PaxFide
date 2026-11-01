@@ -70,3 +70,13 @@ export async function verifyEmailApi(request: import('@playwright/test').APIRequ
   const c = await request.post(`${API}/api/v1/auth/email-verification/confirm`, { data: { token } });
   if (c.status() !== 204) throw new Error(`confirmación ${c.status()}`);
 }
+
+/** P-15 (ficha R-7): un NIT de 9 dígitos al azar con su dígito de verificación de la DIAN (cada test, uno distinto). */
+export function randomNit(): { nit: string; dv: string } {
+  const nit = String(100000000 + Math.floor(Math.random() * 899999999));
+  const W = [3, 7, 13, 17, 19, 23, 29, 37, 41];
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += Number(nit[8 - i]) * W[i];
+  const r = sum % 11;
+  return { nit, dv: String(r <= 1 ? r : 11 - r) };
+}

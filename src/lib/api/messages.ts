@@ -8,6 +8,11 @@ import type { ProblemInfo } from './http';
 const BY_TITLE: Record<string, string> = {
   // Convocatoria (CV-01, CV-02)
   OrganizationNotVerified: 'Tu organización todavía no está verificada. No puede crear convocatorias.',
+  // Ficha R-7 (plan-fase7-puesta-al-dia.md Anexo 5, U-35 a U-37)
+  OrganizationNitAlreadyRegistered: 'Ya hay una organización registrada con ese NIT',
+  OrganizationProfileLocked: 'La organización ya está verificada: el nombre, la razón social y el NIT no se pueden cambiar.',
+  VerificationResubmitNotAllowed: 'La organización ya no está esperando más información: actualizamos su estado.',
+  VerificationDataMissing: 'Faltan la razón social o el NIT: pide más información',
   CommandIdReusedForDifferentCommand: 'No pudimos procesar la operación. Ábrela de nuevo e inténtalo otra vez.',
   CommandIdReused: 'No pudimos procesar la operación. Ábrela de nuevo e inténtalo otra vez.',
   ResponsibleAlreadyActiveInCampaign: 'Esa cuenta ya es responsable activa de esta convocatoria.',

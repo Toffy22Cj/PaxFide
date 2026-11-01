@@ -5,12 +5,12 @@ import { fetchPublicCampaign, PublicCampaign, PublicCampaignOutcome } from '../l
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { formatMinorUnits, percentOf } from '../lib/money';
 import { campaignStatusLabel, donationTypeLabel, paymentMethodLabel } from '../lib/labels';
-import { DefinitionList, PageHeader } from '../components/ui/Layout';
+import { DefinitionList, PageHeader, Surface } from '../components/ui/Layout';
 import { ErrorState, LoadingState, NotFoundState } from '../components/States';
 import { LocalDate } from '../components/LocalDate';
 import { DonateSection } from '../components/campaign/DonateSection';
 import { CampaignNarrative } from '../components/campaign/CampaignNarrative';
-import { publicAssetUrl } from '../lib/api/publicCampaignModel';
+import { publicAssetUrl, type PublicOrganizationProfile } from '../lib/api/publicCampaignModel';
 import s from '../components/campaign/campaign.module.css';
 
 function Chips({ items, label }: { items: string[]; label: (v: string) => string }) {
@@ -61,7 +61,30 @@ export function CampaignDetails({ campaign }: { campaign: PublicCampaign }) {
           ? [{ label: 'Medios de pago', value: <Chips items={campaign.acceptedPaymentMethods} label={paymentMethodLabel} /> }]
           : []),
       ]} />
+      {campaign.organizationProfile && <AboutOrganization profile={campaign.organizationProfile} />}
     </>
+  );
+}
+
+/**
+ * U-38 (plan-fase7-puesta-al-dia.md Anexo 5; ficha R-7): "Sobre la organización" con lo público del perfil. Sin
+ * `organizationProfile`, el bloque no sale. Nunca NIT, razón social, teléfono ni régimen (el modelo ni los copia).
+ */
+function AboutOrganization({ profile }: { profile: PublicOrganizationProfile }) {
+  return (
+    <Surface title="Sobre la organización">
+      <div data-testid="about-organization">
+        {profile.description && <p className={s.description}>{profile.description}</p>}
+        <DefinitionList items={[
+          ...(profile.location ? [{ label: 'Ubicación', value: `${profile.location.municipalityName}, ${profile.location.departmentName}` }] : []),
+          ...(profile.website ? [{
+            label: 'Sitio web',
+            value: <a href={profile.website} target="_blank" rel="noopener noreferrer">{profile.website}</a>,
+          }] : []),
+          ...(profile.contactEmail ? [{ label: 'Correo de contacto', value: <a href={`mailto:${profile.contactEmail}`}>{profile.contactEmail}</a> }] : []),
+        ]} />
+      </div>
+    </Surface>
   );
 }
 
