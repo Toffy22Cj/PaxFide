@@ -600,3 +600,46 @@ develop
    └── P-15 feat/web-organization-profile (cuando se apruebe este anexo)
 P-14 (Anexo 4) sigue en su PR, en revisión de Carlos.
 ```
+
+---
+
+## Anexo 6 (2026-11-01) — Iniciar sesión con Google y vincularlo en la web (PD-7)
+
+**Estado: APROBADO — Carlos, 2026-11-01.** Responde a PD-7 del Anexo 5. Texto literal: "Para lo Google si es una si hazlo", junto con el ID de cliente web. PD-8 queda sin objeto.
+- **Las decisiones G-W1 a G-W9 las redacta el agente** en la misma rama que el código, porque Carlos pidió hacerlo y abrir el PR al terminar. **Carlos las revisa en ese PR.**
+- **Origen:** el backend `develop` `3726414` (#166, ADR-050 D9; `plan-adr050-r6-google.md` §6; `referencia-api-v1.md`, nota del 2026-10-31).
+- **El contrato se comparó con el código** (`GoogleSignInController`, `GoogleLinkController`, `IdentityApiErrorMappings`, `GoogleSignInConfig`) y **coincide**.
+
+### A6.1 Decisiones
+
+| # | Decisión |
+|---|---|
+| G-W1 | **El ID de cliente web sale de `NEXT_PUBLIC_GOOGLE_CLIENT_ID`**, fijado al construir. Sin él, **ningún botón de Google aparece y el script de Google no se carga**. El valor no va al repositorio, igual que G-1 del backend: se pone en el entorno de despliegue. **La web nunca usa el secreto del cliente**, y el backend tampoco |
+| G-W2 | **Excepción acotada a D8, aprobada con PD-7:** el script de Google Identity Services (`https://accounts.google.com/gsi/client`) se carga **solo** en el acceso, si se muestra el botón, y en Configuración › Seguridad, al abrir "Vincular Google". **Nunca** en la portada, las convocatorias públicas ni el resto del panel. Se carga una vez por pestaña. No es un paquete npm: no cambia `package.json`. Solo se usa el botón oficial (`renderButton`, en ventana emergente), nunca One Tap ni `prompt()` |
+| G-W3 | **"Continuar con Google" en "Iniciar sesión"**, debajo del formulario, separado por "o". El `credential` se envía como `idToken` a `POST /auth/google`. Las respuestas se tratan como las del login con contraseña:<br>- 200: entra;<br>- 401: "No pudimos entrar con Google. Si aún no vinculaste tu cuenta de Google, entra con tu correo y contraseña y vincúlala en Configuración › Seguridad". Un único texto, sin revelar el motivo;<br>- 403 `EmailNotVerified`: "Antes de entrar, confirma tu correo", sin "Reenviar", porque la web no sabe el correo de la cuenta. Se ofrece entrar con la contraseña para pedir otro enlace;<br>- 403 `AcceptanceRequired`: la misma tarjeta de U-2, y "Aceptar y entrar" **repite con el mismo `idToken`** y las versiones;<br>- 503 `GoogleSignInUnavailable`: "Google no responde ahora. Entra con tu correo y contraseña";<br>- sin red: el texto de siempre.<br>El `idToken` vive solo en el estado de la pantalla y nunca se guarda ni se registra |
+| G-W4 | **No hay registro con Google** (Q2 (a) de ADR-050). "Crear cuenta" no tiene el botón |
+| G-W5 | **Configuración › Seguridad, bloque "Cuenta de Google":** dos acciones, "Vincular Google" y "Desvincular Google".<br>- **Vincular:** un diálogo pide primero la contraseña actual. Solo con la contraseña escrita aparece el botón de Google, y su `credential` va a `POST /account/google/link {idToken, currentPassword}`.<br>- **Desvincular:** un diálogo pide la contraseña y envía `DELETE /account/google/link {currentPassword}`.<br>- **Sin `Command-Id`** (DH-34). Si no llega la respuesta, se avisa en amarillo, como al cambiar la contraseña: repetir es seguro, porque las dos rutas son idempotentes |
+| G-W6 | **Textos de los errores al vincular:**<br>- `CurrentPasswordIncorrect`: "La contraseña actual no es correcta.";<br>- `GoogleIdTokenInvalid`: "Google no confirmó tu cuenta. Inténtalo de nuevo.";<br>- `GoogleAccountAlreadyLinked`: "Esa cuenta de Google ya está vinculada a otra cuenta de PaxFide.";<br>- `AccountAlreadyLinkedToGoogle`: "Tu cuenta ya tiene otra cuenta de Google vinculada. Desvincúlala primero.";<br>- 503: "Google no responde ahora. Inténtalo más tarde." |
+| G-W7 | **Sin contrato: el estado del vínculo.** Ninguna ruta dice si la cuenta tiene Google vinculado (`GET /account` y `GET /me` no lo incluyen). Por eso **las dos acciones están siempre disponibles**, con textos que no afirman el estado ("Si tenías una cuenta de Google vinculada, ya no podrás entrar con ella"). Si el backend lo expone, se muestra en otro anexo |
+| G-W8 | **Superficies (U-27):** `action:google-sign-in` y `action:google-link`, en la lista de la demo. Las dos necesitan además G-W1 |
+| G-W9 | **Privacidad:** cuando se carga el script, Google recibe la visita al acceso o a Seguridad. **La web no cambia el texto de la política de datos:** lo completa Roberto. Queda anotado como pendiente antes de publicar con Google activado |
+
+### A6.2 Tarea
+
+**P-16 · `feat/web-google-sign-in`** — G-W1 a G-W9.
+- **API:** `googleSignIn` en `src/lib/api/identity.ts` (comparte con `login` la lectura de la respuesta), y `linkGoogle` y `unlinkGoogle` en `src/lib/api/account.ts`.
+- **Script:** `src/lib/google/gis.ts`, una carga por pestaña; un fallo deja reintentar. **Botón:** `src/components/access/GoogleButton.tsx`, con el tema claro u oscuro del contenedor.
+- **Servidor falso:** `POST /auth/google` y `POST`/`DELETE /account/google/link` con las reglas del backend. Los `idToken` de prueba tienen el formato `fake-google.<sub>.<correo>`, y una ruta de control fuerza el 503.
+- **Tests:**
+  - sin `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, ni botón ni script (negativa);
+  - el script se pide una sola vez;
+  - cada respuesta de `POST /auth/google`;
+  - `AcceptanceRequired` repite con el mismo `idToken`;
+  - "Crear cuenta" no tiene Google (negativa);
+  - vincular exige la contraseña antes del botón;
+  - cada 400, 409 y 503 de vincular;
+  - desvincular.
+- **E2E:** Google Identity Services se sustituye por un doble con `page.route`, porque el E2E nunca sale a Google.
+  - Recorrido: vincular en Seguridad → cerrar sesión → entrar con Google → desvincular → Google ya no entra.
+  - Negativa: la portada y una convocatoria pública no piden nada a `accounts.google.com`.
+- Capturas en claro y oscuro, a 390 y 1280 px.

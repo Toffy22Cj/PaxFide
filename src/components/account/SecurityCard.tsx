@@ -4,11 +4,16 @@
 // "Seguridad y Criptografía"); referencia-api-v1.md §1 (`POST /account/password`, nota ADR-038 #7; nota del 2026-10-25
 // de `POST /account/deactivate`). Sin `Command-Id`: sin respuesta no se repite solo; se avisa en amarillo (D6) y la
 // persona decide. Las contraseñas viven solo en el estado del formulario.
+// Anexo 6 (G-W5 a G-W7): "Cuenta de Google", vincular y desvincular con la contraseña actual. Ninguna ruta dice si hay un
+// vínculo, así que las dos acciones están siempre y los textos no afirman el estado.
 import React, { useState } from 'react';
 import {
-  changePassword, deactivateAccount, MIN_PASSWORD,
-  type ChangePasswordOutcome, type DeactivateOutcome,
+  changePassword, deactivateAccount, linkGoogle, unlinkGoogle, MIN_PASSWORD,
+  type ChangePasswordOutcome, type DeactivateOutcome, type GoogleLinkOutcome, type GoogleUnlinkOutcome,
 } from '../../lib/api/account';
+import { googleClientId, type GoogleIdApi } from '../../lib/google/gis';
+import { isSurfaceEnabled } from '../../lib/routing/surfaces';
+import { GoogleButton } from '../access/GoogleButton';
 import { calculateStrength } from '../../lib/auth/passwordStrength';
 import * as session from '../../lib/auth/session';
 import { PasswordField } from '../ui/Field';
@@ -21,9 +26,14 @@ import s from './account.module.css';
 export interface SecurityClients {
   changePassword: (current: string, next: string) => Promise<ChangePasswordOutcome>;
   deactivate: (current: string) => Promise<DeactivateOutcome>;
+  linkGoogle?: (idToken: string, current: string) => Promise<GoogleLinkOutcome>;
+  unlinkGoogle?: (current: string) => Promise<GoogleUnlinkOutcome>;
+  /** Para los tests: la carga de Google Identity Services y el ID de cliente. */
+  googleLoader?: () => Promise<GoogleIdApi>;
+  googleClientId?: string | null;
 }
 
-const DEFAULT_CLIENTS: SecurityClients = { changePassword, deactivate: deactivateAccount };
+const DEFAULT_CLIENTS: SecurityClients = { changePassword, deactivate: deactivateAccount, linkGoogle, unlinkGoogle };
 
 const REQUIRED = 'Este campo es obligatorio.';
 const CURRENT_INCORRECT = 'La contraseña actual no es correcta.';
@@ -36,12 +46,18 @@ export const DEACTIVATE_TEXT: Record<'platform-administrator' | 'representative'
 };
 
 export function SecurityCard({ clients = DEFAULT_CLIENTS }: { clients?: SecurityClients }) {
+  const clientId = clients.googleClientId === undefined ? googleClientId() : clients.googleClientId;
+  const showGoogle = isSurfaceEnabled('action:google-link') && Boolean(clientId);
   return (
     <section className={[s.card, s.wide].join(' ')} aria-labelledby="cardSecurityTitle" data-testid="security-card">
       <h2 id="cardSecurityTitle" className={s.cardTitle}>Seguridad</h2>
       <p className={s.sub}>Tu contraseña y el estado de tu cuenta.</p>
       <div className={s.securityGrid}>
         <ChangePasswordForm client={clients.changePassword} />
+        {showGoogle && (
+          <GoogleLinkBlock link={clients.linkGoogle ?? linkGoogle} unlink={clients.unlinkGoogle ?? unlinkGoogle}
+            loader={clients.googleLoader} clientId={clientId} />
+        )}
         <DeactivateBlock client={clients.deactivate} />
       </div>
     </section>
@@ -167,6 +183,122 @@ function DeactivateBlock({ client }: { client: SecurityClients['deactivate'] }) 
             <Actions>
               <Button variant="secondary" onClick={close} disabled={sending}>Cancelar</Button>
               <Button type="submit" className={s.dangerSolid} sending={sending}>Desactivar</Button>
+            </Actions>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/** G-W6: los textos de los errores al vincular. */
+export const GOOGLE_LINK_TEXT: Record<'google-invalid' | 'google-taken' | 'already-linked' | 'google-unavailable', string> = {
+  'google-invalid': 'Google no confirmó tu cuenta. Inténtalo de nuevo.',
+  'google-taken': 'Esa cuenta de Google ya está vinculada a otra cuenta de PaxFide.',
+  'already-linked': 'Tu cuenta ya tiene otra cuenta de Google vinculada. Desvincúlala primero.',
+  'google-unavailable': 'Google no responde ahora. Inténtalo más tarde.',
+};
+
+type LinkResult = 'linked' | 'unlinked' | 'ambiguous-link' | 'ambiguous-unlink' | 'error' | keyof typeof GOOGLE_LINK_TEXT | null;
+
+function GoogleLinkBlock({ link, unlink, loader, clientId }: {
+  link: NonNullable<SecurityClients['linkGoogle']>;
+  unlink: NonNullable<SecurityClients['unlinkGoogle']>;
+  loader?: () => Promise<GoogleIdApi>;
+  clientId: string | null;
+}) {
+  const [open, setOpen] = useState<'link' | 'unlink' | null>(null);
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | undefined>();
+  const [result, setResult] = useState<LinkResult>(null);
+  const [sending, setSending] = useState(false);
+
+  const close = () => { setOpen(null); setPassword(''); setError(undefined); };
+  const start = (which: 'link' | 'unlink') => { setResult(null); setError(undefined); setPassword(''); setOpen(which); };
+
+  /** G-W5: la contraseña ya está escrita (el botón de Google solo aparece con ella). */
+  const onCredential = async (idToken: string) => {
+    if (sending) return;
+    if (!password) { setError(REQUIRED); return; }
+    setSending(true);
+    const r = await link(idToken, password);
+    setSending(false);
+    switch (r.kind) {
+      case 'ok': close(); setResult('linked'); return;
+      case 'current-incorrect': setPassword(''); setError(CURRENT_INCORRECT); return;
+      case 'google-invalid':
+      case 'google-taken':
+      case 'already-linked':
+      case 'google-unavailable':
+        close(); setResult(r.kind); return;
+      case 'network': close(); setResult('ambiguous-link'); return;
+      case 'unauthorized': setPassword(''); return; // T-1 ya cerró la sesión
+      case 'error': close(); setResult('error'); return;
+      default: { const unreachable: never = r; throw new Error(`Resultado desconocido: ${String(unreachable)}`); }
+    }
+  };
+
+  const submitUnlink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password) { setError(REQUIRED); return; }
+    setError(undefined);
+    setSending(true);
+    const r = await unlink(password);
+    setSending(false);
+    switch (r.kind) {
+      case 'ok': close(); setResult('unlinked'); return;
+      case 'current-incorrect': setPassword(''); setError(CURRENT_INCORRECT); return;
+      case 'network': close(); setResult('ambiguous-unlink'); return;
+      case 'unauthorized': setPassword(''); return;
+      case 'error': close(); setResult('error'); return;
+      default: { const unreachable: never = r; throw new Error(`Resultado desconocido: ${String(unreachable)}`); }
+    }
+  };
+
+  return (
+    <div aria-labelledby="googleLinkTitle" role="group" data-testid="google-link-block">
+      <h3 id="googleLinkTitle" className={s.blockTitle}>Cuenta de Google</h3>
+      <p className={s.note}>Vincula una cuenta de Google para entrar con ella, además de con tu contraseña. Para vincularla o desvincularla te pedimos tu contraseña actual.</p>
+      {result === 'linked' && <StatusNotice variant="success" text="Vinculamos tu cuenta de Google. Ya puedes entrar con ella." />}
+      {result === 'unlinked' && <StatusNotice variant="success" text="Listo. Si tenías una cuenta de Google vinculada, ya no podrás entrar con ella." />}
+      {result === 'ambiguous-link' && (
+        <StatusNotice variant="ambiguous" title="No sabemos si se vinculó"
+          text="No llegó la respuesta. Puedes repetirlo con la misma cuenta de Google: si ya quedó vinculada, no cambia nada." />
+      )}
+      {result === 'ambiguous-unlink' && (
+        <StatusNotice variant="ambiguous" title="No sabemos si se desvinculó"
+          text="No llegó la respuesta. Puedes repetirlo: si ya no había vínculo, no cambia nada." />
+      )}
+      {result === 'error' && <StatusNotice variant="rejected" text="No pudimos completar el cambio. Inténtalo de nuevo." />}
+      {result && result in GOOGLE_LINK_TEXT && <StatusNotice variant="rejected" text={GOOGLE_LINK_TEXT[result as keyof typeof GOOGLE_LINK_TEXT]} />}
+      <Actions>
+        <Button variant="secondary" onClick={() => start('link')}>Vincular Google</Button>
+        <Button variant="secondary" onClick={() => start('unlink')}>Desvincular Google</Button>
+      </Actions>
+      {open === 'link' && (
+        <Modal title="Vincular tu cuenta de Google" onCancel={close}>
+          <div data-testid="google-link-form">
+            <p className={s.modalText}>Escribe tu contraseña actual y después elige tu cuenta de Google. Te avisaremos por correo.</p>
+            <PasswordField label="Contraseña actual" autoComplete="current-password" value={password} error={error}
+              disabled={sending} onChange={(e) => { setPassword(e.target.value); setError(undefined); }} />
+            {password ? (
+              <GoogleButton text="signin_with" loader={loader} clientId={clientId} onCredential={(t) => void onCredential(t)} />
+            ) : (
+              <p className={s.note} data-testid="google-link-needs-password">Escribe tu contraseña para continuar con Google.</p>
+            )}
+            <Actions><Button variant="secondary" onClick={close} disabled={sending}>Cancelar</Button></Actions>
+          </div>
+        </Modal>
+      )}
+      {open === 'unlink' && (
+        <Modal title="¿Desvincular tu cuenta de Google?" onCancel={close}>
+          <form onSubmit={(e) => void submitUnlink(e)} noValidate data-testid="google-unlink-form">
+            <p className={s.modalText}>Si tenías una cuenta de Google vinculada, ya no podrás entrar con ella; tu contraseña sigue igual. Escribe tu contraseña para confirmarlo.</p>
+            <PasswordField label="Contraseña actual" autoComplete="current-password" value={password} error={error}
+              disabled={sending} onChange={(e) => setPassword(e.target.value)} />
+            <Actions>
+              <Button variant="secondary" onClick={close} disabled={sending}>Cancelar</Button>
+              <Button type="submit" sending={sending}>Desvincular</Button>
             </Actions>
           </form>
         </Modal>

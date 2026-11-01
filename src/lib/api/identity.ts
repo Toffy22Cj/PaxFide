@@ -1,6 +1,6 @@
 'use client';
 
-import { apiRequest } from './http';
+import { apiRequest, type ApiResult } from './http';
 import { LEGAL_VERSIONS } from '../legal/versions';
 
 /**
@@ -29,6 +29,26 @@ export async function login(email: string, password: string, acceptance?: LoginA
   const r = await apiRequest<{ token?: unknown }>({
     path: '/auth/login', method: 'POST', body: { email, password, ...(acceptance ?? {}) }, auth: 'none',
   });
+  const out = loginOutcomeOf(r);
+  return out.kind === 'google-unavailable' ? { kind: 'server-error' } : out;
+}
+
+/**
+ * Anexo 6, G-W3 (referencia-api-v1.md, nota del 2026-10-31; ADR-050 D9): `POST /auth/google {idToken,
+ * acceptedTermsVersion?, acceptedDataPolicyVersion?}` responde como el login con contraseña (el mismo 401 sin motivo,
+ * los dos 403) y además **503 `GoogleSignInUnavailable`** si el backend no puede obtener las llaves de Google.
+ */
+export type GoogleSignInOutcome = LoginOutcome | { kind: 'google-unavailable' };
+
+export async function googleSignIn(idToken: string, acceptance?: LoginAcceptance): Promise<GoogleSignInOutcome> {
+  const r = await apiRequest<{ token?: unknown }>({
+    path: '/auth/google', method: 'POST', body: { idToken, ...(acceptance ?? {}) }, auth: 'none',
+  });
+  return loginOutcomeOf(r);
+}
+
+/** La lectura común de `POST /auth/login` y `POST /auth/google`. */
+function loginOutcomeOf(r: ApiResult<{ token?: unknown }>): GoogleSignInOutcome {
   if (r.kind === 'network') return { kind: 'network' };
   if (r.kind === 'ok') {
     const token = r.data && typeof r.data.token === 'string' ? r.data.token : null;
@@ -42,6 +62,7 @@ export async function login(email: string, password: string, acceptance?: LoginA
     if (r.problem.pendingDataPolicyVersion) out.pendingDataPolicyVersion = r.problem.pendingDataPolicyVersion;
     return out;
   }
+  if (r.status === 503 && r.problem.title === 'GoogleSignInUnavailable') return { kind: 'google-unavailable' };
   if (r.status === 400) return { kind: 'bad-request' };
   return { kind: 'server-error' };
 }
