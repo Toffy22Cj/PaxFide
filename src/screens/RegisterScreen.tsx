@@ -8,11 +8,9 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { registerAccount, RegisterOutcome } from '../lib/api/identity';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
-import { BrandMark } from '../components/shell/BrandMark';
 import { BrandDots } from '../components/loaders/BrandDots';
 import { ResendVerification } from '../components/access/ResendVerification';
 import type { EmailVerificationRequestOutcome } from '../lib/api/account';
-import { AccessLayout } from '../components/access/AccessLayout';
 import { LegalConsent } from '../components/access/LegalConsent';
 import { calculateStrength } from '../lib/auth/passwordStrength';
 import s from './access.module.css';
@@ -70,39 +68,7 @@ export function RegisterScreen({ client = registerAccount, resendClient }: {
   };
 
   return (
-    <AccessLayout>
-      <div className={s.page}>
-        <div className={s.card} data-world-avoid="">
-          <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
-          <div className={s.badgePill}>
-            <span className={s.badgeDot} />
-            <span>TU CUENTA PAXFIDE</span>
-          </div>
-          <h1 id="authCardTitle" className={s.title}>Crear cuenta</h1>
-          <p id="authCardSub" className={s.subtitle}>Únete para apoyar causas verificadas y seguir el impacto real de cada donación.</p>
-
-          {/* Conmutador de pestañas */}
-          <div className={s.tabs} role="tablist" aria-label="Acceso">
-            {isSurfaceEnabled('/login') && (
-              <Link href="/login" role="tab" id="tabBtnLogin" aria-selected="false" className={s.tabBtn}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                  <polyline points="10 17 15 12 10 7" />
-                  <line x1="15" y1="12" x2="3" y2="12" />
-                </svg>
-                <span>Iniciar sesión</span>
-              </Link>
-            )}
-            <Link href="/register" role="tab" id="tabBtnRegister" aria-selected="true" className={[s.tabBtn, s.tabActive].join(' ')}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="8.5" cy="7" r="4" />
-                <line x1="20" y1="8" x2="20" y2="14" />
-                <line x1="23" y1="11" x2="17" y2="11" />
-              </svg>
-              <span>Crear cuenta</span>
-            </Link>
-          </div>
+    <>
 
           {result?.kind === 'ok' ? (
             /* P-6 (ADR-050 Enmienda 2): la cuenta nace sin verificar; se entra después de abrir el enlace del correo */
@@ -281,8 +247,6 @@ export function RegisterScreen({ client = registerAccount, resendClient }: {
               )}
             </>
           )}
-        </div>
-      </div>
-    </AccessLayout>
+    </>
   );
 }

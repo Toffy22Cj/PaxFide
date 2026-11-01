@@ -1,34 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# paxfide-web
 
-## Getting Started
+Frontend web de PaxFide (Next.js). Los documentos que rigen están en `Documentos/` (ADR-046 y su enmienda 1, los planes
+de la fase 7 y `decisiones-delegadas-web-2026-10.md`).
 
-First, run the development server:
+## Levantar la web
+
+Requisitos: Node 22 y pnpm 11.26.0.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install --frozen-lockfile
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+La web habla con el backend (`Toffy22Cj/Donaciones`) en otro origen. Para desarrollar:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1 pnpm dev
+```
 
-## Learn More
+Para un build de producción:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api/v1 pnpm build && pnpm start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Abre <http://localhost:3000>. El backend tiene que permitir ese origen (`TRACEABILITY_CORS_ALLOWED_ORIGINS`, ver
+`Donaciones/Documentos/runbook-demo-local.md`).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Qué pantallas están activas
 
-## Deploy on Vercel
+Desde U-27 (`plan-fase7-puesta-al-dia.md`, Anexo 4), **`pnpm dev` y `pnpm build` activan las mismas pantallas que la
+demo**: ya no hace falta `pnpm build:demo` para verlas (se conserva como alias). Hay **una sola lista**,
+`src/lib/routing/enabled-surfaces.demo.json`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Variable | Efecto |
+|---|---|
+| sin `NEXT_PUBLIC_SURFACE_PROFILE`, o `=demo` | la lista única |
+| `NEXT_PUBLIC_SURFACE_PROFILE=none` | ninguna pantalla: todo responde 404 (lo usan los tests de 404) |
+| `NEXT_PUBLIC_E2E_SURFACES='[...]'` | solo en los tests: sustituye a lo anterior |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+La lista **no es autorización** (ADR-046 D5): solo dice qué pantallas existen; lo que cada cuenta puede hacer lo decide
+el backend. `/tracking/<lo-que-sea>` responde 404 en todos los builds (DW-01).
+
+## Pruebas
+
+```bash
+bash scripts/ci-local.sh
+```
+
+Réplica local de `.github/workflows/ci.yml`: typecheck, Vitest, imports del servidor y los E2E de Playwright contra el
+servidor falso (`scripts/fake-backend.js`). Deja la evidencia en `Documentos/evidencia-web/`.

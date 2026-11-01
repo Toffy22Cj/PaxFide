@@ -4,8 +4,6 @@
 // (la versión sale de LEGAL_VERSIONS: una sola cadena para los textos, el registro, el login y crear organización)
 import React from 'react';
 import Link from 'next/link';
-import { AccessLayout } from '../components/access/AccessLayout';
-import { BrandMark } from '../components/shell/BrandMark';
 import { LEGAL_VERSIONS } from '../lib/legal/versions';
 import s from './legal.module.css';
 
@@ -188,11 +186,10 @@ export const LEGAL_ORG_TERMS: LegalDocument = {
 
 export function LegalScreen({ doc }: { doc: LegalDocument }) {
   return (
-    <AccessLayout>
+    <>
       <div className={s.page}>
         <article className={s.card} data-world-avoid="">
           <header className={s.header}>
-            <div className={s.brand}><BrandMark size={32} /><span>PaxFide</span></div>
             <div className={s.badgeRow}>
               <span className={s.badgePill}>{doc.state}</span>
               <span className={s.versionTag} data-testid="legal-version">Versión {doc.version}</span>
@@ -237,6 +234,6 @@ export function LegalScreen({ doc }: { doc: LegalDocument }) {
           </footer>
         </article>
       </div>
-    </AccessLayout>
+    </>
   );
 }

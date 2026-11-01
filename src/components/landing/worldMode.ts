@@ -93,3 +93,34 @@ export function saveWorldMode(mode: WorldMode): void {
     window.localStorage.setItem(WORLD_MODE_STORAGE_KEY, mode);
   } catch {}
 }
+
+/**
+ * U-30 (plan-fase7-puesta-al-dia.md Anexo 4): almacén del modo para `useSyncExternalStore`. El acceso lee el modo
+ * guardado antes del primer pintado (sin un fotograma con el modo equivocado) y se entera de los cambios.
+ */
+const WORLD_MODE_EVENT = 'paxfide:world-mode-change';
+
+export function subscribeWorldMode(listener: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  const onStorage = (e: StorageEvent) => { if (e.key === WORLD_MODE_STORAGE_KEY) listener(); };
+  window.addEventListener(WORLD_MODE_EVENT, listener);
+  window.addEventListener('storage', onStorage);
+  return () => {
+    window.removeEventListener(WORLD_MODE_EVENT, listener);
+    window.removeEventListener('storage', onStorage);
+  };
+}
+
+/** Guarda el modo y avisa a quien lo lea con `subscribeWorldMode`. */
+export function setWorldModePreference(mode: WorldMode): void {
+  saveWorldMode(mode);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(WORLD_MODE_EVENT));
+}
+
+/**
+ * Se ejecuta en el HTML, antes de pintar: pone en el contenedor del acceso el `data-theme` del modo guardado (en Auto,
+ * la parada del acceso es de día). Con el almacenamiento bloqueado, se queda en claro, como 'auto'.
+ */
+export function accessThemeInitScript(rootId: string): string {
+  return `(function(){try{var m=localStorage.getItem(${JSON.stringify(WORLD_MODE_STORAGE_KEY)});var r=document.getElementById(${JSON.stringify(rootId)});if(r&&m==='night')r.setAttribute('data-theme','dark');}catch(e){}})();`;
+}
