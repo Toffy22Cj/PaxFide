@@ -38,3 +38,49 @@ test.describe('Build normal sin perfil (U-27)', () => {
     }
   });
 });
+
+// Comprobación de despliegue 2b-a (Documentos/despliegue-web.md; despliegue-backend-2026-10.md §2): con el build normal,
+// los tres enlaces de los correos del backend ({TRACEABILITY_WEB_BASE_URL}/verificar-correo#token=…, /recuperar#token=…
+// e /invitaciones#token=…) abren su pantalla y el token sale de la barra. El servidor falso hace de buzón (como Mailpit).
+test.describe('Enlaces de los correos con el build normal (2b-a)', () => {
+  const API = 'http://localhost:3002';
+  const tokenOf = (link: string) => new URLSearchParams(link.split('#')[1]).get('token')!;
+
+  test('verificar el correo: /verificar-correo#token=… confirma y lleva al login', async ({ page, request }) => {
+    const email = `deploy-verif-${Date.now()}@demo.test`;
+    await request.post(`${API}/api/v1/auth/register`, {
+      data: { email, password: 'clave-demo-larga', acceptedTermsVersion: 'v1-2026-10', acceptedDataPolicyVersion: 'v1-2026-10' },
+    });
+    const { link } = await (await request.get(`${API}/__test/email-verification/last?email=${encodeURIComponent(email)}`)).json();
+    expect(link).toMatch(/^\/verificar-correo#token=/);
+    await page.goto(link);
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByTestId('login-notice')).toHaveText('Tu correo quedó verificado');
+    expect(page.url()).not.toContain(tokenOf(link));
+  });
+
+  test('recuperar la contraseña: /recuperar#token=… pide la contraseña nueva', async ({ page, request }) => {
+    const email = 'donante@demo.test';
+    await request.post(`${API}/api/v1/auth/password-reset`, { data: { email } });
+    const { link } = await (await request.get(`${API}/__test/password-reset/last?email=${encodeURIComponent(email)}`)).json();
+    expect(link).toMatch(/^\/recuperar#token=/);
+    await page.goto(link);
+    await expect(page.getByLabel('Contraseña nueva', { exact: true })).toBeVisible();
+    expect(page.url()).not.toContain(tokenOf(link));
+  });
+
+  test('aceptar una invitación: /invitaciones#token=… abre la invitación', async ({ page, request }) => {
+    const email = `deploy-inv-${Date.now()}@demo.test`;
+    const { token } = await (await request.post(`${API}/api/v1/auth/login`, { data: { email: 'admin@demo.test', password: 'demo-admin' } })).json();
+    const r = await request.post(`${API}/api/v1/organizations/org-1/invitations`, {
+      data: { email, role: 'EMPLOYEE' }, headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(r.status()).toBe(202);
+    const { link } = await (await request.get(`${API}/__test/invitations/last?email=${encodeURIComponent(email)}`)).json();
+    expect(link).toMatch(/^\/invitaciones#token=/);
+    await page.goto(link);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Invitación a una organización');
+    await expect(page.getByText('No encontramos esta página.')).toHaveCount(0);
+    expect(page.url()).not.toContain(tokenOf(link));
+  });
+});
