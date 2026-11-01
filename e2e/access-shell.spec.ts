@@ -52,6 +52,24 @@ test.describe('P-14 · tema cruzado (U-28)', () => {
   }
 });
 
+test.describe('U-28 · la portada también decide su tema', () => {
+  test('app oscura y mundo de día: la portada es clara (no hereda el tema de <html>)', async ({ page }) => {
+    await prefs(page, 'dark', 'day');
+    await page.goto('/');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.getByTestId('landing-root')).toHaveAttribute('data-theme', 'light');
+    // El texto de la portada usa el token del tema claro (brand-green-900), no el claro del tema oscuro
+    const color = await page.getByTestId('landing-root').evaluate((el) => getComputedStyle(el).getPropertyValue('--color-text').trim());
+    expect(color.toUpperCase()).toBe('#1B5141');
+  });
+
+  test('negativa: app clara y mundo de noche, la portada es oscura', async ({ page }) => {
+    await prefs(page, 'light', 'night');
+    await page.goto('/');
+    await expect(page.getByTestId('landing-root')).toHaveAttribute('data-theme', 'dark');
+  });
+});
+
 test.describe('P-14 · marca (U-29)', () => {
   test('dentro de la tarjeta no hay marca; arriba hay exactamente una, "PaxFide."', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });

@@ -313,7 +313,9 @@ export function LandingScreen({ client = fetchDiscovery }: { client?: typeof fet
   const isDark = nightVal >= 0.5;
 
   return (
-    <div className={s.landing} data-theme={isDark ? 'dark' : undefined} data-testid="landing-root">
+    // U-28 (plan-fase7-puesta-al-dia.md Anexo 4): el tema lo decide este contenedor también de día. Con `undefined`,
+    // de día la landing heredaba el tema de <html> (la app en oscuro) y salía oscura con el mundo claro
+    <div className={s.landing} data-theme={isDark ? 'dark' : 'light'} data-testid="landing-root">
       <WorldScene mode={worldMode} onViewChange={setCurrentView} />
       <LandingHeader worldMode={worldMode} nightVal={nightVal} onToggleMode={handleToggleMode} />
       <StopDots />
