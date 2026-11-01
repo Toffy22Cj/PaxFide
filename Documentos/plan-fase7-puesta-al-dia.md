@@ -534,3 +534,69 @@ develop
    ├── P-13 chore/web-surfaces-default   (corta)
    └── P-14 fix/web-access-shell         (después de P-13; puede ir en paralelo con P-12)
 ```
+
+---
+
+## Anexo 5 (2026-11-01) — Perfil de la organización (R-7) y login con Google (#166)
+
+**Estado: PROPUESTO — espera la aprobación de Carlos.** Origen: el backend `develop` `3726414` (2026-10-31) trae:
+- **#165, R-7, perfil de la organización:** ficha CONGELADA y plan aprobado en #162;
+- **#166, login con Google y vínculo (ADR-050 D9):** plan aprobado por Manuel;
+- **#167, guía de despliegue:** `despliegue-backend-2026-10.md`.
+
+El contrato está en `referencia-api-v1.md`, en las dos notas del 2026-10-31.
+
+### A5.1 Qué falta en la web (comprobado en `develop` `2414832`)
+
+- `OrganizationScreen` registra la organización solo con `{type, name}`. Nada usa `PUT …/profile`, `…/verification/resubmit` ni `GET /public/locations`.
+- `CampaignPublicScreen` (CV-07) no muestra `organizationProfile`.
+- `PlatformScreen` no muestra los campos de verificación ni el 409 `VerificationDataMissing`.
+- El boceto 11 (`paxfide-pantallas-web.html` §11, "Datos de la organización") estaba marcado "sin backend". Pide que departamentos y municipios salgan de un catálogo, nunca escritos a mano.
+- **Google:** nada en la web. Al principio de la fase 7, Carlos dijo que lo quitaba de la web y después que **no se descartaba**. No hay una decisión de la web aprobada.
+
+### A5.2 Decisiones propuestas (R-7)
+
+| # | Decisión propuesta |
+|---|---|
+| U-32 | **Un formulario de perfil, el mismo para crear y para editar**, en `/panel/organization`, con dos bloques:<br>1. **Público:** descripción, sitio web, ubicación y correo de contacto. Encima del correo, el aviso fijo de P3: "Este correo se mostrará en la página pública de tus convocatorias".<br>2. **Para la verificación (no se publica):** razón social, NIT con su dígito de verificación, régimen tributario especial y teléfono.<br>Al crear se envía `POST /organizations` con los campos rellenos. Al editar se envía `PUT …/profile` con **todos** los campos, porque en el contrato un campo ausente lo borra. **El cliente nunca omite un campo que tenía valor sin que el usuario lo haya vaciado** |
+| U-33 | **Ubicación con dos selectores dependientes** (departamento → municipio), alimentados por `GET /public/locations`, que se pide **una vez** por sesión y se guarda en memoria. Nunca se escribe a mano. Si el catálogo falla, el campo queda deshabilitado con "Reintentar" y el resto del formulario sigue funcionando |
+| U-34 | **Validación en el cliente igual que el servidor**, sin sustituirlo:<br>- longitudes en puntos de código;<br>- sin `<` ni `>` en la descripción;<br>- el sitio web solo con `https://`;<br>- NIT de 9 dígitos y el dígito de verificación calculado con los pesos de la DIAN; si no coincide, "Revisa el dígito de verificación";<br>- teléfono de 10 dígitos que empieza por 3 o por 60.<br>Los errores 400 del servidor se muestran con el texto genérico de siempre, porque no dicen qué campo falló |
+| U-35 | **Organización verificada:** razón social, NIT y dígito se muestran **solo lectura**, con "No se puede cambiar después de la verificación". El 409 `OrganizationProfileLocked` tiene su propio texto, por si llega. El 409 `OrganizationNitAlreadyRegistered` dice "Ya hay una organización registrada con ese NIT" |
+| U-36 | **"Enviar de nuevo a revisión":** en el estado `NEEDS_MORE_INFORMATION`, junto a la petición de la plataforma, un botón que guarda primero el perfil y después llama a `…/verification/resubmit`. El 409 `VerificationResubmitNotAllowed` refresca el estado. Es un comando: sigue D6, con éxito, rechazo y respuesta ambigua |
+| U-37 | **Plataforma:** la ficha de cada organización muestra los datos de verificación. "Verificar" con un 409 `VerificationDataMissing` explica "Faltan la razón social o el NIT: pide más información" |
+| U-38 | **Página pública de la convocatoria (CV-07):** un bloque "Sobre la organización" con descripción, municipio y departamento, sitio web (con `rel="noopener noreferrer"`, abierto fuera) y correo de contacto (`mailto:`). Sin `organizationProfile`, el bloque no sale. **Nunca** NIT, razón social, teléfono ni régimen, aunque llegaran (prueba negativa) |
+| U-39 | **Términos de organización:** el límite P-R7-3 del backend sigue abierto, porque la versión no cambia. La web **no** cambia el texto de `terminos-organizacion-v1-2026-10.md`; lo hace Carlos aparte |
+
+### A5.3 Google (no se implementa con este anexo)
+
+| # | Pregunta para Carlos | Recomendación |
+|---|---|---|
+| PD-7 | ¿La web tendrá "Continuar con Google" y "Vincular Google" en Seguridad? | **Sí, pero en un anexo aparte**, cuando Manuel dé el ID de cliente web. Cargar el script de Google Identity Services (`accounts.google.com/gsi/client`) es una **dependencia externa nueva**: viola D8 y cambia la política de privacidad (Google ve la visita). Necesita su propia decisión, como pide la regla 3.5 |
+| PD-8 | Si es que no: ¿se deja constancia de que Google es solo del móvil? | — |
+
+### A5.4 Tarea
+
+**P-15 · `feat/web-organization-profile`** — U-32 a U-39.
+- **API:** `src/lib/api/organization.ts` (crear con perfil, `updateOrganizationProfile`, `resubmitVerification`) y `src/lib/api/locations.ts`.
+- **Lógica pura:** `src/lib/organization/profileModel.ts`, con la validación, el dígito de la DIAN y la conversión entre el formulario y el contrato.
+- **Servidor falso:** las rutas nuevas con las reglas del backend, los cuatro 409 y un catálogo reducido de ejemplo **marcado como de prueba**. La web nunca incluye el catálogo de verdad: lo pide al backend.
+- **Tests:**
+  - el dígito de verificación, con los vectores de la DIAN y uno incorrecto;
+  - `PUT` siempre con todos los campos; vaciar uno lo envía como `null` y no tocarlo conserva su valor (negativa: nunca se borra un campo por omitirlo);
+  - el municipio depende del departamento, y cambiar de departamento vacía el municipio;
+  - el catálogo se pide una sola vez;
+  - en una organización verificada, los tres campos van solo lectura;
+  - el reenvío a revisión solo aparece en `NEEDS_MORE_INFORMATION` (negativa en los demás estados);
+  - CV-07 no muestra NIT, razón social ni teléfono, aunque el servidor falso los meta (negativa);
+  - el aviso del correo público está siempre visible encima del campo.
+- Capturas en claro y oscuro, a 390 y 1280 px, junto al boceto 11.
+- Ninguna dependencia nueva (D8).
+
+### A5.5 Orden
+
+```
+develop
+   ├── P-12 feat/web-campaign-search   (Anexo 3, ya aprobado)
+   └── P-15 feat/web-organization-profile (cuando se apruebe este anexo)
+P-14 (Anexo 4) sigue en su PR, en revisión de Carlos.
+```
