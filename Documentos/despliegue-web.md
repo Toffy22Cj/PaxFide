@@ -58,7 +58,8 @@ dos 403 tendrán que tratarse también ahí.
 | `NEXT_PUBLIC_API_BASE_URL` | **Obligatoria.** La URL de la API con `/api/v1`, por ejemplo `https://api.<dominio>/api/v1` | Se fija **al construir** (`NEXT_PUBLIC_*` queda dentro del bundle). Tiene que ser **otro origen** que la web: si fuera el mismo, `getApiBase()` lanza `ApiBaseUrlMisconfiguredError` (`src/lib/api/config.ts`; ADR-046 D3, sin BFF) |
 | `API_INTERNAL_BASE_URL` | Opcional | Solo para la lectura pública de CV-07 desde el servidor de Next (SSR y OG de `/c/…`, `src/lib/api/publicServer.ts`). Si la red interna llega a la API por otra URL, se pone aquí. Nunca lleva credenciales |
 | `NEXT_PUBLIC_SURFACE_PROFILE` | **Sin poner** | Sin perfil, la lista única de pantallas (U-27). `none` lo apaga todo y solo sirve para tests |
-| `NEXT_PUBLIC_E2E_BUILD`, `NEXT_PUBLIC_E2E_SURFACES` | **Nunca en producción** | Son de los tests. `NEXT_PUBLIC_E2E_BUILD` expone ayudas de test en `window` (lo vigila `e2e/production.spec.ts`) |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Opcional (Anexo 6, G-W1). El **ID de cliente web** de Google (`….apps.googleusercontent.com`), el mismo que el backend tiene en `GOOGLE_OAUTH_CLIENT_IDS` | Se fija al construir. Sin ella, no hay "Continuar con Google" ni "Vincular Google", y el script de Google no se carga. **Nunca el secreto del cliente:** ni la web ni el backend lo usan. El valor no va al repositorio |
+| `NEXT_PUBLIC_E2E_BUILD`, `NEXT_PUBLIC_E2E_SURFACES`, `NEXT_PUBLIC_E2E_GIS_URL` | **Nunca en producción** | Son de los tests. `NEXT_PUBLIC_E2E_BUILD` expone ayudas de test en `window` (lo vigila `e2e/production.spec.ts`) |
 
 **Relación con las variables del backend (las pone Manuel):**
 - **`TRACEABILITY_CORS_ALLOWED_ORIGINS`** tiene que contener el **origen exacto** desde el que se sirve la web: esquema,
@@ -67,6 +68,10 @@ dos 403 tendrán que tratarse también ahí.
 - **`TRACEABILITY_WEB_BASE_URL`** es la URL base pública de la web, la misma que ese origen (`https://<dominio-web>`).
   El backend le añade `/verificar-correo#token=…`, `/recuperar#token=…` e `/invitaciones#token=…`, que el build normal
   sirve (a).
+- **Google (Anexo 6):** en la consola de Google Cloud, el cliente web tiene que tener como **orígenes de JavaScript
+  autorizados** el mismo origen exacto de la web (`https://<dominio-web>`, y `http://localhost:3000` para probar en
+  local). Sin eso, Google rechaza el botón. El mismo ID tiene que estar en `GOOGLE_OAUTH_CLIENT_IDS` del backend, o
+  `POST /auth/google` responde 401.
 - **El dominio real no está decidido en ningún documento de los dos repos:** lo fija quien despliega. Hasta entonces,
   los valores de arriba son la regla, no un valor.
 

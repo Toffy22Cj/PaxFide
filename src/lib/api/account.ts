@@ -141,6 +141,52 @@ export async function deactivateAccount(currentPassword: string): Promise<Deacti
   return { kind: 'error' };
 }
 
+/**
+ * Anexo 6, G-W5 y G-W6 (referencia-api-v1.md, nota del 2026-10-31; ADR-050 D9). Vincular y desvincular Google, con JWT
+ * y sin `Command-Id` (DH-34). Las dos rutas son idempotentes: repetir tras una respuesta perdida no cambia nada.
+ * - `POST /account/google/link {idToken, currentPassword}` → `204`; la contraseña se comprueba antes que el `idToken`.
+ * - `DELETE /account/google/link {currentPassword}` → `204`, también sin vínculo.
+ */
+export type GoogleLinkOutcome =
+  | { kind: 'ok' }
+  | { kind: 'current-incorrect' }
+  | { kind: 'google-invalid' }
+  | { kind: 'google-taken' }
+  | { kind: 'already-linked' }
+  | { kind: 'google-unavailable' }
+  | { kind: 'network' }
+  | { kind: 'unauthorized' }
+  | { kind: 'error' };
+
+export type GoogleUnlinkOutcome = Extract<GoogleLinkOutcome, { kind: 'ok' | 'current-incorrect' | 'network' | 'unauthorized' | 'error' }>;
+
+export async function linkGoogle(idToken: string, currentPassword: string): Promise<GoogleLinkOutcome> {
+  const r = await apiRequest<unknown>({
+    path: '/account/google/link', method: 'POST', body: { idToken, currentPassword }, auth: 'required',
+  });
+  if (r.kind === 'network') return { kind: 'network' };
+  if (r.kind === 'ok') return { kind: 'ok' };
+  const t = r.problem.title;
+  if (r.status === 400 && t === 'CurrentPasswordIncorrect') return { kind: 'current-incorrect' };
+  if (r.status === 400 && t === 'GoogleIdTokenInvalid') return { kind: 'google-invalid' };
+  if (r.status === 409 && t === 'GoogleAccountAlreadyLinked') return { kind: 'google-taken' };
+  if (r.status === 409 && t === 'AccountAlreadyLinkedToGoogle') return { kind: 'already-linked' };
+  if (r.status === 503) return { kind: 'google-unavailable' };
+  if (r.status === 401) return { kind: 'unauthorized' };
+  return { kind: 'error' };
+}
+
+export async function unlinkGoogle(currentPassword: string): Promise<GoogleUnlinkOutcome> {
+  const r = await apiRequest<unknown>({
+    path: '/account/google/link', method: 'DELETE', body: { currentPassword }, auth: 'required',
+  });
+  if (r.kind === 'network') return { kind: 'network' };
+  if (r.kind === 'ok') return { kind: 'ok' };
+  if (r.status === 400 && r.problem.title === 'CurrentPasswordIncorrect') return { kind: 'current-incorrect' };
+  if (r.status === 401) return { kind: 'unauthorized' };
+  return { kind: 'error' };
+}
+
 /** `GET` y `PUT /account/profile`. El nombre es privado: solo viaja en estas dos rutas (ADR-050 D1). */
 export interface PersonalProfile {
   email: string;

@@ -67,6 +67,14 @@ const resetTokens = new Map(); // token -> { email, used, superseded, at }
 const resetMails = [];
 const resetCooldown = new Map(); // email -> ms de la última petición que envió correo
 const passwordChange500 = new Set();
+// Anexo 6 (ADR-050 D9): los idToken de prueba son `fake-google.<sub>.<correo>`; nunca un token real de Google.
+// `googleUnavailable` hace que la siguiente llamada a Google responda 503 GoogleSignInUnavailable.
+let googleUnavailable = 0;
+let gsiLoads = 0;
+function googleIdentity(idToken) {
+  const m = /^fake-google\.([A-Za-z0-9_-]+)\.(.+@.+)$/.exec(String(idToken || ''));
+  return m ? { sub: m[1], email: m[2].toLowerCase() } : null;
+}
 
 /** Revocación (ADR-050 D4): ningún token anterior de esa cuenta vale (todas sus direcciones). */
 function revokeTokensOf(acc) {
@@ -338,6 +346,36 @@ const server = http.createServer(async (req, res) => {
     send(res, 200, { ok: true });
     return;
   }
+  // Anexo 6: el doble de Google Identity Services (https://accounts.google.com/gsi/client) para los E2E. El botón entrega
+  // como credential lo que el test deje en window.__gisNextCredential; cuenta las cargas en window.__gisLoads
+  if (path === '/__test/gsi-client.js' && req.method === 'GET') {
+    gsiLoads += 1;
+    res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(`(function(){
+  window.__gisLoads = (window.__gisLoads || 0) + 1;
+  var cfg = null;
+  window.google = { accounts: { id: {
+    initialize: function (c) { cfg = c; },
+    renderButton: function (el, opts) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('data-testid', 'gis-stub-button');
+      b.setAttribute('data-gis-theme', (opts && opts.theme) || '');
+      b.textContent = 'Google (doble de prueba)';
+      b.onclick = function () { if (cfg) cfg.callback({ credential: window.__gisNextCredential || '' }); };
+      el.appendChild(b);
+    }
+  } } };
+})();`);
+    return;
+  }
+  if (path === '/__test/gsi-client/loads' && req.method === 'GET') { send(res, 200, { loads: gsiLoads }); return; }
+  // Anexo 6: la siguiente llamada que verifica un idToken responde 503 GoogleSignInUnavailable
+  if (path === '/__test/google-unavailable' && req.method === 'POST') {
+    googleUnavailable += 1;
+    send(res, 200, { ok: true });
+    return;
+  }
   if (path === '/__test/password-change-500' && req.method === 'POST') {
     const body = await readBody(req);
     passwordChange500.add(String((body && body.email) || '').toLowerCase());
@@ -513,7 +551,62 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ADR-050 D9 — POST /auth/google, como GoogleSignInController: 400 sin idToken; el mismo 401 sin motivo (token
+  // inválido, sin vínculo o INACTIVE); 403 EmailNotVerified; 403 AcceptanceRequired; 503 si Google no responde
+  if (p === '/auth/google' && req.method === 'POST') {
+    const body = await readBody(req);
+    if (!body || !body.idToken) { problem(res, 400, 'Bad Request'); return; }
+    if (googleUnavailable > 0) { googleUnavailable -= 1; problem(res, 503, 'GoogleSignInUnavailable'); return; }
+    const g = googleIdentity(body.idToken);
+    const entry = g && Object.entries(accounts).find(([, a]) => a.googleSubject === g.sub);
+    if (!entry || entry[1].status === 'INACTIVE') { problem(res, 401, 'Unauthorized'); return; }
+    const [email, acc] = entry;
+    if (acc.emailVerified === false) {
+      send(res, 403, { type: 'about:blank', title: 'EmailNotVerified', status: 403, detail: 'The email must be verified' });
+      return;
+    }
+    const missingTerms = acc.acceptedTermsVersion !== LEGAL;
+    const missingData = acc.acceptedDataPolicyVersion !== LEGAL;
+    if ((missingTerms && body.acceptedTermsVersion !== LEGAL) || (missingData && body.acceptedDataPolicyVersion !== LEGAL)) {
+      const pending = {};
+      if (missingTerms) pending.pendingTermsVersion = LEGAL;
+      if (missingData) pending.pendingDataPolicyVersion = LEGAL;
+      send(res, 403, { type: 'about:blank', title: 'AcceptanceRequired', status: 403, detail: DETAILS[403], ...pending });
+      return;
+    }
+    if (missingTerms) acc.acceptedTermsVersion = LEGAL;
+    if (missingData) acc.acceptedDataPolicyVersion = LEGAL;
+    const token = 'tok-' + crypto.randomUUID();
+    tokens.set(token, email);
+    send(res, 200, { token });
+    return;
+  }
+
   const actor = accountOf(req);
+
+  // ADR-050 D9 — POST y DELETE /account/google/link, como GoogleLinkController: la contraseña primero (400
+  // CurrentPasswordIncorrect, también ausente), después el idToken (400 GoogleIdTokenInvalid), los dos 409 y el 503.
+  // Repetir la misma vinculación o desvincular sin vínculo → 204 sin cambios. Mismo correo → la cuenta queda verificada
+  if (p === '/account/google/link' && (req.method === 'POST' || req.method === 'DELETE')) {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const body = (await readBody(req)) || {};
+    if (!body.currentPassword || body.currentPassword !== actor.password) { problem(res, 400, 'CurrentPasswordIncorrect'); return; }
+    if (req.method === 'DELETE') {
+      delete actor.googleSubject;
+      res.writeHead(204); res.end();
+      return;
+    }
+    if (googleUnavailable > 0) { googleUnavailable -= 1; problem(res, 503, 'GoogleSignInUnavailable'); return; }
+    const g = googleIdentity(body.idToken);
+    if (!g) { problem(res, 400, 'GoogleIdTokenInvalid'); return; }
+    const other = Object.values(accounts).find((a) => a !== actor && a.googleSubject === g.sub);
+    if (other) { problem(res, 409, 'GoogleAccountAlreadyLinked'); return; }
+    if (actor.googleSubject && actor.googleSubject !== g.sub) { problem(res, 409, 'AccountAlreadyLinkedToGoogle'); return; }
+    actor.googleSubject = g.sub;
+    if (g.email === String(emailOf(req) || '').toLowerCase()) actor.emailVerified = true;
+    res.writeHead(204); res.end();
+    return;
+  }
 
   // GET /public/campaigns?cursor= (PublicCampaignDiscoveryController): solo PUBLIC y OPEN, 20 por página, cursor opaco
   // Ficha R-1 (referencia-api-v1.md §5, nota del 2026-10-29), como PublicCampaignDiscoveryController: q (2..100 puntos
