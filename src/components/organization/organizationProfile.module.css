@@ -1,0 +1,17 @@
+/* Ref: plan-fase7-puesta-al-dia.md Anexo 5, U-32 y U-33 (perfil de la organización). Solo tokens semánticos. */
+.form { display: flex; flex-direction: column; gap: var(--space-4); }
+.location { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.legend { padding: 0; font-weight: var(--weight-semibold); color: var(--color-text); }
+.row2, .nitRow { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
+@media (min-width: 640px) {
+  .row2 { grid-template-columns: 1fr 1fr; }
+  .nitRow { grid-template-columns: 1fr 12rem; }
+}
+.catalogError { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); color: var(--color-text-secondary); }
+/* P3: el aviso del correo público, informativo (azul), siempre visible encima del campo */
+.publicNotice {
+  margin: 0; padding: var(--space-2) var(--space-3); border-radius: var(--radius-control);
+  background: var(--color-info-bg); color: var(--color-info-text); font-size: var(--font-size-body-3);
+}
+.check { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; color: var(--color-text); }
+.check input { width: 20px; height: 20px; accent-color: var(--color-action); }

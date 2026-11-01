@@ -38,7 +38,8 @@ describe('/panel/platform — cola de verificación', () => {
   it('cliente: filtro y cursor en la query; 403', async () => {
     const m = await load();
     fetchMock.mockResolvedValueOnce(res(200, { items: [ORG_A], nextCursor: 'c2' }));
-    expect(await m.fetchVerificationQueue({ status: 'PENDING_VERIFICATION', cursor: 'c1' })).toEqual({ kind: 'ok', items: [ORG_A], nextCursor: 'c2' });
+    // Ficha R-7 (P-15): cada ítem lleva además su perfil (vacío si no lo tiene)
+    expect(await m.fetchVerificationQueue({ status: 'PENDING_VERIFICATION', cursor: 'c1' })).toEqual({ kind: 'ok', items: [{ ...ORG_A, profile: {} }], nextCursor: 'c2' });
     expect(fetchMock.mock.calls[0][0]).toBe('http://api.paxfide.test/api/v1/platform/organizations?status=PENDING_VERIFICATION&cursor=c1');
     fetchMock.mockResolvedValueOnce(res(403, { title: 'Forbidden' }));
     expect(await m.fetchVerificationQueue()).toEqual({ kind: 'forbidden' });
@@ -152,13 +153,16 @@ describe('/panel/platform — administradores', () => {
   });
 });
 
+// P-15: el formulario pide el catálogo de ubicaciones; aquí, uno vacío (sin pasar por fetch)
+const NO_LOCATIONS = async () => ({ kind: 'ok' as const, catalog: { catalogVersion: 'test', departments: [] } });
+
 describe('/panel/organization — crear organización', () => {
   it('sin organización: crea con {type, name, acceptedOrganizationTermsVersion}; "Pendiente de verificación" y relee /me', async () => {
     const { OrganizationScreen } = await load();
     const me = vi.fn()
       .mockResolvedValueOnce({ kind: 'ok', principal: { accountId: 'a', roles: [] } })
       .mockResolvedValueOnce({ kind: 'ok', principal: { accountId: 'a', organizationId: 'org-new', roles: ['REPRESENTATIVE'] } });
-    render(<OrganizationScreen meClient={me} />);
+    render(<OrganizationScreen locationsClient={NO_LOCATIONS} meClient={me} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Crear organización' }));
     const dialog = screen.getByRole('dialog');
     // R-3 (plan-fase7-puesta-al-dia.md): sin la casilla de los términos de organización, no se puede enviar
@@ -182,7 +186,7 @@ describe('/panel/organization — crear organización', () => {
 
   it('409 AccountAlreadyBelongsToOrganization con su texto', async () => {
     const { OrganizationScreen } = await load();
-    render(<OrganizationScreen meClient={async () => ({ kind: 'ok', principal: { accountId: 'a', roles: [] } })} />);
+    render(<OrganizationScreen locationsClient={NO_LOCATIONS} meClient={async () => ({ kind: 'ok', principal: { accountId: 'a', roles: [] } })} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Crear organización' }));
     const dialog = screen.getByRole('dialog');
     fireEvent.change(within(dialog).getByLabelText('Tipo'), { target: { value: 'COMPANY' } });
@@ -195,7 +199,7 @@ describe('/panel/organization — crear organización', () => {
 
   it('R-3: sin marcar la casilla no hay petición aunque el formulario esté completo (negativa)', async () => {
     const { OrganizationScreen } = await load();
-    render(<OrganizationScreen meClient={async () => ({ kind: 'ok', principal: { accountId: 'a', roles: [] } })} />);
+    render(<OrganizationScreen locationsClient={NO_LOCATIONS} meClient={async () => ({ kind: 'ok', principal: { accountId: 'a', roles: [] } })} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Crear organización' }));
     const dialog = screen.getByRole('dialog');
     fireEvent.change(within(dialog).getByLabelText('Tipo'), { target: { value: 'COMPANY' } });
@@ -204,10 +208,11 @@ describe('/panel/organization — crear organización', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('con organización: papeles y estado de verificación "No disponible" (sin lectura)', async () => {
+  // P-15 (Anexo 5): REPRESENTATIVE y ADMINISTRATOR ya leen el estado y el perfil (S-18); un EMPLOYEE sigue sin lectura
+  it('con organización y solo empleado: papeles y estado de verificación "No disponible" (sin lectura)', async () => {
     const { OrganizationScreen } = await load();
-    render(<OrganizationScreen meClient={async () => ({ kind: 'ok', principal: { accountId: 'a', organizationId: 'o', roles: ['ADMINISTRATOR', 'EMPLOYEE'] } })} />);
-    expect(await screen.findByTestId('organization-roles')).toHaveTextContent('Administrador, Empleado');
+    render(<OrganizationScreen locationsClient={NO_LOCATIONS} meClient={async () => ({ kind: 'ok', principal: { accountId: 'a', organizationId: 'o', roles: ['EMPLOYEE'] } })} />);
+    expect(await screen.findByTestId('organization-roles')).toHaveTextContent('Empleado');
     expect(screen.getByTestId('unavailable-state')).toHaveTextContent('El estado de verificación de tu organización');
     expect(screen.queryByRole('button', { name: 'Crear organización' })).toBeNull();
   });

@@ -1,6 +1,7 @@
 'use client';
 
 import { segment } from './config';
+import { profileFromResponse, type OrganizationProfileContract } from '../organization/profileModel';
 import { apiRequest } from './http';
 import { ListOutcome } from './campaignAdmin';
 
@@ -110,6 +111,8 @@ export interface QueueItem {
   type: string;
   verificationStatus: string;
   informationRequest?: string;
+  /** Ficha R-7 §4: los campos del perfil, solo para la plataforma (U-37). */
+  profile?: OrganizationProfileContract;
 }
 
 export type QueueOutcome =
@@ -129,7 +132,7 @@ export async function fetchVerificationQueue(opts: { status?: QueueStatus; curso
       .filter((o: any) => o && typeof o.organizationId === 'string')
       .map((o: any) => ({
         organizationId: o.organizationId, name: opt(o.name), type: String(o.type), verificationStatus: String(o.verificationStatus),
-        informationRequest: opt(o.informationRequest),
+        informationRequest: opt(o.informationRequest), profile: profileFromResponse(o),
       }));
     return { kind: 'ok', items, nextCursor: opt(r.data!.nextCursor) };
   }
@@ -178,6 +181,8 @@ export interface OrganizationDetails {
   verificationStatus: string;
   informationRequest?: string;
   logoUrl?: string;
+  /** Ficha R-7 §4: los campos del perfil (U-32). */
+  profile?: OrganizationProfileContract;
 }
 
 export type OrganizationOutcome =
@@ -206,6 +211,7 @@ export async function fetchOrganization(organizationId: string): Promise<Organiz
         verificationStatus: String(r.data.verificationStatus ?? ''),
         informationRequest: opt(r.data.informationRequest),
         logoUrl: opt(r.data.logoUrl),
+        profile: profileFromResponse(r.data as Record<string, unknown>),
       },
     };
   }
@@ -239,3 +245,39 @@ export async function reactivateAccount(accountId: string): Promise<ReactivateOu
   if (r.status === 401) return { kind: 'unauthorized' };
   return { kind: 'error' };
 }
+
+/**
+ * `PUT /organizations/{organizationId}/profile` (ficha R-7 §4; plan-fase7-puesta-al-dia.md U-32): `REPRESENTATIVE` o
+ * `ADMINISTRATOR`. Lleva **todos** los campos (`profileBody`): ausente o `null` borra. Sin `Command-Id` (DH-34).
+ */
+export type UpdateProfileOutcome =
+  | { kind: 'ok'; name?: string; profile: OrganizationProfileContract }
+  | { kind: 'invalid' }
+  | { kind: 'locked' }
+  | { kind: 'nit-taken' }
+  | { kind: 'forbidden' }
+  | { kind: 'unauthorized' }
+  | { kind: 'network' }
+  | { kind: 'error' };
+
+export async function updateOrganizationProfile(organizationId: string, body: unknown): Promise<UpdateProfileOutcome> {
+  const r = await apiRequest<Record<string, unknown>>({
+    path: `/organizations/${segment(organizationId)}/profile`, method: 'PUT', body, auth: 'required',
+  });
+  if (r.kind === 'network') return { kind: 'network' };
+  if (r.kind === 'ok') return { kind: 'ok', name: opt(r.data?.name), profile: profileFromResponse(r.data ?? {}) };
+  if (r.status === 400) return { kind: 'invalid' };
+  if (r.status === 409 && r.problem.title === 'OrganizationProfileLocked') return { kind: 'locked' };
+  if (r.status === 409 && r.problem.title === 'OrganizationNitAlreadyRegistered') return { kind: 'nit-taken' };
+  if (r.status === 403) return { kind: 'forbidden' };
+  if (r.status === 401) return { kind: 'unauthorized' };
+  return { kind: 'error' };
+}
+
+/**
+ * `POST /organizations/{organizationId}/verification/resubmit` (ficha R-7 §5; U-36): un comando D6 (éxito, rechazo o
+ * ambiguo). Desde otro estado que `NEEDS_MORE_INFORMATION`, 409 `VerificationResubmitNotAllowed`.
+ */
+export const resubmitVerificationRequest = (organizationId: string) => () => ({
+  path: `/organizations/${segment(organizationId)}/verification/resubmit`, body: undefined, auth: 'required' as const,
+});

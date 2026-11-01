@@ -142,7 +142,10 @@ const invitations = new Map();
 const organizationStatus = new Map([['org-1', 'VERIFIED'], ['org-2', 'PENDING_VERIFICATION'], ['org-3', 'PENDING_VERIFICATION']]);
 /** Ficha de las organizaciones del doble (cola de verificación, DD-69): nombre, tipo, petición de información y orden. */
 const organizations = new Map([
-  ['org-1', { name: 'Fundación Demo', type: 'FOUNDATION' }],
+  ['org-1', { name: 'Fundación Demo', type: 'FOUNDATION', profile: {
+    description: 'Fundación de demostración del servidor falso.', website: 'https://fundacion-demo.example',
+    location: { departmentCode: '05', municipalityCode: '05001' }, contactEmail: 'contacto@fundacion-demo.example',
+    legalName: 'Fundación Demo S.A.S. (prueba)', nit: '900123456', nitCheckDigit: '8', specialTaxRegime: true, contactPhone: '3001234567' } }],
   ['org-2', { name: 'Fundación Sin Verificar', type: 'FOUNDATION' }],
   ['org-3', { name: 'Empresa Pendiente', type: 'COMPANY' }],
 ]);
@@ -203,7 +206,93 @@ function publicView(c) {
   if (c.organizationLogo || orgLogos.has(c.organizationRef)) out.organizationLogoUrl = `/api/v1/public/campaigns/${c.publicCode}/organization-logo`;
   // U-6 (nota del 2026-10-25, Tarea 3): la portada, solo si la tiene
   if (covers.has(c.publicCode)) out.coverImageUrl = `/api/v1/public/campaigns/${c.publicCode}/cover`;
+  // Ficha R-7: lo público del perfil de la organización
+  const op = publicOrganizationProfile(c.organizationRef);
+  if (op) out.organizationProfile = op;
   return out;
+}
+
+// ----- Ficha R-7 (referencia-api-v1.md §3, nota del 2026-10-31): perfil de la organización -----
+// CATÁLOGO DE PRUEBA, reducido: NO es el DIVIPOLA del DANE. La web nunca incluye el catálogo; lo pide a
+// GET /public/locations, y en el backend real viene de divipola.json (DIVIPOLA-2026-09).
+const TEST_LOCATIONS = {
+  catalogVersion: 'PRUEBA-NO-DIVIPOLA',
+  departments: [
+    { code: '05', name: 'Antioquia (prueba)', municipalities: [{ code: '05001', name: 'Medellín (prueba)' }, { code: '05266', name: 'Envigado (prueba)' }] },
+    { code: '11', name: 'Bogotá, D.C. (prueba)', municipalities: [{ code: '11001', name: 'Bogotá, D.C. (prueba)' }] },
+    { code: '23', name: 'Córdoba (prueba)', municipalities: [{ code: '23001', name: 'Montería (prueba)' }] },
+  ],
+};
+const PROFILE_FIELDS = ['description', 'website', 'location', 'contactEmail', 'legalName', 'nit', 'nitCheckDigit', 'specialTaxRegime', 'contactPhone'];
+function nitDigit(n) {
+  const W = [3, 7, 13, 17, 19, 23, 29, 37, 41];
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += Number(n[8 - i]) * W[i];
+  const r = sum % 11;
+  return r <= 1 ? r : 11 - r;
+}
+/** Como OrganizationProfile.from: devuelve el perfil limpio o el nombre del primer campo inválido. */
+function parseProfile(b, type) {
+  const cp = (v) => Array.from(v).length;
+  const out = {};
+  const text = (k, max) => {
+    if (b[k] === undefined || b[k] === null) return true;
+    if (typeof b[k] !== 'string') return false;
+    const t = b[k].trim();
+    if (cp(t) < 1 || cp(t) > max) return false;
+    out[k] = t; return true;
+  };
+  if (!text('description', 500) || (out.description && /[<>]/.test(out.description))) return { field: 'description' };
+  if (b.website != null) {
+    let ok = typeof b.website === 'string';
+    try { const u = new URL(b.website.trim()); ok = ok && u.protocol === 'https:' && !!u.hostname && !u.username && b.website.trim().length <= 200; } catch { ok = false; }
+    if (!ok) return { field: 'website' };
+    out.website = b.website.trim();
+  }
+  if (b.location != null) {
+    const l = b.location;
+    const dep = l && TEST_LOCATIONS.departments.find((d) => d.code === l.departmentCode);
+    if (!dep || !dep.municipalities.some((m) => m.code === l.municipalityCode)) return { field: 'location' };
+    out.location = { departmentCode: l.departmentCode, municipalityCode: l.municipalityCode };
+  }
+  if (b.contactEmail != null) {
+    if (typeof b.contactEmail !== 'string' || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(b.contactEmail.trim())) return { field: 'contactEmail' };
+    out.contactEmail = b.contactEmail.trim().toLowerCase();
+  }
+  if (!text('legalName', 200)) return { field: 'legalName' };
+  if (b.nit != null || b.nitCheckDigit != null) {
+    if (typeof b.nit !== 'string' || !/^\d{9}$/.test(b.nit)) return { field: 'nit' };
+    if (typeof b.nitCheckDigit !== 'string' || !/^\d$/.test(b.nitCheckDigit) || Number(b.nitCheckDigit) !== nitDigit(b.nit)) return { field: 'nitCheckDigit' };
+    out.nit = b.nit; out.nitCheckDigit = b.nitCheckDigit;
+  }
+  if (b.specialTaxRegime != null) {
+    if (typeof b.specialTaxRegime !== 'boolean' || (b.specialTaxRegime && type !== 'FOUNDATION')) return { field: 'specialTaxRegime' };
+    out.specialTaxRegime = b.specialTaxRegime;
+  }
+  if (b.contactPhone != null) {
+    if (typeof b.contactPhone !== 'string' || !/^(3\d{9}|60\d{8})$/.test(b.contactPhone)) return { field: 'contactPhone' };
+    out.contactPhone = b.contactPhone;
+  }
+  return { profile: out };
+}
+const nitTaken = (nit, exceptId) => [...organizations.entries()].some(([id, o]) => id !== exceptId && o.profile && o.profile.nit === nit);
+/** Lo público del perfil para CV-07, con los nombres del catálogo; nunca NIT, razón social, teléfono ni régimen. */
+function publicOrganizationProfile(orgId) {
+  const o = organizations.get(orgId);
+  const pr = o && o.profile;
+  if (!pr) return undefined;
+  const out = {};
+  if (pr.description) out.description = pr.description;
+  if (pr.website) out.website = pr.website;
+  if (pr.location) {
+    const dep = TEST_LOCATIONS.departments.find((d) => d.code === pr.location.departmentCode);
+    const mun = dep && dep.municipalities.find((m) => m.code === pr.location.municipalityCode);
+    if (dep && mun) out.location = { departmentName: dep.name, municipalityName: mun.name };
+  }
+  if (pr.contactEmail) out.contactEmail = pr.contactEmail;
+  // Solo para la prueba negativa de la web: el doble mete datos privados si se le pide (/__test/leak-private-profile)
+  if (o.leakPrivate) Object.assign(out, { nit: pr.nit, legalName: pr.legalName, contactPhone: pr.contactPhone, specialTaxRegime: pr.specialTaxRegime });
+  return Object.keys(out).length ? out : undefined;
 }
 
 /** Logo de demostración: un PNG de 1×1 (los bytes no importan al front, solo que sea una imagen del backend). */
@@ -335,6 +424,15 @@ const server = http.createServer(async (req, res) => {
     const acc = body && accounts[String(body.email || '').toLowerCase()];
     if (!acc) { send(res, 404, { ok: false }); return; }
     acc.emailVerified = false;
+    send(res, 200, { ok: true });
+    return;
+  }
+  // P-15: la prueba negativa de CV-07 pide al doble que meta datos privados del perfil en la respuesta pública
+  if (path === '/__test/leak-private-profile' && req.method === 'POST') {
+    const body = await readBody(req);
+    const o = body && organizations.get(body.organizationId);
+    if (!o) { send(res, 404, { ok: false }); return; }
+    o.leakPrivate = true;
     send(res, 200, { ok: true });
     return;
   }
@@ -718,6 +816,47 @@ const server = http.createServer(async (req, res) => {
   }
 
   // S-18: GET /organizations/{organizationId} (solo ADMINISTRATOR o REPRESENTATIVE, el resto 403)
+  // Ficha R-7 — GET /public/locations: el catálogo (aquí, el de PRUEBA)
+  if (p === '/public/locations' && req.method === 'GET') {
+    send(res, 200, TEST_LOCATIONS, { 'Cache-Control': 'public, max-age=86400' });
+    return;
+  }
+  // Ficha R-7 — PUT /organizations/{id}/profile: REPRESENTATIVE o ADMINISTRATOR; todos los campos, ausente o null borra;
+  // verificada → nombre, razón social, NIT y dígito no cambian (409 OrganizationProfileLocked)
+  const profileMatch = p.match(/^\/organizations\/([^/]+)\/profile$/);
+  if (profileMatch && req.method === 'PUT') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(profileMatch[1]);
+    const o = organizations.get(orgId);
+    if (!o || actor.organizationId !== orgId || !actor.roles.some((r) => r === 'REPRESENTATIVE' || r === 'ADMINISTRATOR')) { problem(res, 403, 'Forbidden'); return; }
+    const b = (await readBody(req)) || {};
+    if (typeof b.name !== 'string' || !b.name.trim() || Array.from(b.name.trim()).length > 200) { problem(res, 400, 'BadRequest'); return; }
+    const parsed = parseProfile(b, o.type);
+    if (parsed.field) { problem(res, 400, 'BadRequest'); return; }
+    const before = o.profile || {};
+    if (organizationStatus.get(orgId) === 'VERIFIED' && (b.name.trim() !== o.name || before.legalName !== parsed.profile.legalName
+      || before.nit !== parsed.profile.nit || before.nitCheckDigit !== parsed.profile.nitCheckDigit)) {
+      problem(res, 409, 'OrganizationProfileLocked'); return;
+    }
+    if (parsed.profile.nit && nitTaken(parsed.profile.nit, orgId)) { problem(res, 409, 'OrganizationNitAlreadyRegistered'); return; }
+    o.name = b.name.trim();
+    o.profile = parsed.profile;
+    send(res, 200, { name: o.name, ...o.profile }, { 'Cache-Control': 'no-store' });
+    return;
+  }
+  // Ficha R-7 — POST /organizations/{id}/verification/resubmit: solo desde NEEDS_MORE_INFORMATION
+  const resubmitMatch = p.match(/^\/organizations\/([^/]+)\/verification\/resubmit$/);
+  if (resubmitMatch && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(resubmitMatch[1]);
+    if (!organizations.has(orgId) || actor.organizationId !== orgId || !actor.roles.some((r) => r === 'REPRESENTATIVE' || r === 'ADMINISTRATOR')) { problem(res, 403, 'Forbidden'); return; }
+    if (organizationStatus.get(orgId) !== 'NEEDS_MORE_INFORMATION') { problem(res, 409, 'VerificationResubmitNotAllowed'); return; }
+    organizationStatus.set(orgId, 'PENDING_VERIFICATION');
+    delete organizations.get(orgId).informationRequest;
+    send(res, 200, { verificationStatus: 'PENDING_VERIFICATION' }, { 'Cache-Control': 'no-store' });
+    return;
+  }
+
   const singleOrgMatch = p.match(/^\/organizations\/([^/]+)$/);
   if (singleOrgMatch && req.method === 'GET') {
     if (!actor) { problem(res, 401, 'Unauthorized'); return; }
@@ -734,8 +873,9 @@ const server = http.createServer(async (req, res) => {
       verificationStatus: organizationStatus.get(orgId) || 'PENDING_VERIFICATION',
       informationRequest: o.informationRequest,
       logoUrl: o.logoUrl,
+      ...(o.profile || {}),
     };
-    send(res, 200, out);
+    send(res, 200, out, { 'Cache-Control': 'no-store' });
     return;
   }
 
@@ -1045,6 +1185,7 @@ const server = http.createServer(async (req, res) => {
       const item = { organizationId: id, type: o.type, verificationStatus: organizationStatus.get(id) };
       if (o.name) item.name = o.name;
       if (o.informationRequest) item.informationRequest = o.informationRequest;
+      Object.assign(item, o.profile || {});
       return item;
     });
     const out = { items };
@@ -1100,8 +1241,12 @@ const server = http.createServer(async (req, res) => {
     // R-5: la versión vigente de los términos de organización, o 400 sin organización
     if (b.acceptedOrganizationTermsVersion !== LEGAL) { problem(res, 400, 'BadRequest'); return; }
     if (actor.organizationId) { problem(res, 409, 'AccountAlreadyBelongsToOrganization'); return; }
+    // Ficha R-7: el perfil, todo opcional; un campo inválido → 400; un NIT repetido → 409 sin organización
+    const parsed = parseProfile(b, b.type);
+    if (parsed.field) { problem(res, 400, 'BadRequest'); return; }
+    if (parsed.profile.nit && nitTaken(parsed.profile.nit)) { problem(res, 409, 'OrganizationNitAlreadyRegistered'); return; }
     const organizationId = 'org-' + crypto.randomUUID();
-    organizations.set(organizationId, { name: b.name.trim(), type: b.type });
+    organizations.set(organizationId, { name: b.name.trim(), type: b.type, profile: parsed.profile });
     organizationStatus.set(organizationId, 'PENDING_VERIFICATION');
     actor.organizationId = organizationId;
     actor.roles = ['REPRESENTATIVE'];
@@ -1216,6 +1361,9 @@ const server = http.createServer(async (req, res) => {
     const current = organizationStatus.get(orgId);
     if (!current) { problem(res, 404, 'NotFound'); return; }
     if (current === 'VERIFIED' || current === 'REJECTED') { problem(res, 409, 'InvalidVerificationTransition'); return; }
+    // Ficha R-7 (P2 (b)): verificar exige la razón social y el NIT
+    const prof = (organizations.get(orgId) || {}).profile || {};
+    if (decision === 'verify' && (!prof.legalName || !prof.nit)) { problem(res, 409, 'VerificationDataMissing'); return; }
     const next = { verify: 'VERIFIED', reject: 'REJECTED', 'request-information': 'NEEDS_MORE_INFORMATION' }[decision];
     organizationStatus.set(orgId, next);
     if (decision === 'request-information' && organizations.has(orgId)) organizations.get(orgId).informationRequest = b.message;
