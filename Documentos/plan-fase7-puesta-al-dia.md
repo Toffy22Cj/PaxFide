@@ -539,7 +539,7 @@ develop
 
 ## Anexo 5 (2026-11-01) — Perfil de la organización (R-7) y login con Google (#166)
 
-**Estado: PROPUESTO — espera la aprobación de Carlos.** Origen: el backend `develop` `3726414` (2026-10-31) trae:
+**Estado: APROBADO — Carlos, 2026-11-01** (texto literal: "Apruebo el Anexo 5"). Aprueba U-32 a U-39 y P-15. **No aprueba nada de Google:** PD-7 y PD-8 siguen pendientes. Origen: el backend `develop` `3726414` (2026-10-31) trae:
 - **#165, R-7, perfil de la organización:** ficha CONGELADA y plan aprobado en #162;
 - **#166, login con Google y vínculo (ADR-050 D9):** plan aprobado por Manuel;
 - **#167, guía de despliegue:** `despliegue-backend-2026-10.md`.
