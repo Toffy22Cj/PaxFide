@@ -118,7 +118,7 @@ test.describe('P-16: Google en la web', () => {
     const google: string[] = [];
     page.on('request', (r) => {
       const u = r.url();
-      if (u.includes('accounts.google.com') || u.includes('/__test/gsi-client.js')) google.push(u);
+      if (u.includes('accounts.google.com') || u.includes('localhost:3003/gsi/client')) google.push(u);
     });
     await page.goto('/');
     await page.waitForLoadState('networkidle');

@@ -31,7 +31,7 @@ export default defineConfig({
       env: {
         // Anexo 6: un ID de cliente de prueba (nunca uno real) y el doble de Google Identity Services del servidor falso
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: 'client-web-test',
-        NEXT_PUBLIC_E2E_GIS_URL: 'http://localhost:3002/__test/gsi-client.js',
+        NEXT_PUBLIC_E2E_GIS_URL: 'http://localhost:3003/gsi/client',
         NEXT_PUBLIC_E2E_SURFACES: JSON.stringify([
           '/',
           '/home',

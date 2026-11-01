@@ -70,7 +70,6 @@ const passwordChange500 = new Set();
 // Anexo 6 (ADR-050 D9): los idToken de prueba son `fake-google.<sub>.<correo>`; nunca un token real de Google.
 // `googleUnavailable` hace que la siguiente llamada a Google responda 503 GoogleSignInUnavailable.
 let googleUnavailable = 0;
-let gsiLoads = 0;
 function googleIdentity(idToken) {
   const m = /^fake-google\.([A-Za-z0-9_-]+)\.(.+@.+)$/.exec(String(idToken || ''));
   return m ? { sub: m[1], email: m[2].toLowerCase() } : null;
@@ -435,30 +434,6 @@ const server = http.createServer(async (req, res) => {
     send(res, 200, { ok: true });
     return;
   }
-  // Anexo 6: el doble de Google Identity Services (https://accounts.google.com/gsi/client) para los E2E. El botón entrega
-  // como credential lo que el test deje en window.__gisNextCredential; cuenta las cargas en window.__gisLoads
-  if (path === '/__test/gsi-client.js' && req.method === 'GET') {
-    gsiLoads += 1;
-    res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(`(function(){
-  window.__gisLoads = (window.__gisLoads || 0) + 1;
-  var cfg = null;
-  window.google = { accounts: { id: {
-    initialize: function (c) { cfg = c; },
-    renderButton: function (el, opts) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.setAttribute('data-testid', 'gis-stub-button');
-      b.setAttribute('data-gis-theme', (opts && opts.theme) || '');
-      b.textContent = 'Google (doble de prueba)';
-      b.onclick = function () { if (cfg) cfg.callback({ credential: window.__gisNextCredential || '' }); };
-      el.appendChild(b);
-    }
-  } } };
-})();`);
-    return;
-  }
-  if (path === '/__test/gsi-client/loads' && req.method === 'GET') { send(res, 200, { loads: gsiLoads }); return; }
   // Anexo 6: la siguiente llamada que verifica un idToken responde 503 GoogleSignInUnavailable
   if (path === '/__test/google-unavailable' && req.method === 'POST') {
     googleUnavailable += 1;
@@ -2067,6 +2042,35 @@ const server = http.createServer(async (req, res) => {
 
   problem(res, 404, 'NotFound');
 });
+
+// Anexo 6: el doble de Google Identity Services (https://accounts.google.com/gsi/client) para los E2E, en OTRO origen
+// (:3003), como el real: no es una petición a la API. El botón entrega como credential lo que el test deje en
+// window.__gisNextCredential; window.__gisLoads cuenta las cargas
+const GIS_STUB_PORT = Number(process.env.GIS_STUB_PORT || 3003);
+const GIS_STUB = `(function(){
+  window.__gisLoads = (window.__gisLoads || 0) + 1;
+  var cfg = null;
+  window.google = { accounts: { id: {
+    initialize: function (c) { cfg = c; },
+    renderButton: function (el, opts) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('data-testid', 'gis-stub-button');
+      b.setAttribute('data-gis-theme', (opts && opts.theme) || '');
+      b.textContent = 'Google (doble de prueba)';
+      b.onclick = function () { if (cfg) cfg.callback({ credential: window.__gisNextCredential || '' }); };
+      el.appendChild(b);
+    }
+  } } };
+})();`;
+http.createServer((req, res) => {
+  if (req.url === '/gsi/client' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(GIS_STUB);
+    return;
+  }
+  res.writeHead(404); res.end();
+}).on('error', (e) => console.error(`doble de Google sin arrancar en :${GIS_STUB_PORT}: ${e.code}`)).listen(GIS_STUB_PORT);
 
 server.listen(PORT, () => {
   // Solo el puerto: nunca rutas, cabeceras ni cuerpos (secretos bearer)
