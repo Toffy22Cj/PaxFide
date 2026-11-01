@@ -430,18 +430,22 @@ function CampaignsCard({
   now?: number;
   cardIndex?: number;
 }) {
-  const { state, reload } = useRead<DiscoveryItem[], 'error'>(async () => {
-    const r = await client();
-    return r.kind === 'ok' ? { status: 'ready', data: r.items } : { status: 'error' };
+  // U-23 (plan-fase7-puesta-al-dia.md Anexo 3): "Cierran pronto" con el orden del servidor (`sort=ending_soon`): las
+  // primeras son las que cierran antes, estén en la página que estén. D-P9 (7 días o menos) no cambia. Solo si ninguna
+  // cierra en 7 días, una segunda petición sin `sort` da el respaldo "Convocatorias abiertas"
+  const { state, reload } = useRead<{ items: DiscoveryItem[]; closing: boolean }, 'error'>(async () => {
+    const r = await client({ sort: 'ending_soon' });
+    if (r.kind !== 'ok') return { status: 'error' };
+    const soon = r.items.filter((c) => isClosingSoon(c, now));
+    if (soon.length > 0) return { status: 'ready', data: { items: soon, closing: true } };
+    const all = await client();
+    return all.kind === 'ok' ? { status: 'ready', data: { items: all.items, closing: false } } : { status: 'error' };
   }, []);
 
-  const items = state.status === 'ready' ? state.data : [];
-  const closingSoon = items
-    .filter((c) => isClosingSoon(c, now))
-    .sort((a, b) => new Date(a.endDate!).getTime() - new Date(b.endDate!).getTime());
-  const hasClosingSoon = closingSoon.length > 0;
+  const data = state.status === 'ready' ? state.data : { items: [], closing: false };
+  const hasClosingSoon = data.closing;
   const title = hasClosingSoon ? 'Cierran pronto' : 'Convocatorias abiertas';
-  const displayed = hasClosingSoon ? closingSoon.slice(0, HOME_ITEMS) : items.slice(0, HOME_ITEMS);
+  const displayed = data.items.slice(0, HOME_ITEMS);
 
   return (
     <section

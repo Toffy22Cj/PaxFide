@@ -19,7 +19,8 @@ async function donorAt(page: Page, path: string) {
 test.describe('Pantallas del donante v2 (VS-8a)', () => {
   for (const reduced of [true, false]) {
     test(`/campaigns: el esqueleto de carga ${reduced ? 'está detenido con' : 'se anima sin'} "reducir movimiento"`, async ({ page }) => {
-      await delay(page, '**/api/v1/public/campaigns');
+      // P-12: el descubrimiento lleva ahora ?sort=recent (U-22)
+      await delay(page, '**/api/v1/public/campaigns?*');
       await page.emulateMedia({ reducedMotion: reduced ? 'reduce' : 'no-preference' });
       await page.goto('/campaigns');
       await expect(page.getByRole('status', { name: 'Cargando convocatorias' })).toBeVisible();

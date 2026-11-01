@@ -5,3 +5,27 @@
 }
 .item { display: flex; min-width: 0; }
 .item > * { flex: 1; }
+
+/* plan-fase7-puesta-al-dia.md Anexo 3, U-21: búsqueda, tipo de donación y orden. Objetivos de 44 px. */
+.controls { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-6); }
+.search { display: flex; flex-direction: column; gap: var(--space-1); }
+.label, .sortLabel span { font-size: var(--font-size-body-3); font-weight: var(--weight-semibold); color: var(--color-text); }
+.searchRow { display: flex; gap: var(--space-2); }
+.input, .select {
+  min-height: 44px; border-radius: var(--radius-control); border: 1px solid var(--color-border-control);
+  background: var(--color-field); color: var(--color-text); font: inherit; padding: 0 var(--space-3);
+}
+.input { flex: 1; min-width: 0; }
+.input:focus-visible, .select:focus-visible, .pill:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.error { font-size: var(--font-size-body-4); color: var(--color-danger-text); }
+.filters { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.pills { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.pill {
+  min-height: 44px; padding: 0 var(--space-4); border-radius: var(--radius-button); cursor: pointer;
+  border: 1px solid var(--color-border-control); background: var(--color-surface); color: var(--color-text);
+  font: inherit; font-weight: var(--weight-semibold);
+}
+.pill[aria-pressed="true"] { background: var(--color-action); color: var(--color-on-action); border-color: var(--color-action); }
+.sortLabel { display: inline-flex; align-items: center; gap: var(--space-2); }
+.notice { margin: 0 0 var(--space-3); font-size: var(--font-size-body-3); color: var(--color-text-secondary); }
+.empty { display: flex; flex-direction: column; gap: var(--space-3); }

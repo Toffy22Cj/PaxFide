@@ -191,7 +191,7 @@
 }
 .grid > li { display: flex; min-width: 0; }
 .grid > li > * { flex: 1; }
-.more { margin: var(--space-6) 0 0; }
+.more { margin: var(--space-6) 0 0; display: flex; flex-wrap: wrap; gap: var(--space-3); }
 
 .footer { composes: surface; max-width: 1120px; margin: 0 auto; padding: var(--space-4) var(--space-6); }
 .footer p { margin: 0; color: var(--color-text-secondary); font-size: var(--font-size-body-3); }

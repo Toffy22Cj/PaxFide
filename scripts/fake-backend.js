@@ -420,6 +420,11 @@ const server = http.createServer(async (req, res) => {
       endDate: '2026-12-31T23:59:59Z', acceptedDonationTypes: ['MONETARY'], acceptedPaymentMethods: ['GATEWAY', 'BANK_TRANSFER'],
       currency: 'COP', targetAmount: '100000000', clearedAmount: '0',
       ...(body.visibility === 'PRIVATE_LINK' ? { visibility: 'PRIVATE_LINK' } : {}),
+      // P-12: fechas y tipos a medida para probar el orden y el filtro de la ficha R-1
+      ...(body.startDate ? { startDate: body.startDate } : {}),
+      ...(body.endDate ? { endDate: body.endDate } : {}),
+      ...(body.acceptedDonationTypes ? { acceptedDonationTypes: body.acceptedDonationTypes } : {}),
+      ...(body.status === 'CLOSED' ? { status: 'CLOSED' } : {}),
     });
     send(res, 200, { publicCode: code });
     return;
@@ -511,21 +516,52 @@ const server = http.createServer(async (req, res) => {
   const actor = accountOf(req);
 
   // GET /public/campaigns?cursor= (PublicCampaignDiscoveryController): solo PUBLIC y OPEN, 20 por página, cursor opaco
+  // Ficha R-1 (referencia-api-v1.md §5, nota del 2026-10-29), como PublicCampaignDiscoveryController: q (2..100 puntos
+  // de código tras recortar, subcadena del título sin mayúsculas ni tildes), donationType, sort y cursor v2 con los
+  // filtros dentro; se valida en ese orden y cualquier fallo es el mismo 400 BadRequest
   if (p === '/public/campaigns' && req.method === 'GET') {
-    const all = [...campaigns.values()].filter((c) => c.status === 'OPEN' && (c.visibility || 'PUBLIC') === 'PUBLIC')
-      .sort((a, b) => (a.publicCode < b.publicCode ? -1 : 1));
+    const norm = (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const sp = url.searchParams;
+    const bad = () => problem(res, 400, 'BadRequest');
+    let q = null;
+    if (sp.has('q')) {
+      const t = sp.get('q').trim();
+      const n = Array.from(t).length;
+      if (n < 2 || n > 100) { bad(); return; }
+      q = norm(t);
+    }
+    const type = sp.get('donationType');
+    if (type !== null && !['MONETARY', 'IN_KIND'].includes(type)) { bad(); return; }
+    const sort = sp.get('sort');
+    if (sort !== null && !['ending_soon', 'recent'].includes(sort)) { bad(); return; }
+    let all = [...campaigns.values()].filter((c) => c.status === 'OPEN' && (c.visibility || 'PUBLIC') === 'PUBLIC')
+      .filter((c) => q === null || norm(c.title).includes(q))
+      .filter((c) => type === null || (c.acceptedDonationTypes || []).includes(type));
+    const byCode = (a, b) => (a.publicCode < b.publicCode ? -1 : a.publicCode > b.publicCode ? 1 : 0);
+    if (sort === 'ending_soon') all.sort((a, b) => (a.endDate || '').localeCompare(b.endDate || '') || byCode(a, b));
+    else if (sort === 'recent') all.sort((a, b) => (b.startDate || '').localeCompare(a.startDate || '') || byCode(a, b));
+    else all.sort(byCode);
     let start = 0;
-    const cursor = url.searchParams.get('cursor');
+    const cursor = sp.get('cursor');
     if (cursor !== null) {
-      let after;
-      try { after = Buffer.from(cursor, 'base64url').toString(); } catch { after = null; }
-      if (!after || !campaigns.has(after)) { problem(res, 400, 'InvalidRequestField'); return; }
-      start = all.findIndex((c) => c.publicCode > after);
+      let c;
+      try { c = JSON.parse(Buffer.from(cursor, 'base64url').toString()); } catch { c = null; }
+      // v1 (un publicCode a secas) solo sin filtros ni orden; v2 lleva {v:2, q, type, sort, after}
+      if (c === null && q === null && type === null && sort === null) {
+        const after = Buffer.from(cursor, 'base64url').toString();
+        if (!campaigns.has(after)) { bad(); return; }
+        start = all.findIndex((x) => x.publicCode > after);
+      } else if (c && c.v === 2 && c.q === q && c.type === type && c.sort === sort) {
+        start = all.findIndex((x) => x.publicCode === c.after) + 1;
+        if (start === 0) { bad(); return; }
+      } else { bad(); return; }
       if (start < 0) start = all.length;
     }
     const page = all.slice(start, start + 20);
     const out = { items: page.map((c) => { const v = publicView(c); delete v.description; delete v.acceptedPaymentMethods; return { publicCode: c.publicCode, ...v }; }) };
-    if (start + 20 < all.length) out.nextCursor = Buffer.from(page[page.length - 1].publicCode).toString('base64url');
+    if (start + 20 < all.length) {
+      out.nextCursor = Buffer.from(JSON.stringify({ v: 2, q, type, sort, after: page[page.length - 1].publicCode })).toString('base64url');
+    }
     send(res, 200, out);
     return;
   }
