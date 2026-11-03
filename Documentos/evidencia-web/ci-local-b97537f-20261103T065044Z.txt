@@ -1,0 +1,135 @@
+# CI local de paxfide-web (réplica de .github/workflows/ci.yml)
+commit:     b97537fe55db55d268adaaee10805f711d91015a
+rama:       HEAD
+fecha UTC:  2026-11-03T06:50:44Z
+node:       v22.22.0
+pnpm:       11.26.0
+workflow:   .github/workflows/ci.yml sha256 58be251021d385529aa74b0f1b0dd601c37705e160a32f4e3a79302944b8992c
+
+===== PASO: Checkout repository =====
+$ git cat-file -e b97537fe55db55d268adaaee10805f711d91015a && echo 'Árbol limpio en b97537fe55db55d268adaaee10805f711d91015a'
+Árbol limpio en b97537fe55db55d268adaaee10805f711d91015a
+RESULTADO: OK (0 s)
+
+===== PASO: Check for .skip or .only in tests =====
+$ if grep -E '\.(skip|only)\(' -r __tests__/ e2e/; then echo 'Error: Found .skip() or .only() in tests. Please remove them.'; exit 1; fi
+RESULTADO: OK (0 s)
+
+===== PASO: Setup Node.js 22 =====
+$ node -v | grep -Eq '^v22\.' || { echo 'Se exige Node 22.x'; exit 1; }; node -v
+v22.22.0
+RESULTADO: OK (0 s)
+
+===== PASO: Install pnpm =====
+$ [ "$(pnpm -v)" = '11.26.0' ] || { echo 'Se exige pnpm 11.26.0 (npm install -g pnpm@11.26.0)'; exit 1; }; pnpm -v
+11.26.0
+RESULTADO: OK (2 s)
+
+===== PASO: Install dependencies =====
+$ pnpm install --frozen-lockfile
+Already up to date
+Done in 706ms using pnpm v11.26.0
+RESULTADO: OK (2 s)
+
+===== PASO: Typecheck =====
+$ pnpm typecheck
+$ tsc --noEmit
+RESULTADO: OK (19 s)
+
+===== PASO: Vitest =====
+$ pnpm vitest run
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.2 /tmp/claude-0/-home-user/279c4355-476e-53be-ad60-3379e527bdc7/scratchpad/wt
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ❯ __tests__/campaign-public.test.tsx (19 tests | 1 failed) 2060ms
+   ❯ A3 — aviso antes de salir con una donación sin confirmar (4)
+     × con el trackingCode ya mostrado, deja de avisar 103ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/campaign-public.test.tsx > A3 — aviso antes de salir con una donación sin confirmar > con el trackingCode ya mostrado, deja de avisar
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ __tests__/campaign-public.test.tsx:289:31
+    287|     fireEvent.click(screen.getByRole('button', { name: 'Consultar esta…
+    288|     await screen.findByTestId('tracking-code');
+    289|     expect(unloadCancelled()).toBe(false);
+       |                               ^
+    290|   });
+    291|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 63 passed (64)
+      Tests  1 failed | 832 passed (833)
+   Start at  06:51:11
+   Duration  67.53s (environment 45%, tests 38%, setup 10%, transform 4%, import 2%)
+
+Environment  jsdom was created 64 times · 84.12s total, 45% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
+RESULTADO: FALLO (código 1, 70 s)
+
+===== PASO: Check Server Imports =====
+$ pnpm check:server
+OMITIDO (un paso anterior falló, como en GitHub Actions)
+
+===== PASO: Install Playwright Chromium =====
+$ pnpm exec playwright install --with-deps chromium
+OMITIDO (un paso anterior falló, como en GitHub Actions)
+
+===== PASO: Playwright E2E Tests =====
+$ pnpm test:e2e
+OMITIDO (un paso anterior falló, como en GitHub Actions)
+
+===== RESUMEN =====
+OK       Checkout repository
+OK       Check for .skip or .only in tests
+OK       Setup Node.js 22
+OK       Install pnpm
+OK       Install dependencies
+OK       Typecheck
+FALLO    Vitest (código 1)
+OMITIDO  Check Server Imports
+OMITIDO  Install Playwright Chromium
+OMITIDO  Playwright E2E Tests
+CI LOCAL: FALLO
+
+sha256 (de todo lo anterior a la línea en blanco final; verificar con: head -n -2 <archivo> | sha256sum): c3c96329628dfd7ab206bba6a109699aa31a2327388eff50237793c815d557a4

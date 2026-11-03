@@ -24,7 +24,10 @@ async function newRepresentative(browser: Browser, opts: { withNit: boolean }) {
   await reg.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
   await reg.getByLabel('Repite la contraseña').fill(PASSWORD);
   await acceptLegal(reg);
+  // Esperar al 201 del registro antes de leer el buzón: con el E2E completo en paralelo, el correo podía no existir aún
+  const registered = reg.waitForResponse((r) => r.url().endsWith('/auth/register') && r.request().method() === 'POST');
   await reg.getByRole('button', { name: 'Crear cuenta' }).click();
+  expect((await registered).status()).toBe(201);
   await verifyEmailApi(reg.request, email);
   const page = await login(browser, email, PASSWORD, '/panel/organization');
   const locations: string[] = [];
@@ -66,6 +69,9 @@ test.describe('P-15 · perfil de la organización', () => {
   });
 
   test('editor: los valores guardados, PUT con todos los campos, null al vaciar; verificada → solo lectura', async ({ browser }) => {
+    // Tres sesiones (representante, plataforma y de nuevo el representante) en un solo recorrido: con el E2E completo en
+    // paralelo, 30 s no bastan. No es una espera de un resultado: cada paso sigue con su expect
+    test.setTimeout(60_000);
     const { name, email } = await newRepresentative(browser, { withNit: true });
     const page = await login(browser, email, PASSWORD, '/panel/organization');
     const puts: Record<string, unknown>[] = [];
@@ -97,6 +103,7 @@ test.describe('P-15 · perfil de la organización', () => {
   });
 
   test('plataforma: sin razón social ni NIT, "Verificar" explica que faltan; pedir información → la organización reenvía a revisión', async ({ browser }) => {
+    test.setTimeout(60_000); // tres sesiones en un recorrido, como el editor
     const { name, email } = await newRepresentative(browser, { withNit: false });
     const platform = await login(browser, 'plataforma@demo.test', 'demo-plataforma', '/panel/platform');
     const row = platform.getByTestId('queue-item').filter({ hasText: name });

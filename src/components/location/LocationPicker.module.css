@@ -1,0 +1,8 @@
+/* Ref: plan-fase7-puesta-al-dia.md Anexo 5, U-33, y Anexo 7, U-44: los selectores departamento → municipio. Solo tokens. */
+.location { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.legend { padding: 0; font-weight: var(--weight-semibold); color: var(--color-text); }
+.row2 { display: grid; grid-template-columns: 1fr; gap: var(--space-3); }
+@media (min-width: 640px) {
+  .row2 { grid-template-columns: 1fr 1fr; }
+}
+.catalogError { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); color: var(--color-text-secondary); }

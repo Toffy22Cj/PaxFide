@@ -286,7 +286,8 @@ describe('A3 — aviso antes de salir con una donación sin confirmar', () => {
     await startDonation(vi.fn().mockResolvedValue({ kind: 'ok', status: 'CONFIRMED', trackingCode: 'TRK.x' }));
     fireEvent.click(screen.getByRole('button', { name: 'Consultar estado del pago' }));
     await screen.findByTestId('tracking-code');
-    expect(unloadCancelled()).toBe(false);
+    // Como al instalarlo (arriba): el aviso se quita en un efecto, después del render que muestra el código
+    await waitFor(() => expect(unloadCancelled()).toBe(false));
   });
 
   it('el trackingCode se destaca en cuanto llega: recibe el foco', async () => {

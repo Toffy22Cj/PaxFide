@@ -16,6 +16,8 @@ import { Button } from '../ui/Button';
 import { Actions, uiClasses as ui } from '../ui/Layout';
 import { StatusNotice } from '../States';
 import { CommandFeedback } from '../CommandFeedback';
+import { AssetMunicipalityField, useAssetMunicipality } from './AssetMunicipality';
+import type { fetchLocations } from '../../lib/api/locations';
 import s from './DeliverModal.module.css';
 
 const REF_FIELDS = [
@@ -27,8 +29,11 @@ type RefName = (typeof REF_FIELDS)[number]['name'];
 
 type Upload = (organizationId: string, file: Blob, onProgress?: (f: number) => void) => Promise<EvidenceUpload>;
 
-export function DeliverModal({ assetRef, organizationId, onSuccess, onClose, upload = uploadDeliveryEvidence }: {
+export function DeliverModal({ assetRef, organizationId, onSuccess, onClose, upload = uploadDeliveryEvidence, municipalityCode, locationsClient }: {
   assetRef: string;
+  /** Anexo 7, U-45: el municipio del lote, con el que empieza el selector. */
+  municipalityCode?: string | null;
+  locationsClient?: typeof fetchLocations;
   /** La organización de la sesión (`GET /me`): la foto se sube a la suya. Sin ella no se puede subir. */
   organizationId: string | null;
   onSuccess: () => void;
@@ -44,6 +49,7 @@ export function DeliverModal({ assetRef, organizationId, onSuccess, onClose, upl
   /** El `evidenceRef` de la foto ya subida: si la persona vuelve a confirmar, no se sube otra vez. */
   const evidenceRef = useRef<string | null>(null);
   const command = useCommand(deliverRequest(assetRef));
+  const muni = useAssetMunicipality(municipalityCode);
   const uploading = progress !== null;
   const sending = uploading || command.state === 'SENDING';
 
@@ -75,7 +81,9 @@ export function DeliverModal({ assetRef, organizationId, onSuccess, onClose, upl
       if (bad) next.file = evidenceErrorText(bad); // 6 MB o un tipo que no es imagen: no se sube
     }
     setErrors(next);
-    if (Object.values(next).some(Boolean) || !file) return;
+    // Anexo 7, U-44: sin municipio no se sube la foto ni se envía nada
+    const code = muni.check();
+    if (Object.values(next).some(Boolean) || !file || !code) return;
     if (!organizationId) { setUploadError('no-organization'); return; }
 
     setUploadError(null);
@@ -87,7 +95,7 @@ export function DeliverModal({ assetRef, organizationId, onSuccess, onClose, upl
       if (r.kind === 'error') { setUploadError(r.error); return; }
       evidenceRef.current = r.evidenceRef;
     }
-    void command.execute({ ...payload, evidenceRef: evidenceRef.current });
+    void command.execute({ ...payload, evidenceRef: evidenceRef.current, municipalityCode: code });
   };
 
   const locked = sending || command.state === 'AMBIGUOUS';
@@ -99,6 +107,7 @@ export function DeliverModal({ assetRef, organizationId, onSuccess, onClose, upl
           <TextField key={f.name} label={f.label} hint={'hint' in f ? f.hint : undefined} value={values[f.name]} autoComplete="off"
             onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))} error={errors[f.name]} disabled={locked} />
         ))}
+        <AssetMunicipalityField m={muni} disabled={locked} locationsClient={locationsClient} />
         <div className={s.field}>
           <label htmlFor={fileId} className={s.label}>Foto de la entrega</label>
           <span id={`${fileId}-hint`} className={s.hint}>JPEG o PNG, hasta 5 MB. Se guarda sin la ubicación ni los datos de la cámara.</span>

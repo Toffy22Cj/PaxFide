@@ -210,6 +210,10 @@ textarea.input {
   align-items: center;
   justify-content: center;
   padding: var(--gutter-mobile);
+  /* Anexo 7: el diálogo queda dentro del espacio que deja la barra de navegación (--nav-inset-*, de Shell). En móvil, la
+     barra inferior tapaba los botones de un diálogo alto (recibir y entregar, con el municipio) */
+  padding-top: calc(var(--gutter-mobile) + var(--nav-inset-top, 0px));
+  padding-bottom: calc(var(--gutter-mobile) + var(--nav-inset-bottom, 0px));
   z-index: 10;
 }
 .modal {
@@ -220,7 +224,7 @@ textarea.input {
   box-shadow: var(--shadow-float);
   width: 100%;
   max-width: 520px;
-  max-height: calc(100vh - 32px);
+  max-height: calc(100vh - 32px - var(--nav-inset-top, 0px) - var(--nav-inset-bottom, 0px));
   overflow: auto;
   padding: var(--space-6);
 }

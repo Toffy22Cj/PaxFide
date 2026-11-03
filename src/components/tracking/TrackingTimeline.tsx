@@ -16,6 +16,7 @@ import { NO_PUBLIC_ZONE, asTrackingEvent, showsTruck, stepKind } from './events'
 import { StepIcon } from './StepIcon';
 import { AnchorPill, StepDetail, type PaymentFacts, type Selection } from './StepDetail';
 import s from './timeline.module.css';
+import { zoneOrNone } from '../../lib/location/zoneLabel';
 
 export type HistoryState = TrackingOutcome<Transition[]> | 'loading';
 
@@ -134,7 +135,7 @@ function LotCard({ node, depth, items, histories, onRetry, isSelected, onSelect 
         <h3 id={titleId} className={s.lotTitle}>{assetName(item, index)}</h3>
         {quantity && <span className={s.unitsChip}>{quantity}</span>}
         <p className={s.lotMeta}>
-          {[lifecycleLabel(item.lifecycleStatus), item.locationZone ?? NO_PUBLIC_ZONE, custodianLabel(item.custodianCategory ?? 'UNCATEGORIZED')]
+          {[lifecycleLabel(item.lifecycleStatus), zoneOrNone(item.locationZone, NO_PUBLIC_ZONE), custodianLabel(item.custodianCategory ?? 'UNCATEGORIZED')]
             .filter(Boolean).join(' · ')}
         </p>
       </header>
@@ -160,7 +161,7 @@ function LotCard({ node, depth, items, histories, onRetry, isSelected, onSelect 
                       <span className={s.dateBadge}>{t.timestamp ? <LocalDate iso={t.timestamp} withTime /> : 'Sin fecha'}</span>
                     </span>
                     <span className={s.chips}>
-                      <span className={s.chip}>{t.locationZone ?? NO_PUBLIC_ZONE}</span>
+                      <span className={s.chip}>{zoneOrNone(t.locationZone, NO_PUBLIC_ZONE)}</span>
                       <span className={s.chip}>{custodianLabel(t.custodianCategory ?? 'UNCATEGORIZED')}</span>
                       {t.anchorStatus === 'UNDER_REVIEW' && <AnchorPill status={t.anchorStatus} />}
                     </span>

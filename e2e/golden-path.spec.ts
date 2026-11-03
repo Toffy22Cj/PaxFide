@@ -1,5 +1,5 @@
 import { test, expect, Page, Browser } from '@playwright/test';
-import { attachDeliveryPhoto } from './support/evidence';
+import { attachDeliveryPhoto, chooseMunicipality, municipalityReady } from './support/evidence';
 
 /**
  * Golden path (`golden-path.md` §2 y §8) recorrido POR LA INTERFAZ contra el backend simulado que sigue los contratos
@@ -45,6 +45,7 @@ async function act(page: Page, button: string, fields: [string, string][]) {
   const dialog = page.getByRole('dialog');
   for (const [label, value] of fields) await dialog.getByLabel(label).fill(value);
   if (button === 'Entregar') await attachDeliveryPhoto(dialog); // U-3: la entrega lleva su foto
+  await municipalityReady(dialog); // Anexo 7, U-45
   await dialog.getByRole('button', { name: 'Confirmar' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 }
@@ -118,6 +119,7 @@ test('golden path por la interfaz: convocatoria → donaciones (sin y con cuenta
   await employee.getByLabel('Unidad de medida').fill('kit');
   await employee.getByLabel('Custodio (referencia)').fill('BODEGA-1');
   await employee.getByLabel('Ubicación actual').fill('Bodega central');
+  await chooseMunicipality(employee); // Anexo 7, U-44
   await employee.getByRole('button', { name: 'Registrar' }).click();
   await expect(employee).toHaveURL(/\/assets\//);
 

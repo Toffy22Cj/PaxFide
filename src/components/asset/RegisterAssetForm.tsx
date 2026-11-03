@@ -11,6 +11,8 @@ import { Button } from '../ui/Button';
 import { Actions, Surface, uiClasses as ui } from '../ui/Layout';
 import { CommandFeedback } from '../CommandFeedback';
 import { ErrorState } from '../States';
+import { AssetMunicipalityField, useAssetMunicipality } from './AssetMunicipality';
+import type { fetchLocations } from '../../lib/api/locations';
 
 type Path = 'B' | 'A';
 type Values = Record<string, string>;
@@ -32,7 +34,8 @@ const PATH_A = [
  * (`/from-donation`; el `donorRef` lo pone el servidor). Camino A: compra con el fondo (`/register`). La organización
  * sale del JWT en ambos (DD-10). Tras el éxito, a `/assets/{assetRef}` (`front-fase2` §9).
  */
-export function RegisterAssetForm({ onRegistered, onCancel, organizationId, fundsClient = fetchFunds }: {
+export function RegisterAssetForm({ onRegistered, onCancel, organizationId, fundsClient = fetchFunds, locationsClient }: {
+  locationsClient?: typeof fetchLocations;
   onRegistered: (assetRef: string) => void;
   onCancel: () => void;
   /** Con organización, el camino A elige fondo y asignación de `GET /organizations/{id}/funds` (S-04). */
@@ -48,6 +51,8 @@ export function RegisterAssetForm({ onRegistered, onCancel, organizationId, fund
     return __path === 'A' ? registerPathARequest(body) : registerPathBRequest(body);
   });
   const sending = command.state === 'SENDING';
+  // Anexo 7, U-45: al registrar, el municipio empieza vacío
+  const muni = useAssetMunicipality(null);
 
   useEffect(() => {
     if (command.state !== 'SUCCESS') return;
@@ -86,8 +91,9 @@ export function RegisterAssetForm({ onRegistered, onCancel, organizationId, fund
     const optional = path === 'A' ? 'sourceAllocationId' : 'campaignRef';
     if ((v[optional] ?? '').trim()) body[optional] = v[optional].trim();
     setErrors(next);
-    if (Object.values(next).some(Boolean)) return;
-    void command.execute({ ...body, __path: path });
+    const code = muni.check();
+    if (Object.values(next).some(Boolean) || !code) return;
+    void command.execute({ ...body, municipalityCode: code, __path: path });
   };
 
   if (command.state === 'SUCCESS' && !parseRegistered(command.data)) {
@@ -131,6 +137,7 @@ export function RegisterAssetForm({ onRegistered, onCancel, organizationId, fund
           </>
         )}
         {(pick ? COMMON : fields).map(field)}
+        <AssetMunicipalityField m={muni} disabled={sending || command.state === 'AMBIGUOUS'} locationsClient={locationsClient} />
         {path === 'B'
           ? field({ name: 'campaignRef', label: 'Convocatoria (referencia, opcional)' })
           : field({ name: 'sourceAllocationId', label: 'Asignación de origen (referencia, opcional)' })}

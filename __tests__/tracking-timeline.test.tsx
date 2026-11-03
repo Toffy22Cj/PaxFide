@@ -18,7 +18,7 @@ const integrityOf = (x: unknown) => ({ kind: 'ok' as const, data: parseIntegrity
 const MATCH = { batches: [{ anchorStatus: 'ANCHORED', merkleRoot: '0xraizunica', transactionHash: '0xtxunica', eventsOfThisDonation: 2, verification: { result: 'MATCH' } }], unanchoredEvents: 0 };
 const steps = (...events: string[]): Transition[] => events.map((eventType, i) => ({
   eventType, timestamp: `2026-10-0${i + 1}T10:00:00Z`, custodianCategory: i === 0 ? 'REGIONAL_WAREHOUSE' : 'UNCATEGORIZED',
-  locationZone: eventType === 'ASSET_DISPATCHED' ? undefined : 'Zona norte',
+  locationZone: eventType === 'ASSET_DISPATCHED' ? undefined : 'BARRANQUILLA, ATLÁNTICO', // Anexo 7: el texto sellado, en mayúsculas
 }));
 
 function open(over: Partial<typeof BASE> & Record<string, unknown> = {}, history: Transition[] = steps('ASSET_REGISTERED', 'ASSET_DISPATCHED'), integrity: unknown = MATCH) {
@@ -51,7 +51,7 @@ describe('Pasos del recorrido (VS-7)', () => {
     const items = await screen.findAllByTestId('tracking-step');
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent('Registrado');
-    expect(items[0]).toHaveTextContent('Zona norte');
+    expect(items[0]).toHaveTextContent('Barranquilla, Atlántico'); // U-47: con su presentación
     expect(items[0]).toHaveTextContent('Bodega regional');
     expect(items[1]).toHaveTextContent('Despachado');
     expect(items[1]).toHaveTextContent(NO_PUBLIC_ZONE);

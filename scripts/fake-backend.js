@@ -68,8 +68,9 @@ const resetMails = [];
 const resetCooldown = new Map(); // email -> ms de la última petición que envió correo
 const passwordChange500 = new Set();
 // Anexo 6 (ADR-050 D9): los idToken de prueba son `fake-google.<sub>.<correo>`; nunca un token real de Google.
-// `googleUnavailable` hace que la siguiente llamada a Google responda 503 GoogleSignInUnavailable.
-let googleUnavailable = 0;
+// `googleUnavailable`: los idToken cuya siguiente verificación responde 503 GoogleSignInUnavailable. Va por token, no
+// global: con los tests en paralelo, un 503 global lo consumía otro test.
+const googleUnavailable = new Set();
 function googleIdentity(idToken) {
   const m = /^fake-google\.([A-Za-z0-9_-]+)\.(.+@.+)$/.exec(String(idToken || ''));
   return m ? { sub: m[1], email: m[2].toLowerCase() } : null;
@@ -170,19 +171,22 @@ const assets = new Map();
 const narrativeCalls = new Map();
 const splits = new Map();
 
-/** Transiciones sin ubicación: su `locationZone` llega null (referencia-api-v1.md §8, TR-03). */
-const NO_ZONE_EVENTS = new Set(['ASSET_DISPATCHED', 'ASSET_SPLIT', 'ASSET_CUSTODY_TRANSFERRED', 'ASSET_SPLIT_COMPENSATED', 'ASSET_DEPLETED']);
+/** La zona sellada del último paso que la tiene (Anexo 7): el seguimiento la muestra en `logistics[]`. */
+function lastZone(a) {
+  for (let i = (a.history || []).length - 1; i >= 0; i--) if (a.history[i].zone) return a.history[i].zone;
+  return null;
+}
 
 const campaignByRef = (ref) => [...campaigns.values()].find((c) => c.campaignRef === ref);
 
 function newAsset(a) {
   const assetRef = a.assetRef || crypto.randomUUID();
-  const asset = { assetRef, lifecycleStatus: 'REGISTERED', history: [{ eventType: 'ASSET_REGISTERED', timestamp: new Date().toISOString(), status: 'REGISTERED' }], ...a, assetRef };
+  const asset = { assetRef, lifecycleStatus: 'REGISTERED', history: [{ eventType: 'ASSET_REGISTERED', timestamp: new Date().toISOString(), status: 'REGISTERED', zone: a.zoneName ?? null }], ...a, assetRef };
   assets.set(assetRef, asset);
   return asset;
 }
 newAsset({ assetRef: 'ASSET-123', organizationRef: 'org-1', assetType: 'Mercado', quantity: '1', unitOfMeasure: 'EA',
-  currentCustodianRef: 'CUST-1', currentLocation: 'LOC-1', campaignRef: 'CAMP-1' });
+  currentCustodianRef: 'CUST-1', currentLocation: 'LOC-1', campaignRef: 'CAMP-1', municipalityCode: '05001', zoneName: 'MEDELLÍN, ANTIOQUIA' });
 
 /** Matriz P7 (ADR-032): EMPLOYEE; REPRESENTATIVE como respaldo solo en registrar y dividir. */
 function canOperate(actor, backup) {
@@ -230,6 +234,22 @@ const TEST_LOCATIONS = {
     { code: '23', name: 'Córdoba (prueba)', municipalities: [{ code: '23001', name: 'Montería (prueba)' }] },
   ],
 };
+// Anexo 7 (ADR-029 Enmienda 2; referencia-api-v1.md, nota del 2026-11-02): la zona sellada de un paso es
+// "MUNICIPIO, DEPARTAMENTO" en mayúsculas, tal cual el catálogo (Bogotá una sola vez). Los nombres del catálogo de prueba
+// llevan "(prueba)": la zona se sella SIN esa marca para parecerse al texto real; el catálogo sigue marcado como de prueba.
+const MUNICIPALITY_CODE = /^[0-9]{5}$/;
+function sealedZone(code) {
+  if (typeof code !== 'string' || !MUNICIPALITY_CODE.test(code)) return null;
+  for (const d of TEST_LOCATIONS.departments) {
+    const m = d.municipalities.find((x) => x.code === code);
+    if (!m) continue;
+    const clean = (t) => t.replace(/ \(prueba\)$/, '').toUpperCase();
+    const mun = clean(m.name);
+    const dep = clean(d.name);
+    return mun === dep ? mun : `${mun}, ${dep}`;
+  }
+  return null;
+}
 const PROFILE_FIELDS = ['description', 'website', 'location', 'contactEmail', 'legalName', 'nit', 'nitCheckDigit', 'specialTaxRegime', 'contactPhone'];
 function nitDigit(n) {
   const W = [3, 7, 13, 17, 19, 23, 29, 37, 41];
@@ -434,9 +454,10 @@ const server = http.createServer(async (req, res) => {
     send(res, 200, { ok: true });
     return;
   }
-  // Anexo 6: la siguiente llamada que verifica un idToken responde 503 GoogleSignInUnavailable
+  // Anexo 6: la siguiente verificación de ese idToken responde 503 GoogleSignInUnavailable
   if (path === '/__test/google-unavailable' && req.method === 'POST') {
-    googleUnavailable += 1;
+    const body = await readBody(req);
+    googleUnavailable.add(String((body && body.idToken) || ''));
     send(res, 200, { ok: true });
     return;
   }
@@ -629,7 +650,7 @@ const server = http.createServer(async (req, res) => {
   if (p === '/auth/google' && req.method === 'POST') {
     const body = await readBody(req);
     if (!body || !body.idToken) { problem(res, 400, 'Bad Request'); return; }
-    if (googleUnavailable > 0) { googleUnavailable -= 1; problem(res, 503, 'GoogleSignInUnavailable'); return; }
+    if (googleUnavailable.delete(String(body.idToken))) { problem(res, 503, 'GoogleSignInUnavailable'); return; }
     const g = googleIdentity(body.idToken);
     const entry = g && Object.entries(accounts).find(([, a]) => a.googleSubject === g.sub);
     if (!entry || entry[1].status === 'INACTIVE') { problem(res, 401, 'Unauthorized'); return; }
@@ -669,7 +690,7 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(204); res.end();
       return;
     }
-    if (googleUnavailable > 0) { googleUnavailable -= 1; problem(res, 503, 'GoogleSignInUnavailable'); return; }
+    if (googleUnavailable.delete(String(body.idToken))) { problem(res, 503, 'GoogleSignInUnavailable'); return; }
     const g = googleIdentity(body.idToken);
     if (!g) { problem(res, 400, 'GoogleIdTokenInvalid'); return; }
     const other = Object.values(accounts).find((a) => a !== actor && a.googleSubject === g.sub);
@@ -1130,6 +1151,7 @@ const server = http.createServer(async (req, res) => {
       assetRef: a.assetRef, lifecycleStatus: a.lifecycleStatus, currentCustodianRef: a.currentCustodianRef,
       currentLocation: a.currentLocation, quantity: scale4(a.quantity), unitOfMeasure: a.unitOfMeasure, campaignRef: a.campaignRef,
       assetType: a.assetType,
+      ...(a.municipalityCode ? { municipalityCode: a.municipalityCode, zoneName: a.zoneName } : {}),
       // G-9: el último evento por orden (aquí, el último del historial)
       ...(a.history && a.history.length ? { lastEventAt: a.history[a.history.length - 1].timestamp } : {}),
     }));
@@ -1173,7 +1195,7 @@ const server = http.createServer(async (req, res) => {
     for (const a of orgAssets) for (const h of a.history || []) {
       const it = { type: h.eventType, occurredAt: h.timestamp, subject: { kind: 'ASSET', ref: a.assetRef } };
       if (h.eventType === 'ASSET_REGISTERED' || h.eventType === 'ASSET_SPLIT') { it.quantity = scale4(a.quantity); it.unitOfMeasure = a.unitOfMeasure; }
-      if (['ASSET_REGISTERED', 'ASSET_RECEIVED', 'ASSET_DELIVERED'].includes(h.eventType)) it.locationZone = 'Zona centro';
+      if (['ASSET_REGISTERED', 'ASSET_DISPATCHED', 'ASSET_RECEIVED', 'ASSET_DELIVERED'].includes(h.eventType) && h.zone) it.locationZone = h.zone;
       if (['ASSET_REGISTERED', 'ASSET_DISPATCHED', 'ASSET_RECEIVED', 'ASSET_DELIVERED', 'ASSET_SPLIT'].includes(h.eventType)) all.push(it);
     }
     for (const f of funds) if (f.clearedAt) all.push({ type: 'FUNDS_CLEARED', occurredAt: f.clearedAt, subject: { kind: 'FUND', ref: f.fundId } });
@@ -1254,6 +1276,8 @@ const server = http.createServer(async (req, res) => {
       if (o.name) item.name = o.name;
       if (o.informationRequest) item.informationRequest = o.informationRequest;
       Object.assign(item, o.profile || {});
+      // Ficha de preverificación (nota del 2026-11-02): siempre presente, en orden fijo; la misma regla que verify
+      item.missingForVerification = ['legalName', 'nit'].filter((k) => !(o.profile && o.profile[k]));
       return item;
     });
     const out = { items };
@@ -1631,8 +1655,8 @@ const server = http.createServer(async (req, res) => {
         campaignTitle: c.title, ...(c.organizationName ? { organizationName: c.organizationName } : {}),
         logistics: items.map((a) => ({
           assetRef: a.assetRef, lifecycleStatus: a.lifecycleStatus, assetType: a.assetType, unitOfMeasure: a.unitOfMeasure,
-          // `locationZone` llega null si el activo no tiene ubicación (despachado)
-          quantity: scale4(a.quantity), locationZone: a.lifecycleStatus === 'DISPATCHED' ? null : 'Zona centro', custodianCategory: 'LOCAL_ALLY',
+          // `locationZone`: la zona sellada del último paso (Anexo 7); null si no la hay
+          quantity: scale4(a.quantity), locationZone: lastZone(a), custodianCategory: 'LOCAL_ALLY',
           // G-4 (nota del 2026-10-25, §8): solo si el padre está en la misma respuesta
           ...(a.parentAssetRef && items.some((x) => x.assetRef === a.parentAssetRef) ? { parentAssetRef: a.parentAssetRef } : {}),
         })),
@@ -1667,7 +1691,7 @@ const server = http.createServer(async (req, res) => {
       const hashes = a.history.map((h, i) => sha256Hex(`${a.assetRef}:${i}:${h.eventType}`));
       const batch = hashes.slice(0, 2);
       send(res, 200, { history: a.history.map((h, i) => {
-        const out = { eventType: h.eventType, timestamp: h.timestamp, locationZone: NO_ZONE_EVENTS.has(h.eventType) ? null : 'Zona centro', custodianCategory: 'LOCAL_ALLY', status: h.status, eventHash: hashes[i] };
+        const out = { eventType: h.eventType, timestamp: h.timestamp, locationZone: h.zone ?? null, custodianCategory: 'LOCAL_ALLY', status: h.status, eventHash: hashes[i] };
         if (i < batch.length) {
           out.anchorStatus = 'ANCHORED';
           out.anchorProof = { merkleRoot: merkleRoot(batch), leafIndex: i, path: merklePath(batch, i), transactionHash: '0x' + sha256Hex(a.assetRef + ':tx'), network: 'sepolia', anchoredAt: h.timestamp };
@@ -1933,6 +1957,9 @@ const server = http.createServer(async (req, res) => {
       if (!required.every((k) => text(b[k])) || typeof b.quantity !== 'string' || !QTY.test(b.quantity) || Number(b.quantity) <= 0) {
         problem(res, 400, 'BadRequest'); return;
       }
+      // Anexo 7: sin municipalityCode, con otra forma o fuera del catálogo → el mismo 400, sin escribir nada
+      const zone = sealedZone(b.municipalityCode);
+      if (!zone) { problem(res, 400, 'BadRequest'); return; }
       if (!actor.organizationId || !canOperate(actor, true)) { problem(res, 403, 'Forbidden'); return; }
       let fund = null;
       if (pathA) {
@@ -1943,7 +1970,7 @@ const server = http.createServer(async (req, res) => {
         const c = pathA ? campaigns.get(fund.publicCode) : null;
         const a = newAsset({
           organizationRef: actor.organizationId, assetType: b.assetType, quantity: b.quantity, unitOfMeasure: b.unitOfMeasure,
-          currentCustodianRef: b.custodianRef, currentLocation: b.currentLocation,
+          currentCustodianRef: b.custodianRef, currentLocation: b.currentLocation, municipalityCode: b.municipalityCode, zoneName: zone,
           campaignRef: pathA ? c.campaignRef : (b.campaignRef || undefined), fundId: pathA ? b.fundId : undefined,
         });
         const out = { assetRef: a.assetRef, status: 'REGISTERED' };
@@ -1971,6 +1998,7 @@ const server = http.createServer(async (req, res) => {
       if (asset.currentCustodianRef) out.currentCustodianRef = asset.currentCustodianRef;
       if (asset.currentLocation) out.currentLocation = asset.currentLocation;
       if (asset.campaignRef) out.campaignRef = asset.campaignRef;
+      if (asset.municipalityCode) { out.municipalityCode = asset.municipalityCode; out.zoneName = asset.zoneName; }
       send(res, 200, out);
       return;
     }
@@ -1983,7 +2011,7 @@ const server = http.createServer(async (req, res) => {
       if (sp.polls > 2 && sp.status === 'PENDING') {
         sp.status = 'CHILD_CREATED';
         newAsset({ ...asset, assetRef: childRef, parentAssetRef: asset.assetRef, quantity: sp.quantity, lifecycleStatus: 'REGISTERED',
-          history: [{ eventType: 'ASSET_REGISTERED', timestamp: new Date().toISOString(), status: 'REGISTERED' }] });
+          history: [{ eventType: 'ASSET_REGISTERED', timestamp: new Date().toISOString(), status: 'REGISTERED', zone: asset.zoneName ?? null }] });
       }
       send(res, 200, { status: sp.status });
       return;
@@ -1997,6 +2025,9 @@ const server = http.createServer(async (req, res) => {
       if (!fields.every((k) => text(b[k])) || (action === 'split' && (typeof b.quantity !== 'string' || !QTY.test(b.quantity) || Number(b.quantity) <= 0))) {
         problem(res, 400, 'BadRequest'); return;
       }
+      // Anexo 7: recibir y entregar exigen municipalityCode del catálogo; despachar y dividir no lo piden
+      const stepZone = action === 'receive' || action === 'deliver' ? sealedZone(b.municipalityCode) : null;
+      if ((action === 'receive' || action === 'deliver') && !stepZone) { problem(res, 400, 'BadRequest'); return; }
       // ADR-051 T4: `evidenceRef` = `sha256:` + 64 hex en minúscula, antes de consumir el Command-Id ni mirar el activo
       if (action === 'deliver' && !/^sha256:[0-9a-f]{64}$/.test(b.evidenceRef)) { problem(res, 400, 'InvalidEvidenceRef'); return; }
       if (!allowed) { problem(res, 403, 'Forbidden'); return; }
@@ -2018,14 +2049,17 @@ const server = http.createServer(async (req, res) => {
           const child = crypto.randomUUID();
           splits.set(child, { parent: asset.assetRef, quantity: b.quantity, status: 'PENDING', polls: 0 });
           asset.quantity = String(Number(asset.quantity) - Number(b.quantity));
-          asset.history.push({ eventType: 'ASSET_SPLIT', timestamp: now, status: asset.lifecycleStatus });
+          asset.history.push({ eventType: 'ASSET_SPLIT', timestamp: now, status: asset.lifecycleStatus, zone: null });
           return { parentAssetRef: asset.assetRef, childAssetRef: child, status: 'PENDING' };
         }
         const status = { dispatch: 'DISPATCHED', receive: 'RECEIVED', deliver: 'DELIVERED' }[action];
         asset.lifecycleStatus = status;
+        // El despacho sella la zona del paso anterior; recibir y entregar, la del municipio que llega
+        const zone = action === 'dispatch' ? (asset.zoneName ?? null) : stepZone;
+        if (action !== 'dispatch') { asset.municipalityCode = b.municipalityCode; asset.zoneName = stepZone; }
         if (action === 'receive') asset.currentLocation = b.facilityLocation;
         if (action === 'deliver') { asset.currentCustodianRef = b.finalCustodianRef; asset.evidenceRef = b.evidenceRef; evidences.get(b.evidenceRef).assetRef = asset.assetRef; }
-        asset.history.push({ eventType: 'ASSET_' + status, timestamp: now, status });
+        asset.history.push({ eventType: 'ASSET_' + status, timestamp: now, status, zone });
         return { assetRef: asset.assetRef, status };
       });
       if (!r) return;

@@ -16,6 +16,7 @@ import { RegisterAssetForm } from '../components/asset/RegisterAssetForm';
 import { getAmbiguousSessionCommands } from '../lib/commands/ambiguousSession';
 import { IsometricEmblem, PanelIcon } from './PanelHomeScreen';
 import s from './panel.module.css';
+import { zoneLabel } from '../lib/location/zoneLabel';
 
 export type AssetFilter = 'ALL' | 'STORAGE' | 'TRANSIT' | 'DELIVERED';
 
@@ -254,7 +255,11 @@ export function OrgAssetsScreen({
                             {lifecycleLabel(a.lifecycleStatus)}
                           </span>
                         </td>
-                        <td>{a.currentLocation ?? '—'}</td>
+                        <td>
+                          {a.currentLocation ?? '—'}
+                          {/* Anexo 7, U-47: la zona pública del lote, con su presentación */}
+                          {a.zoneName && <span className={s.zone} data-testid="org-asset-zone">{zoneLabel(a.zoneName)}</span>}
+                        </td>
                         {/* G-9: sin `lastEventAt`, vacía (nunca "hace 0 días") */}
                         <td className={s.mono} data-testid="org-asset-last-change">{a.lastEventAt ? <LocalDate iso={a.lastEventAt} withTime compact /> : ''}</td>
                       </tr>

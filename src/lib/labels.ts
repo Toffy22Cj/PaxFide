@@ -1,4 +1,5 @@
 import { formatQuantity } from './quantity';
+import { zoneLabel } from './location/zoneLabel';
 /** Traducciones de literales de los contratos. Un literal desconocido se muestra tal cual (nunca se inventa uno). */
 const DONATION_TYPES: Record<string, string> = { MONETARY: 'Dinero', IN_KIND: 'Especie (bienes)' };
 const PAYMENT_METHODS: Record<string, string> = {
@@ -45,7 +46,8 @@ export const anchorStatusLabel = (v: string) => ANCHOR_STEP[v] ?? v;
  */
 export function activityText(i: import('./api/panelData').ActivityItem): string {
   const amount = [i.quantity ? formatQuantity(i.quantity) : undefined, i.unitOfMeasure].filter(Boolean).join(' ');
-  const zone = i.locationZone ? ` en ${i.locationZone}` : '';
+  // Anexo 7, U-47: la zona sellada llega en mayúsculas; aquí solo cambia su presentación
+  const zone = i.locationZone ? ` en ${zoneLabel(i.locationZone)}` : '';
   switch (i.type) {
     case 'ASSET_REGISTERED': return `Lote registrado${amount ? ` · ${amount}` : ''}${zone}`;
     case 'ASSET_DISPATCHED': return 'Lote despachado';

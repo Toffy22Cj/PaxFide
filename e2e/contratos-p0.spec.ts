@@ -1,7 +1,7 @@
 // Ref: plan-fase7-puesta-al-dia.md P-0 (R-1 a R-4, U-2, U-3) y §1.2 (el servidor falso responde como el real);
 // referencia-api-v1.md §1 (notas R-5 y D3) y §6 (ADR-051 T4).
 import { test, expect, type Page, type Request } from '@playwright/test';
-import { acceptLegal, attachDeliveryPhoto, uniquePng, verifyEmailApi } from './support/evidence';
+import { acceptLegal, attachDeliveryPhoto, chooseMunicipality, municipalityReady, uniquePng, verifyEmailApi } from './support/evidence';
 
 const API = 'http://localhost:3002';
 
@@ -32,6 +32,7 @@ async function assetReadyToDeliver(page: Page) {
   await page.getByLabel('Unidad de medida').fill('kit');
   await page.getByLabel('Custodio (referencia)').fill('BODEGA-1');
   await page.getByLabel('Ubicación actual').fill('Bodega central');
+  await chooseMunicipality(page); // Anexo 7, U-44
   await page.getByRole('button', { name: 'Registrar' }).click();
   await expect(page).toHaveURL(/\/assets\/[0-9a-f-]{36}$/);
   await page.getByRole('button', { name: 'Despachar', exact: true }).click();
@@ -47,6 +48,7 @@ async function fillDeliverRefs(page: Page) {
   await dialog.getByLabel('Custodio final (referencia)').fill('ALIADO-1');
   await dialog.getByLabel('Beneficiario (referencia)').fill('BEN-1');
   await dialog.getByLabel('Lugar de entrega (referencia)').fill('LUGAR-1');
+  await municipalityReady(dialog); // Anexo 7, U-45
   return dialog;
 }
 

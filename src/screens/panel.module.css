@@ -648,3 +648,6 @@
 
 /* El icono del título mantiene su tamaño aunque el título crezca */
 .sectionTitle svg { flex: none; width: 20px; height: 20px; }
+
+/* plan-fase7-puesta-al-dia.md Anexo 7, U-47: la zona pública del lote, debajo de su ubicación (privada) */
+.zone { display: block; font-size: var(--font-size-body-3); color: var(--color-text-secondary); }

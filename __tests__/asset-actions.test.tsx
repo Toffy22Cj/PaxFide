@@ -2,6 +2,10 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { normalizeQuantity } from '../src/lib/api/assetCommands';
+import { chooseMunicipality, locationsModuleMock } from './fixtures/locations';
+
+// Anexo 7 (U-44): el catálogo de municipios sin pasar por fetch (las llamadas de fetch de estos tests son los comandos)
+vi.mock('../src/lib/api/locations', () => locationsModuleMock());
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...rest }: any) => <a href={href} {...rest}>{children}</a> }));
 const push = vi.fn();
@@ -99,6 +103,7 @@ describe('Acciones del activo', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Recibir' }));
     fireEvent.change(screen.getByLabelText('Instalación (ubicación)'), { target: { value: 'Bodega' } });
     fireEvent.change(screen.getByLabelText('Quién recibe (referencia)'), { target: { value: 'R' } });
+    await chooseMunicipality();
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
     expect(await screen.findByText('No tienes acceso a esta operación.')).toBeInTheDocument();
     fetchMock.mockResolvedValueOnce(res(500)).mockResolvedValueOnce(res(200, { assetRef: 'A1', status: 'RECEIVED' }));
@@ -169,11 +174,12 @@ describe('Registrar activo (PanelHome)', () => {
     fetchMock.mockResolvedValueOnce(res(201, { assetRef: 'AS-9', status: 'REGISTERED', donationRef: 'd' }));
     render(<RegisterAssetForm onRegistered={onRegistered} onCancel={() => {}} />);
     fill([...COMMON, ['Convocatoria (referencia, opcional)', 'camp-1']]);
+    await chooseMunicipality();
     fireEvent.click(screen.getByRole('button', { name: 'Registrar' }));
     await waitFor(() => expect(onRegistered).toHaveBeenCalledWith('AS-9'));
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('http://api.paxfide.test/api/v1/physical-assets/from-donation');
-    expect(JSON.parse(init.body)).toEqual({ assetType: 'Mercado', quantity: '10', unitOfMeasure: 'kit', custodianRef: 'CUS', currentLocation: 'Bodega', campaignRef: 'camp-1' });
+    expect(JSON.parse(init.body)).toEqual({ assetType: 'Mercado', quantity: '10', unitOfMeasure: 'kit', custodianRef: 'CUS', currentLocation: 'Bodega', campaignRef: 'camp-1', municipalityCode: '05001' });
   });
 
   it('camino A: /register con fundId y allocationId; 409 → rechazo', async () => {
@@ -182,11 +188,12 @@ describe('Registrar activo (PanelHome)', () => {
     render(<RegisterAssetForm onRegistered={() => {}} onCancel={() => {}} />);
     fireEvent.click(screen.getByLabelText('Compra con fondos de una donación'));
     fill([['Fondo (referencia)', 'fund-1'], ['Asignación de fondos (referencia)', 'al-1'], ...COMMON]);
+    await chooseMunicipality();
     fireEvent.click(screen.getByRole('button', { name: 'Registrar' }));
     expect(await screen.findByText('El fondo no tiene saldo disponible suficiente para esta compra.')).toBeInTheDocument();
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('http://api.paxfide.test/api/v1/physical-assets/register');
-    expect(JSON.parse(init.body)).toEqual({ fundId: 'fund-1', allocationId: 'al-1', assetType: 'Mercado', quantity: '10', unitOfMeasure: 'kit', custodianRef: 'CUS', currentLocation: 'Bodega' });
+    expect(JSON.parse(init.body)).toEqual({ fundId: 'fund-1', allocationId: 'al-1', assetType: 'Mercado', quantity: '10', unitOfMeasure: 'kit', custodianRef: 'CUS', currentLocation: 'Bodega', municipalityCode: '05001' });
   });
 
   it('401 → T-1', async () => {
@@ -194,6 +201,7 @@ describe('Registrar activo (PanelHome)', () => {
     fetchMock.mockResolvedValueOnce(res(401, { title: 'Unauthorized' }));
     render(<RegisterAssetForm onRegistered={() => {}} onCancel={() => {}} />);
     fill(COMMON);
+    await chooseMunicipality();
     fireEvent.click(screen.getByRole('button', { name: 'Registrar' }));
     await waitFor(() => expect(session.getState()).toBe('LOGGED_OUT'));
   });

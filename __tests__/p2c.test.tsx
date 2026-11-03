@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+import { chooseMunicipality, TEST_CATALOG } from './fixtures/locations';
 vi.mock('next/link', () => ({ default: ({ href, children, ...rest }: any) => <a href={href} {...rest}>{children}</a> }));
 
 const res = (status: number, body?: unknown) => ({
@@ -145,13 +146,14 @@ describe('Registrar activo — camino A con fondos leídos', () => {
     const { RegisterAssetForm } = await load(['action:register-asset']);
     const onRegistered = vi.fn();
     render(<RegisterAssetForm organizationId="org-1" onRegistered={onRegistered} onCancel={() => {}}
-      fundsClient={async () => ({ kind: 'ok', items: [FUND] })} />);
+      fundsClient={async () => ({ kind: 'ok', items: [FUND] })} locationsClient={async () => ({ kind: 'ok', catalog: TEST_CATALOG })} />);
     fireEvent.click(screen.getByLabelText('Compra con fondos de una donación'));
     fireEvent.change(await screen.findByLabelText('Fondo'), { target: { value: 'fund-1' } });
     fireEvent.change(screen.getByLabelText('Asignación de fondos'), { target: { value: 'alloc-1' } });
     for (const [l, v] of [['Tipo de bien', 'BLANKET'], ['Cantidad', '10'], ['Unidad de medida', 'UNITS'], ['Custodio (referencia)', 'b-1'], ['Ubicación actual', 'b-1']]) {
       fireEvent.change(screen.getByLabelText(l), { target: { value: v } });
     }
+    await chooseMunicipality(); // Anexo 7, U-44
     fetchMock.mockResolvedValueOnce(res(201, { assetRef: 'asset-9', status: 'REGISTERED' }));
     fireEvent.click(screen.getByRole('button', { name: 'Registrar' }));
     await waitFor(() => expect(onRegistered).toHaveBeenCalledWith('asset-9'));

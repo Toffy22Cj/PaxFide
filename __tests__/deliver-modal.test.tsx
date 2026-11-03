@@ -3,6 +3,10 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { checkEvidenceFile, EVIDENCE_MAX_BYTES, evidenceErrorFor } from '../src/lib/api/deliveryEvidence';
+import { chooseMunicipality, locationsModuleMock } from './fixtures/locations';
+
+// Anexo 7 (U-44): el catálogo de municipios sin pasar por fetch; las llamadas de fetch de estos tests son la entrega
+vi.mock('../src/lib/api/locations', () => locationsModuleMock());
 
 const res = (status: number, body?: unknown) => ({
   status, text: async () => (body === undefined ? '' : JSON.stringify(body)), headers: { get: () => null },
@@ -24,11 +28,12 @@ function photo(size: number, type = 'image/jpeg') {
   return f;
 }
 
-function fill(file: File) {
+async function fill(file: File) {
   fireEvent.change(screen.getByLabelText('Custodio final (referencia)'), { target: { value: 'C' } });
   fireEvent.change(screen.getByLabelText('Beneficiario (referencia)'), { target: { value: 'B' } });
   fireEvent.change(screen.getByLabelText('Lugar de entrega (referencia)'), { target: { value: 'L' } });
   fireEvent.change(screen.getByLabelText('Foto de la entrega'), { target: { files: [file] } });
+  await chooseMunicipality();
 }
 
 beforeEach(() => { global.fetch = fetchMock as any; fetchMock.mockReset(); });
@@ -50,7 +55,7 @@ describe('DeliverModal (U-3)', () => {
     const { DeliverModal } = await load();
     const upload = vi.fn();
     render(<DeliverModal assetRef="A1" organizationId="org-1" onSuccess={() => {}} onClose={() => {}} upload={upload} />);
-    fill(photo(6 * 1024 * 1024));
+    await fill(photo(6 * 1024 * 1024));
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
     expect(await screen.findAllByText('La foto pesa más de 5 MB. Elige una más liviana.')).not.toHaveLength(0);
     expect(upload).not.toHaveBeenCalled();
@@ -61,7 +66,7 @@ describe('DeliverModal (U-3)', () => {
     const { DeliverModal } = await load();
     const upload = vi.fn().mockResolvedValue({ kind: 'error', error: 'UnsupportedFormat' });
     render(<DeliverModal assetRef="A1" organizationId="org-1" onSuccess={() => {}} onClose={() => {}} upload={upload} />);
-    fill(photo(1000));
+    await fill(photo(1000));
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Confirmar' })); });
     expect(await screen.findByText('La foto tiene que ser JPEG o PNG.')).toBeInTheDocument();
     expect(upload).toHaveBeenCalledWith('org-1', expect.any(File), expect.any(Function));
@@ -77,7 +82,7 @@ describe('DeliverModal (U-3)', () => {
       const { DeliverModal } = await load();
       const upload = vi.fn().mockResolvedValue({ kind: 'error', error });
       render(<DeliverModal assetRef="A1" organizationId="org-1" onSuccess={() => {}} onClose={() => {}} upload={upload} />);
-      fill(photo(1000));
+      await fill(photo(1000));
       await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Confirmar' })); });
       expect(await screen.findByText(text)).toBeInTheDocument();
       expect(fetchMock).not.toHaveBeenCalled();
@@ -89,7 +94,7 @@ describe('DeliverModal (U-3)', () => {
     const upload = vi.fn().mockResolvedValue({ kind: 'ok', evidenceRef: REF });
     const onSuccess = vi.fn();
     render(<DeliverModal assetRef="A1" organizationId="org-1" onSuccess={onSuccess} onClose={() => {}} upload={upload} />);
-    fill(photo(1000));
+    await fill(photo(1000));
     fetchMock.mockResolvedValueOnce(res(500)).mockResolvedValueOnce(res(200, { assetRef: 'A1', status: 'DELIVERED' }));
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Confirmar' })); });
     fireEvent.click(await screen.findByText('Reintentar'));
@@ -98,7 +103,7 @@ describe('DeliverModal (U-3)', () => {
     const [url, first] = fetchMock.mock.calls[0];
     const second = fetchMock.mock.calls[1][1];
     expect(url).toBe('http://api.paxfide.test/api/v1/physical-assets/A1/deliver');
-    expect(JSON.parse(first.body)).toEqual({ finalCustodianRef: 'C', beneficiaryRef: 'B', locationRef: 'L', evidenceRef: REF });
+    expect(JSON.parse(first.body)).toEqual({ finalCustodianRef: 'C', beneficiaryRef: 'B', locationRef: 'L', evidenceRef: REF, municipalityCode: '05001' });
     expect(second.body).toBe(first.body);
     expect(second.headers['Command-Id']).toBe(first.headers['Command-Id']);
   });
@@ -107,7 +112,7 @@ describe('DeliverModal (U-3)', () => {
     const { DeliverModal } = await load();
     const upload = vi.fn().mockResolvedValue({ kind: 'ok', evidenceRef: REF });
     render(<DeliverModal assetRef="A1" organizationId="org-1" onSuccess={() => {}} onClose={() => {}} upload={upload} />);
-    fill(photo(1000));
+    await fill(photo(1000));
     fetchMock.mockResolvedValueOnce(res(400, { title: 'EvidenceNotFound' }));
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Confirmar' })); });
     expect(await screen.findByText('No encontramos la foto de la entrega en tu organización. Súbela de nuevo.')).toBeInTheDocument();
@@ -123,7 +128,7 @@ describe('DeliverModal (U-3)', () => {
     const { DeliverModal } = await load();
     const upload = vi.fn().mockResolvedValue({ kind: 'ok', evidenceRef: REF });
     render(<DeliverModal assetRef="A1" organizationId="org-1" onSuccess={() => {}} onClose={() => {}} upload={upload} />);
-    fill(photo(1000));
+    await fill(photo(1000));
     fetchMock.mockResolvedValue(res(400, { title: 'EvidenceNotFound' }));
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Confirmar' })); });
     fireEvent.change(screen.getByLabelText('Foto de la entrega'), { target: { files: [photo(2000)] } });
@@ -135,7 +140,7 @@ describe('DeliverModal (U-3)', () => {
     const { DeliverModal } = await load();
     const upload = vi.fn();
     render(<DeliverModal assetRef="A1" organizationId={null} onSuccess={() => {}} onClose={() => {}} upload={upload} />);
-    fill(photo(1000));
+    await fill(photo(1000));
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Confirmar' })); });
     expect(screen.getByText(/No pudimos saber a qué organización pertenece tu cuenta/)).toBeInTheDocument();
     expect(upload).not.toHaveBeenCalled();

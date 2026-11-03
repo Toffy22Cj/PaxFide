@@ -33,6 +33,8 @@ async function allDiscoveryTitles(page: Page): Promise<string[]> {
 
 test.describe('P2-A — registro, descubrimiento y narrativa', () => {
   test('crear cuenta por la interfaz y entrar con ella (sin organización: sin entradas de organización)', async ({ page }) => {
+    // Dos registros, la verificación y el inicio de sesión en un recorrido: con el E2E completo en paralelo roza los 30 s
+    test.setTimeout(60_000);
     const email = `nueva-${Date.now()}@demo.test`;
     await page.goto('/login');
     await page.getByRole('link', { name: 'Crear cuenta' }).click();

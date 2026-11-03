@@ -9,6 +9,8 @@ import { Actions, uiClasses as ui } from '../ui/Layout';
 import { CommandFeedback } from '../CommandFeedback';
 import { LegalConsent } from '../access/LegalConsent';
 import type { LegalDocumentKey } from '../../lib/legal/versions';
+import { AssetMunicipalityField, useAssetMunicipality } from './AssetMunicipality';
+import type { fetchLocations } from '../../lib/api/locations';
 
 export interface FieldSpec {
   name: string;
@@ -29,13 +31,19 @@ export interface FieldSpec {
  * Formulario transitorio de un comando en un modal (§4: título, contenido, Cancelar + Primario). Los campos son
  * referencias de texto del contrato; el backend valida su forma (400) y el estado del activo (409).
  */
-export function CommandModal<TRes>({ title, description, fields, submitLabel, builder, onSuccess, onClose, validate, consent }: {
+export function CommandModal<TRes>({ title, description, fields, submitLabel, builder, onSuccess, onClose, validate, consent, municipality, locationsClient }: {
   title: string;
   /**
    * plan-fase7-puesta-al-dia.md R-3: una casilla legal sin marcar (p. ej. los términos para organizaciones). Sin
    * marcarla no se puede enviar; la versión aceptada la pone el `builder`.
    */
   consent?: LegalDocumentKey;
+  /**
+   * Anexo 7, U-44 y U-45: el paso exige `municipalityCode` (recibir). `initialCode`: el del lote. Sin municipio no se
+   * envía nada; el reintento de un ambiguo repite el MISMO cuerpo (U-46, lo garantiza `useCommand`).
+   */
+  municipality?: { initialCode?: string | null };
+  locationsClient?: typeof fetchLocations;
   description?: React.ReactNode;
   fields: FieldSpec[];
   submitLabel: string;
@@ -52,6 +60,7 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
   const sent = useRef<Record<string, string>>({});
   const sending = command.state === 'SENDING';
   const [consented, setConsented] = useState(false);
+  const muni = useAssetMunicipality(municipality?.initialCode);
 
   useEffect(() => {
     if (command.state === 'SUCCESS') onSuccess(command.data, command.location, sent.current);
@@ -73,7 +82,9 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
     }
     Object.assign(nextErrors, validate ? validate(payload) : {});
     setErrors(nextErrors);
-    if (Object.values(nextErrors).some(Boolean)) return;
+    const code = municipality ? muni.check() : null;
+    if (Object.values(nextErrors).some(Boolean) || (municipality && !code)) return;
+    if (code) payload.municipalityCode = code;
     sent.current = payload;
     void command.execute(payload);
   };
@@ -93,6 +104,9 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
           : <TextField key={f.name} label={f.label} hint={f.hint} value={values[f.name]} autoComplete="off"
               onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))} error={errors[f.name]} disabled={sending} />
         ))}
+        {municipality && (
+          <AssetMunicipalityField m={muni} disabled={sending || command.state === 'AMBIGUOUS'} locationsClient={locationsClient} />
+        )}
         {consent && <LegalConsent doc={consent} checked={consented} onChange={setConsented} disabled={sending || command.state === 'AMBIGUOUS'} />}
         <CommandFeedback command={command} />
         <Actions>

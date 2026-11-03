@@ -1,0 +1,37 @@
+P-17 · E2E del ANTES sobre 61eca21 (servidor falso con municipalityCode obligatorio; web sin el arreglo)
+$ pnpm exec playwright test e2e/asset-municipality.spec.ts --reporter=line
+[WebServer] $ next build
+
+[WebServer] $ next start
+
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/asset-municipality.spec.ts:15:7 › P-17: municipio obligatorio en los pasos del lote › ANTES/DESPUÉS: registrar sin municipio no envía nada (antes: 400 del backend); con municipio → 201 con municipalityCode
+  1) [chromium] › e2e/asset-municipality.spec.ts:15:7 › P-17: municipio obligatorio en los pasos del lote › ANTES/DESPUÉS: registrar sin municipio no envía nada (antes: 400 del backend); con municipio → 201 con municipalityCode 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   400,
+    + ]
+
+      26 |     await page.waitForTimeout(800);
+      27 |     // Sin municipio no sale ninguna petición: antes del arreglo, aquí salía y el backend respondía 400
+    > 28 |     expect(registers.map((r) => r.status())).toEqual([]);
+         |                                              ^
+      29 |     await expect(page.getByText('Elige el municipio')).toBeVisible();
+      30 |
+      31 |     await page.getByLabel('Departamento').selectOption('05');
+        at /home/user/PaxFide/e2e/asset-municipality.spec.ts:28:46
+
+    Error Context: test-results/asset-municipality-P-17-mu-06f18--→-201-con-municipalityCode-chromium/error-context.md
+
+
+  1 failed
+    [chromium] › e2e/asset-municipality.spec.ts:15:7 › P-17: municipio obligatorio en los pasos del lote › ANTES/DESPUÉS: registrar sin municipio no envía nada (antes: 400 del backend); con municipio → 201 con municipalityCode 
+EXIT 1

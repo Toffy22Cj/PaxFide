@@ -12,6 +12,7 @@ import { StatusNotice } from '../States';
 import { NO_PUBLIC_ZONE, asTrackingEvent, eventDescription } from './events';
 import { StepIcon } from './StepIcon';
 import s from './timeline.module.css';
+import { zoneOrNone } from '../../lib/location/zoneLabel';
 
 export type Selection =
   | { kind: 'payment' }
@@ -58,7 +59,7 @@ function TransitionDetail({ step, assetTitle }: { step: Transition; assetTitle?:
       <dl className={s.detailMeta}>
         <dt>Evento</dt><dd><code className={s.mono}>{step.eventType}</code></dd>
         <dt>Custodio responsable</dt><dd>{custodianLabel(step.custodianCategory ?? 'UNCATEGORIZED')}</dd>
-        <dt>Zona</dt><dd>{step.locationZone ?? NO_PUBLIC_ZONE}</dd>
+        <dt>Zona</dt><dd>{zoneOrNone(step.locationZone, NO_PUBLIC_ZONE)}</dd>
         <dt>Fecha</dt><dd>{step.timestamp ? <LocalDate iso={step.timestamp} withTime /> : 'Sin fecha'}</dd>
         {step.eventHash && <><dt>Huella criptográfica</dt><dd><HashValue hash={step.eventHash} label="Copiar huella" /></dd></>}
         {step.eventType === 'ASSET_DELIVERED' && step.evidenceRegistered !== undefined && (
