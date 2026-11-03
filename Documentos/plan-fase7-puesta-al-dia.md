@@ -643,3 +643,64 @@ P-14 (Anexo 4) sigue en su PR, en revisión de Carlos.
   - Recorrido: vincular en Seguridad → cerrar sesión → entrar con Google → desvincular → Google ya no entra.
   - Negativa: la portada y una convocatoria pública no piden nada a `accounts.google.com`.
 - Capturas en claro y oscuro, a 390 y 1280 px.
+
+---
+
+## Anexo 7 (2026-11-03) — Municipio obligatorio en los pasos del lote y preverificación en la bandeja
+
+**Estado: PROPUESTO — espera la aprobación de Carlos.** Origen: el backend `develop` `11f8698` (2026-11-02) trae dos cambios que afectan a la web. Su contrato está en `referencia-api-v1.md`, en las dos notas del 2026-11-02.
+- **#173, la zona pública en cada paso** (`ficha-zona-en-cada-paso.md`, enmienda 2 de ADR-029): **rompe el contrato actual**.
+- **#172, la preverificación de organizaciones** (ficha CONGELADA, plan aprobado en #171): es aditivo.
+
+### A7.1 Qué se rompe hoy (comprobado en `develop` `77b0074`)
+
+| Ruta | La web la usa en | Qué pide ahora el backend |
+|---|---|---|
+| `POST /physical-assets/register` (Camino A) | `RegisterAssetForm.tsx`, por `assetCommands.ts:32` | además, `municipalityCode` (DIVIPOLA, 5 dígitos) |
+| `POST /physical-assets/from-donation` (Camino B) | `RegisterAssetForm.tsx`, por `assetCommands.ts:35` | ídem |
+| `POST /physical-assets/{assetRef}/receive` | `AssetActions.tsx:51`, por `assetCommands.ts:26` | ídem |
+| `POST /physical-assets/{assetRef}/deliver` | `DeliverModal.tsx`, por `assetCommands.ts:28` | ídem |
+
+- Sin `municipalityCode`, el backend responde **400** con el cuerpo `BadRequest` de siempre y no escribe nada. **Hoy la web no puede registrar, recibir ni entregar lotes contra el backend de `develop`.**
+- `POST …/dispatch` y `…/split` no cambian.
+- **Lecturas, cambios aditivos:**
+  - `GET /physical-assets/{assetRef}` y cada ítem de `GET /organizations/{id}/physical-assets` ganan `municipalityCode?` y `zoneName?`;
+  - `locationZone` (seguimiento, `logistics[]` y actividad) llega ahora como el texto sellado del catálogo, **en mayúsculas**, por ejemplo `"BARRANQUILLA, ATLÁNTICO"`. La presentación la decide la web;
+  - los pasos antiguos pueden seguir llegando con `null`.
+- **Preverificación:** cada ítem de `GET /platform/organizations` gana `missingForVerification: string[]`, siempre presente: `["legalName", "nit"]`, uno de los dos o `[]`. El 409 `VerificationDataMissing` se da **si y solo si** la lista no está vacía.
+
+### A7.2 Decisiones propuestas
+
+| # | Decisión propuesta |
+|---|---|
+| U-44 | **Municipio obligatorio en los cuatro formularios** (registrar por los dos caminos, recibir y entregar). Usan los mismos dos selectores dependientes de U-33 (departamento → municipio, `GET /public/locations` una vez por sesión). El texto libre de la ubicación **se conserva**: el contrato lo sigue pidiendo y es privado. Encima del selector va la ayuda "El municipio se muestra al donante en el seguimiento; la dirección exacta, no". Sin municipio, el botón no se envía y aparece "Elige el municipio". Si el catálogo falla, el formulario muestra "Reintentar" y no se puede enviar, porque el comando fallaría |
+| U-45 | **Valor inicial en recibir y entregar:** si el lote trae `municipalityCode`, el selector empieza en ese municipio y la persona lo puede cambiar. Al registrar empieza vacío. Nunca se deduce el municipio del texto libre |
+| U-46 | **Reintentos (D6):** un comando ambiguo se reintenta con **el mismo cuerpo**, incluido `municipalityCode`. Cambiar el municipio después de una respuesta ambigua es un comando nuevo, con su propio `Command-Id`. La entrega idempotente del backend compara el cuerpo, así que mezclar los dos casos daría un conflicto |
+| U-47 | **Cómo se muestra la zona:** una función pura convierte el texto sellado a mayúsculas iniciales en español: `"BARRANQUILLA, ATLÁNTICO"` → "Barranquilla, Atlántico" y `"SAN ANDRÉS DE TUMACO, NARIÑO"` → "San Andrés de Tumaco, Nariño", con *de, del, la, las, los, y* en minúscula salvo al principio, y `"BOGOTÁ, D.C."` → "Bogotá, D.C.". Se aplica en el seguimiento, el detalle del paso, el panel, la actividad y el lote (`zoneName`). Si llega `null`, se sigue mostrando "Sin zona pública", como hoy. **No se cambia el texto que manda el backend**: solo su presentación |
+| U-48 | **Preverificación en la bandeja** (sustituye la parte de U-37 que deducía los datos que faltan a partir del perfil):<br>- con `missingForVerification` vacía, una etiqueta neutra "Datos completos";<br>- si no, una etiqueta de aviso "Faltan datos: razón social, NIT" (los que falten), con la sugerencia "Pide más información".<br>**No** ordena, ni filtra, ni prioriza la cola, ni dice "revisión rápida" (ficha, P7). Los botones verificar, rechazar y pedir información no cambian: decide la persona. El texto del 409 `VerificationDataMissing` se mantiene por si llega. La web **no** repite la regla: usa la lista del backend |
+| U-49 | **El formulario del perfil (P-15)** marca la razón social y el NIT como "Necesarios para que la plataforma verifique la organización". Es solo un texto: los dos campos siguen siendo opcionales en el contrato |
+
+### A7.3 Tarea
+
+**P-17 · `fix/web-asset-municipality`** — U-44 a U-49. **Va primero**, porque hoy los comandos de lotes fallan.
+- **Código:**
+  - `assetCommands.ts` y los tres formularios;
+  - el componente de ubicación de P-15, reutilizado sin copiarlo;
+  - `src/lib/location/zoneLabel.ts` (puro);
+  - `PlatformScreen`;
+  - `panelData.ts` y `tracking.ts` (campos nuevos).
+- **Servidor falso:** el 400 sin `municipalityCode`, o con un código que no está en el catálogo de prueba; `municipalityCode` y `zoneName` en las lecturas; `locationZone` en mayúsculas; `missingForVerification` en la bandeja.
+- **Tests:**
+  - los cuatro comandos envían `municipalityCode`, y sin municipio no sale ninguna petición (negativa sobre las peticiones);
+  - recibir y entregar empiezan con el municipio del lote, y registrar empieza vacío;
+  - un reintento ambiguo reenvía el mismo `municipalityCode` con el mismo `Command-Id`; cambiar el municipio genera un `Command-Id` nuevo;
+  - `zoneLabel`: los ejemplos de U-47 más un texto ya en minúsculas, que no se rompe;
+  - el texto libre de la ubicación nunca aparece en una pantalla pública (negativa, E2E del seguimiento);
+  - la bandeja: `[]` → "Datos completos"; `["nit"]` → "Faltan datos: NIT"; el orden de la cola es el del servidor (negativa: no se reordena);
+  - `dispatch` y `split` no envían `municipalityCode` (negativa).
+- Capturas en claro y oscuro, a 390 y 1280 px, de: registrar, recibir, entregar, el seguimiento con zona y la bandeja con las dos etiquetas.
+- Ninguna dependencia nueva (D8). Sin cambios en `globals.css`.
+
+### A7.4 Aviso al móvil
+
+Los mismos cuatro comandos los usa la app móvil, y **recibir y entregar son sus pantallas principales**. Sin `municipalityCode`, el móvil también recibe un 400. No es de este plan: se avisa a Adonis con la nota del backend del 2026-11-02.
