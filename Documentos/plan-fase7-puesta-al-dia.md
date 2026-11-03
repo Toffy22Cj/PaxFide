@@ -648,7 +648,7 @@ P-14 (Anexo 4) sigue en su PR, en revisión de Carlos.
 
 ## Anexo 7 (2026-11-03) — Municipio obligatorio en los pasos del lote y preverificación en la bandeja
 
-**Estado: PROPUESTO — espera la aprobación de Carlos.** Origen: el backend `develop` `11f8698` (2026-11-02) trae dos cambios que afectan a la web. Su contrato está en `referencia-api-v1.md`, en las dos notas del 2026-11-02.
+**Estado: APROBADO — Carlos, 2026-11-03** (texto literal: "Apruebo anexo 7"). Aprueba U-44 a U-49 y P-17. Origen: el backend `develop` `11f8698` (2026-11-02) trae dos cambios que afectan a la web. Su contrato está en `referencia-api-v1.md`, en las dos notas del 2026-11-02.
 - **#173, la zona pública en cada paso** (`ficha-zona-en-cada-paso.md`, enmienda 2 de ADR-029): **rompe el contrato actual**.
 - **#172, la preverificación de organizaciones** (ficha CONGELADA, plan aprobado en #171): es aditivo.
 
