@@ -103,6 +103,7 @@ test.describe('P-15 · perfil de la organización', () => {
   });
 
   test('plataforma: sin razón social ni NIT, "Verificar" explica que faltan; pedir información → la organización reenvía a revisión', async ({ browser }) => {
+    test.setTimeout(60_000); // tres sesiones en un recorrido, como el editor
     const { name, email } = await newRepresentative(browser, { withNit: false });
     const platform = await login(browser, 'plataforma@demo.test', 'demo-plataforma', '/panel/platform');
     const row = platform.getByTestId('queue-item').filter({ hasText: name });
