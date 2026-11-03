@@ -67,8 +67,10 @@ const BUILDERS: Record<ActionId, (assetRef: string) => (p: unknown) => any> = {
  * cada estado (sin `ActionResolver`): ofrece las habilitadas, salvo en `DELIVERED` (matriz §4b: solo lectura), y el
  * backend rechaza con 409 lo que no corresponda.
  */
-export function AssetActions({ assetRef, delivered, onChanged, principal }: {
+export function AssetActions({ assetRef, delivered, onChanged, principal, municipalityCode }: {
   assetRef: string;
+  /** Anexo 7, U-45: el municipio del lote, con el que empiezan recibir y entregar. */
+  municipalityCode?: string | null;
   delivered: boolean;
   onChanged: () => void;
   principal?: PrincipalState;
@@ -96,6 +98,7 @@ export function AssetActions({ assetRef, delivered, onChanged, principal }: {
       {open === 'deliver' && (
         <DeliverModal
           assetRef={assetRef}
+          municipalityCode={municipalityCode}
           organizationId={principal?.status === 'ready' ? principal.data.organizationId ?? null : null}
           onClose={() => setOpen(null)}
           onSuccess={() => { setOpen(null); setDone(SPECS.deliver.done); onChanged(); }}
@@ -109,6 +112,8 @@ export function AssetActions({ assetRef, delivered, onChanged, principal }: {
           fields={SPECS[open].fields}
           submitLabel="Confirmar"
           builder={BUILDERS[open](assetRef)}
+          // Anexo 7, U-44: recibir exige el municipio; despachar y dividir no lo envían
+          municipality={open === 'receive' ? { initialCode: municipalityCode } : undefined}
           onClose={() => setOpen(null)}
           onSuccess={(data) => {
             const action = open;

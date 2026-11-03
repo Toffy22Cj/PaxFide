@@ -12,6 +12,9 @@ export interface PhysicalAssetOperationalReadModel {
   quantity: string | number;
   unitOfMeasure: string;
   campaignRef: string;
+  /** Anexo 7 (nota del 2026-11-02): la zona sellada de la ubicación actual; ausentes en un lote de antes del cambio. */
+  municipalityCode?: string;
+  zoneName?: string;
 }
 
 export class ApiBaseUrlMisconfiguredError extends Error {
@@ -77,7 +80,9 @@ export async function fetchAsset(assetRef: string): Promise<AssetResponse> {
       currentLocation: json.currentLocation ?? null,
       quantity: json.quantity,
       unitOfMeasure: json.unitOfMeasure,
-      campaignRef: json.campaignRef
+      campaignRef: json.campaignRef,
+      ...(typeof json.municipalityCode === 'string' ? { municipalityCode: json.municipalityCode } : {}),
+      ...(typeof json.zoneName === 'string' ? { zoneName: json.zoneName } : {}),
     };
     return { state: 'SUCCESS', data };
   } catch (e) {

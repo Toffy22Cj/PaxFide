@@ -1,7 +1,7 @@
 // Ref: plan-fase7-puesta-al-dia.md P-4 (U-4, U-5, U-6, U-7 y U-8); referencia-api-v1.md §3, §4, §6 y §2. Contra el
 // servidor falso. Las imágenes son PNG de prueba hechos aquí (e2e/support/evidence.ts).
 import { test, expect, type Page, type Request } from '@playwright/test';
-import { attachDeliveryPhoto, uniquePng } from './support/evidence';
+import { attachDeliveryPhoto, chooseMunicipality, municipalityReady, uniquePng } from './support/evidence';
 
 async function login(page: Page, path: string, email: string, password: string) {
   await page.goto(path);
@@ -92,6 +92,7 @@ test.describe('P-4: logo, portada y evidencia', () => {
     await page.getByLabel('Unidad de medida').fill('kit');
     await page.getByLabel('Custodio (referencia)').fill('BODEGA-1');
     await page.getByLabel('Ubicación actual').fill('Bodega central');
+    await chooseMunicipality(page); // Anexo 7, U-44
     await page.getByRole('button', { name: 'Registrar' }).click();
     await expect(page).toHaveURL(/\/assets\/[0-9a-f-]{36}$/);
     const assetPath = new URL(page.url()).pathname;
@@ -106,6 +107,7 @@ test.describe('P-4: logo, portada y evidencia', () => {
     await dialog.getByLabel('Lugar de entrega (referencia)').fill('LUGAR-1');
     const uploaded = page.waitForResponse((r) => r.url().endsWith('/delivery-evidence'));
     await attachDeliveryPhoto(dialog);
+    await municipalityReady(dialog); // Anexo 7, U-45
     await dialog.getByRole('button', { name: 'Confirmar' }).click();
     const { evidenceRef } = await (await uploaded).json();
     await expect(page.getByTestId('field-lifecycleStatus')).toHaveText('Entregado');

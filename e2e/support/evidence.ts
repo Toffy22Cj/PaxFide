@@ -3,7 +3,7 @@
 // aquí, sin dependencias (D8): el backend real la decodifica y la guarda limpia.
 import zlib from 'zlib';
 import crypto from 'crypto';
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 const CRC = (() => {
   const t = new Uint32Array(256);
@@ -79,4 +79,20 @@ export function randomNit(): { nit: string; dv: string } {
   for (let i = 0; i < 9; i++) sum += Number(nit[8 - i]) * W[i];
   const r = sum % 11;
   return { nit, dv: String(r <= 1 ? r : 11 - r) };
+}
+
+/**
+ * Anexo 7 (U-44): el municipio obligatorio de registrar, recibir y entregar. Elige departamento y municipio del catálogo
+ * de PRUEBA del servidor falso (05 → 05001, "Medellín (prueba)").
+ */
+export async function chooseMunicipality(scope: Page | Locator, dep = '05', mun = '05001'): Promise<void> {
+  const block = scope.getByTestId('asset-municipality');
+  await block.getByLabel('Departamento').selectOption(dep);
+  await block.getByLabel('Municipio').selectOption(mun);
+}
+
+/** U-45: recibir y entregar empiezan con el municipio del lote; espera a que el selector lo tenga. */
+export async function municipalityReady(scope: Page | Locator): Promise<void> {
+  const block = scope.getByTestId('asset-municipality');
+  if (await block.count()) await expect(block.getByLabel('Municipio')).toHaveValue(/^[0-9]{5}$/);
 }

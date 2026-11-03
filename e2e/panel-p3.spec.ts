@@ -1,5 +1,6 @@
 // Ref: plan-fase7-puesta-al-dia.md P-3 (F-C3); referencia-api-v1.md §3 (G-6, G-7, G-8, G-9). Contra el servidor falso.
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { chooseMunicipality } from './support/evidence';
 
 const API = 'http://localhost:3002';
 
@@ -45,6 +46,7 @@ test.describe('P-3: datos de tiempo del panel', () => {
     await page.getByLabel('Unidad de medida').fill('kit');
     await page.getByLabel('Custodio (referencia)').fill('BODEGA-1');
     await page.getByLabel('Ubicación actual').fill('Bodega central');
+    await chooseMunicipality(page); // Anexo 7, U-44
     await page.getByRole('button', { name: 'Registrar' }).click();
     await expect(page).toHaveURL(/\/assets\//);
     await page.evaluate(() => (window as any).__TEST_ROUTER__.push('/panel'));

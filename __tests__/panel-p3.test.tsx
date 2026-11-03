@@ -56,12 +56,12 @@ describe('Integridad (G-7)', () => {
 describe('Actividad (G-8)', () => {
   const item = (type: ActivityItem['type'], extra: Partial<ActivityItem> = {}): ActivityItem => ({ type, occurredAt: '2026-10-14T10:00:00Z', ...extra });
   it('cada tipo tiene su texto; sin actor, importes ni destinatarios', () => {
-    const texts = Object.fromEntries(ACTIVITY_TYPES.map((t) => [t, activityText(item(t, { quantity: '40', unitOfMeasure: 'kit', locationZone: 'Riohacha', eventCount: 14 }))]));
+    const texts = Object.fromEntries(ACTIVITY_TYPES.map((t) => [t, activityText(item(t, { quantity: '40', unitOfMeasure: 'kit', locationZone: 'RIOHACHA, LA GUAJIRA', eventCount: 14 }))]));
     expect(texts).toEqual({
-      ASSET_REGISTERED: 'Lote registrado · 40 kit en Riohacha',
+      ASSET_REGISTERED: 'Lote registrado · 40 kit en Riohacha, La Guajira',
       ASSET_DISPATCHED: 'Lote despachado',
-      ASSET_RECEIVED: 'Lote recibido en Riohacha',
-      ASSET_DELIVERED: 'Lote entregado en Riohacha',
+      ASSET_RECEIVED: 'Lote recibido en Riohacha, La Guajira',
+      ASSET_DELIVERED: 'Lote entregado en Riohacha, La Guajira',
       ASSET_SPLIT: 'Lote dividido: 40 kit pasan a un sublote',
       FUNDS_CLEARED: 'Donación confirmada',
       CAMPAIGN_CLOSED: 'Convocatoria cerrada',

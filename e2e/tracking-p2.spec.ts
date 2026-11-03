@@ -165,7 +165,7 @@ async function paidDonationWithAsset(request: APIRequestContext): Promise<string
   const { token } = await (await request.post(`${API}/api/v1/auth/login`, { data: { email: 'empleado@demo.test', password: 'demo-empleado' } })).json();
   const r = await request.post(`${API}/api/v1/physical-assets/register`, {
     headers: { Authorization: `Bearer ${token}`, 'Command-Id': crypto.randomUUID() },
-    data: { fundId, allocationId: 'alloc-p2', assetType: 'Mercado', quantity: '3', unitOfMeasure: 'kit', custodianRef: 'BODEGA-1', currentLocation: 'Bodega central' },
+    data: { fundId, allocationId: 'alloc-p2', assetType: 'Mercado', quantity: '3', unitOfMeasure: 'kit', custodianRef: 'BODEGA-1', currentLocation: 'Bodega central', municipalityCode: '05001' },
   });
   expect(r.status()).toBeLessThan(300);
   return status.trackingCode;

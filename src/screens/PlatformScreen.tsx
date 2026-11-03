@@ -43,7 +43,27 @@ const FILTERS: { value: '' | QueueStatus; label: string }[] = [
   { value: 'NEEDS_MORE_INFORMATION', label: 'Con información pedida' },
 ];
 
-/** U-37: lo que la plataforma revisa; si falta la razón social o el NIT, se dice (verificar daría 409 VerificationDataMissing). */
+/**
+ * Anexo 7, U-48: la preverificación es la lista del backend (`missingForVerification`), sin repetir la regla. Solo
+ * informa: no ordena, ni filtra, ni prioriza la cola, y los botones no cambian (decide la persona).
+ */
+const MISSING_LABEL: Record<string, string> = { legalName: 'razón social', nit: 'NIT' };
+export function preverificationText(missing: string[]): string {
+  return missing.length === 0 ? 'Datos completos' : `Faltan datos: ${missing.map((m) => MISSING_LABEL[m] ?? m).join(', ')}`;
+}
+
+function Preverification({ missing }: { missing?: string[] }) {
+  if (!missing) return null;
+  const complete = missing.length === 0;
+  return (
+    <p className={p.preverification} data-testid="queue-preverification" data-complete={complete}>
+      <span className={complete ? p.tagNeutral : p.tagWarning}>{preverificationText(missing)}</span>
+      {!complete && <span className={p.tagHint}>Sugerencia: «Pide más información».</span>}
+    </p>
+  );
+}
+
+/** U-37: los datos que la plataforma revisa, tal como llegan (sin deducir de ellos lo que falta: eso es U-48). */
 function verificationRows(o: QueueItem): { label: string; value: React.ReactNode; testId?: string }[] {
   const p = o.profile ?? {};
   return [
@@ -97,6 +117,7 @@ function VerificationQueue({ queueClient }: { queueClient: typeof fetchVerificat
           {queue.items.map((o) => (
             <li key={o.organizationId} data-testid="queue-item" className={p.divided}>
               <h3 className={ui.sectionTitle}>{o.name ?? 'Organización sin nombre'}</h3>
+              <Preverification missing={o.missingForVerification} />
               <DefinitionList items={[
                 { label: 'Tipo', value: organizationTypeLabel(o.type) },
                 { label: 'Estado', value: verificationStatusLabel(o.verificationStatus) },

@@ -65,6 +65,9 @@ export interface OrgAsset {
   assetType?: string;
   /** G-9 (nota del 2026-10-25, §3): el último evento del lote por `sequence`; falta si no hay fecha. */
   lastEventAt?: string;
+  /** Anexo 7 (nota del 2026-11-02): la zona sellada de la ubicación actual. */
+  municipalityCode?: string;
+  zoneName?: string;
 }
 
 export async function fetchOrganizationAssets(organizationId: string): Promise<ListOutcome<OrgAsset>> {
@@ -73,6 +76,7 @@ export async function fetchOrganizationAssets(organizationId: string): Promise<L
     assetRef: a.assetRef, lifecycleStatus: String(a.lifecycleStatus), currentCustodianRef: opt(a.currentCustodianRef),
     currentLocation: opt(a.currentLocation), quantity: opt(a.quantity), unitOfMeasure: opt(a.unitOfMeasure), campaignRef: opt(a.campaignRef),
     assetType: opt(a.assetType), lastEventAt: opt(a.lastEventAt),
+    municipalityCode: opt(a.municipalityCode), zoneName: opt(a.zoneName),
   } : null));
 }
 
@@ -113,6 +117,11 @@ export interface QueueItem {
   informationRequest?: string;
   /** Ficha R-7 §4: los campos del perfil, solo para la plataforma (U-37). */
   profile?: OrganizationProfileContract;
+  /**
+   * Anexo 7, U-48 (ficha de preverificación, nota del 2026-11-02): lo que falta para verificar, del backend, en su
+   * orden (`legalName`, `nit`). Ausente si el backend no lo envía (la web no lo deduce).
+   */
+  missingForVerification?: string[];
 }
 
 export type QueueOutcome =
@@ -133,6 +142,9 @@ export async function fetchVerificationQueue(opts: { status?: QueueStatus; curso
       .map((o: any) => ({
         organizationId: o.organizationId, name: opt(o.name), type: String(o.type), verificationStatus: String(o.verificationStatus),
         informationRequest: opt(o.informationRequest), profile: profileFromResponse(o),
+        ...(Array.isArray(o.missingForVerification)
+          ? { missingForVerification: o.missingForVerification.filter((x: unknown): x is string => typeof x === 'string') }
+          : {}),
       }));
     return { kind: 'ok', items, nextCursor: opt(r.data!.nextCursor) };
   }

@@ -1,5 +1,6 @@
 import { test, expect, Page, Browser, APIRequestContext } from '@playwright/test';
 import crypto from 'crypto';
+import { chooseMunicipality } from './support/evidence';
 
 const API = 'http://localhost:3002';
 
@@ -62,6 +63,7 @@ test.describe('P2-C — fondos, activos de la organización y verificación', ()
     await employee.getByLabel('Unidad de medida').fill('kit');
     await employee.getByLabel('Custodio (referencia)').fill('BODEGA-P2C');
     await employee.getByLabel('Ubicación actual').fill('Bodega P2-C');
+    await chooseMunicipality(employee); // Anexo 7, U-44
     const registered = employee.waitForRequest((r) => r.url().endsWith('/physical-assets/register') && r.method() === 'POST');
     await employee.getByRole('button', { name: 'Registrar' }).click();
     expect((await registered).postDataJSON()).toMatchObject({ fundId });

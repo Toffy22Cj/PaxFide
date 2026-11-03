@@ -1,5 +1,5 @@
 import { test, expect, Page, Request } from '@playwright/test';
-import { attachDeliveryPhoto } from './support/evidence';
+import { attachDeliveryPhoto, chooseMunicipality, municipalityReady } from './support/evidence';
 
 async function login(page: Page) {
   // A-3: el inicio por defecto es /home; pedir /panel sin sesión lo guarda como destino y se vuelve ahí tras entrar
@@ -15,6 +15,7 @@ async function act(page: Page, button: string, fields: [string, string][]) {
   const dialog = page.getByRole('dialog');
   for (const [label, value] of fields) await dialog.getByLabel(label).fill(value);
   if (button === 'Entregar') await attachDeliveryPhoto(dialog); // U-3: la entrega lleva su foto
+  await municipalityReady(dialog); // Anexo 7, U-45: recibir y entregar empiezan con el municipio del lote
   await dialog.getByRole('button', { name: 'Confirmar' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 }
@@ -36,6 +37,7 @@ test.describe('Panel de activos (registrar, dividir, despachar, recibir, entrega
     await page.getByLabel('Unidad de medida').fill('kit');
     await page.getByLabel('Custodio (referencia)').fill('BODEGA-1');
     await page.getByLabel('Ubicación actual').fill('Bodega central');
+    await chooseMunicipality(page); // Anexo 7, U-44
     await page.getByRole('button', { name: 'Registrar' }).click();
     await expect(page).toHaveURL(/\/assets\/[0-9a-f-]{36}$/);
     await expect(page.getByTestId('field-lifecycleStatus')).toHaveText('Registrado');
@@ -80,12 +82,14 @@ test.describe('Panel de activos (registrar, dividir, despachar, recibir, entrega
     for (const [l, v] of [['Tipo de bien', 'Kit'], ['Cantidad', '1'], ['Unidad de medida', 'kit'], ['Custodio (referencia)', 'C'], ['Ubicación actual', 'U']]) {
       await page.getByLabel(l).fill(v);
     }
+    await chooseMunicipality(page);
     await page.getByRole('button', { name: 'Registrar' }).click();
     await expect(page).toHaveURL(/\/assets\//);
     await page.getByRole('button', { name: 'Recibir', exact: true }).click();
     const dialog = page.getByRole('dialog');
     await dialog.getByLabel('Instalación (ubicación)').fill('X');
     await dialog.getByLabel('Quién recibe (referencia)').fill('Y');
+    await municipalityReady(dialog);
     await dialog.getByRole('button', { name: 'Confirmar' }).click();
     await expect(dialog.getByRole('alert')).toHaveText('El activo no está en un estado que permita esta operación.');
     await dialog.getByRole('button', { name: 'Cancelar' }).click();

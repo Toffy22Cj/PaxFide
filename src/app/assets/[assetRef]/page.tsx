@@ -10,6 +10,8 @@ import { fetchMe } from '../../../lib/api/identity';
 import { usePrincipal } from '../../../lib/auth/usePrincipal';
 import { formatQuantity } from '../../../lib/quantity';
 import { DeliveryEvidencePhoto } from '../../../components/media/DeliveryEvidencePhoto';
+import { zoneOrNone } from '../../../lib/location/zoneLabel';
+import { NO_PUBLIC_ZONE } from '../../../components/tracking/events';
 
 type State = 'LOADING' | 'SUCCESS' | 'FORBIDDEN' | 'NOT_FOUND' | 'ERROR';
 
@@ -59,10 +61,12 @@ export default function AssetPage({ params, fetchClient = fetchAsset, meClient =
           { label: 'Cantidad', value: formatQuantity(data.quantity), testId: 'field-quantity' },
           { label: 'Unidad de medida', value: data.unitOfMeasure, testId: 'field-unitOfMeasure' },
           { label: 'Ubicación actual', value: orNone(data.currentLocation), testId: 'field-currentLocation' },
+          // Anexo 7, U-47: la zona pública (la que ve el donante), con su presentación
+          { label: 'Zona pública', value: zoneOrNone(data.zoneName, NO_PUBLIC_ZONE), testId: 'field-zoneName' },
           { label: 'Custodio actual', value: orNone(data.currentCustodianRef), testId: 'field-currentCustodianRef' },
           { label: 'Convocatoria', value: data.campaignRef ?? 'Sin registrar', testId: 'field-campaignRef' },
         ]} />
-        <AssetActions assetRef={data.assetRef} delivered={isReadOnly} onChanged={() => void read(true)} principal={principal} />
+        <AssetActions assetRef={data.assetRef} municipalityCode={data.municipalityCode} delivered={isReadOnly} onChanged={() => void read(true)} principal={principal} />
       </Surface>
       {/* U-8 (plan-fase7-puesta-al-dia.md): la foto de la entrega, para los miembros de la organización o la plataforma */}
       {isReadOnly && principal.status === 'ready' && (principal.data.organizationId || principal.data.platformAuthority) && (

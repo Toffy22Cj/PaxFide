@@ -15,3 +15,13 @@
 /* Elemento de lista separado del siguiente (personas, cola de verificación) */
 .divided { border-bottom: 1px solid var(--color-divider); padding-bottom: var(--space-4); }
 .spaced { margin-top: var(--space-6); }
+
+/* plan-fase7-puesta-al-dia.md Anexo 7, U-48: la preverificación de la bandeja. Neutra si están los datos; de aviso si no */
+.preverification { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); }
+.tagNeutral, .tagWarning {
+  display: inline-flex; align-items: center; min-height: 24px; padding: 0 var(--space-2); border-radius: var(--radius-control);
+  font-size: var(--font-size-body-3); font-weight: var(--weight-semibold);
+}
+.tagNeutral { background: var(--color-info-bg); color: var(--color-text-secondary); }
+.tagWarning { background: var(--color-ambiguous-bg); color: var(--color-ambiguous-title); }
+.tagHint { font-size: var(--font-size-body-3); color: var(--color-text-secondary); }
