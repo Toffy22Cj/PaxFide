@@ -79,11 +79,12 @@ test.describe('P-16: Google en la web', () => {
 
   test('una cuenta de Google sin vincular: el 401 de siempre, sin revelar el motivo; un 503 ofrece la contraseña', async ({ page, request }) => {
     await page.goto('/login');
-    await nextGoogleCredential(page, `fake-google.nadie${unique()}.nadie@demo.test`);
+    const credential = `fake-google.nadie${unique()}.nadie@demo.test`;
+    await nextGoogleCredential(page, credential);
     await page.getByTestId('google-sign-in').getByTestId('gis-stub-button').click();
     await expect(alert(page)).toHaveText('No pudimos entrar con Google. Si aún no vinculaste tu cuenta de Google, entra con tu correo y contraseña y vincúlala en Configuración › Seguridad.');
 
-    await request.post(`${API}/__test/google-unavailable`);
+    await request.post(`${API}/__test/google-unavailable`, { data: { idToken: credential } }); // solo para este token
     await page.getByTestId('google-sign-in').getByTestId('gis-stub-button').click();
     await expect(alert(page)).toHaveText('Google no responde ahora. Entra con tu correo y contraseña.');
     await expect(page.getByLabel('Correo electrónico')).toBeVisible();

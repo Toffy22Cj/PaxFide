@@ -68,8 +68,9 @@ const resetMails = [];
 const resetCooldown = new Map(); // email -> ms de la última petición que envió correo
 const passwordChange500 = new Set();
 // Anexo 6 (ADR-050 D9): los idToken de prueba son `fake-google.<sub>.<correo>`; nunca un token real de Google.
-// `googleUnavailable` hace que la siguiente llamada a Google responda 503 GoogleSignInUnavailable.
-let googleUnavailable = 0;
+// `googleUnavailable`: los idToken cuya siguiente verificación responde 503 GoogleSignInUnavailable. Va por token, no
+// global: con los tests en paralelo, un 503 global lo consumía otro test.
+const googleUnavailable = new Set();
 function googleIdentity(idToken) {
   const m = /^fake-google\.([A-Za-z0-9_-]+)\.(.+@.+)$/.exec(String(idToken || ''));
   return m ? { sub: m[1], email: m[2].toLowerCase() } : null;
@@ -453,9 +454,10 @@ const server = http.createServer(async (req, res) => {
     send(res, 200, { ok: true });
     return;
   }
-  // Anexo 6: la siguiente llamada que verifica un idToken responde 503 GoogleSignInUnavailable
+  // Anexo 6: la siguiente verificación de ese idToken responde 503 GoogleSignInUnavailable
   if (path === '/__test/google-unavailable' && req.method === 'POST') {
-    googleUnavailable += 1;
+    const body = await readBody(req);
+    googleUnavailable.add(String((body && body.idToken) || ''));
     send(res, 200, { ok: true });
     return;
   }
@@ -648,7 +650,7 @@ const server = http.createServer(async (req, res) => {
   if (p === '/auth/google' && req.method === 'POST') {
     const body = await readBody(req);
     if (!body || !body.idToken) { problem(res, 400, 'Bad Request'); return; }
-    if (googleUnavailable > 0) { googleUnavailable -= 1; problem(res, 503, 'GoogleSignInUnavailable'); return; }
+    if (googleUnavailable.delete(String(body.idToken))) { problem(res, 503, 'GoogleSignInUnavailable'); return; }
     const g = googleIdentity(body.idToken);
     const entry = g && Object.entries(accounts).find(([, a]) => a.googleSubject === g.sub);
     if (!entry || entry[1].status === 'INACTIVE') { problem(res, 401, 'Unauthorized'); return; }
@@ -688,7 +690,7 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(204); res.end();
       return;
     }
-    if (googleUnavailable > 0) { googleUnavailable -= 1; problem(res, 503, 'GoogleSignInUnavailable'); return; }
+    if (googleUnavailable.delete(String(body.idToken))) { problem(res, 503, 'GoogleSignInUnavailable'); return; }
     const g = googleIdentity(body.idToken);
     if (!g) { problem(res, 400, 'GoogleIdTokenInvalid'); return; }
     const other = Object.values(accounts).find((a) => a !== actor && a.googleSubject === g.sub);
