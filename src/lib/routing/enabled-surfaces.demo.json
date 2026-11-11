@@ -58,5 +58,6 @@
   "action:campaign-cover",
   "action:platform-remove-media",
   "action:google-sign-in",
-  "action:google-link"
+  "action:google-link",
+  "action:google-register"
 ]
