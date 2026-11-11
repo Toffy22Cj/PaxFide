@@ -100,6 +100,8 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
   const wide = pathname.startsWith('/panel/prediction') || pathname === '/tracking';
   // plan-fase7-puesta-al-dia.md U-17 (P-9): el inicio, hasta 1200 px
   const homeWide = pathname === '/home';
+  // El perfil, algo más ancho que el detalle (sus tarjetas van en dos columnas)
+  const roomy = pathname === '/account';
   const principal = useNavPrincipal(state, pathname, me);
   const [position, isDesktop, setNavPosition] = useNavPosition();
   const [isTuneOpen, setIsTuneOpen] = useState(false);
@@ -182,7 +184,7 @@ export function Shell({ children, me = fetchMe }: { children: React.ReactNode; m
       )}
       {chrome ? (
         <main
-          className={[s.main, wide ? s.wide : '', homeWide ? s.homeWide : '', city ? s.onCity : '', isPeeking ? s.peeking : ''].filter(Boolean).join(' ')}
+          className={[s.main, wide ? s.wide : '', roomy ? s.roomy : '', homeWide ? s.homeWide : '', city ? s.onCity : '', isPeeking ? s.peeking : ''].filter(Boolean).join(' ')}
           inert={isPeeking ? true : undefined}
         >
           <div key={pathname} className={isPanel ? s.viewPn : s.viewIn}>

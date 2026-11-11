@@ -80,7 +80,8 @@
 
 /* Barra superior (top, ≥ 768 px) */
 [data-nav-position="top"] .nav {
-  top: var(--nav-inset-top); left: 0; right: 0;
+  /* Justo bajo la cabecera: --nav-inset-top ya incluye la propia barra (cabecera + barra) y la dejaba encima del contenido */
+  top: 56px; left: 0; right: 0;
   border-bottom: 1px solid var(--color-divider);
   padding: var(--space-1) var(--space-4);
 }

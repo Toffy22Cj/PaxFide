@@ -17,6 +17,8 @@
 .modalText { margin: 0 0 var(--space-4); color: var(--color-text); }
 
 .securityGrid { display: grid; grid-template-columns: 1fr; gap: var(--space-6); }
+/* Sus columnas pueden encoger por debajo de su contenido (si no, en móvil el formulario se salía de la tarjeta) */
+.securityGrid > * { min-width: 0; }
 @media (min-width: 900px) {
   .securityGrid { grid-template-columns: 3fr 2fr; }
 }
