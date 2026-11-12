@@ -108,16 +108,16 @@ test.describe('P-2: línea de tiempo verificable', () => {
     expect(c).toBeGreaterThan(b);
   });
 
-  test('con otro evento final, el camión queda parado en esa estación (negativa del movimiento)', async ({ page }) => {
+  test('con otro evento final, el camión también conduce hasta esa estación y se para en ella', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await routeTracking(page, 'ASSET_RECEIVED');
     await open(page);
     await page.getByTestId('snake').getByRole('tab', { name: 'Kits escolares 2' }).click();
-    await expect(page.getByTestId('snake-truck')).toHaveAttribute('data-driving', 'false');
-    const { animations, samples } = await truckPositions(page);
-    expect(animations).toBe(0);
-    expect(samples).toEqual(['100%']);
-    await expect(page.getByTestId('tracking-truck')).toHaveCount(0);
+    await expect(page.getByTestId('snake-truck')).toHaveAttribute('data-driving', 'true');
+    const { samples } = await truckPositions(page);
+    expect(parseFloat(samples[samples.length - 1])).toBeCloseTo(100, 0);
+    // En el árbol, un camión por lote, aparcado en su último paso
+    await expect(page.getByTestId('tracking-truck')).toHaveCount(await page.getByTestId('asset-lane').count());
   });
 
   test('con "reducir movimiento", sin conducción: el camión aparece ya en la estación', async ({ page }) => {

@@ -271,14 +271,15 @@ describe('Línea de tiempo (F-A5 + F-C2)', () => {
     expect(document.querySelector('img')).toBeNull();
   });
 
-  it('serpiente: pestañas por lote; el camión solo conduce si el último evento del lote es ASSET_DISPATCHED', async () => {
+  it('serpiente: pestañas por lote; el camión conduce de la estación anterior a la del último evento', async () => {
     await openScreen();
     const snake = screen.getByTestId('snake');
     const tabs = within(snake).getAllByRole('tab');
     expect(tabs.map((t) => t.textContent)).toEqual(['Kits de alimentos', 'Kits escolares 2', 'Kits escolares 3', 'Abrigo']);
-    // Lote A termina en "Entregado": parado (negativa del movimiento)
+    // Lote A termina en "Entregado": conduce de "Despachado" a "Entregado" (lo que sí pasó)
     fireEvent.click(tabs[0]);
-    expect(within(snake).getByTestId('snake-truck')).toHaveAttribute('data-driving', 'false');
+    expect(within(snake).getByTestId('snake-truck')).toHaveAttribute('data-driving', 'true');
+    expect(within(snake).getByTestId('snake-truck').style.getPropertyValue('--to')).toBe('100%');
     expect(within(snake).getAllByTestId('snake-station').map((s) => s.textContent)).toEqual(
       [expect.stringContaining('Pago confirmado'), expect.stringContaining('Registrado'), expect.stringContaining('Despachado'), expect.stringContaining('Entregado')]);
     // Lote B termina en "Despachado": conduce hasta esa estación
@@ -298,11 +299,20 @@ describe('Línea de tiempo (F-A5 + F-C2)', () => {
     expect(within(screen.getByTestId('snake')).getByRole('tab', { name: 'Abrigo' })).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('el camión del árbol solo en el paso ASSET_DISPATCHED cuando es el último', async () => {
+  it('un camión por lote en el árbol, aparcado en su último paso y con su carga encima', async () => {
     await openScreen();
     const trucks = screen.getAllByTestId('tracking-truck');
-    expect(trucks).toHaveLength(1);
-    expect(trucks[0].closest('[data-testid="tracking-step"]')).toHaveTextContent('Despachado');
-    expect(trucks[0].closest('[data-testid="asset-lane"]')).toHaveTextContent('Kits escolares');
+    const lanes = screen.getAllByTestId('asset-lane');
+    expect(trucks).toHaveLength(lanes.length);
+    for (const truck of trucks) {
+      const lane = truck.closest('[data-testid="asset-lane"]')!;
+      const steps = within(lane as HTMLElement).getAllByTestId('tracking-step').filter((s) => s.closest('[data-testid="asset-lane"]') === lane);
+      expect(truck.closest('[data-testid="tracking-step"]')).toBe(steps[steps.length - 1]);
+      expect(truck.textContent).toBe(within(lane as HTMLElement).getAllByRole('heading')[0].textContent);
+    }
+    // Elegir otro paso no mueve el camión: sigue en el último
+    const first = trucks[0];
+    fireEvent.click(stepButton('Kits escolares', 'Registrado'));
+    expect(screen.getAllByTestId('tracking-truck')[0]).toBe(first);
   });
 });

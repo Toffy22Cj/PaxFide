@@ -3,18 +3,17 @@
 // teclado) y F-C2; plan-fase7-puesta-al-dia.md P-2; referencia-api-v1.md §8 (G-2 firstClearedAt/lastClearedAt, G-4
 // parentAssetRef, G-3 anchorStatus); paxfide-linea-tiempo.html (#detailCard, #treeStage, #snakeCard). Desviaciones
 // X-15 (sin nombre del lote ni destinatario) y X-16 (sin selector de escenario ni "Recorrido en vivo").
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { LogisticsItem, TrackingOutcome, Transition } from '../../lib/api/tracking';
 import { custodianLabel, eventLabel, lifecycleLabel } from '../../lib/labels';
 import { formatMinorUnits } from '../../lib/money';
 import { formatQuantity } from '../../lib/quantity';
 import { buildAssetTree, type TreeNode } from '../../lib/tracking/tree';
 import { LocalDate } from '../LocalDate';
-import { TruckLoader } from '../loaders';
 import { ErrorState, LoadingState } from '../States';
-import { NO_PUBLIC_ZONE, asTrackingEvent, showsTruck, stepKind } from './events';
+import { NO_PUBLIC_ZONE, asTrackingEvent, stepKind } from './events';
 import { StepIcon } from './StepIcon';
-import { RoadTimeline } from './RoadTimeline';
+import { TruckGraphic } from './Truck';
 import { AnchorPill, StepDetail, type PaymentFacts, type Selection } from './StepDetail';
 import s from './timeline.module.css';
 import { zoneOrNone } from '../../lib/location/zoneLabel';
@@ -70,16 +69,8 @@ export function TrackingTimeline({ items, payment, campaignLine, histories, onRe
     ? sel.kind === 'payment'
     : sel.kind === 'step' && sel.assetRef === selection.assetRef && sel.index === selection.index);
 
-  const roadIndex = Math.min(snakeLot, Math.max(0, items.length - 1));
-  const roadItem = items[roadIndex] as LogisticsItem | undefined;
-  const roadQuantity = roadItem ? quantityOf(roadItem) : '';
-
   return (
     <div className={s.workspaceWrap}>
-    {/* paxfide-linea-tiempo2.html: la carretera con el camión, del lote que se mira en la serpiente */}
-    <RoadTimeline item={roadItem} paidAt={payment.firstClearedAt}
-      title={roadItem ? `Lote · ${tabLabel(items, roadIndex)}${roadQuantity ? ` · ${roadQuantity}` : ''}` : campaignLine}
-      steps={roadItem ? historyOf(roadItem.assetRef) : []} isSelected={isSelected} onSelect={select} />
     <div className={s.workspace} data-testid="tracking-workspace">
       <aside className={s.leftCol} aria-label="Detalle y verificación">
         <p className={s.colTag}><span className={s.colDot} aria-hidden="true" />Detalle y verificación</p>
@@ -105,6 +96,12 @@ export function TrackingTimeline({ items, payment, campaignLine, histories, onRe
             </span>
           </span>
         </button>
+        {/* Sin bienes todavía: el camión espera aparcado bajo la donación, sin moverse (no ha salido nada) */}
+        {items.length === 0 && payment.firstClearedAt && (
+          <span className={s.rootTruck} data-testid="tracking-truck" data-driving="false">
+            <TruckGraphic tag="Esperando carga" driving={false} />
+          </span>
+        )}
         {items.length === 0
           ? <p className={s.hint}>Todavía no hay bienes asociados a tu donación.</p>
           : roots.map((node) => (
@@ -155,9 +152,10 @@ function LotCard({ node, depth, items, histories, onRetry, isSelected, onSelect 
           {history.data.map((t, i) => {
             const known = asTrackingEvent(t.eventType);
             const sel: Selection = { kind: 'step', assetRef: item.assetRef, index: i };
-            const truckHere = i === history.data.length - 1 && showsTruck(history.data);
+            const truckHere = i === history.data.length - 1;
             return (
-              <li key={i} className={s.step} data-kind={known ? stepKind(known) : 'unknown'} data-testid="tracking-step">
+              <li key={i} className={s.step} data-kind={known ? stepKind(known) : 'unknown'} data-testid="tracking-step"
+                data-has-truck={i === history.data.length - 1 ? 'true' : undefined}>
                 <button type="button" className={[s.stepButton, isSelected(sel) ? s.selected : ''].join(' ')}
                   aria-pressed={isSelected(sel)} onClick={() => onSelect(sel)}>
                   <span className={s.nodeIcon} aria-hidden="true">
@@ -176,7 +174,7 @@ function LotCard({ node, depth, items, histories, onRetry, isSelected, onSelect 
                     </span>
                   </span>
                 </button>
-                {truckHere && <div className={s.treeTruck} data-testid="tracking-truck"><TruckLoader aria-label="En camino" /></div>}
+                {truckHere && <TreeTruck key={`${item.assetRef}:${i}`} tag={assetName(item, index)} />}
               </li>
             );
           })}
@@ -189,6 +187,35 @@ function LotCard({ node, depth, items, histories, onRetry, isSelected, onSelect 
           isSelected={isSelected} onSelect={onSelect} />
       ))}
     </section>
+  );
+}
+
+const reducedMotion = () => typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * El camión de un lote en el árbol (paxfide-linea-tiempo.html, .truck): aparcado en el último paso del lote. Al abrir
+ * el seguimiento conduce desde el paso anterior (o desde la cabecera del lote) hasta ese último paso: lo que sí pasó.
+ * Elegir otro paso no lo mueve, para no sugerir que el lote está donde no está.
+ */
+function TreeTruck({ tag }: { tag: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [driving, setDriving] = useState(false);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const li = el?.closest('li');
+    if (!el || !li || reducedMotion()) return;
+    const prev = li.previousElementSibling as HTMLElement | null;
+    // Del centro del paso anterior al de este; el primero llega desde arriba (la cabecera del lote)
+    const from = prev ? (prev.offsetTop + prev.offsetHeight / 2) - (li.offsetTop + li.offsetHeight / 2) : -48;
+    el.style.setProperty('--from-y', `${Math.round(from)}px`);
+    setDriving(true);
+  }, []);
+  return (
+    <span ref={ref} className={s.treeTruck} data-testid="tracking-truck" data-driving={driving ? 'true' : 'false'}
+      onAnimationEnd={(e) => { if (e.target === e.currentTarget) setDriving(false); }}>
+      <TruckGraphic tag={tag} driving={driving} />
+    </span>
   );
 }
 
@@ -225,10 +252,13 @@ function SnakeRoute({ items, active, onTab, history, payment, campaignLine, isSe
   ];
   const geo = snakeGeometry(stations.length);
   const n = stations.length;
-  // Solo conduce si el último evento del lote es un despacho (va en camino); si no, queda parado en su estación
-  const driving = n > 1 && showsTruck(steps);
+  // Conduce de la estación anterior a la del último evento (lo que sí pasó) y queda parado ahí; con una sola
+  // estación, aparcado en ella
+  const driving = n > 1;
   const to = stationDistance(n - 1, n);
   const from = driving ? stationDistance(n - 2, n) : to;
+  // Mira hacia donde va el último tramo: las estaciones alternan izquierda y derecha
+  const facing = n > 1 && geo.points[n - 1].x < geo.points[n - 2].x ? 'left' : 'right';
   const quantity = quantityOf(item);
 
   return (
@@ -273,18 +303,26 @@ function SnakeRoute({ items, active, onTab, history, payment, campaignLine, isSe
                 </li>
               ))}
             </ol>
-            <div className={s.snakeTruck} data-testid="snake-truck" data-driving={driving ? 'true' : 'false'} aria-hidden="true"
-              style={{ offsetPath: `path('${geo.d}')`, ['--from' as string]: `${from}%`, ['--to' as string]: `${to}%` } as React.CSSProperties}>
-              <svg width="40" height="26" viewBox="0 0 64 34" focusable="false">
-                <rect x="2" y="8" width="38" height="22" rx="3" className={s.truckBox} />
-                <path d="M40 14h12l9 9v7H40z" className={s.truckCab} />
-                <circle cx="14" cy="31" r="3.5" className={s.truckWheel} />
-                <circle cx="50" cy="31" r="3.5" className={s.truckWheel} />
-              </svg>
-            </div>
+            <SnakeTruck key={`${item.assetRef}:${n}`} d={geo.d} from={from} to={to} driving={driving} facing={facing}
+              tag={tabLabel(items, active)} />
           </div>
         )}
       </div>
     </section>
+  );
+}
+
+/** El camión de la serpiente: recorre la carretera (offset-path) del tramo anterior al último y se para. */
+function SnakeTruck({ d, from, to, driving, facing, tag }: {
+  d: string; from: number; to: number; driving: boolean; facing: 'left' | 'right'; tag: string;
+}) {
+  const [moving, setMoving] = useState(driving);
+  useEffect(() => { if (reducedMotion()) setMoving(false); }, []);
+  return (
+    <div className={s.snakeTruck} data-testid="snake-truck" data-driving={driving ? 'true' : 'false'} aria-hidden="true"
+      onAnimationEnd={(e) => { if (e.target === e.currentTarget) setMoving(false); }}
+      style={{ offsetPath: `path('${d}')`, ['--from' as string]: `${from}%`, ['--to' as string]: `${to}%` } as React.CSSProperties}>
+      <TruckGraphic tag={tag} driving={driving && moving} facing={facing} size="sm" />
+    </div>
   );
 }

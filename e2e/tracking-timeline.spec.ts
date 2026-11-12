@@ -53,9 +53,10 @@ test.describe('Línea de tiempo del seguimiento (VS-7)', () => {
     expect(urls.filter((u) => u.includes(code))).toEqual([]);
     const stored = await page.evaluate(() => JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }));
     expect(stored).not.toContain(code);
-    // Sin bienes todavía: ningún carril ni camión
+    // Sin bienes todavía: ningún carril; el camión espera aparcado bajo la donación, sin moverse
     await expect(page.getByText('Todavía no hay bienes asociados a tu donación.')).toBeVisible();
-    await expect(page.getByTestId('tracking-truck')).toHaveCount(0);
+    await expect(page.getByTestId('tracking-truck')).toHaveCount(1);
+    await expect(page.getByTestId('tracking-truck')).toHaveAttribute('data-driving', 'false');
   });
 
   test('con "reducir movimiento", el árbol de Merkle de la carga de integridad está detenido', async ({ page, request }) => {
