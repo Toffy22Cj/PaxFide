@@ -14,6 +14,7 @@ import { TruckLoader } from '../loaders';
 import { ErrorState, LoadingState } from '../States';
 import { NO_PUBLIC_ZONE, asTrackingEvent, showsTruck, stepKind } from './events';
 import { StepIcon } from './StepIcon';
+import { RoadTimeline } from './RoadTimeline';
 import { AnchorPill, StepDetail, type PaymentFacts, type Selection } from './StepDetail';
 import s from './timeline.module.css';
 import { zoneOrNone } from '../../lib/location/zoneLabel';
@@ -69,8 +70,16 @@ export function TrackingTimeline({ items, payment, campaignLine, histories, onRe
     ? sel.kind === 'payment'
     : sel.kind === 'step' && sel.assetRef === selection.assetRef && sel.index === selection.index);
 
+  const roadIndex = Math.min(snakeLot, Math.max(0, items.length - 1));
+  const roadItem = items[roadIndex] as LogisticsItem | undefined;
+  const roadQuantity = roadItem ? quantityOf(roadItem) : '';
+
   return (
     <div className={s.workspaceWrap}>
+    {/* paxfide-linea-tiempo2.html: la carretera con el camión, del lote que se mira en la serpiente */}
+    <RoadTimeline item={roadItem} paidAt={payment.firstClearedAt}
+      title={roadItem ? `Lote · ${tabLabel(items, roadIndex)}${roadQuantity ? ` · ${roadQuantity}` : ''}` : campaignLine}
+      steps={roadItem ? historyOf(roadItem.assetRef) : []} isSelected={isSelected} onSelect={select} />
     <div className={s.workspace} data-testid="tracking-workspace">
       <aside className={s.leftCol} aria-label="Detalle y verificación">
         <p className={s.colTag}><span className={s.colDot} aria-hidden="true" />Detalle y verificación</p>
