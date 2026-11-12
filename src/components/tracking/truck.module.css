@@ -1,0 +1,41 @@
+/* Ref: paxfide-linea-tiempo.html (.truck, .truck-cargo-tag, @keyframes truckSpin/truckBump/truckPuff). Solo tokens;
+   el movimiento, por token y con reduce. */
+.truck { position: relative; display: inline-block; width: 66px; height: 42px; pointer-events: none; }
+.truck[data-size="sm"] { width: 46px; height: 29px; }
+.vehicle { position: absolute; inset: 0; display: block; filter: drop-shadow(0 5px 10px color-mix(in srgb, var(--brand-green-900) 28%, transparent)); }
+.truck[data-facing="left"] .vehicle { transform: scaleX(-1); }
+.vehicle svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.box { fill: var(--brand-yellow-400); }
+.trim { fill: var(--brand-yellow-900); opacity: 0.3; }
+.ink { fill: var(--brand-green-900); }
+.qr { fill: var(--brand-blue-50); }
+.cab { fill: var(--brand-green-900); }
+.window { fill: var(--brand-blue-50); }
+.tyre { fill: var(--brand-neutral-700); }
+.hub { fill: var(--brand-ground); }
+.wheel { transform-box: fill-box; transform-origin: center; }
+.truck[data-driving="true"] .wheel { animation: truckSpin calc(1.5 * var(--duration-normal)) linear infinite; }
+.truck[data-driving="true"] .body { animation: truckBump calc(1.5 * var(--duration-fast)) ease-in-out infinite; }
+@keyframes truckSpin { to { transform: rotate(360deg); } }
+@keyframes truckBump { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.6px); } }
+.puff {
+  position: absolute; left: -4px; top: 58%; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--color-text-secondary); opacity: 0;
+}
+.truck[data-driving="true"] .puff { animation: truckPuff calc(1.45 * var(--duration-slow)) ease-out infinite; }
+.truck[data-driving="true"] .puff:nth-child(2) { animation-delay: calc(0.7 * var(--duration-slow)); }
+@keyframes truckPuff {
+  0% { opacity: 0.6; transform: translate(0, 0) scale(0.5); }
+  100% { opacity: 0; transform: translate(-16px, -8px) scale(1.5); }
+}
+/* La etiqueta de la carga */
+.tag {
+  position: absolute; bottom: calc(100% + 3px); left: 50%; transform: translateX(-50%);
+  padding: 2px var(--space-2); border-radius: var(--radius-button); white-space: nowrap;
+  font-family: var(--font-mono); font-size: var(--font-size-mono-4); font-weight: var(--weight-bold); letter-spacing: 0.02em;
+  background: var(--color-action); color: var(--color-on-action); box-shadow: var(--shadow-card);
+}
+.truck[data-size="sm"] .tag { bottom: calc(100% + 1px); }
+@media (prefers-reduced-motion: reduce) {
+  .truck .wheel, .truck .body, .puff { animation: none !important; }
+}

@@ -113,7 +113,18 @@
 .stepLine { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); align-items: baseline; }
 .stepTitle { font-size: var(--font-size-body-2); }
 .chips { display: flex; flex-wrap: wrap; gap: var(--space-1); }
-.treeTruck { display: flex; justify-content: flex-end; padding-right: var(--space-2); }
+/* El camión de cada lote, aparcado a la derecha de su último paso (paxfide-linea-tiempo.html, .truck y .has-truck).
+   Al abrir conduce desde el paso anterior (--from-y) inclinado hacia donde va, y se endereza al llegar */
+.step[data-has-truck] .stepButton { padding-right: 84px; }
+.treeTruck { position: absolute; right: var(--space-2); top: calc(50% - 21px); z-index: 2; pointer-events: none; }
+.treeTruck[data-driving="true"] { animation: treeDrive calc(3 * var(--duration-normal)) var(--ease-in-out) both; }
+@keyframes treeDrive {
+  0% { transform: translateY(var(--from-y, -48px)) rotate(16deg); }
+  78% { transform: translateY(calc(0.08 * var(--from-y, -48px))) rotate(10deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+/* Sin bienes todavía: el camión espera en la donación */
+.rootTruck { align-self: center; margin-top: var(--space-4); pointer-events: none; }
 
 /* Serpiente */
 .snake {
@@ -167,11 +178,8 @@
   to { offset-distance: var(--to); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .snakeTruck[data-driving="true"] { animation: none; }
+  .snakeTruck[data-driving="true"], .treeTruck[data-driving="true"] { animation: none; }
 }
-.truckBox { fill: var(--brand-yellow-400); }
-.truckCab { fill: var(--color-action); }
-.truckWheel { fill: var(--color-text); }
 
 /* La carretera de la raíz "Donada" hasta cada lote (boceto: tramo oscuro con línea discontinua) */
 .tree > .lot { position: relative; }

@@ -93,6 +93,8 @@ Fuente: `Documentos/referencia-api-v1.md` del backend (implementado en `develop`
 | `txt` (narración de cada paso) | `GET …/narrative` → `{status, content?, source?}` | ✅ un resumen marcado "generado por IA" cuando `AVAILABLE`; ⛔ texto por paso |
 | Animación del camión en ruta | — | Solo si el último `eventType` del activo es `ASSET_DISPATCHED` (no se anima lo que no pasó) |
 
+> **Nota (2026-11-12, Manuel; `paxfide-linea-tiempo.html` como referencia): el camión siempre está.** Un camión por lote en el árbol, con su carga encima, aparcado en el **último evento** del lote; en la serpiente, en la estación de ese evento. Al abrir el seguimiento conduce desde el evento anterior hasta el último (lo que sí pasó), sea un despacho o no. Elegir otro paso **no** lo mueve, para no sugerir que el lote está donde no está. Sin bienes todavía, espera aparcado bajo "Donada", sin moverse. Con "reducir movimiento", sin conducción. La fila de arriba se conserva; esta nota la supera.
+
 ### 3.2 Panel (`paxfide-panel.html` → `/panel`)
 
 | Dato en el prototipo | Contrato | Regla |

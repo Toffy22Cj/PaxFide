@@ -62,10 +62,10 @@ describe('Pasos del recorrido (VS-7)', () => {
     expect(screen.getByTestId('tracking-truck')).toBeInTheDocument();
   });
 
-  it('sin camión cuando el último evento no es un despacho (negativa)', async () => {
+  it('el camión queda aparcado en el último paso, sea cual sea (no solo un despacho)', async () => {
     open({}, steps('ASSET_DISPATCHED', 'ASSET_RECEIVED'));
-    await screen.findAllByTestId('tracking-step');
-    expect(screen.queryByTestId('tracking-truck')).toBeNull();
+    const items = await screen.findAllByTestId('tracking-step');
+    expect(screen.getByTestId('tracking-truck').closest('[data-testid="tracking-step"]')).toBe(items[1]);
   });
 
   it('activo sin historial → "Sin movimientos registrados."', async () => {
