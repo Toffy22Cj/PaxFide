@@ -609,6 +609,28 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // [Propuesta] ADR-050 Enmienda 3 — POST /auth/google/register, como GoogleRegistrationController: los campos y la
+  // contraseña antes que Google; 400 GoogleIdTokenInvalid; 409 GoogleAccountAlreadyLinked o DuplicateEmail; 503; y 201
+  // con la cuenta verificada, vinculada y la sesión ya iniciada
+  if (p === '/auth/google/register' && req.method === 'POST') {
+    const body = await readBody(req);
+    if (!body || !body.idToken || !body.password) { problem(res, 400, 'InvalidRequestField'); return; }
+    if (body.acceptedTermsVersion !== LEGAL || body.acceptedDataPolicyVersion !== LEGAL) { problem(res, 400, 'BadRequest'); return; }
+    if (String(body.password).length < 12) { problem(res, 400, 'PasswordTooShort'); return; }
+    if (googleUnavailable.delete(String(body.idToken))) { problem(res, 503, 'GoogleSignInUnavailable'); return; }
+    const g = googleIdentity(body.idToken);
+    if (!g) { problem(res, 400, 'GoogleIdTokenInvalid'); return; }
+    if (Object.values(accounts).some((a) => a.googleSubject === g.sub)) { problem(res, 409, 'GoogleAccountAlreadyLinked'); return; }
+    if (accounts[g.email]) { problem(res, 409, 'DuplicateEmail'); return; }
+    const accountId = crypto.randomUUID();
+    accounts[g.email] = { password: body.password, accountId, roles: [], acceptedTermsVersion: LEGAL,
+      acceptedDataPolicyVersion: LEGAL, emailVerified: true, googleSubject: g.sub };
+    const token = 'tok-' + crypto.randomUUID();
+    tokens.set(token, g.email);
+    send(res, 201, { accountId, status: 'ACTIVE', token });
+    return;
+  }
+
   // ID-01 — POST /auth/login
   if (p === '/auth/login' && req.method === 'POST') {
     const body = await readBody(req);

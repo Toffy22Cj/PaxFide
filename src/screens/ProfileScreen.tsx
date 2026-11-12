@@ -138,7 +138,7 @@ export function ProfileScreen({ client = fetchAccount, profileClients, securityC
 
           <div className={s.settingRow}>
             <span className={s.settingLabel}>Tema de la aplicación</span>
-            <ThemeSelect />
+            <ThemeSelect className={s.themeSelect} />
           </div>
 
           <div className={s.settingRow}>

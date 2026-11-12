@@ -4,9 +4,14 @@
 // Documentos/plan-fase7-fidelidad.md §2 D-F5 (acceso sobre el mundo), D-F10 (bienvenida), D-F14 (fundación), X-4..X-7;
 // Documentos/paxfide-landing.html (.auth-card, #formRegister, checkPassStrength); plan-fase7-puesta-al-dia.md R-1 (las
 // dos casillas legales, sin marcar; sin las dos no se envía nada; el registro lleva las dos versiones de LEGAL_VERSIONS).
+// [Propuesta] ADR-050 Enmienda 3: "Registrarse con Google" pone el correo (probado por Google) en lugar del campo; la
+// contraseña y las dos casillas siguen siendo obligatorias, y la cuenta nace verificada con la sesión iniciada.
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { registerAccount, RegisterOutcome } from '../lib/api/identity';
+import { googleRegister, registerAccount, RegisterOutcome, type GoogleRegisterOutcome } from '../lib/api/identity';
+import * as session from '../lib/auth/session';
+import { GoogleButton, GoogleDivider } from '../components/access/GoogleButton';
+import { emailOfIdToken, googleClientId as configuredGoogleClientId, type GoogleIdApi } from '../lib/google/gis';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
 import { BrandDots } from '../components/loaders/BrandDots';
 import { ResendVerification } from '../components/access/ResendVerification';
@@ -17,9 +22,21 @@ import s from './access.module.css';
 
 const MIN_PASSWORD = 12;
 
-export function RegisterScreen({ client = registerAccount, resendClient }: {
+/** Textos de los fallos del registro con Google (Enmienda 3). */
+export const GOOGLE_REGISTER_TEXT = {
+  invalid: 'Tu sesión de Google caducó. Vuelve a pulsar «Registrarse con Google».',
+  alreadyLinked: 'Esa cuenta de Google ya tiene una cuenta en PaxFide. Inicia sesión con Google.',
+  duplicate: 'Ya existe una cuenta con ese correo. Inicia sesión con tu contraseña y vincula Google en Perfil › Seguridad.',
+  unavailable: 'Google no responde ahora. Inténtalo más tarde o regístrate con tu correo.',
+} as const;
+
+export function RegisterScreen({ client = registerAccount, resendClient, googleClient = googleRegister, googleLoader, googleClientId }: {
   client?: (e: string, p: string) => Promise<RegisterOutcome>;
   resendClient?: (email: string) => Promise<EmailVerificationRequestOutcome>;
+  googleClient?: (idToken: string, password: string) => Promise<GoogleRegisterOutcome>;
+  /** Para los tests: la carga de Google Identity Services y el ID de cliente. */
+  googleLoader?: () => Promise<GoogleIdApi>;
+  googleClientId?: string | null;
 }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,6 +49,25 @@ export function RegisterScreen({ client = registerAccount, resendClient }: {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptData, setAcceptData] = useState(false);
   const consented = acceptTerms && acceptData;
+  /** El `idToken` de "Registrarse con Google": solo vive en memoria y nunca se registra. */
+  const [google, setGoogle] = useState<{ idToken: string; email: string | null } | null>(null);
+  const [googleFailure, setGoogleFailure] = useState<string | null>(null);
+  /** El registro con Google terminó sin token (no debería pasar): la cuenta existe, se entra desde el login. */
+  const [googleCreated, setGoogleCreated] = useState(false);
+  const showGoogle = isSurfaceEnabled('action:google-register')
+    && Boolean(googleClientId === undefined ? configuredGoogleClientId() : googleClientId);
+
+  const useGoogle = (idToken: string) => {
+    if (sending) return;
+    setGoogle({ idToken, email: emailOfIdToken(idToken) });
+    setGoogleFailure(null);
+    setResult(null);
+    setErrors({});
+  };
+  const dropGoogle = () => {
+    setGoogle(null);
+    setGoogleFailure(null);
+  };
 
   const strength = calculateStrength(password);
 
@@ -39,7 +75,7 @@ export function RegisterScreen({ client = registerAccount, resendClient }: {
     e.preventDefault();
     if (!consented) return; // R-1: sin las dos casillas no hay petición
     const next = {
-      email: email.trim() ? undefined : 'Este campo es obligatorio.',
+      email: google || email.trim() ? undefined : 'Este campo es obligatorio.',
       password: !password ? 'Este campo es obligatorio.'
         : password.length < MIN_PASSWORD ? `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.` : undefined,
       repeat: repeat === password ? undefined : 'Las contraseñas no coinciden.',
@@ -48,6 +84,10 @@ export function RegisterScreen({ client = registerAccount, resendClient }: {
     if (next.email || next.password || next.repeat) return;
     setSending(true);
     setResult(null);
+    if (google) {
+      await submitGoogle(google.idToken);
+      return;
+    }
     const r = await client(email.trim(), password);
     setSending(false);
     setResult(r);
@@ -57,6 +97,40 @@ export function RegisterScreen({ client = registerAccount, resendClient }: {
     }
     if (r.kind === 'invalid-email') setErrors({ email: 'El correo no es válido.' });
     if (r.kind === 'password-too-short') setErrors({ password: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.` });
+  };
+
+  const submitGoogle = async (idToken: string) => {
+    setGoogleFailure(null);
+    const r = await googleClient(idToken, password);
+    setSending(false);
+    switch (r.kind) {
+      case 'ok':
+        setPassword('');
+        setRepeat('');
+        setGoogle(null);
+        if (r.token) session.login(r.token); else setGoogleCreated(true);
+        return;
+      case 'google-invalid':
+        setGoogle(null);
+        setGoogleFailure(GOOGLE_REGISTER_TEXT.invalid);
+        return;
+      case 'google-already-linked':
+        setGoogle(null);
+        setGoogleFailure(GOOGLE_REGISTER_TEXT.alreadyLinked);
+        return;
+      case 'duplicate-email':
+        setGoogle(null);
+        setGoogleFailure(GOOGLE_REGISTER_TEXT.duplicate);
+        return;
+      case 'google-unavailable':
+        setGoogleFailure(GOOGLE_REGISTER_TEXT.unavailable);
+        return;
+      case 'password-too-short':
+        setErrors({ password: `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.` });
+        return;
+      default:
+        setResult({ kind: r.kind });
+    }
   };
 
   const failure: Record<string, string> = {
@@ -70,7 +144,20 @@ export function RegisterScreen({ client = registerAccount, resendClient }: {
   return (
     <>
 
-          {result?.kind === 'ok' ? (
+          {googleCreated ? (
+            <section aria-labelledby="googleCreatedTitle" data-testid="google-register-created">
+              <div className={[s.feedbackMsg, s.feedbackSuccess].join(' ')} role="status">
+                <b>Cuenta creada</b>.
+              </div>
+              <h2 id="googleCreatedTitle" className={s.acceptanceTitle}>Ya puedes entrar</h2>
+              <p className={s.acceptanceText}>Inicia sesión con Google o con tu correo y la contraseña que acabas de crear.</p>
+              <div className={s.foot}>
+                <p>
+                  <Link href="/login" className={s.switchLink}>Iniciar sesión</Link>
+                </p>
+              </div>
+            </section>
+          ) : result?.kind === 'ok' ? (
             /* P-6 (ADR-050 Enmienda 2): la cuenta nace sin verificar; se entra después de abrir el enlace del correo */
             <section aria-labelledby="checkMailTitle" data-testid="check-email">
               <div className={[s.feedbackMsg, s.feedbackSuccess].join(' ')} role="status">
@@ -92,8 +179,33 @@ export function RegisterScreen({ client = registerAccount, resendClient }: {
                   {failure[result.kind]}
                 </div>
               )}
+              {googleFailure && (
+                <div className={[s.feedbackMsg, s.feedbackError].join(' ')} role="alert" data-testid="google-register-failure">
+                  {googleFailure}
+                </div>
+              )}
+
+              {/* Enmienda 3: "Registrarse con Google" arriba; después del clic, el correo lo pone Google */}
+              {showGoogle && !google && (
+                <div data-testid="google-register">
+                  <GoogleButton text="signup_with" loader={googleLoader} clientId={googleClientId} onCredential={useGoogle} />
+                  <GoogleDivider />
+                </div>
+              )}
 
               <form onSubmit={submit} className={s.form} noValidate>
+                {google ? (
+                  <div className={s.field} data-testid="google-register-account">
+                    <span className={s.label}>Cuenta de Google</span>
+                    <div className={[s.feedbackMsg, s.feedbackInfo].join(' ')} role="status">
+                      Te registras con {google.email ? <b data-testid="google-register-email">{google.email}</b> : 'tu cuenta de Google'}.
+                      {' '}Crea también una contraseña: con ella entras aunque Google no responda.
+                    </div>
+                    <button type="button" className={s.switchLink} onClick={dropGoogle} disabled={sending}>
+                      Usar otro correo
+                    </button>
+                  </div>
+                ) : (
                 <div className={s.field}>
                   <label htmlFor="regEmail" className={s.label}>Correo electrónico</label>
                   <div className={s.inputWrap}>
@@ -114,6 +226,7 @@ export function RegisterScreen({ client = registerAccount, resendClient }: {
                   </div>
                   {errors.email && <span className={s.fieldError}>{errors.email}</span>}
                 </div>
+                )}
 
                 <div className={s.field}>
                   <label htmlFor="regPass" className={s.label}>Contraseña</label>

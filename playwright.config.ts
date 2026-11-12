@@ -92,7 +92,8 @@ export default defineConfig({
           '/terminos-organizacion',
           '/account',
           'action:google-sign-in',
-          'action:google-link'
+          'action:google-link',
+          'action:google-register'
         ])
       }
     },

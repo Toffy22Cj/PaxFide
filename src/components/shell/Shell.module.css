@@ -45,8 +45,8 @@
 }
 .themeSelect select {
   min-height: 44px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-control);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-button);
   font: inherit;
   font-size: var(--font-size-body-1);
   font-weight: var(--weight-semibold);
@@ -88,39 +88,41 @@
     font-size: var(--font-size-body-4);
   }
 }
+/* Botones de la cabecera: la misma píldora que la landing (landing.module.css .btnSecondary) */
 .logout {
-  min-height: 44px; padding: 0 var(--space-4);
-  border-radius: var(--radius-control);
-  font: inherit; font-weight: var(--weight-semibold); cursor: pointer;
+  min-height: 44px; padding: 0 var(--space-3);
+  border-radius: var(--radius-button);
+  font: inherit; font-size: var(--font-size-body-3); font-weight: var(--weight-semibold); cursor: pointer; white-space: nowrap;
   background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control);
 }
 .logout:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 /* U-19: el enlace "Iniciar sesión" ocupa el sitio de "Cerrar sesión" con su misma forma */
 a.logout { display: inline-flex; align-items: center; text-decoration: none; }
+/* En móvil, más compacto (va después de la regla base para que gane; antes quedaba anulado y la cabecera se salía) */
+@media (max-width: 640px) {
+  .logout { padding: 0 var(--space-2); font-size: var(--font-size-body-4); }
+}
 /* Pausa de la ciudad (R-F2): icono siempre; el texto visible desde 768 px (el nombre accesible es el mismo) */
 .pause {
   min-height: 44px; min-width: 44px; padding: 0 var(--space-3);
   display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
   border-radius: var(--radius-button);
-  font: inherit; font-weight: var(--weight-semibold); cursor: pointer;
+  font: inherit; font-size: var(--font-size-body-3); font-weight: var(--weight-semibold); cursor: pointer; white-space: nowrap;
   background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border-control);
 }
 .pause:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .pauseText { display: none; }
 @media (min-width: 768px) { .pauseText { display: inline; } }
 .main {
-  max-width: var(--width-detail); margin: 0 auto;
+  /* Ancho del contenido: --main-max (720 px por defecto; .wide y .roomy lo amplían) */
+  --main-max: var(--width-detail);
+  max-width: var(--main-max); margin: 0 auto;
   padding: var(--space-8) var(--gutter-mobile) calc(var(--space-12) + var(--nav-inset-bottom));
 }
-.app[data-has-nav="true"] .main { margin-left: max(var(--nav-inset-left), calc((100% - var(--width-detail)) / 2)); }
-.app[data-has-nav="true"] .main.wide { margin-left: max(var(--nav-inset-left), calc((100% - 1120px) / 2)); }
+.app[data-has-nav="true"] .main { margin-left: max(var(--nav-inset-left), calc((100% - var(--main-max)) / 2)); }
 .app[data-has-nav="true"][data-nav-position="right"] .main {
   margin-left: auto;
-  margin-right: max(var(--nav-inset-right), calc((100% - var(--width-detail)) / 2));
-}
-.app[data-has-nav="true"][data-nav-position="right"] .main.wide {
-  margin-left: auto;
-  margin-right: max(var(--nav-inset-right), calc((100% - 1120px) / 2));
+  margin-right: max(var(--nav-inset-right), calc((100% - var(--main-max)) / 2));
 }
 .app[data-has-nav="true"][data-nav-position="top"] .main,
 .app[data-has-nav="true"][data-nav-position="bottom"] .main {
@@ -130,7 +132,9 @@ a.logout { display: inline-flex; align-items: center; text-decoration: none; }
 .app[data-has-nav="true"][data-nav-position="top"] .main {
   margin-top: calc(var(--nav-height-top) + var(--space-4));
 }
-.wide { max-width: 1120px; }
+.main.wide { --main-max: 1120px; }
+/* Perfil: algo más ancho que el detalle para que sus tarjetas en dos columnas respiren */
+.main.roomy { --main-max: 1040px; }
 /* Rutas con ciudad (R-F1): ningún texto directamente sobre el fondo animado; el contenido va en una superficie
    translúcida con la opacidad mínima. El canvas está detrás (z-index 0). */
 .main { position: relative; z-index: 1; }
@@ -143,6 +147,10 @@ a.logout { display: inline-flex; align-items: center; text-decoration: none; }
   margin-top: var(--space-4);
   margin-bottom: calc(var(--space-4) + var(--nav-inset-bottom));
   padding-bottom: var(--space-8);
+}
+/* Con la ciudad, la píldora "Sector" (CityHud) queda fija bajo la barra superior: el contenido empieza debajo */
+.app[data-has-nav="true"][data-nav-position="top"] .main.onCity {
+  margin-top: calc(var(--nav-height-top) + var(--space-12));
 }
 /* Landing (A-2): el mundo va detrás de toda la página y cada bloque lleva su propia superficie (R-F1), así que el
    contenedor no pone ni ancho máximo ni superficie. */

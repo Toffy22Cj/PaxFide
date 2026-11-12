@@ -4,12 +4,12 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import * as session from '../src/lib/auth/session';
-import { googleSignIn, login } from '../src/lib/api/identity';
+import { googleRegister, googleSignIn, login } from '../src/lib/api/identity';
 import { linkGoogle, unlinkGoogle } from '../src/lib/api/account';
-import { GIS_SCRIPT_URL, loadGoogleIdentity, _resetGoogleIdentityForTest, type GoogleIdApi } from '../src/lib/google/gis';
+import { GIS_SCRIPT_URL, emailOfIdToken, loadGoogleIdentity, _resetGoogleIdentityForTest, type GoogleIdApi } from '../src/lib/google/gis';
 import { GoogleButton } from '../src/components/access/GoogleButton';
 import { LoginScreen, GOOGLE_401, GOOGLE_503 } from '../src/screens/LoginScreen';
-import { RegisterScreen } from '../src/screens/RegisterScreen';
+import { RegisterScreen, GOOGLE_REGISTER_TEXT } from '../src/screens/RegisterScreen';
 import { SecurityCard, GOOGLE_LINK_TEXT } from '../src/components/account/SecurityCard';
 
 vi.mock('next/link', () => ({ default: ({ href, children, ...rest }: any) => <a href={href} {...rest}>{children}</a> }));
@@ -167,9 +167,8 @@ describe('P-16 · el script de Google (G-W1 y G-W2)', () => {
     expect(loader).toHaveBeenCalledTimes(2);
   });
 
-  it('"Crear cuenta" no tiene Google (G-W4, negativa)', () => {
-    vi.stubEnv('NEXT_PUBLIC_GOOGLE_CLIENT_ID', 'client-web-test');
-    render(<RegisterScreen />);
+  it('"Crear cuenta" sin ID de cliente no tiene Google (G-W4 con la Enmienda 3 de ADR-050)', () => {
+    render(<RegisterScreen googleClientId={null} />);
     expect(screen.queryByTestId('google-button')).toBeNull();
     expect(screen.queryByText(/Google/)).toBeNull();
   });
@@ -325,5 +324,117 @@ describe('P-16 · Seguridad › Cuenta de Google (G-W5 a G-W7)', () => {
     fireEvent.click(dialog().getByRole('button', { name: 'Desvincular' }));
     await screen.findByText('Listo. Si tenías una cuenta de Google vinculada, ya no podrás entrar con ella.');
     expect(unlink).toHaveBeenLastCalledWith('clave');
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// [Propuesta] ADR-050 Enmienda 3: "Registrarse con Google" en "Crear cuenta"
+
+describe('Enmienda 3 · contrato de POST /auth/google/register', () => {
+  it('201 con token; 409 los dos; 400 GoogleIdTokenInvalid, PasswordTooShort y BadRequest; 503', async () => {
+    fetchMock.mockResolvedValueOnce(res(201, { accountId: 'a-1', status: 'ACTIVE', token: 'tok-r' }));
+    expect(await googleRegister('id-tok', 'clave-larga-123')).toEqual({ kind: 'ok', token: 'tok-r' });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe('http://api.paxfide.test/api/v1/auth/google/register');
+    expect(JSON.parse(init.body)).toEqual({ idToken: 'id-tok', password: 'clave-larga-123',
+      acceptedTermsVersion: 'v1-2026-10', acceptedDataPolicyVersion: 'v1-2026-10' });
+
+    const cases: Array<[number, string, string]> = [
+      [409, 'GoogleAccountAlreadyLinked', 'google-already-linked'],
+      [409, 'DuplicateEmail', 'duplicate-email'],
+      [400, 'GoogleIdTokenInvalid', 'google-invalid'],
+      [400, 'PasswordTooShort', 'password-too-short'],
+      [400, 'BadRequest', 'legal-rejected'],
+      [503, 'GoogleSignInUnavailable', 'google-unavailable'],
+    ];
+    for (const [status, title, kind] of cases) {
+      fetchMock.mockResolvedValueOnce(res(status, { type: 'about:blank', title, status }));
+      expect(await googleRegister('id-tok', 'clave-larga-123')).toEqual({ kind });
+    }
+  });
+
+  it('emailOfIdToken lee el correo del payload (sin verificar nada) y el de los idToken de prueba', () => {
+    const payload = btoa(JSON.stringify({ email: 'ana@gmail.com', sub: '1' })).replace(/=+$/, '');
+    expect(emailOfIdToken(`h.${payload}.firma`)).toBe('ana@gmail.com');
+    expect(emailOfIdToken('fake-google.sub1.ana@demo.test')).toBe('ana@demo.test');
+    expect(emailOfIdToken('no-es-un-jwt')).toBeNull();
+  });
+});
+
+describe('Enmienda 3 · "Registrarse con Google"', () => {
+  const PASSWORD = 'clave-larga-123';
+  const setup = (client: ReturnType<typeof vi.fn>) => {
+    const gis = fakeGis();
+    render(<RegisterScreen client={vi.fn()} googleClient={client as any} googleLoader={gis.loader} googleClientId="client-web-test" />);
+    return gis;
+  };
+  const fillPasswordsAndConsents = () => {
+    fill('Contraseña', PASSWORD);
+    fill('Repite la contraseña', PASSWORD);
+    screen.getAllByRole('checkbox').forEach((c) => fireEvent.click(c));
+  };
+
+  it('pinta el botón oficial con "signup_with"; tras el clic el correo lo pone Google y desaparece el campo', async () => {
+    const gis = setup(vi.fn());
+    await screen.findByTestId('gis-button');
+    expect(gis.api.renderButton.mock.calls[0][1]).toEqual(expect.objectContaining({ text: 'signup_with', locale: 'es' }));
+
+    gis.emit('fake-google.sub1.ana@demo.test');
+
+    expect((await screen.findByTestId('google-register-email')).textContent).toBe('ana@demo.test');
+    expect(screen.queryByLabelText('Correo electrónico')).toBeNull();
+    expect(screen.queryByTestId('google-register')).toBeNull();
+  });
+
+  it('con contraseña y las dos casillas envía el idToken y la contraseña, y entra con el token', async () => {
+    const client = vi.fn().mockResolvedValue({ kind: 'ok', token: 'tok-r' });
+    const gis = setup(client);
+    await screen.findByTestId('gis-button');
+    gis.emit('id-tok');
+    fillPasswordsAndConsents();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+    await waitFor(() => expect(session.getJwt()).toBe('tok-r'));
+    expect(client).toHaveBeenCalledWith('id-tok', PASSWORD);
+  });
+
+  it('sin las dos casillas no envía nada, y las contraseñas siguen validándose', async () => {
+    const client = vi.fn();
+    const gis = setup(client);
+    await screen.findByTestId('gis-button');
+    gis.emit('id-tok');
+    fill('Contraseña', PASSWORD);
+    fill('Repite la contraseña', 'otra-clave-distinta');
+    expect((screen.getByRole('button', { name: 'Crear cuenta' }) as HTMLButtonElement).disabled).toBe(true);
+    screen.getAllByRole('checkbox').forEach((c) => fireEvent.click(c));
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+    expect(await screen.findByText('Las contraseñas no coinciden.')).toBeTruthy();
+    expect(client).not.toHaveBeenCalled();
+  });
+
+  it('"Usar otro correo" vuelve al formulario de siempre', async () => {
+    const gis = setup(vi.fn());
+    await screen.findByTestId('gis-button');
+    gis.emit('id-tok');
+    fireEvent.click(await screen.findByRole('button', { name: 'Usar otro correo' }));
+    expect(screen.getByLabelText('Correo electrónico')).toBeTruthy();
+    expect(screen.getByTestId('google-register')).toBeTruthy();
+  });
+
+  it.each([
+    ['google-invalid', GOOGLE_REGISTER_TEXT.invalid, true],
+    ['google-already-linked', GOOGLE_REGISTER_TEXT.alreadyLinked, true],
+    ['duplicate-email', GOOGLE_REGISTER_TEXT.duplicate, true],
+    ['google-unavailable', GOOGLE_REGISTER_TEXT.unavailable, false],
+  ] as const)('%s → su texto, sin sesión', async (kind, text, backToForm) => {
+    const gis = setup(vi.fn().mockResolvedValue({ kind }));
+    await screen.findByTestId('gis-button');
+    gis.emit('id-tok');
+    fillPasswordsAndConsents();
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+    expect((await screen.findByTestId('google-register-failure')).textContent).toBe(text);
+    expect(session.getJwt()).toBeNull();
+    expect(Boolean(screen.queryByLabelText('Correo electrónico'))).toBe(backToForm);
   });
 });

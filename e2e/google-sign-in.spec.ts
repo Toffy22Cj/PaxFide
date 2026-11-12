@@ -115,7 +115,7 @@ test.describe('P-16: Google en la web', () => {
     await expect(page.getByText('Esa cuenta de Google ya está vinculada a otra cuenta de PaxFide.')).toBeVisible();
   });
 
-  test('G-W2 (negativa): la portada, una convocatoria pública y "Crear cuenta" no cargan el script de Google', async ({ page }) => {
+  test('G-W2 (negativa): la portada y una convocatoria pública no cargan el script de Google', async ({ page }) => {
     const google: string[] = [];
     page.on('request', (r) => {
       const u = r.url();
@@ -125,14 +125,58 @@ test.describe('P-16: Google en la web', () => {
     await page.waitForLoadState('networkidle');
     await page.goto('/c/01JDEMOPUBLICC0DEMONETARY1');
     await page.waitForLoadState('networkidle');
-    await page.goto('/register');
-    await page.waitForLoadState('networkidle');
-    await expect(page.getByTestId('google-button')).toHaveCount(0);
     expect(google).toEqual([]);
     // Y en el acceso, una sola carga del doble y nunca accounts.google.com
     await page.goto('/login');
     await expect(page.getByTestId('gis-stub-button')).toBeVisible();
     expect(google.filter((u) => u.includes('accounts.google.com'))).toEqual([]);
     expect(await page.evaluate(() => (window as any).__gisLoads)).toBe(1);
+  });
+
+  // [Propuesta] ADR-050 Enmienda 3: registrarse con Google (y contraseña)
+  test('Enmienda 3: "Registrarse con Google" crea la cuenta verificada, entra, y después entran Google y la contraseña', async ({ page }) => {
+    const email = `e3-${unique()}@gmail.test`;
+    const credential = `fake-google.sub${unique()}.${email}`;
+
+    await page.goto('/register');
+    await nextGoogleCredential(page, credential);
+    await page.getByTestId('google-register').getByTestId('gis-stub-button').click();
+    await expect(page.getByTestId('google-register-email')).toHaveText(email);
+    await expect(page.getByLabel('Correo electrónico')).toHaveCount(0);
+    await page.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
+    await page.getByLabel('Repite la contraseña').fill(PASSWORD);
+    for (const id of ['consent-terms', 'consent-dataPolicy']) await page.getByTestId(id).check();
+    const registered = page.waitForRequest((r) => r.url().endsWith('/auth/google/register') && r.method() === 'POST');
+    await page.getByRole('button', { name: 'Crear cuenta' }).click();
+    expect((await registered).postDataJSON()).toEqual({ idToken: credential, password: PASSWORD,
+      acceptedTermsVersion: 'v1-2026-10', acceptedDataPolicyVersion: 'v1-2026-10' });
+    await expect(page).toHaveURL(/\/home$/);
+
+    // Una recarga cierra la sesión (vive en memoria, D2): entra con Google…
+    await page.goto('/login');
+    await nextGoogleCredential(page, credential);
+    await page.getByTestId('gis-stub-button').click();
+    await expect(page).toHaveURL(/\/home$/);
+    // …y con la contraseña que creó al registrarse
+    await page.goto('/login');
+    await page.getByLabel('Correo electrónico').fill(email);
+    await page.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
+    await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+    await expect(page).toHaveURL(/\/home$/);
+  });
+
+  test('Enmienda 3: el correo ya tiene cuenta → 409 con su texto y vuelve el formulario', async ({ page, request }) => {
+    const email = await registerApi(request, 'e3-dup');
+
+    await page.goto('/register');
+    await nextGoogleCredential(page, `fake-google.sub${unique()}.${email}`);
+    await page.getByTestId('google-register').getByTestId('gis-stub-button').click();
+    await page.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
+    await page.getByLabel('Repite la contraseña').fill(PASSWORD);
+    for (const id of ['consent-terms', 'consent-dataPolicy']) await page.getByTestId(id).check();
+    await page.getByRole('button', { name: 'Crear cuenta' }).click();
+    await expect(page.getByTestId('google-register-failure')).toHaveText(
+      'Ya existe una cuenta con ese correo. Inicia sesión con tu contraseña y vincula Google en Perfil › Seguridad.');
+    await expect(page.getByLabel('Correo electrónico')).toBeVisible();
   });
 });

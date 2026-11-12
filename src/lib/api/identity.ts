@@ -159,3 +159,40 @@ export async function registerAccount(email: string, password: string): Promise<
   if (r.status === 400) return { kind: 'bad-request' };
   return { kind: 'server-error' };
 }
+
+/**
+ * [Propuesta] ADR-050 Enmienda 3 (E3-1 a E3-4): `POST /auth/google/register {idToken, password, acceptedTermsVersion,
+ * acceptedDataPolicyVersion}`. El alta de `POST /auth/register` con el correo que prueba Google: la cuenta nace
+ * verificada y vinculada, así que responde `201 {accountId, status, token}` y la sesión empieza ya. 409
+ * `DuplicateEmail` (el correo ya tiene cuenta) o `GoogleAccountAlreadyLinked` (esa cuenta de Google ya tiene una); 400
+ * `GoogleIdTokenInvalid` (caducado o inválido), `PasswordTooShort` o `BadRequest` (versiones legales); 503
+ * `GoogleSignInUnavailable`.
+ */
+export type GoogleRegisterOutcome =
+  | { kind: 'ok'; token: string | null }
+  | { kind: 'duplicate-email' }
+  | { kind: 'google-already-linked' }
+  | { kind: 'google-invalid' }
+  | { kind: 'google-unavailable' }
+  | { kind: 'password-too-short' }
+  | { kind: 'legal-rejected' }
+  | { kind: 'bad-request' }
+  | { kind: 'server-error' }
+  | { kind: 'network' };
+
+export async function googleRegister(idToken: string, password: string): Promise<GoogleRegisterOutcome> {
+  const r = await apiRequest<{ token?: unknown }>({
+    path: '/auth/google/register', method: 'POST', auth: 'none',
+    body: { idToken, password, acceptedTermsVersion: LEGAL_VERSIONS.terms, acceptedDataPolicyVersion: LEGAL_VERSIONS.dataPolicy },
+  });
+  if (r.kind === 'network') return { kind: 'network' };
+  if (r.kind === 'ok') return { kind: 'ok', token: r.data && typeof r.data.token === 'string' ? r.data.token : null };
+  if (r.status === 409 && r.problem.title === 'GoogleAccountAlreadyLinked') return { kind: 'google-already-linked' };
+  if (r.status === 409) return { kind: 'duplicate-email' };
+  if (r.status === 503 && r.problem.title === 'GoogleSignInUnavailable') return { kind: 'google-unavailable' };
+  if (r.status === 400 && r.problem.title === 'GoogleIdTokenInvalid') return { kind: 'google-invalid' };
+  if (r.status === 400 && r.problem.title === 'PasswordTooShort') return { kind: 'password-too-short' };
+  if (r.status === 400 && r.problem.title === 'BadRequest') return { kind: 'legal-rejected' };
+  if (r.status === 400) return { kind: 'bad-request' };
+  return { kind: 'server-error' };
+}

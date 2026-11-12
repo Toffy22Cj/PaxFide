@@ -3,10 +3,11 @@
 
 .button {
   min-height: 44px;
-  padding: 0 var(--space-4);
+  /* Un contenedor puede pedir la píldora compacta de la landing con --button-font-size y --button-pad-x */
+  padding: 0 var(--button-pad-x, var(--space-4));
   border-radius: var(--radius-button);
   font: inherit;
-  font-size: var(--font-size-body-1);
+  font-size: var(--button-font-size, var(--font-size-body-1));
   font-weight: var(--weight-semibold);
   cursor: pointer;
   border: 1px solid transparent;

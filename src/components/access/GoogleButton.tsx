@@ -9,8 +9,8 @@ import s from './GoogleButton.module.css';
 
 type Props = {
   onCredential: (idToken: string) => void;
-  /** "Continuar con Google" en el acceso; "Iniciar sesión con Google" al vincular. */
-  text?: 'continue_with' | 'signin_with';
+  /** "Continuar con Google" en el acceso; "Iniciar sesión con Google" al vincular; "Registrarse con Google" al crear la cuenta. */
+  text?: 'continue_with' | 'signin_with' | 'signup_with';
   /** Para los tests: sustituye a la carga del script. */
   loader?: () => Promise<GoogleIdApi>;
   clientId?: string | null;

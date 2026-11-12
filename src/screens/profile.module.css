@@ -3,7 +3,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
+  /* Los botones del perfil (Button y "Mostrar" de las contraseñas) con la píldora compacta de la landing */
+  --button-font-size: var(--font-size-body-3);
+  --button-pad-x: var(--space-4);
 }
+.profile button { white-space: nowrap; }
 
 .header {
   display: flex;
@@ -45,7 +49,9 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-4);
+  align-items: start;
 }
+.grid > * { min-width: 0; }
 
 @media (min-width: 768px) {
   .grid {
@@ -114,20 +120,43 @@
   font-weight: var(--weight-regular);
 }
 
+/* Selector de tema: píldora como los botones; su etiqueta "Tema" queda solo para lectores (la fila ya la nombra) */
+.themeSelect { display: inline-flex; flex: none; }
+.themeSelect label {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+.themeSelect select {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-button);
+  font: inherit;
+  font-size: var(--font-size-body-1); /* los campos no bajan de 16 px (enmienda §6) */
+  font-weight: var(--weight-semibold);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-control);
+  cursor: pointer;
+}
+.themeSelect select:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
 .tuneBtn {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   min-height: 44px;
-  padding: 0 var(--space-3);
-  background: var(--color-bg);
+  padding: 0 var(--space-4);
+  background: var(--color-surface);
   border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-button);
   color: var(--color-text);
   font: inherit;
-  font-size: var(--font-size-body-2);
-  font-weight: var(--weight-regular);
+  font-size: var(--font-size-body-3);
+  font-weight: var(--weight-semibold);
   cursor: pointer;
 }
 
@@ -142,9 +171,10 @@
 }
 
 .pauseBtn {
+  flex: none;
   min-height: 44px;
   min-width: 44px;
-  padding: 0 var(--space-3);
+  padding: 0 var(--space-4);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -172,11 +202,11 @@
 
 .logoutBtn {
   min-height: 44px;
-  padding: 0 var(--space-6);
+  padding: 0 var(--space-4);
   border-radius: var(--radius-button);
   font: inherit;
   font-weight: var(--weight-semibold);
-  font-size: var(--font-size-body-2);
+  font-size: var(--font-size-body-3);
   cursor: pointer;
   background: var(--color-surface);
   color: var(--color-text);

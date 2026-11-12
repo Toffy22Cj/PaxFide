@@ -19,7 +19,7 @@ export interface GoogleIdApi {
     type?: 'standard';
     theme?: 'outline' | 'filled_black';
     size?: 'large';
-    text?: 'continue_with' | 'signin_with';
+    text?: 'continue_with' | 'signin_with' | 'signup_with';
     shape?: 'pill';
     locale?: string;
     width?: number;
@@ -71,4 +71,24 @@ export function loadGoogleIdentity(): Promise<GoogleIdApi> {
 
 export function _resetGoogleIdentityForTest(): void {
   loading = null;
+}
+
+/**
+ * [Propuesta] ADR-050 Enmienda 3: el correo del `idToken`, solo para enseñarlo en el registro ("Te registras como …").
+ * No verifica nada (lo hace el backend); si no se puede leer, `null`. Los idToken de prueba del servidor falso
+ * (`fake-google.<sub>.<correo>`) también se leen.
+ */
+export function emailOfIdToken(idToken: string): string | null {
+  const fake = /^fake-google\.[A-Za-z0-9_-]+\.(.+@.+)$/.exec(idToken);
+  if (fake) return fake[1];
+  const part = idToken.split('.')[1];
+  if (!part) return null;
+  try {
+    const b64 = part.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(part.length / 4) * 4, '=');
+    const json = decodeURIComponent(Array.from(atob(b64), (c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join(''));
+    const email = (JSON.parse(json) as { email?: unknown }).email;
+    return typeof email === 'string' && email.includes('@') ? email : null;
+  } catch {
+    return null;
+  }
 }
