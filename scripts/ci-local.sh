@@ -8,6 +8,7 @@
 #   3. Setup Node.js 22              → se exige Node 22.x
 #   4. Install pnpm (11.26.0)        → se exige pnpm 11.26.0
 #   5. Install dependencies          → pnpm install --frozen-lockfile
+#   5b. Dependency audit (T-07)      → pnpm audit --audit-level high (falla con alta o crítica)
 #   6. Typecheck                     → pnpm typecheck
 #   7. Vitest                        → pnpm vitest run
 #   8. Check Server Imports          → pnpm check:server
@@ -80,6 +81,7 @@ step "Check for .skip or .only in tests" "if grep -E '\\.(skip|only)\\(' -r __te
 step "Setup Node.js 22" "node -v | grep -Eq '^v22\\.' || { echo 'Se exige Node 22.x'; exit 1; }; node -v"
 step "Install pnpm" "[ \"\$(pnpm -v)\" = '11.26.0' ] || { echo 'Se exige pnpm 11.26.0 (npm install -g pnpm@11.26.0)'; exit 1; }; pnpm -v"
 step "Install dependencies" "pnpm install --frozen-lockfile"
+step "Dependency audit" "pnpm audit --audit-level high"
 step "Typecheck" "pnpm typecheck"
 step "Vitest" "pnpm vitest run"
 step "Check Server Imports" "pnpm check:server"

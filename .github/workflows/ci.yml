@@ -30,6 +30,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # T-07 (ADR-055 del backend): falla con cualquier vulnerabilidad alta o crítica; excepciones en
+      # Donaciones/Documentos/seguridad/excepciones-dependencias.md
+      - name: Dependency audit
+        run: pnpm audit --audit-level high
+
       - name: Typecheck
         run: pnpm typecheck
 

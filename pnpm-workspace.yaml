@@ -1,3 +1,9 @@
 allowBuilds:
   sharp: false
   unrs-resolver: false
+overrides:
+  # T-07 (ADR-055 del backend): GHSA-68fv-2mgg-jv7q (CVSS alto) en source-map-js < 1.2.2, que llega por postcss
+  source-map-js: ">=1.2.2"
+  # T-07: solo herramientas de prueba (vitest/jsdom), nunca en el paquete servido; versiones con más de dos semanas
+  vite: "8.3.5"
+  undici: "8.12.3"
