@@ -1,0 +1,154 @@
+# CI local de paxfide-web (réplica de .github/workflows/ci.yml)
+commit:     caeef3dddec5ef055bec6cae5e87a0c0ab446ff0
+rama:       claude/festive-newton-687sd0
+fecha UTC:  2026-11-15T21:17:01Z
+node:       v22.23.4
+pnpm:       11.26.0
+workflow:   .github/workflows/ci.yml sha256 0371c82f8567467833e5d87abe9966431cb486692c9bf38b60d7b5d7814cede9
+
+===== PASO: Checkout repository =====
+$ git cat-file -e caeef3dddec5ef055bec6cae5e87a0c0ab446ff0 && echo 'Árbol limpio en caeef3dddec5ef055bec6cae5e87a0c0ab446ff0'
+Árbol limpio en caeef3dddec5ef055bec6cae5e87a0c0ab446ff0
+RESULTADO: OK (0 s)
+
+===== PASO: Check for .skip or .only in tests =====
+$ if grep -E '\.(skip|only)\(' -r __tests__/ e2e/; then echo 'Error: Found .skip() or .only() in tests. Please remove them.'; exit 1; fi
+RESULTADO: OK (0 s)
+
+===== PASO: Setup Node.js 22 =====
+$ node -v | grep -Eq '^v22\.' || { echo 'Se exige Node 22.x'; exit 1; }; node -v
+v22.23.4
+RESULTADO: OK (0 s)
+
+===== PASO: Install pnpm =====
+$ [ "$(pnpm -v)" = '11.26.0' ] || { echo 'Se exige pnpm 11.26.0 (npm install -g pnpm@11.26.0)'; exit 1; }; pnpm -v
+11.26.0
+RESULTADO: OK (1 s)
+
+===== PASO: Install dependencies =====
+$ pnpm install --frozen-lockfile
+Already up to date
+Done in 486ms using pnpm v11.26.0
+
+   ╭──────────────────────────────────────────────────────────────────────╮
+   │                                                                      │
+   │                 Update available! 11.26.0 → 12.21.0.                 │
+   │                 Changelog: https://pnpm.io/v/12.21.0                 │
+   │   To update, run: curl -fsSL https://get.pnpm.io/install.sh | sh -   │
+   │                                                                      │
+   ╰──────────────────────────────────────────────────────────────────────╯
+
+RESULTADO: OK (3 s)
+
+===== PASO: Dependency audit =====
+$ pnpm audit --audit-level high
+2 vulnerabilities found
+Severity: 2 moderate
+RESULTADO: OK (1 s)
+
+===== PASO: Typecheck =====
+$ pnpm typecheck
+$ tsc --noEmit
+RESULTADO: OK (4 s)
+
+===== PASO: Vitest =====
+$ pnpm vitest run
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.2 /home/user/PaxFide
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ❯ __tests__/design-tokens.test.ts (106 tests | 1 failed) 136ms
+   ❯ Hexadecimales y tokens dark-* solo en el archivo de tokens (5)
+     × solo globals.css declara hexadecimales (más las excepciones anteriores listadas) 17ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/design-tokens.test.ts > Hexadecimales y tokens dark-* solo en el archivo de tokens > solo globals.css declara hexadecimales (más las excepciones anteriores listadas)
+AssertionError: app/manifest.ts contiene hexadecimales: usa los tokens de globals.css: expected [ '#FFFFFF', '#20604C' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "#FFFFFF",
++   "#20604C",
++ ]
+
+ ❯ __tests__/design-tokens.test.ts:642:90
+    640|       const allowed = LEGACY_HEX[rel] ?? [];
+    641|       const unexpected = found.filter((h) => !allowed.includes(h));
+    642|       expect(unexpected, `${rel} contiene hexadecimales: usa los token…
+       |                                                                                          ^
+    643|     }
+    644|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 63 passed (64)
+      Tests  1 failed | 842 passed (843)
+   Start at  21:17:13
+   Duration  39.77s (environment 46%, tests 38%, setup 10%, transform 3%, import 2%)
+
+Environment  jsdom was created 64 times · 51.11s total, 46% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
+RESULTADO: FALLO (código 1, 42 s)
+
+===== PASO: Check Server Imports =====
+$ pnpm check:server
+OMITIDO (un paso anterior falló, como en GitHub Actions)
+
+===== PASO: Install Playwright Chromium =====
+$ test -x "$PW_CHROMIUM_PATH" && echo "Chromium local (PW_CHROMIUM_PATH=$PW_CHROMIUM_PATH); no se descarga" && "$PW_CHROMIUM_PATH" --version
+OMITIDO (un paso anterior falló, como en GitHub Actions)
+
+===== PASO: Playwright E2E Tests =====
+$ pnpm test:e2e
+OMITIDO (un paso anterior falló, como en GitHub Actions)
+
+===== RESUMEN =====
+OK       Checkout repository
+OK       Check for .skip or .only in tests
+OK       Setup Node.js 22
+OK       Install pnpm
+OK       Install dependencies
+OK       Dependency audit
+OK       Typecheck
+FALLO    Vitest (código 1)
+OMITIDO  Check Server Imports
+OMITIDO  Install Playwright Chromium
+OMITIDO  Playwright E2E Tests
+CI LOCAL: FALLO
+
+sha256 (de todo lo anterior a la línea en blanco final; verificar con: head -n -2 <archivo> | sha256sum): c9759d55b8a3faad6b7338a6451e1395caa36663ed90e18a2f59d75863f84700
