@@ -18,6 +18,7 @@ import {
   type WorldMode,
 } from '../landing/worldMode';
 import s from './AccessLayout.module.css';
+import { BrandMark } from '../shell/BrandMark';
 
 const ROOT_ID = 'access-root';
 
@@ -50,8 +51,9 @@ export function AccessLayout({ children }: AccessLayoutProps) {
           <span>Volver al recorrido</span>
         </Link>
 
-        {/* U-29: la única marca del acceso, como .auth-top-brand del boceto ("Pax<b>Fide</b>.") */}
+        {/* U-29: la única marca del acceso, como .auth-top-brand del boceto ("Pax<b>Fide</b>."), ahora con el emblema */}
         <div className={s.topBrand} data-testid="access-brand">
+          <BrandMark size={28} />
           <span className={s.brandText}>Pax<b className={s.brandAccent}>Fide</b>.</span>
         </div>
 
