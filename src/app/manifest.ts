@@ -1,5 +1,6 @@
 // Manifiesto de la web (icono al instalarla o añadirla a la pantalla de inicio). Iconos generados por
 // scripts/marca/generar-iconos.py; favicon.ico, icon.png y apple-icon.png van en src/app por convención de Next.js.
+// Sin background_color ni theme_color: son opcionales y exigirían hexadecimales fuera de globals.css (design-tokens.test).
 import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
@@ -9,8 +10,6 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Donaciones que llegan: trazabilidad verificable de donaciones.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#FFFFFF',
-    theme_color: '#20604C',
     icons: [
       { src: '/marca/icon-192.png', sizes: '192x192', type: 'image/png' },
       { src: '/marca/icon-512.png', sizes: '512x512', type: 'image/png' },
