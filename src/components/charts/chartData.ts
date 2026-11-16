@@ -53,6 +53,16 @@ export function niceMax(max: number): number {
   return 10 * exp;
 }
 
+/**
+ * Tope del eje. Con conteos (todos los valores enteros), un múltiplo de 4 para que las cuatro marcas sean enteras:
+ * un eje de lotes o de eventos nunca marca «2.5 lotes». Con importes o porcentajes, el máximo redondo de siempre.
+ */
+export function axisTop(vals: number[]): number {
+  const max = Math.max(0, ...vals);
+  if (!vals.every(Number.isInteger)) return niceMax(max);
+  return Math.max(1, Math.ceil(max / 4)) * 4;
+}
+
 /** Marcas del eje de valores: de 0 a `top` en `n` tramos. */
 export function ticks(top: number, n = 4): number[] {
   return Array.from({ length: n + 1 }, (_, i) => (top * i) / n);
