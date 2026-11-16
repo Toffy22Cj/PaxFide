@@ -12,7 +12,13 @@ import {
   stackTotals, ticks, values,
 } from './chartData';
 
-const W = 560, H = 260, L = 64, R = 16, T = 16, B = 44;
+const W = 560, H = 260, R = 16, T = 16, B = 44;
+
+/** Margen izquierdo según la etiqueta más larga del eje (los importes en COP son largos): nunca se corta. */
+function leftMargin(top: number, format: (v: number) => string): number {
+  const longest = Math.max(...ticks(top).map((v) => format(v).length));
+  return Math.min(170, Math.max(40, Math.round(longest * 6.3) + 14));
+}
 
 // ---------------------------------------------------------------------------------------------------------------
 // Marco común
@@ -144,7 +150,7 @@ function Frame({ data, testId, label, legend, caption, height = H, children }: F
 }
 
 /** Rejilla y eje de valores (vertical). */
-function ValueAxis({ top, format, height = H }: { top: number; format: (v: number) => string; height?: number }) {
+function ValueAxis({ top, format, L, height = H }: { top: number; format: (v: number) => string; L: number; height?: number }) {
   const y = (v: number) => T + (1 - v / top) * (height - T - B);
   return (
     <g>
@@ -163,7 +169,7 @@ function CategoryLabels({ categories, x, height = H }: { categories: string[]; x
   const every = Math.max(1, Math.ceil(categories.length / 8));
   return (
     <g>
-      {categories.map((c, i) => (i % every === 0 || i === categories.length - 1) && (
+      {categories.map((c, i) => i % every === 0 && (
         <text key={`${c}-${i}`} className={s.axis} x={x(i)} y={height - B + 16} textAnchor="middle">{c}</text>
       ))}
     </g>
@@ -181,6 +187,7 @@ export interface ChartProps { data: CategoryChartData; testId: string; caption?:
 export function VerticalBars({ data, testId, caption }: ChartProps) {
   if (isEmpty(data)) return <EmptyChart testId={testId} />;
   const top = niceMax(Math.max(...values(data)));
+  const L = leftMargin(top, data.format);
   const band = (W - L - R) / data.categories.length;
   const n = data.series.length;
   const bw = Math.max(2, Math.min(28, (band * 0.7) / n));
@@ -191,7 +198,7 @@ export function VerticalBars({ data, testId, caption }: ChartProps) {
       legend={n > 1 ? data.series.map((sr, i) => ({ label: sr.label, index: i })) : []}>
       {(base) => (
         <>
-          <ValueAxis top={top} format={data.format} />
+          <ValueAxis top={top} format={data.format} L={L} />
           {data.series.map((sr, si) => sr.values.map((v, i) => v === null ? null : (
             <rect key={`${si}-${i}`} x={cx(i) - (n * bw) / 2 + si * bw} y={y(v)} width={bw} height={Math.max(0, y(0) - y(v))}
               fill={seriesFill(base, si)} stroke={seriesColor(si)} data-testid={`${testId}-bar`}>
@@ -251,6 +258,7 @@ export function HorizontalBars({ data, testId, caption }: ChartProps) {
 export function LineChart({ data, testId, caption, area = false }: ChartProps & { area?: boolean }) {
   if (isEmpty(data)) return <EmptyChart testId={testId} />;
   const top = niceMax(Math.max(...values(data)));
+  const L = leftMargin(top, data.format);
   const n = data.categories.length;
   const cx = (i: number) => (n === 1 ? (L + W - R) / 2 : L + (i / (n - 1)) * (W - L - R));
   const y = (v: number) => T + (1 - v / top) * plotH(H);
@@ -268,7 +276,7 @@ export function LineChart({ data, testId, caption, area = false }: ChartProps & 
       legend={data.series.map((sr, i) => ({ label: sr.label, index: i, kind: area ? 'area' : 'line' }))}>
       {(base) => (
         <>
-          <ValueAxis top={top} format={data.format} />
+          <ValueAxis top={top} format={data.format} L={L} />
           {data.series.map((sr, si) => segments(sr.values).map((seg, k) => (
             <g key={`${si}-${k}`}>
               {area && seg.length > 1 && (
@@ -377,6 +385,7 @@ export function StackedBars({ data, testId, caption }: ChartProps) {
   if (isEmpty(data)) return <EmptyChart testId={testId} />;
   const totals = stackTotals(data);
   const top = niceMax(Math.max(...totals.filter((v): v is number => v !== null)));
+  const L = leftMargin(top, data.format);
   const band = (W - L - R) / data.categories.length;
   const bw = Math.max(4, Math.min(48, band * 0.6));
   const y = (v: number) => T + (1 - v / top) * plotH(H);
@@ -387,7 +396,7 @@ export function StackedBars({ data, testId, caption }: ChartProps) {
       legend={data.series.map((sr, i) => ({ label: sr.label, index: i }))}>
       {(base) => (
         <>
-          <ValueAxis top={top} format={data.format} />
+          <ValueAxis top={top} format={data.format} L={L} />
           {data.categories.map((c, i) => {
             let acc = 0;
             return (
@@ -404,7 +413,7 @@ export function StackedBars({ data, testId, caption }: ChartProps) {
                     </rect>
                   );
                 })}
-                {totals[i] !== null && <text className={s.axis} x={cx(i)} y={y(totals[i] as number) - 4} textAnchor="middle">{data.format(totals[i] as number)}</text>}
+                {totals[i] !== null && band >= data.format(totals[i] as number).length * 6.3 + 4 && <text className={s.axis} x={cx(i)} y={y(totals[i] as number) - 4} textAnchor="middle">{data.format(totals[i] as number)}</text>}
               </g>
             );
           })}
@@ -430,6 +439,7 @@ export function ComboBarsLine({ data, testId, caption, cumulativeLine = false, l
   const merged: CategoryChartData = { ...data, series: [bars, line].filter(Boolean) as CategoryChartData['series'] };
   if (!bars || isEmpty(merged)) return <EmptyChart testId={testId} />;
   const top = niceMax(Math.max(...values(merged)));
+  const L = leftMargin(top, data.format);
   const band = (W - L - R) / data.categories.length;
   const bw = Math.max(3, Math.min(32, band * 0.6));
   const y = (v: number) => T + (1 - v / top) * plotH(H);
@@ -440,7 +450,7 @@ export function ComboBarsLine({ data, testId, caption, cumulativeLine = false, l
       legend={[{ label: bars.label, index: 0 }, ...(line ? [{ label: line.label, index: 1, kind: 'line' as const }] : [])]}>
       {(base) => (
         <>
-          <ValueAxis top={top} format={data.format} />
+          <ValueAxis top={top} format={data.format} L={L} />
           {bars.values.map((v, i) => v === null ? null : (
             <rect key={i} x={cx(i) - bw / 2} y={y(v)} width={bw} height={Math.max(0, y(0) - y(v))} fill={seriesFill(base, 0)}
               stroke={seriesColor(0)} data-testid={`${testId}-bar`}>
