@@ -14,6 +14,8 @@ import { Button } from '../components/ui/Button';
 import { EmptyState, ErrorState, ForbiddenState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
 import { CommandModal } from '../components/asset/CommandModal';
 import p from './panelLists.module.css';
+import { fetchMonthlyCleared } from '../lib/api/panelData';
+import { FundsChartsSection } from '../components/charts/ChartPanels';
 
 type Action = { kind: 'request'; fund: Fund } | { kind: 'confirm'; fund: Fund; allocationId: string };
 
@@ -21,9 +23,11 @@ type Action = { kind: 'request'; fund: Fund } | { kind: 'confirm'; fund: Fund; a
  * `/panel/funds` (camino A; S-04): fondos de la organización con sus asignaciones (`ADMINISTRATOR` o `EMPLOYEE`).
  * `ADMINISTRATOR` solicita una asignación (`Command-Id`) y la confirma (DD-32). Representación: el backend autoriza.
  */
-export function FundsScreen({ meClient = fetchMe, fundsClient = fetchFunds }: {
+export function FundsScreen({ meClient = fetchMe, fundsClient = fetchFunds, monthlyClient = fetchMonthlyCleared }: {
   meClient?: typeof fetchMe;
   fundsClient?: typeof fetchFunds;
+  /** Paso 3: los gráficos de fondos por mes (`GET …/funds/monthly`, mismos roles que `/funds`). */
+  monthlyClient?: typeof fetchMonthlyCleared;
 }) {
   const { state, reload } = usePrincipal(meClient);
   const [action, setAction] = useState<Action | null>(null);
@@ -51,6 +55,9 @@ export function FundsScreen({ meClient = fetchMe, fundsClient = fetchFunds }: {
       {enabled && (
         <>
           {done && <StatusNotice variant="success" text={done} />}
+          <FundsChartsSection organizationId={organizationId!} client={monthlyClient} roles={roles}
+            accountId={state.status === 'ready' ? state.data.accountId : undefined}
+            funds={funds?.kind === 'ok' ? funds.items : undefined} />
           {funds === undefined && <LoadingState />}
           {funds?.kind === 'forbidden' && <ForbiddenState />}
           {(funds?.kind === 'error' || funds?.kind === 'unauthorized') && <ErrorState onRetry={list.reload} />}

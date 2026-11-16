@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { fetchMe } from '../lib/api/identity';
+import { AssetsCharts } from '../components/charts/ChartPanels';
 import { usePrincipal } from '../lib/auth/usePrincipal';
 import { useRead } from '../lib/api/useRead';
 import { isSurfaceEnabled } from '../lib/routing/surfaces';
@@ -169,6 +170,11 @@ export function OrgAssetsScreen({
                 <span>Puede que la operación se haya realizado. Revísalo antes de repetirla.</span>
               </div>
             </div>
+          )}
+
+          {/* Paso 3: estado de los lotes en gráficos (los mismos datos que la tabla) */}
+          {assets?.kind === 'ok' && (
+            <AssetsCharts items={items} roles={roles} accountId={state.status === 'ready' ? state.data.accountId : undefined} />
           )}
 
           {/* Chips de filtro de estado */}

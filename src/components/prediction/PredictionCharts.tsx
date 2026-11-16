@@ -3,10 +3,11 @@ import s from './prediction.module.css';
 import { uiClasses as ui } from '../ui/Layout';
 import type { PredictionCut, PredictionView } from '../../lib/api/prediction';
 import { LocalDate } from '../LocalDate';
+import { SERIES_COLORS } from '../charts/chartData';
 
 const pct = (x: number) => `${Math.round(x)} %`;
-const GREEN = 'var(--color-text)';
-const BLUE = 'var(--color-link)';
+const GREEN = SERIES_COLORS[0]; // var(--color-text): la paleta común de los gráficos (paso 3), mismo valor
+const BLUE = SERIES_COLORS[1]; // var(--color-link)
 /** Cortes con los que se entrenó el modelo (aviso del backend: 15 %, 25 % y 50 % del tiempo). */
 const TRAINED_CUTS = [0.15, 0.25, 0.5];
 

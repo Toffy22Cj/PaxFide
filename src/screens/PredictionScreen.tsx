@@ -10,7 +10,8 @@ import { PageHeader, Surface, uiClasses as ui } from '../components/ui/Layout';
 import { TextField, SelectField } from '../components/ui/Field';
 import { Button } from '../components/ui/Button';
 import { EmptyState, ErrorState, ForbiddenState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
-import { AdvancedPredictionChart, BasicPredictionChart, PredictionHistoryChart } from '../components/prediction/PredictionCharts';
+import { PredictionHistoryChart } from '../components/prediction/PredictionCharts';
+import { PredictionChartsPanel } from '../components/charts/ChartPanels';
 import s from '../components/prediction/prediction.module.css';
 import p from './panelLists.module.css';
 
@@ -110,10 +111,11 @@ export function PredictionScreen({ meClient = fetchMe, client = fetchPrediction,
                     {result.view.warnings.map((w) => <li key={w}>{w}</li>)}
                   </ul>
                 )}
-                <h2 className={ui.sectionTitle}>Probabilidad y final estimado</h2>
-                <BasicPredictionChart view={result.view} />
-                <h2 className={ui.sectionTitle}>Hoy frente al final estimado</h2>
-                <AdvancedPredictionChart view={result.view} observedFraction={observed === null ? undefined : observed / 100} />
+                {/* Paso 3: los dos gráficos de siempre son los predeterminados; quien ve la predicción puede elegir otros */}
+                <PredictionChartsPanel view={result.view} observedFraction={observed === null ? undefined : observed / 100}
+                  cuts={history !== null && history !== 'loading' && history.kind === 'ok' ? history.cuts : undefined}
+                  roles={state.status === 'ready' ? state.data.roles : []}
+                  accountId={state.status === 'ready' ? state.data.accountId : undefined} />
                 <HistorySection history={history} />
               </section>
             )}

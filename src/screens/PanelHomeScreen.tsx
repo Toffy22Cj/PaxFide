@@ -30,6 +30,7 @@ import {
 import { fetchActivity, fetchMonthlyCleared, fetchOrgIntegrity, type MonthlyCleared, type OrgIntegrity } from '../lib/api/panelData';
 import { PrivateImage } from '../components/media/PrivateImage';
 import { ActivityFeed, IntegrityKpi, MonthlyKpi, daysSince } from '../components/panel/PanelTimeData';
+import { ActivityChartsSection } from '../components/charts/ChartPanels';
 import {
   AmbiguousCommandItem,
   getAmbiguousSessionCommands,
@@ -716,6 +717,12 @@ export function PanelHomeScreen({
       {canFetchActivity && (
         <div className={`${s.pnCard} ${s.c5}`}>
           <ActivityFeed organizationId={orgId!} client={activityClient} />
+        </div>
+      )}
+      {/* Paso 3: la actividad en gráficos, con la misma lectura que la lista (G-8; los tres papeles la ven) */}
+      {canFetchActivity && (
+        <div className={`${s.pnCard} ${s.cFull}`}>
+          <ActivityChartsSection organizationId={orgId!} client={activityClient} roles={roles} accountId={principal?.accountId} />
         </div>
       )}
       </div>

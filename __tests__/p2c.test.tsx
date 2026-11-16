@@ -5,6 +5,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { chooseMunicipality, TEST_CATALOG } from './fixtures/locations';
 vi.mock('next/link', () => ({ default: ({ href, children, ...rest }: any) => <a href={href} {...rest}>{children}</a> }));
 
+/** Paso 3: sin datos de fondos por mes (los gráficos muestran su aviso; no se hace ninguna petición). */
+const NO_MONTHLY = async () => ({ kind: 'error' as const });
+
 const res = (status: number, body?: unknown) => ({
   status, text: async () => (body === undefined ? '' : JSON.stringify(body)), headers: { get: () => null },
 });
@@ -92,7 +95,8 @@ describe('/panel/funds', () => {
   it('ADMINISTRATOR: solicitar asignación (importe a unidades mínimas, Command-Id); 409 con su texto', async () => {
     const { FundsScreen } = await load(S);
     const funds = vi.fn().mockResolvedValue({ kind: 'ok', items: [FUND] });
-    render(<FundsScreen meClient={me(['ADMINISTRATOR'])} fundsClient={funds} />);
+    // Paso 3: la lectura de fondos por mes de los gráficos va inyectada para que `fetch` cuente solo los comandos
+    render(<FundsScreen meClient={me(['ADMINISTRATOR'])} fundsClient={funds} monthlyClient={NO_MONTHLY} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Solicitar asignación' }));
     fireEvent.change(screen.getByLabelText('Importe (COP)'), { target: { value: '20000' } });
     fetchMock.mockResolvedValueOnce(res(409, { title: 'InsufficientFunds' }));
@@ -111,7 +115,7 @@ describe('/panel/funds', () => {
 
   it('ADMINISTRATOR: confirmar una asignación REQUESTED (sin cuerpo)', async () => {
     const { FundsScreen } = await load(S);
-    render(<FundsScreen meClient={me(['ADMINISTRATOR'])} fundsClient={async () => ({ kind: 'ok', items: [FUND] })} />);
+    render(<FundsScreen meClient={me(['ADMINISTRATOR'])} fundsClient={async () => ({ kind: 'ok', items: [FUND] })} monthlyClient={NO_MONTHLY} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Confirmar asignación' }));
     fetchMock.mockResolvedValueOnce(res(200, { allocationId: 'alloc-1', status: 'CONFIRMED' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirmar asignación' }));
