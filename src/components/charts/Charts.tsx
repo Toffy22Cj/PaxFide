@@ -8,7 +8,7 @@ import React, { useId } from 'react';
 import s from './charts.module.css';
 import { uiClasses as ui } from '../ui/Layout';
 import {
-  type CategoryChartData, cumulative, describe, isEmpty, niceMax, percent, seriesColor, seriesPattern, seriesTotals,
+  type CategoryChartData, axisTop, cumulative, describe, isEmpty, percent, seriesColor, seriesPattern, seriesTotals,
   stackTotals, ticks, values,
 } from './chartData';
 
@@ -186,7 +186,7 @@ export interface ChartProps { data: CategoryChartData; testId: string; caption?:
 /** Barras verticales (agrupadas si hay varias series). */
 export function VerticalBars({ data, testId, caption }: ChartProps) {
   if (isEmpty(data)) return <EmptyChart testId={testId} />;
-  const top = niceMax(Math.max(...values(data)));
+  const top = axisTop(values(data));
   const L = leftMargin(top, data.format);
   const band = (W - L - R) / data.categories.length;
   const n = data.series.length;
@@ -220,7 +220,7 @@ export function HorizontalBars({ data, testId, caption }: ChartProps) {
   const row = 14 * n + 14;
   const height = T + data.categories.length * row + 24;
   const left = 150, right = 110;
-  const top = niceMax(Math.max(...values(data)));
+  const top = axisTop(values(data));
   const x = (v: number) => left + (v / top) * (W - left - right);
   return (
     <Frame data={data} testId={testId} label={describe(data)} caption={caption} height={height}
@@ -257,7 +257,7 @@ export function HorizontalBars({ data, testId, caption }: ChartProps) {
 /** Líneas (o área): un `null` corta la línea; nunca se une un hueco. */
 export function LineChart({ data, testId, caption, area = false }: ChartProps & { area?: boolean }) {
   if (isEmpty(data)) return <EmptyChart testId={testId} />;
-  const top = niceMax(Math.max(...values(data)));
+  const top = axisTop(values(data));
   const L = leftMargin(top, data.format);
   const n = data.categories.length;
   const cx = (i: number) => (n === 1 ? (L + W - R) / 2 : L + (i / (n - 1)) * (W - L - R));
@@ -384,7 +384,7 @@ export function Progress({ label, part, total, format, testId, caption }: {
 export function StackedBars({ data, testId, caption }: ChartProps) {
   if (isEmpty(data)) return <EmptyChart testId={testId} />;
   const totals = stackTotals(data);
-  const top = niceMax(Math.max(...totals.filter((v): v is number => v !== null)));
+  const top = axisTop(totals.filter((v): v is number => v !== null));
   const L = leftMargin(top, data.format);
   const band = (W - L - R) / data.categories.length;
   const bw = Math.max(4, Math.min(48, band * 0.6));
@@ -438,7 +438,7 @@ export function ComboBarsLine({ data, testId, caption, cumulativeLine = false, l
     : data.series[1];
   const merged: CategoryChartData = { ...data, series: [bars, line].filter(Boolean) as CategoryChartData['series'] };
   if (!bars || isEmpty(merged)) return <EmptyChart testId={testId} />;
-  const top = niceMax(Math.max(...values(merged)));
+  const top = axisTop(values(merged));
   const L = leftMargin(top, data.format);
   const band = (W - L - R) / data.categories.length;
   const bw = Math.max(3, Math.min(32, band * 0.6));

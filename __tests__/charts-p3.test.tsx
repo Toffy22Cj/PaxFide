@@ -162,6 +162,19 @@ describe('Gráficos (paso 3): cada tipo con datos y vacío', () => {
     });
   }
 
+  // Regresión (2026-11-16): con conteos, las marcas caían en fracciones («1.25 lotes») al redondear el eje a 5
+  it('con conteos, las marcas del eje son enteras: nunca «1.25 lotes» ni «2.5 lotes»', () => {
+    const { container } = render(<VerticalBars data={data} testId="t" />);
+    const axis = [...container.querySelectorAll('text')].map((t) => t.textContent ?? '').filter((t) => /lotes?$/.test(t));
+    expect(axis.length).toBeGreaterThan(0);
+    for (const label of axis) expect(label).toMatch(/^\d+ lotes?$/);
+    cleanup();
+    const { container: c2 } = render(<StackedBars data={assetsStateByType(ASSETS)} testId="s" />);
+    for (const t of [...c2.querySelectorAll('text')].map((x) => x.textContent ?? '').filter((x) => /lotes?$/.test(x))) {
+      expect(t).toMatch(/^\d+ lotes?$/);
+    }
+  });
+
   it('KPI y progreso: con datos y vacíos', () => {
     render(<><KpiTiles testId="k" tiles={[{ label: 'Lotes', value: '6' }]} /><Progress testId="p" label="Entregados" part={2} total={6} format={String} /></>);
     expect(screen.getByTestId('k-tile')).toHaveTextContent('Lotes6');
