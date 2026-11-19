@@ -30,7 +30,7 @@
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-divider);
 }
-.bar { max-width: 1120px; height: 100%; margin: 0 auto; padding: 0 var(--gutter-mobile); display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.bar { max-width: 1440px; height: 100%; margin: 0 auto; padding: 0 var(--gutter-mobile); display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
 .brand { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-text); font-weight: var(--weight-semibold); font-size: var(--text-lg); text-decoration: none; flex-shrink: 0; }
 .actions { display: flex; align-items: center; gap: var(--space-3); }
 .themeSelect {
@@ -114,8 +114,9 @@ a.logout { display: inline-flex; align-items: center; text-decoration: none; }
 .pauseText { display: none; }
 @media (min-width: 768px) { .pauseText { display: inline; } }
 .main {
-  /* Ancho del contenido: --main-max (720 px por defecto; .wide y .roomy lo amplían) */
-  --main-max: var(--width-detail);
+  /* Ancho del contenido: --main-max (1040 px por defecto; .wide y .roomy lo amplían). Antes 720/1120/1040: la sesión
+     del 2026-11-19 pidió más ancho en todas las pantallas del shell */
+  --main-max: 1040px;
   max-width: var(--main-max); margin: 0 auto;
   padding: var(--space-8) var(--gutter-mobile) calc(var(--space-12) + var(--nav-inset-bottom));
 }
@@ -132,9 +133,9 @@ a.logout { display: inline-flex; align-items: center; text-decoration: none; }
 .app[data-has-nav="true"][data-nav-position="top"] .main {
   margin-top: calc(var(--nav-height-top) + var(--space-4));
 }
-.main.wide { --main-max: 1120px; }
+.main.wide { --main-max: 1440px; }
 /* Perfil: algo más ancho que el detalle para que sus tarjetas en dos columnas respiren */
-.main.roomy { --main-max: 1040px; }
+.main.roomy { --main-max: 1280px; }
 /* Rutas con ciudad (R-F1): ningún texto directamente sobre el fondo animado; el contenido va en una superficie
    translúcida con la opacidad mínima. El canvas está detrás (z-index 0). */
 .main { position: relative; z-index: 1; }
@@ -204,8 +205,8 @@ a.logout { display: inline-flex; align-items: center; text-decoration: none; }
 
 /* U-17 (plan-fase7-puesta-al-dia.md Anexo 2): el inicio crece hasta 1200 px; baja lo justo para que la píldora "Sector"
    y "Ver ciudad" (CityHud, fija arriba a la izquierda) no tapen ni queden tapadas */
-.main.homeWide { max-width: 1200px; margin-top: var(--space-12); }
+.main.homeWide { max-width: 1440px; margin-top: var(--space-12); }
 .app[data-has-nav="true"] .main.homeWide {
-  margin-left: max(calc(var(--nav-inset-left) + var(--space-4)), calc((100% - 1200px) / 2));
-  margin-right: max(calc(var(--nav-inset-right) + var(--space-4)), calc((100% - 1200px) / 2));
+  margin-left: max(calc(var(--nav-inset-left) + var(--space-4)), calc((100% - 1440px) / 2));
+  margin-right: max(calc(var(--nav-inset-right) + var(--space-4)), calc((100% - 1440px) / 2));
 }

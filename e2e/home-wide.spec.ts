@@ -40,7 +40,7 @@ test.describe('P-9 · inicio ancho y translúcido', () => {
       const grid = page.getByTestId('home-grid');
       const box = (await grid.boundingBox())!;
       expect(box.width).toBeGreaterThan(1000);
-      expect(box.width).toBeLessThanOrEqual(1200);
+      expect(box.width).toBeLessThanOrEqual(1440);
       const cols = await grid.evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
       expect(cols).toBe(12);
       // "Seguir una donación" más ancha que "Sellado en blockchain", en la misma fila
