@@ -96,8 +96,9 @@ function useNavPosition(): [NavPosition | 'auto', boolean, (pos: NavPosition) =>
 export function Shell({ children, me = fetchMe }: { children: React.ReactNode; me?: typeof fetchMe }) {
   const state = useSyncExternalStore(session.subscribe, session.getState, () => 'RESTORING' as session.MachineState);
   const pathname = usePathname() ?? '';
-  // plan-fase7-puesta-al-dia.md P-2 (F-A5): el seguimiento lleva tres columnas en escritorio, como el boceto
-  const wide = pathname.startsWith('/panel/prediction') || pathname === '/tracking';
+  // plan-fase7-puesta-al-dia.md P-2 (F-A5): el seguimiento lleva tres columnas en escritorio, como el boceto. El panel y
+  // la ficha del lote, con sus gráficos y tablas, también usan el ancho grande (2026-11-19)
+  const wide = pathname.startsWith('/panel') || pathname.startsWith('/assets') || pathname === '/tracking';
   // plan-fase7-puesta-al-dia.md U-17 (P-9): el inicio, hasta 1200 px
   const homeWide = pathname === '/home';
   // El perfil, algo más ancho que el detalle (sus tarjetas van en dos columnas)

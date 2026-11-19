@@ -17,9 +17,9 @@
 .tile { padding: 0.75rem 1rem; border: 1px solid var(--color-divider); border-radius: var(--radius-control); }
 .tileLabel { margin: 0; color: var(--color-text-secondary); font-size: var(--font-size-body-3); }
 .tileValue { margin: 0.25rem 0 0; color: var(--color-text); font-size: var(--font-size-display-4); font-weight: 700; }
-.panel { display: grid; gap: 1rem; }
+.panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
 .pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1rem; }
-.slot { display: grid; gap: 0.5rem; align-content: start; min-width: 0; }
+.slot { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.5rem; align-content: start; min-width: 0; }
 .slotHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .slotTitle { margin: 0; font-size: var(--font-size-body-1); color: var(--color-text); }
 .select { font-size: var(--font-size-body-1); padding: 0.25rem 0.5rem; border-radius: var(--radius-control);

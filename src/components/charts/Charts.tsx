@@ -12,7 +12,8 @@ import {
   stackTotals, ticks, values,
 } from './chartData';
 
-const W = 560, H = 260, R = 16, T = 16, B = 44;
+// R: margen derecho para que la última etiqueta del eje horizontal («sem. 19 nov», centrada en su punto) no se corte
+const W = 560, H = 260, R = 36, T = 16, B = 44;
 
 /** Margen izquierdo según la etiqueta más larga del eje (los importes en COP son largos): nunca se corta. */
 function leftMargin(top: number, format: (v: number) => string): number {
