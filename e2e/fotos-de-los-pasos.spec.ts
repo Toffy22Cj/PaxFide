@@ -101,9 +101,12 @@ test.describe('Fotos de los pasos', () => {
 
     const ctx = await browser.newContext({ storageState: 'e2e/support/welcome-done.json' });
     const admin = await ctx.newPage();
-    // El backend real solo deja abrir la ficha a quien tiene EMPLOYEE: el administrador de esta prueba tiene los dos papeles
-    await login(admin, 'admin-empleado@demo.test', 'demo-admin-empleado');
+    // ADR-032 Enmienda 1: un ADMINISTRATOR sin EMPLOYEE abre la ficha de su organización
+    await login(admin, 'admin@demo.test', 'demo-admin');
     await admin.evaluate((url) => (window as any).__TEST_ROUTER__.push(url), assetUrl);
+    // ADR-032 Enmienda 1: el ADMINISTRATOR sin EMPLOYEE abre la ficha pero no ve ninguna acción logística (aserción negativa)
+    await expect(admin.getByTestId('field-lifecycleStatus')).toHaveText('Entregado');
+    for (const name of ['Despachar', 'Recibir', 'Entregar']) await expect(admin.getByRole('button', { name, exact: true })).toHaveCount(0);
     const copy = admin.getByTestId('redacted-copy');
     await expect(copy.getByRole('img')).toBeVisible();
     await expect(copy).toContainText('no sirve para leer ni verificar');
@@ -126,6 +129,18 @@ test.describe('Fotos de los pasos', () => {
     await expect(rows.nth(0)).toContainText('Publicó');
     await expect(rows.nth(1)).toContainText('Despublicó');
     await expect(rows.nth(2)).toContainText('Publicó');
+
+    // ADR-032 Enmienda 1: un REPRESENTATIVE abre la misma ficha, ve la copia y NO el control de publicar ni la casilla
+    const repCtx = await browser.newContext({ storageState: 'e2e/support/welcome-done.json' });
+    const rep = await repCtx.newPage();
+    await login(rep, 'representante@demo.test', 'demo-representante');
+    await rep.evaluate((url) => (window as any).__TEST_ROUTER__.push(url), assetUrl);
+    await expect(rep.getByTestId('field-lifecycleStatus')).toHaveText('Entregado');
+    await expect(rep.getByTestId('redacted-copy').getByRole('img')).toBeVisible();
+    await expect(rep.getByRole('button', { name: /Publicar|Despublicar/ })).toHaveCount(0);
+    await expect(rep.getByRole('checkbox')).toHaveCount(0);
+    for (const name of ['Despachar', 'Recibir', 'Entregar']) await expect(rep.getByRole('button', { name, exact: true })).toHaveCount(0);
+    await repCtx.close();
     await ctx.close();
   });
 
