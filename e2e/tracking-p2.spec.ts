@@ -140,6 +140,28 @@ test.describe('P-2: línea de tiempo verificable', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   });
 
+  // #390: el test anterior mide el ancho en un instante que depende de cuánto lleva conduciendo el camión (reloj de pared),
+  // no de la fecha. Aquí se detienen las animaciones y se mide en cada punto fijo de su recorrido: el resultado no depende
+  // de cuándo se ejecute. Con el camión al inicio del recorrido, la etiqueta de la carga sobresale del ancho de pantalla.
+  test('390 px: sin scroll horizontal en ningún punto del recorrido del camión (animación detenida en puntos fijos)', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.setViewportSize({ width: 390, height: 860 });
+    await routeTracking(page, 'ASSET_DISPATCHED');
+    await open(page);
+    await page.getByTestId('snake').getByRole('tab', { name: 'Kits escolares 2' }).click();
+    await expect(page.getByTestId('snake-truck')).toHaveAttribute('data-driving', 'true');
+    const widths = await page.evaluate(() => {
+      const animations = document.getAnimations();
+      animations.forEach((a) => a.pause());
+      return [0, 0.1, 0.25, 0.5, 0.75, 0.999].map((f) => {
+        animations.forEach((a) => { const end = Number(a.effect!.getComputedTiming().endTime); a.currentTime = Number.isFinite(end) ? end * f : 0; });
+        return { fraction: f, scrollWidth: document.documentElement.scrollWidth };
+      });
+    });
+    expect(widths.length).toBe(6);
+    for (const w of widths) expect(w.scrollWidth, `fracción ${w.fraction} del recorrido`).toBeLessThanOrEqual(390);
+  });
+
   test('servidor falso: una donación real trae fecha del pago, huellas y una prueba que coincide en el navegador', async ({ page, request }) => {
     const code = await paidDonationWithAsset(request);
     await page.goto('/tracking');
