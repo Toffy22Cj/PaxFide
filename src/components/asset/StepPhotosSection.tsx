@@ -157,11 +157,13 @@ function RedactedCopy({ assetRef, isAdmin, client, imageClient }: { assetRef: st
   );
 }
 
-export function StepPhotosSection({ assetRef, principal, client = stepEvidenceClient, imageClient = fetchPrivateImage }: {
+export function StepPhotosSection({ assetRef, principal, client = stepEvidenceClient, imageClient = fetchPrivateImage, reloadKey = 0 }: {
   assetRef: string;
   principal: PrincipalState;
   client?: StepEvidenceClient;
   imageClient?: Img;
+  /** Cambia tras un paso nuevo (despachar, recibir, entregar): se vuelve a leer el listado. */
+  reloadKey?: number;
 }) {
   const member = principal.status === 'ready' && !!(principal.data.organizationId || principal.data.platformAuthority);
   const isAdmin = principal.status === 'ready' && !!principal.data.organizationId && principal.data.roles.includes('ADMINISTRATOR');
@@ -171,10 +173,10 @@ export function StepPhotosSection({ assetRef, principal, client = stepEvidenceCl
   useEffect(() => {
     if (!member) return;
     let alive = true;
-    setList({ kind: 'loading' });
+    setList((prev) => (prev.kind === 'ok' && reloadKey > 0 ? prev : { kind: 'loading' }));
     client.list(assetRef).catch(() => ({ kind: 'error' } as const)).then((r) => { if (alive) setList(r); });
     return () => { alive = false; };
-  }, [assetRef, client, member, attempt]);
+  }, [assetRef, client, member, attempt, reloadKey]);
 
   if (!member) return null;
   const items = list.kind === 'ok' ? list.items : [];

@@ -15,6 +15,9 @@ const BASE = '/api/v1';
 const accounts = {
   'admin@demo.test': { password: 'demo-admin', accountId: 'acc-admin', organizationId: 'org-1', roles: ['ADMINISTRATOR'] },
   'empleado@demo.test': { password: 'demo-empleado', accountId: 'acc-employee', organizationId: 'org-1', roles: ['EMPLOYEE'] },
+  // Tarea 5: el backend real solo deja leer la ficha del lote (`GET /physical-assets/{ref}`) a quien tiene EMPLOYEE
+  // (PhysicalAssetOperationalQueryService.loadAuthorized): para ver la copia censurada en la ficha, el administrador necesita los dos papeles
+  'admin-empleado@demo.test': { password: 'demo-admin-empleado', accountId: 'acc-admin-employee', organizationId: 'org-1', roles: ['ADMINISTRATOR', 'EMPLOYEE'] },
   'empleado2@demo.test': { password: 'demo-empleado2', accountId: 'acc-employee-2', organizationId: 'org-1', roles: ['EMPLOYEE'] },
   'empleado3@demo.test': { password: 'demo-empleado3', accountId: 'acc-employee-3', organizationId: 'org-1', roles: ['EMPLOYEE'] },
   'plataforma@demo.test': { password: 'demo-plataforma', accountId: 'acc-platform', roles: [], platformAuthority: 'ADMINISTRATOR' },
@@ -62,6 +65,7 @@ function sendVerification(email) {
 const evidences = new Map();
 const EVIDENCE_MAX = 5 * 1024 * 1024;
 const evidenceFailures = [];
+const keyedEvidenceFailures = new Map(); // accountId -> [status]; solo las subidas de esa cuenta
 // P-1 (referencia-api-v1.md §1, notas del 2026-10-25): recuperación, revocación y perfil
 const resetTokens = new Map(); // token -> { email, used, superseded, at }
 const resetMails = [];
@@ -399,6 +403,33 @@ function multipartFile(req, raw, name) {
   return null;
 }
 
+/** El valor de un campo de texto de un multipart (p. ej. `step`). */
+function multipartField(req, raw, name) {
+  const v = multipartFile(req, raw, name);
+  return v ? v.toString('utf8') : null;
+}
+
+// Tarea 5 (ADR-051 Enm. 2; referencia-api-v1.md §6, notas del 2026-11-19): fotos por paso. IMITA el contrato del backend real
+// (Tareas 2 y 3); si ese contrato cambia, este doble se desactualiza: las capturas y una pasada de e2e van contra el real.
+const STEP_OF_EVENT = { ASSET_REGISTERED: 'registered', ASSET_DISPATCHED: 'dispatched', ASSET_RECEIVED: 'received', ASSET_DELIVERED: 'delivered' };
+const stepEvidences = new Map(); // `${STEP}:${ref}` -> { organizationId, step, assetRef, bytes, removed }
+const publications = new Map(); // assetRef -> [{ action, at, by, confirmNoIdentifiablePerson }]
+const EVIDENCE_REF_RE = /^sha256:[0-9a-f]{64}$/;
+const PURPOSE_STEP = { REGISTRATION_EVIDENCE: 'REGISTERED', DISPATCH_EVIDENCE: 'DISPATCHED', RECEIPT_EVIDENCE: 'RECEIVED' };
+function photoOfEvent(h) {
+  if (!h.evidenceRef) return null;
+  return STEP_OF_EVENT[h.eventType] === 'delivered' ? evidences.get(h.evidenceRef) : stepEvidences.get(`${h.stepKey}:${h.evidenceRef}`);
+}
+/** Valida el `evidenceRef` opcional de registrar, despachar y recibir; devuelve false si ya respondió con el error. */
+function checkStepRef(res, b, step, orgId, assetRef) {
+  if (b.evidenceRef === undefined) return true;
+  if (typeof b.evidenceRef !== 'string' || !EVIDENCE_REF_RE.test(b.evidenceRef)) { problem(res, 400, 'InvalidEvidenceRef'); return false; }
+  const ev = stepEvidences.get(`${step}:${b.evidenceRef}`);
+  if (!ev || ev.organizationId !== orgId || ev.removed) { problem(res, 400, 'EvidenceNotFound'); return false; }
+  if (ev.assetRef && ev.assetRef !== assetRef) { problem(res, 409, 'EvidenceAlreadyBound'); return false; }
+  return true;
+}
+
 function accountOf(req) {
   const h = req.headers['authorization'];
   if (!h || !h.startsWith('Bearer ')) return null;
@@ -489,7 +520,9 @@ const server = http.createServer(async (req, res) => {
   // La siguiente subida de evidencia responde con este estado (410 EvidenceRemoved, 503, 413, 415)
   if (path === '/__test/evidence-fail' && req.method === 'POST') {
     const body = await readBody(req);
-    evidenceFailures.push(Number(body.status));
+    // Con `accountId` el fallo es solo de las subidas de esa cuenta (los e2e van en paralelo y comparten este servidor)
+    if (typeof body.accountId === 'string') { (keyedEvidenceFailures.get(body.accountId) || keyedEvidenceFailures.set(body.accountId, []).get(body.accountId)).push(Number(body.status)); }
+    else evidenceFailures.push(Number(body.status));
     send(res, 200, { ok: true });
     return;
   }
@@ -1432,6 +1465,17 @@ const server = http.createServer(async (req, res) => {
       const ev = evidences.get(b.ref);
       if (!ev || ev.organizationId !== orgId) { problem(res, 404, 'NotFound'); return; }
       ev.removed = true; delete ev.bytes;
+      // Tarea 3: retirar la original anula la publicación vigente de su copia (una entrada UNPUBLISH de la plataforma)
+      for (const a of assets.values()) {
+        if (a.evidenceRef !== b.ref) continue;
+        const log = publications.get(a.assetRef) || [];
+        if (log.length && log[log.length - 1].action === 'PUBLISH') log.push({ action: 'UNPUBLISH', at: new Date().toISOString(), by: actor.accountId, confirmNoIdentifiablePerson: null });
+      }
+    } else if (PURPOSE_STEP[b.purpose]) {
+      if (typeof b.ref !== 'string' || !EVIDENCE_REF_RE.test(b.ref)) { problem(res, 400, 'BadRequest'); return; }
+      const ev = stepEvidences.get(`${PURPOSE_STEP[b.purpose]}:${b.ref}`);
+      if (!ev || ev.organizationId !== orgId) { problem(res, 404, 'NotFound'); return; }
+      ev.removed = true; delete ev.bytes;
     } else { problem(res, 400, 'BadRequest'); return; }
     res.writeHead(204); res.end();
     return;
@@ -1456,6 +1500,34 @@ const server = http.createServer(async (req, res) => {
     if (forced === 415 || !(jpeg || png)) { problem(res, 415, 'UnsupportedImageFormat'); return; }
     const evidenceRef = 'sha256:' + crypto.createHash('sha256').update(file).digest('hex');
     if (!evidences.has(evidenceRef)) evidences.set(evidenceRef, { organizationId: orgId, assetRef: null, bytes: file });
+    evidences.__uploads = (evidences.__uploads || 0) + 1;
+    send(res, 201, { evidenceRef });
+    return;
+  }
+
+  // Tarea 2: subir la foto de un paso. Multipart `file` + `step` (REGISTERED|DISPATCHED|RECEIVED); 403 uniforme ANTES de leer
+  // el archivo; el step inválido, 400
+  const stepUp = p.match(/^\/organizations\/([^/]+)\/asset-evidence$/);
+  if (stepUp && req.method === 'POST') {
+    if (!actor) { problem(res, 401, 'Unauthorized'); return; }
+    const orgId = decodeURIComponent(stepUp[1]);
+    if (actor.organizationId !== orgId || !(actor.roles || []).includes('EMPLOYEE')) { problem(res, 403, 'Forbidden'); return; }
+    const raw = await readRaw(req);
+    const step = multipartField(req, raw, 'step');
+    if (!['REGISTERED', 'DISPATCHED', 'RECEIVED'].includes(step)) { problem(res, 400, 'BadRequest'); return; }
+    const forced = (keyedEvidenceFailures.get(actor.accountId) || []).shift();
+    if (forced === 410) { send(res, 410, { type: 'about:blank', title: 'EvidenceRemoved', status: 410, detail: 'The resource was removed.' }); return; }
+    if (forced === 503) { problem(res, 503, 'MediaStorageUnavailable'); return; }
+    const file = multipartFile(req, raw, 'file');
+    if (!file) { problem(res, 400, 'BadRequest'); return; }
+    if (forced === 413 || file.length > EVIDENCE_MAX) { problem(res, 413, 'ImageTooLarge'); return; }
+    const jpeg = file[0] === 0xff && file[1] === 0xd8 && file[2] === 0xff;
+    const png = file.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    if (forced === 415 || !(jpeg || png)) { problem(res, 415, 'UnsupportedImageFormat'); return; }
+    const evidenceRef = 'sha256:' + crypto.createHash('sha256').update(file).digest('hex');
+    const key = `${step}:${evidenceRef}`;
+    if (stepEvidences.get(key)?.removed) { send(res, 410, { type: 'about:blank', title: 'EvidenceRemoved', status: 410, detail: 'The resource was removed.' }); return; }
+    if (!stepEvidences.has(key)) stepEvidences.set(key, { organizationId: orgId, step, assetRef: null, bytes: file });
     evidences.__uploads = (evidences.__uploads || 0) + 1;
     send(res, 201, { evidenceRef });
     return;
@@ -1968,6 +2040,67 @@ const server = http.createServer(async (req, res) => {
       res.end(ev.bytes);
       return;
     }
+    // Tareas 2 y 3: lectura por paso, listado, copia censurada y su publicación
+    const stepRead = p.match(/^\/physical-assets\/([^/]+)\/evidence\/(steps|registered|dispatched|received|delivered|redacted)(\/publication)?$/);
+    if (stepRead && !(stepRead[3] && stepRead[2] !== 'redacted')) {
+      const a = assets.get(decodeURIComponent(stepRead[1]));
+      const member = a && (actor.organizationId === a.organizationRef || actor.platformAuthority);
+      const kind = stepRead[2];
+      const isPub = !!stepRead[3];
+      // La publicación (PUT/DELETE/GET del historial) es solo del ADMINISTRATOR de la organización del activo
+      if (isPub) {
+        if (!a || actor.organizationId !== a.organizationRef || !(actor.roles || []).includes('ADMINISTRATOR')) { problem(res, 403, 'Forbidden'); return; }
+        const log = publications.get(a.assetRef) || [];
+        const delivered = a.evidenceRef && evidences.get(a.evidenceRef);
+        if (req.method === 'GET') {
+          const live = log.length > 0 && log[log.length - 1].action === 'PUBLISH' && !!delivered && !delivered.removed;
+          send(res, 200, { published: live, decisions: log }, { 'Cache-Control': 'private, no-store' });
+          return;
+        }
+        if (req.method === 'PUT') {
+          const b = await readBody(req);
+          if (!b || b.confirmNoIdentifiablePerson !== true) { problem(res, 400, 'BadRequest'); return; }
+          if (!delivered || delivered.removed) { send(res, 410, { type: 'about:blank', title: 'EvidenceRemoved', status: 410, detail: 'The resource was removed.' }); return; }
+          if (!delivered.redactedGenerated) { problem(res, 409, 'RedactedCopyNotGenerated'); return; }
+          if (!(log.length && log[log.length - 1].action === 'PUBLISH')) log.push({ action: 'PUBLISH', at: new Date().toISOString(), by: actor.accountId, confirmNoIdentifiablePerson: true });
+          publications.set(a.assetRef, log);
+          res.writeHead(204); res.end();
+          return;
+        }
+        if (req.method === 'DELETE') {
+          if (log.length && log[log.length - 1].action === 'PUBLISH') log.push({ action: 'UNPUBLISH', at: new Date().toISOString(), by: actor.accountId, confirmNoIdentifiablePerson: null });
+          res.writeHead(204); res.end();
+          return;
+        }
+      }
+      if (req.method === 'GET' && !isPub) {
+        if (!member) { problem(res, 403, 'Forbidden'); return; }
+        const events = (a.history || []).map((h, i) => ({ h, sequence: i + 1, step: STEP_OF_EVENT[h.eventType] })).filter((x) => x.step);
+        if (kind === 'steps') {
+          send(res, 200, events.map(({ h, sequence, step }) => {
+            const ev = photoOfEvent(h);
+            return { step: step.toUpperCase(), sequence, occurredAt: h.timestamp, hasPhoto: !!h.evidenceRef, removed: !!(ev && ev.removed) };
+          }), { 'Cache-Control': 'private, no-store' });
+          return;
+        }
+        let ev;
+        if (kind === 'redacted') {
+          ev = a.evidenceRef && evidences.get(a.evidenceRef);
+          if (ev && !ev.removed) ev.redactedGenerated = true; // se genera bajo demanda la primera vez
+        } else {
+          const seq = url.searchParams.get('sequence');
+          if (seq !== null && !/^[0-9]+$/.test(seq)) { problem(res, 400, 'BadRequest'); return; }
+          const of = events.filter((x) => x.step === kind);
+          const hit = seq === null ? of[of.length - 1] : of.find((x) => x.sequence === Number(seq));
+          ev = hit && photoOfEvent(hit.h);
+        }
+        if (ev && ev.removed) { send(res, 410, { type: 'about:blank', title: 'EvidenceRemoved', status: 410, detail: 'The resource was removed.' }); return; }
+        if (!ev || !ev.bytes) { problem(res, 404, 'NotFound'); return; }
+        res.writeHead(200, { 'Content-Type': imageType(ev.bytes), 'Cache-Control': 'private, no-store' });
+        res.end(ev.bytes);
+        return;
+      }
+    }
     const registerMatch = p === '/physical-assets/register' || p === '/physical-assets/from-donation';
     if (registerMatch && req.method === 'POST') {
       const commandId = commandIdOf(req);
@@ -1983,6 +2116,8 @@ const server = http.createServer(async (req, res) => {
       const zone = sealedZone(b.municipalityCode);
       if (!zone) { problem(res, 400, 'BadRequest'); return; }
       if (!actor.organizationId || !canOperate(actor, true)) { problem(res, 403, 'Forbidden'); return; }
+      if (b.evidenceRef !== undefined && !(typeof b.evidenceRef === 'string' && EVIDENCE_REF_RE.test(b.evidenceRef))) { problem(res, 400, 'InvalidEvidenceRef'); return; }
+      if (!checkStepRef(res, b, 'REGISTERED', actor.organizationId, null)) return;
       let fund = null;
       if (pathA) {
         fund = [...intents.values()].find((i) => i.fundId === b.fundId);
@@ -1995,6 +2130,7 @@ const server = http.createServer(async (req, res) => {
           currentCustodianRef: b.custodianRef, currentLocation: b.currentLocation, municipalityCode: b.municipalityCode, zoneName: zone,
           campaignRef: pathA ? c.campaignRef : (b.campaignRef || undefined), fundId: pathA ? b.fundId : undefined,
         });
+        if (b.evidenceRef) { a.history[0].evidenceRef = b.evidenceRef; a.history[0].stepKey = 'REGISTERED'; stepEvidences.get(`REGISTERED:${b.evidenceRef}`).assetRef = a.assetRef; }
         const out = { assetRef: a.assetRef, status: 'REGISTERED' };
         if (!pathA) out.donationRef = 'don-' + crypto.randomUUID();
         if (a.campaignRef) out.campaignRef = a.campaignRef;
@@ -2053,6 +2189,10 @@ const server = http.createServer(async (req, res) => {
       // ADR-051 T4: `evidenceRef` = `sha256:` + 64 hex en minúscula, antes de consumir el Command-Id ni mirar el activo
       if (action === 'deliver' && !/^sha256:[0-9a-f]{64}$/.test(b.evidenceRef)) { problem(res, 400, 'InvalidEvidenceRef'); return; }
       if (!allowed) { problem(res, 403, 'Forbidden'); return; }
+      if (action === 'dispatch' || action === 'receive') {
+        if (b.evidenceRef !== undefined && !(typeof b.evidenceRef === 'string' && EVIDENCE_REF_RE.test(b.evidenceRef))) { problem(res, 400, 'InvalidEvidenceRef'); return; }
+        if (!checkStepRef(res, b, action === 'dispatch' ? 'DISPATCHED' : 'RECEIVED', asset.organizationRef, asset.assetRef)) return;
+      }
       if (action === 'deliver') {
         const ev = evidences.get(b.evidenceRef);
         if (!ev || ev.organizationId !== asset.organizationRef) { problem(res, 400, 'EvidenceNotFound'); return; }
@@ -2081,7 +2221,13 @@ const server = http.createServer(async (req, res) => {
         if (action !== 'dispatch') { asset.municipalityCode = b.municipalityCode; asset.zoneName = stepZone; }
         if (action === 'receive') asset.currentLocation = b.facilityLocation;
         if (action === 'deliver') { asset.currentCustodianRef = b.finalCustodianRef; asset.evidenceRef = b.evidenceRef; evidences.get(b.evidenceRef).assetRef = asset.assetRef; }
-        asset.history.push({ eventType: 'ASSET_' + status, timestamp: now, status, zone });
+        const entry = { eventType: 'ASSET_' + status, timestamp: now, status, zone };
+        if (action === 'deliver') entry.evidenceRef = b.evidenceRef;
+        else if (b.evidenceRef) {
+          entry.evidenceRef = b.evidenceRef; entry.stepKey = action === 'dispatch' ? 'DISPATCHED' : 'RECEIVED';
+          stepEvidences.get(`${entry.stepKey}:${b.evidenceRef}`).assetRef = asset.assetRef;
+        }
+        asset.history.push(entry);
         return { assetRef: asset.assetRef, status };
       });
       if (!r) return;
