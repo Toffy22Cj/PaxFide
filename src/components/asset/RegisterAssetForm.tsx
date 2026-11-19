@@ -13,6 +13,7 @@ import { CommandFeedback } from '../CommandFeedback';
 import { ErrorState } from '../States';
 import { AssetMunicipalityField, useAssetMunicipality } from './AssetMunicipality';
 import type { fetchLocations } from '../../lib/api/locations';
+import { StepPhotoField, useStepPhoto, type StepUpload } from './StepPhotoField';
 
 type Path = 'B' | 'A';
 type Values = Record<string, string>;
@@ -34,13 +35,15 @@ const PATH_A = [
  * (`/from-donation`; el `donorRef` lo pone el servidor). Camino A: compra con el fondo (`/register`). La organización
  * sale del JWT en ambos (DD-10). Tras el éxito, a `/assets/{assetRef}` (`front-fase2` §9).
  */
-export function RegisterAssetForm({ onRegistered, onCancel, organizationId, fundsClient = fetchFunds, locationsClient }: {
+export function RegisterAssetForm({ onRegistered, onCancel, organizationId, fundsClient = fetchFunds, locationsClient, photoUpload }: {
   locationsClient?: typeof fetchLocations;
   onRegistered: (assetRef: string) => void;
   onCancel: () => void;
   /** Con organización, el camino A elige fondo y asignación de `GET /organizations/{id}/funds` (S-04). */
   organizationId?: string;
   fundsClient?: typeof fetchFunds;
+  /** Solo para los tests: la subida de la foto del registro. */
+  photoUpload?: StepUpload;
 }) {
   const [path, setPath] = useState<Path>('B');
   const [funds, setFunds] = useState<Fund[] | null | 'loading'>(null);
@@ -50,7 +53,8 @@ export function RegisterAssetForm({ onRegistered, onCancel, organizationId, fund
     const { __path, ...body } = p as Values & { __path: Path };
     return __path === 'A' ? registerPathARequest(body) : registerPathBRequest(body);
   });
-  const sending = command.state === 'SENDING';
+  const photo = useStepPhoto({ organizationId, step: 'REGISTERED', upload: photoUpload });
+  const sending = command.state === 'SENDING' || photo.busy;
   // Anexo 7, U-45: al registrar, el municipio empieza vacío
   const muni = useAssetMunicipality(null);
 
@@ -74,7 +78,7 @@ export function RegisterAssetForm({ onRegistered, onCancel, organizationId, fund
   const chosenFund = withAllocations.find((f) => f.fundId === v.fundId);
   const fields = path === 'A' ? [...PATH_A, ...COMMON] : COMMON;
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const next: Record<string, string | undefined> = {};
     const body: Values = {};
@@ -93,6 +97,10 @@ export function RegisterAssetForm({ onRegistered, onCancel, organizationId, fund
     setErrors(next);
     const code = muni.check();
     if (Object.values(next).some(Boolean) || !code) return;
+    // Tarea 5: con foto se sube antes y el cuerpo lleva su `evidenceRef`; sin foto, ni se sube ni se manda la clave
+    const prepared = await photo.prepare();
+    if (prepared.kind === 'blocked') return;
+    if (prepared.kind === 'ok') body.evidenceRef = prepared.evidenceRef;
     void command.execute({ ...body, municipalityCode: code, __path: path });
   };
 
@@ -107,7 +115,7 @@ export function RegisterAssetForm({ onRegistered, onCancel, organizationId, fund
 
   return (
     <Surface title="Registrar activo">
-      <form onSubmit={submit} noValidate>
+      <form onSubmit={(e) => void submit(e)} noValidate>
         <fieldset className={ui.fieldset} disabled={sending || command.state === 'AMBIGUOUS'}>
           <legend className={ui.legend}>Origen del bien</legend>
           <label className={ui.check}>
@@ -141,6 +149,7 @@ export function RegisterAssetForm({ onRegistered, onCancel, organizationId, fund
         {path === 'B'
           ? field({ name: 'campaignRef', label: 'Convocatoria (referencia, opcional)' })
           : field({ name: 'sourceAllocationId', label: 'Asignación de origen (referencia, opcional)' })}
+        <StepPhotoField photo={photo} disabled={sending} afterConfirm={command.state === 'AMBIGUOUS'} />
         <CommandFeedback command={command} />
         <Actions>
           {command.state !== 'AMBIGUOUS' && <Button type="submit" sending={sending}>Registrar</Button>}

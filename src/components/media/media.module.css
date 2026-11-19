@@ -15,3 +15,23 @@
 .confirm { padding: var(--space-3); border-radius: var(--radius-control); background: var(--color-bg); border: 1px solid var(--color-divider); }
 .confirm p { margin: 0 0 var(--space-2); }
 .evidence { width: 100%; max-width: 420px; border-radius: var(--radius-control); border: 1px solid var(--color-divider); }
+
+/* Tarea 5 (fotos de los pasos): selector con arrastrar y soltar, la sección «Pasos y fotos» y la copia censurada. Solo tokens
+   semánticos; nada fuerza un ancho fijo (390 px sin scroll horizontal). */
+.picker { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; margin-bottom: var(--space-4); }
+.drop {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); min-width: 0; padding: var(--space-3);
+  border: 1.5px dashed var(--color-border-control); border-radius: var(--radius-control); background: var(--color-field);
+}
+.dropOver { border-color: var(--color-action); background: var(--color-info-bg); }
+.pickerError { font-size: var(--font-size-body-3); color: var(--color-danger-text); }
+.pickerActions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.stepList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.stepItem { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.stepHead { font-weight: var(--weight-semibold); color: var(--color-text); overflow-wrap: anywhere; }
+.stepImg { width: 100%; max-width: 280px; border-radius: var(--radius-control); border: 1px solid var(--color-divider); }
+.copy { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; padding: var(--space-3); border-radius: var(--radius-control); border: 1px solid var(--color-divider); }
+.decisions { margin: 0; padding-left: var(--space-4); font-size: var(--font-size-body-4); color: var(--color-text-secondary); overflow-wrap: anywhere; }
+.check { display: flex; align-items: flex-start; gap: var(--space-2); min-height: 44px; }
+.stepError { color: var(--color-danger-text); font-size: var(--font-size-body-3); }
+.pickerPreview { width: 100%; max-width: 280px; max-height: 320px; object-fit: contain; border-radius: var(--radius-control); border: 1px solid var(--color-divider); }

@@ -9,6 +9,7 @@ import { AssetActions } from '../../../components/asset/AssetActions';
 import { fetchMe } from '../../../lib/api/identity';
 import { usePrincipal } from '../../../lib/auth/usePrincipal';
 import { formatQuantity } from '../../../lib/quantity';
+import { StepPhotosSection } from '../../../components/asset/StepPhotosSection';
 import { DeliveryEvidencePhoto } from '../../../components/media/DeliveryEvidencePhoto';
 import { zoneOrNone } from '../../../lib/location/zoneLabel';
 import { NO_PUBLIC_ZONE } from '../../../components/tracking/events';
@@ -30,6 +31,7 @@ export default function AssetPage({ params, fetchClient = fetchAsset, meClient =
   const { state: principal } = usePrincipal(meClient);
   const [state, setState] = useState<State>('LOADING');
   const [data, setData] = useState<PhysicalAssetOperationalReadModel | null>(null);
+  const [stepsVersion, setStepsVersion] = useState(0);
 
   const read = useCallback(async (silent: boolean) => {
     if (!silent) setState('LOADING');
@@ -66,12 +68,14 @@ export default function AssetPage({ params, fetchClient = fetchAsset, meClient =
           { label: 'Custodio actual', value: orNone(data.currentCustodianRef), testId: 'field-currentCustodianRef' },
           { label: 'Convocatoria', value: data.campaignRef ?? 'Sin registrar', testId: 'field-campaignRef' },
         ]} />
-        <AssetActions assetRef={data.assetRef} municipalityCode={data.municipalityCode} delivered={isReadOnly} onChanged={() => void read(true)} principal={principal} />
+        <AssetActions assetRef={data.assetRef} municipalityCode={data.municipalityCode} delivered={isReadOnly} onChanged={() => { setStepsVersion((v) => v + 1); void read(true); }} principal={principal} />
       </Surface>
       {/* U-8 (plan-fase7-puesta-al-dia.md): la foto de la entrega, para los miembros de la organización o la plataforma */}
       {isReadOnly && principal.status === 'ready' && (principal.data.organizationId || principal.data.platformAuthority) && (
         <DeliveryEvidencePhoto assetRef={data.assetRef} />
       )}
+      {/* Tarea 5 (E2-6): la foto de cada paso y la copia censurada de la entrega, solo para miembros y plataforma */}
+      <StepPhotosSection assetRef={data.assetRef} principal={principal} reloadKey={stepsVersion} />
     </div>
   );
 }

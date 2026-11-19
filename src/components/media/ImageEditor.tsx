@@ -1,11 +1,12 @@
 'use client';
 // Ref: plan-fase7-puesta-al-dia.md U-5 (logo y portada): la vista previa se muestra antes de subir; "Quitar" pide
 // confirmación sin diálogo del navegador; antes de subir se comprueba el límite de 2 MB. Sin `Command-Id`.
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { checkImageFile, mediaErrorText, type DeleteOutcome, type MediaError, type UploadOutcome } from '../../lib/api/media';
 import { Button } from '../ui/Button';
 import { Actions } from '../ui/Layout';
 import { StatusNotice } from '../States';
+import { PhotoPicker } from './PhotoPicker';
 import s from './media.module.css';
 
 export function ImageEditor({ what, current, hasImage, upload, remove, onChanged }: {
@@ -18,28 +19,16 @@ export function ImageEditor({ what, current, hasImage, upload, remove, onChanged
   remove: () => Promise<DeleteOutcome>;
   onChanged: (change: 'uploaded' | 'removed') => void;
 }) {
-  const inputId = useId();
-  const input = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<MediaError | 'network' | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<string | null>(null);
 
-  // La vista previa local también se libera
-  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
-
-  const pick = (f: File | null) => {
-    setDone(null);
-    setError(null);
-    if (!f) { setFile(null); setPreview(null); return; }
-    const bad = checkImageFile(f);
-    if (bad) { setFile(null); setPreview(null); setError(bad); if (input.current) input.current.value = ''; return; }
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
-  };
+  // Tarea 5 (Q-T5-2 (a)): elegir, arrastrar y soltar y la vista previa son de `PhotoPicker`; el tope de 2 MB sigue siendo de aquí
+  const pick = (f: File | null) => { setDone(null); setError(null); setFile(f); };
+  const check = (f: File) => { const bad = checkImageFile(f); return bad ? mediaErrorText(bad) : null; };
 
   const send = async () => {
     if (!file) return;
@@ -49,7 +38,7 @@ export function ImageEditor({ what, current, hasImage, upload, remove, onChanged
     setBusy(false);
     setProgress(null);
     if (r.kind === 'ok') {
-      setFile(null); setPreview(null); if (input.current) input.current.value = '';
+      setFile(null);
       setDone(what === 'logo' ? 'Guardamos el logo.' : 'Guardamos la portada.');
       onChanged('uploaded');
       return;
@@ -69,16 +58,13 @@ export function ImageEditor({ what, current, hasImage, upload, remove, onChanged
   const Label = what === 'logo' ? 'logo' : 'portada';
   return (
     <div className={s.editor} data-testid={`image-editor-${what}`}>
-      <div className={s.current}>{preview
-        // eslint-disable-next-line @next/next/no-img-element
-        ? <img src={preview} alt={`Vista previa de la ${what === 'logo' ? 'imagen del logo' : 'portada'}`} className={s.preview} data-testid="image-preview" />
-        : current}</div>
       {done && <StatusNotice variant="success" text={done} />}
       {error && <StatusNotice variant="rejected" text={error === 'network' ? 'No pudimos conectar. Revisa tu conexión e inténtalo de nuevo.' : mediaErrorText(error)} />}
-      <label htmlFor={inputId} className={s.label}>{`Cambiar ${Label}`}</label>
-      <span className={s.hint}>JPEG o PNG, hasta 2 MB. Se guarda sin los datos de la cámara.</span>
-      <input ref={input} id={inputId} type="file" accept="image/jpeg,image/png" className={s.file} disabled={busy}
-        onChange={(e) => pick(e.target.files?.[0] ?? null)} data-testid={`image-file-${what}`} />
+      <PhotoPicker
+        label={`Cambiar ${Label}`} hint="JPEG o PNG, hasta 2 MB. Se guarda sin los datos de la cámara. También puedes arrastrar la imagen aquí."
+        value={file} onChange={pick} check={check} disabled={busy} hideActions camera={false}
+        idle={<div className={s.current}>{current}</div>} inputTestId={`image-file-${what}`} previewTestId="image-preview" previewClassName={what === 'portada' ? s.coverPreview : s.preview}
+        previewAlt={`Vista previa de la ${what === 'logo' ? 'imagen del logo' : 'portada'}`} />
       {progress !== null && (
         <div className={s.progress} role="status" aria-live="polite">
           <span>Subiendo… {Math.round(progress * 100)} %</span>

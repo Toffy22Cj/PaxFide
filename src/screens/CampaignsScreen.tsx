@@ -21,8 +21,11 @@ import {
 import { formatMinorUnits } from '../lib/money';
 import { campaignStatusLabel, roleLabel } from '../lib/labels';
 import { Button } from '../components/ui/Button';
+import { Actions } from '../components/ui/Layout';
 import { EmptyState, ErrorState, ForbiddenState, LoadingState, StatusNotice, UnavailableState } from '../components/States';
 import { CreateCampaignForm } from '../components/campaign/CreateCampaignForm';
+import { CampaignCoverCard } from '../components/media/CampaignCoverCard';
+import { Modal } from '../components/ui/Modal';
 import { CommandModal, FieldSpec } from '../components/asset/CommandModal';
 import { QrCode } from '../components/QrCode';
 import { IsometricEmblem, PanelIcon } from './PanelHomeScreen';
@@ -42,6 +45,20 @@ function PublicQr({ publicCode, title }: { publicCode: string; title: string }) 
       label={`Código QR de la página pública de «${title}»`}
       size={180}
     />
+  );
+}
+
+/** El paso final opcional de crear una convocatoria: «Saltar» no hace ninguna petición; con una portada puesta, «Listo». */
+function CoverStep({ organizationId, campaignRef, title, onClose }: { organizationId: string; campaignRef: string; title: string; onClose: () => void }) {
+  const [changed, setChanged] = useState(false);
+  return (
+    <div data-testid="cover-step">
+      <p className={ui.hint}>Paso opcional: la portada se ve en la tarjeta de la convocatoria. Puedes ponerla ahora o más tarde desde el listado.</p>
+      <CampaignCoverCard organizationId={organizationId} campaignRef={campaignRef} title={title} onChanged={() => setChanged(true)} />
+      <Actions>
+        {changed ? <Button onClick={onClose}>Listo</Button> : <Button variant="secondary" onClick={onClose}>Saltar</Button>}
+      </Actions>
+    </div>
   );
 }
 
@@ -243,9 +260,12 @@ export function matchesCampaignFilter(c: AdminCampaign, filter: CampaignFilter):
 function CampaignRow({
   c,
   onAction,
+  onCover,
 }: {
   c: AdminCampaign;
   onAction: (kind: ActionKind) => void;
+  /** Tarea 5 (E2-8): la portada, solo para el ADMINISTRATOR (esta pantalla ya es suya). */
+  onCover: () => void;
 }) {
   const open = c.status === 'OPEN';
   const actions = (['assign', 'designate', 'remove', 'close'] as ActionKind[]).filter(
@@ -321,6 +341,7 @@ function CampaignRow({
               {ACTION_LABEL[k]}
             </Button>
           ))}
+          {open && <Button variant="secondary" onClick={onCover}>Portada</Button>}
           {isSurfaceEnabled('/panel/prediction') && (
             <Link href="/panel/prediction" className={[ui.button, ui.secondary].join(' ')}>
               Ver estimación
@@ -351,6 +372,8 @@ export function CampaignsScreen({
   const [justCreated, setJustCreated] = useState<(CreatedCampaign & { title: string }) | null>(null);
   const [action, setAction] = useState<{ kind: ActionKind; campaign: AdminCampaign } | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [coverFor, setCoverFor] = useState<AdminCampaign | null>(null);
+  const [coverStep, setCoverStep] = useState(true);
   const [statusFilter, setStatusFilter] = useState<CampaignFilter>('ALL');
 
   const isAdmin = state.status === 'ready' && state.data.roles.includes('ADMINISTRATOR');
@@ -397,6 +420,7 @@ export function CampaignsScreen({
               aria-label="Crear convocatoria"
               onClick={() => {
                 setJustCreated(null);
+                setCoverStep(true);
                 setDone(null);
                 setCreating(true);
               }}
@@ -426,6 +450,11 @@ export function CampaignsScreen({
               <PublicQr publicCode={justCreated.publicCode} title={justCreated.title} />
               <p>Imprime o comparte este QR: abre la página pública de la convocatoria.</p>
             </StatusNotice>
+          )}
+
+          {/* Tarea 5 (E2-8): la portada como paso final OPCIONAL de crear la convocatoria (solo el ADMINISTRATOR) */}
+          {justCreated && coverStep && (
+            <CoverStep organizationId={organizationId!} campaignRef={justCreated.campaignRef} title={justCreated.title} onClose={() => setCoverStep(false)} />
           )}
 
           {done && <StatusNotice variant="success" text={done} />}
@@ -495,6 +524,7 @@ export function CampaignsScreen({
                     <CampaignRow
                       key={c.campaignRef}
                       c={c}
+                      onCover={() => setCoverFor(c)}
                       onAction={(kind) => {
                         setDone(null);
                         setAction({ kind, campaign: c });
@@ -504,6 +534,13 @@ export function CampaignsScreen({
                 </tbody>
               </table>
             </div>
+          )}
+
+          {coverFor && (
+            <Modal title={`Portada — ${coverFor.title}`} onCancel={() => setCoverFor(null)}>
+              <CampaignCoverCard organizationId={organizationId!} campaignRef={coverFor.campaignRef} title={coverFor.title} />
+              <Actions><Button variant="secondary" onClick={() => setCoverFor(null)}>Cerrar</Button></Actions>
+            </Modal>
           )}
 
           {action && (

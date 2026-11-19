@@ -11,6 +11,8 @@ import { LegalConsent } from '../access/LegalConsent';
 import type { LegalDocumentKey } from '../../lib/legal/versions';
 import { AssetMunicipalityField, useAssetMunicipality } from './AssetMunicipality';
 import type { fetchLocations } from '../../lib/api/locations';
+import type { EvidenceStep } from '../../lib/api/stepEvidence';
+import { StepPhotoField, useStepPhoto, type StepUpload } from './StepPhotoField';
 
 export interface FieldSpec {
   name: string;
@@ -31,7 +33,7 @@ export interface FieldSpec {
  * Formulario transitorio de un comando en un modal (§4: título, contenido, Cancelar + Primario). Los campos son
  * referencias de texto del contrato; el backend valida su forma (400) y el estado del activo (409).
  */
-export function CommandModal<TRes>({ title, description, fields, submitLabel, builder, onSuccess, onClose, validate, consent, municipality, locationsClient }: {
+export function CommandModal<TRes>({ title, description, fields, submitLabel, builder, onSuccess, onClose, validate, consent, municipality, locationsClient, photo }: {
   title: string;
   /**
    * plan-fase7-puesta-al-dia.md R-3: una casilla legal sin marcar (p. ej. los términos para organizaciones). Sin
@@ -44,6 +46,11 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
    */
   municipality?: { initialCode?: string | null };
   locationsClient?: typeof fetchLocations;
+  /**
+   * Tarea 5 (ADR-051 Enm. 2, E2-1): foto OPCIONAL del paso. Con foto se sube antes y el comando lleva su `evidenceRef`;
+   * sin foto el cuerpo es el de siempre (sin la clave). Sin organización conocida, el campo no se ofrece.
+   */
+  photo?: { organizationId: string | null | undefined; step: EvidenceStep; upload?: StepUpload };
   description?: React.ReactNode;
   fields: FieldSpec[];
   submitLabel: string;
@@ -57,8 +64,9 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
   const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(fields.map((f) => [f.name, ''])));
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const command = useCommand<TRes>(builder);
+  const stepPhoto = useStepPhoto({ organizationId: photo?.organizationId, step: photo?.step ?? 'DISPATCHED', upload: photo?.upload });
   const sent = useRef<Record<string, string>>({});
-  const sending = command.state === 'SENDING';
+  const sending = command.state === 'SENDING' || stepPhoto.busy;
   const [consented, setConsented] = useState(false);
   const muni = useAssetMunicipality(municipality?.initialCode);
 
@@ -67,7 +75,7 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [command.state]);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (consent && !consented) return;
     const nextErrors: Record<string, string | undefined> = {};
@@ -85,6 +93,12 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
     const code = municipality ? muni.check() : null;
     if (Object.values(nextErrors).some(Boolean) || (municipality && !code)) return;
     if (code) payload.municipalityCode = code;
+    // Con foto: primero se sube; si falla, el comando NO sale hasta que la persona reintente o siga sin foto (E2-3)
+    if (photo) {
+      const prepared = await stepPhoto.prepare();
+      if (prepared.kind === 'blocked') return;
+      if (prepared.kind === 'ok') payload.evidenceRef = prepared.evidenceRef;
+    }
     sent.current = payload;
     void command.execute(payload);
   };
@@ -93,7 +107,7 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
   return (
     <Modal title={title} onCancel={onClose}>
       {description && <div className={ui.modalText}>{description}</div>}
-      <form onSubmit={submit} noValidate>
+      <form onSubmit={(e) => void submit(e)} noValidate>
         {fields.map((f) => (f.options
           ? <SelectField key={f.name} label={f.label} hint={f.hint} value={values[f.name]} options={f.options}
               placeholder={f.optional ? '— Ninguno —' : 'Elige una opción'}
@@ -107,6 +121,7 @@ export function CommandModal<TRes>({ title, description, fields, submitLabel, bu
         {municipality && (
           <AssetMunicipalityField m={muni} disabled={sending || command.state === 'AMBIGUOUS'} locationsClient={locationsClient} />
         )}
+        {photo && <StepPhotoField photo={stepPhoto} disabled={sending} afterConfirm={command.state === 'AMBIGUOUS'} />}
         {consent && <LegalConsent doc={consent} checked={consented} onChange={setConsented} disabled={sending || command.state === 'AMBIGUOUS'} />}
         <CommandFeedback command={command} />
         <Actions>
