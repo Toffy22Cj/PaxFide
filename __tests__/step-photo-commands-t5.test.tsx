@@ -109,6 +109,38 @@ describe('Despachar con y sin foto (CommandModal)', () => {
     expect(body(1).evidenceRef).toBe(REF);
   });
 
+  it('un comando rechazado tras una subida buena: al confirmar de nuevo NO se sube otra vez la misma foto y lleva la misma evidenceRef', async () => {
+    const m = await load();
+    const upload = vi.fn(async () => ok);
+    fetchMock.mockResolvedValueOnce(res(409, { title: 'InvalidAssetTransition' })).mockResolvedValueOnce(res(202, {}));
+    dispatchModal(m, upload);
+    fireEvent.change(screen.getByLabelText('Transportista (referencia)'), { target: { value: 'T-1' } });
+    pick();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Confirmar' }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(upload).toHaveBeenCalledTimes(1);
+    expect(body(1).evidenceRef).toBe(REF);
+  });
+
+  it('cambiar la foto antes de confirmar sí sube la nueva', async () => {
+    const m = await load();
+    const upload = vi.fn(async () => ok);
+    fetchMock.mockResolvedValueOnce(res(409, { title: 'InvalidAssetTransition' })).mockResolvedValueOnce(res(202, {}));
+    dispatchModal(m, upload);
+    fireEvent.change(screen.getByLabelText('Transportista (referencia)'), { target: { value: 'T-1' } });
+    pick();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Confirmar' }) as HTMLButtonElement).disabled).toBe(false));
+    pick();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(upload).toHaveBeenCalledTimes(2);
+  });
+
   it('mensajes propios: 413, 415 y 503 (cada uno el suyo) y 410', async () => {
     const m = await load();
     const texts: Record<string, string> = {

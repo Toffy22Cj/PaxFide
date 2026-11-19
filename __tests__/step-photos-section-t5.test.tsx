@@ -36,7 +36,7 @@ describe('«Pasos y fotos»: lectura por paso (test 7)', () => {
   });
 
   it('un paso retirado por la plataforma muestra el texto y NO pide ni muestra la imagen', async () => {
-    const { image } = setup({ items: [item('received', 1, false, true)] });
+    const { image } = setup({ items: [item('received', 1, true, true)] });
     expect(await screen.findByText('La plataforma retiró esta foto.')).toBeTruthy();
     expect(screen.queryByRole('img')).toBeNull();
     expect(image).not.toHaveBeenCalled();
