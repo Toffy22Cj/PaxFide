@@ -91,7 +91,7 @@
   display: flex; flex-direction: column; gap: var(--space-3); min-width: 0;
   background: var(--color-surface); border: 1px solid var(--color-divider); border-radius: var(--radius-card);
   box-shadow: var(--shadow-card); padding: var(--space-4);
-  /* Al inicio de su recorrido (inclinado), la etiqueta del camión puede asomar de la tarjeta: se recorta en ella y no ensancha la página (#390) */
+  /* Al inicio de su recorrido (inclinado), la etiqueta del camión puede asomar de la tarjeta: se recorta en ella y no ensancha la página (issue 390) */
   overflow-x: clip;
 }
 .subLot { background: var(--color-bg); box-shadow: none; margin-left: var(--space-4); }
