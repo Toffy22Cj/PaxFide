@@ -86,7 +86,7 @@ describe('«Portada» en el listado (test 12)', () => {
     render(<CampaignsScreen meClient={async () => ADMIN} listClient={async () => ({ kind: 'ok', items: [CAMP] })} membersClient={async () => ({ kind: 'ok', items: [] })} />);
     fireEvent.click(await screen.findByRole('button', { name: 'Portada' }));
     const dialog = screen.getByRole('dialog');
-    expect(within(dialog).getByText(/Portada/)).toBeTruthy();
+    expect(within(dialog).getByRole('heading', { name: 'Portada — Agua' })).toBeTruthy();
     expect(within(dialog).getByLabelText('Cambiar portada')).toBeTruthy();
     expect(coverCalls()).toHaveLength(0);
   });

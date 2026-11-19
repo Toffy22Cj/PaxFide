@@ -12,6 +12,7 @@ import { CommandModal, FieldSpec } from './CommandModal';
 import { DeliverModal } from './DeliverModal';
 import { SplitProgress } from './SplitProgress';
 import type { PrincipalState } from '../../lib/auth/usePrincipal';
+import type { StepUpload } from './StepPhotoField';
 
 type ActionId = 'split' | 'dispatch' | 'receive' | 'deliver';
 
@@ -67,13 +68,15 @@ const BUILDERS: Record<ActionId, (assetRef: string) => (p: unknown) => any> = {
  * cada estado (sin `ActionResolver`): ofrece las habilitadas, salvo en `DELIVERED` (matriz §4b: solo lectura), y el
  * backend rechaza con 409 lo que no corresponda.
  */
-export function AssetActions({ assetRef, delivered, onChanged, principal, municipalityCode }: {
+export function AssetActions({ assetRef, delivered, onChanged, principal, municipalityCode, photoUpload }: {
   assetRef: string;
   /** Anexo 7, U-45: el municipio del lote, con el que empiezan recibir y entregar. */
   municipalityCode?: string | null;
   delivered: boolean;
   onChanged: () => void;
   principal?: PrincipalState;
+  /** Solo para los tests: la subida de la foto del paso. */
+  photoUpload?: StepUpload;
 }) {
   const [open, setOpen] = useState<ActionId | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -114,6 +117,10 @@ export function AssetActions({ assetRef, delivered, onChanged, principal, munici
           builder={BUILDERS[open](assetRef)}
           // Anexo 7, U-44: recibir exige el municipio; despachar y dividir no lo envían
           municipality={open === 'receive' ? { initialCode: municipalityCode } : undefined}
+          // Tarea 5: foto opcional al despachar y recibir (la entrega tiene su propia foto, obligatoria)
+          photo={open === 'dispatch' || open === 'receive'
+            ? { organizationId: principal?.status === 'ready' ? principal.data.organizationId ?? null : null, step: open === 'dispatch' ? 'DISPATCHED' : 'RECEIVED', upload: photoUpload }
+            : undefined}
           onClose={() => setOpen(null)}
           onSuccess={(data) => {
             const action = open;

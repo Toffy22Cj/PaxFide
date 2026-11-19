@@ -9,6 +9,7 @@ import { AssetActions } from '../../../components/asset/AssetActions';
 import { fetchMe } from '../../../lib/api/identity';
 import { usePrincipal } from '../../../lib/auth/usePrincipal';
 import { formatQuantity } from '../../../lib/quantity';
+import { StepPhotosSection } from '../../../components/asset/StepPhotosSection';
 import { DeliveryEvidencePhoto } from '../../../components/media/DeliveryEvidencePhoto';
 import { zoneOrNone } from '../../../lib/location/zoneLabel';
 import { NO_PUBLIC_ZONE } from '../../../components/tracking/events';
@@ -72,6 +73,8 @@ export default function AssetPage({ params, fetchClient = fetchAsset, meClient =
       {isReadOnly && principal.status === 'ready' && (principal.data.organizationId || principal.data.platformAuthority) && (
         <DeliveryEvidencePhoto assetRef={data.assetRef} />
       )}
+      {/* Tarea 5 (E2-6): la foto de cada paso y la copia censurada de la entrega, solo para miembros y plataforma */}
+      <StepPhotosSection assetRef={data.assetRef} principal={principal} />
     </div>
   );
 }

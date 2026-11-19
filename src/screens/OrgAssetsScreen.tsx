@@ -277,7 +277,7 @@ export function OrgAssetsScreen({
           )}
 
           <p className={s.pnFoot}>
-            Despachar y recibir se hacen escaneando el QR en la app móvil.
+            Despachar, recibir y entregar se hacen desde la ficha de cada lote o escaneando su QR en la app móvil.
           </p>
         </>
       )}
