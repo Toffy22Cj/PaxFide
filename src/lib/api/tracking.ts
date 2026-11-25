@@ -1,7 +1,7 @@
 'use client';
 
 import { apiRequest } from './http';
-import { segment } from './config';
+import { getApiBase, segment } from './config';
 import type { AnchorProof } from '../tracking/merkle';
 
 /**
@@ -133,15 +133,27 @@ export interface Transition {
   eventHash?: string;
   /** Solo con `ANCHORED` y las hojas guardadas (E1). */
   anchorProof?: AnchorProof;
-  /** ADR-051 F6: solo en el paso `DELIVERED`. Nunca la imagen ni su URL. */
+  /**
+   * ADR-051 F6 y ADR-021-D Enmienda 2, E8: en los pasos que pueden llevar foto (registrar, despachar, recibir y entregar).
+   * Nunca la imagen ni su URL.
+   */
   evidenceRegistered?: boolean;
   evidenceRef?: string;
+  /**
+   * ADR-021-D Enmienda 2, E5: solo en la entrega y solo si la copia censurada existe, está publicada y la original no está
+   * retirada. La ruta del backend (sin el código de seguimiento): se pide con `fetchEvidencePreview`, nunca en un `<img src>`.
+   */
+  evidencePreviewUrl?: string;
 }
 
 export const ANCHOR_STATUSES = ['ANCHORED', 'IN_BATCH', 'PENDING', 'UNDER_REVIEW'] as const;
 export type AnchorStatus = (typeof ANCHOR_STATUSES)[number];
 const HEX64 = /^[0-9a-f]{64}$/;
 const EVIDENCE_REF = /^sha256:[0-9a-f]{64}$/;
+/** La única forma de `evidencePreviewUrl` que se acepta: la ruta del backend, sin consulta ni fragmento (E6). */
+const PREVIEW_URL = /^\/api\/v1(\/donations\/tracking\/assets\/[^/?#\s]+\/evidence-preview)$/;
+/** Los eventos que pueden llevar foto (E8). */
+const PHOTO_EVENTS = ['ASSET_REGISTERED', 'ASSET_DISPATCHED', 'ASSET_RECEIVED', 'ASSET_DELIVERED'];
 
 /** La prueba solo se acepta entera y bien formada; si falta algo, no hay botón (nunca se comprueba a medias). */
 export function parseAnchorProof(v: unknown): AnchorProof | undefined {
@@ -164,12 +176,14 @@ export function parseTransition(t: Record<string, unknown>): Transition {
   const anchorStatus = (ANCHOR_STATUSES as readonly string[]).includes(t.anchorStatus as string) ? t.anchorStatus as AnchorStatus : undefined;
   const eventHash = typeof t.eventHash === 'string' && HEX64.test(t.eventHash) ? t.eventHash : undefined;
   const delivered = t.eventType === 'ASSET_DELIVERED';
+  const photoStep = PHOTO_EVENTS.includes(t.eventType as string);
   return {
     eventType: t.eventType as string, timestamp: opt(t.timestamp), locationZone: opt(t.locationZone),
     custodianCategory: opt(t.custodianCategory), status: opt(t.status), anchorStatus, eventHash,
     anchorProof: anchorStatus === 'ANCHORED' && eventHash ? parseAnchorProof(t.anchorProof) : undefined,
-    evidenceRegistered: delivered && typeof t.evidenceRegistered === 'boolean' ? t.evidenceRegistered : undefined,
-    evidenceRef: delivered && typeof t.evidenceRef === 'string' && EVIDENCE_REF.test(t.evidenceRef) ? t.evidenceRef : undefined,
+    evidenceRegistered: photoStep && typeof t.evidenceRegistered === 'boolean' ? t.evidenceRegistered : undefined,
+    evidenceRef: photoStep && typeof t.evidenceRef === 'string' && EVIDENCE_REF.test(t.evidenceRef) ? t.evidenceRef : undefined,
+    evidencePreviewUrl: delivered && typeof t.evidencePreviewUrl === 'string' && PREVIEW_URL.test(t.evidencePreviewUrl) ? t.evidencePreviewUrl : undefined,
   };
 }
 
@@ -180,6 +194,37 @@ export async function fetchAssetHistory(trackingCode: string, assetRef: string):
     if (!Array.isArray(h)) return null;
     return h.filter((t) => t && typeof t.eventType === 'string').map((t) => parseTransition(t));
   });
+}
+
+/**
+ * La copia censurada de la foto de entrega (ADR-021-D Enmienda 2, E5b): `fetch` con `Authorization: Bearer <trackingCode>`
+ * (un `<img src>` no puede mandar la cabecera) y un `Blob`; el código no viaja nunca en la ruta ni en la consulta (E6). Solo
+ * se pide la forma exacta de la ruta del backend: nada que venga de la respuesta puede apuntar a otro sitio con el código.
+ */
+export async function fetchEvidencePreview(trackingCode: string, evidencePreviewUrl: string): Promise<TrackingOutcome<Blob>> {
+  const m = PREVIEW_URL.exec(evidencePreviewUrl);
+  if (!m) return { kind: 'error' };
+  let res: Response;
+  try {
+    res = await fetch(`${getApiBase()}${m[1]}`, {
+      method: 'GET',
+      headers: { Accept: 'image/png', Authorization: `Bearer ${trackingCode}` },
+      cache: 'no-store',
+      credentials: 'omit',
+      referrerPolicy: 'no-referrer',
+    });
+  } catch {
+    return { kind: 'error' };
+  }
+  if (res.status === 401) return { kind: 'invalid-code' };
+  if (res.status === 404) return { kind: 'not-found' };
+  if (!res.ok) return { kind: 'error' };
+  try {
+    const blob = await res.blob();
+    return blob.type.startsWith('image/') ? { kind: 'ok', data: blob } : { kind: 'error' };
+  } catch {
+    return { kind: 'error' };
+  }
 }
 
 export interface IntegrityBatch {

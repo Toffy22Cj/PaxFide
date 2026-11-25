@@ -4,7 +4,7 @@
 // parentAssetRef, G-3 anchorStatus); paxfide-linea-tiempo.html (#detailCard, #treeStage, #snakeCard). Desviaciones
 // X-15 (sin nombre del lote ni destinatario) y X-16 (sin selector de escenario ni "Recorrido en vivo").
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { LogisticsItem, TrackingOutcome, Transition } from '../../lib/api/tracking';
+import type { fetchEvidencePreview, LogisticsItem, TrackingOutcome, Transition } from '../../lib/api/tracking';
 import { custodianLabel, eventLabel, lifecycleLabel } from '../../lib/labels';
 import { formatMinorUnits } from '../../lib/money';
 import { formatQuantity } from '../../lib/quantity';
@@ -31,7 +31,7 @@ export function tabLabel(items: LogisticsItem[], i: number): string {
 
 const quantityOf = (item: LogisticsItem) => [formatQuantity(item.quantity), item.unitOfMeasure].filter(Boolean).join(' ');
 
-export function TrackingTimeline({ items, payment, campaignLine, histories, onRetry, aside }: {
+export function TrackingTimeline({ items, payment, campaignLine, histories, onRetry, aside, trackingCode, previewClient }: {
   items: LogisticsItem[];
   payment: PaymentFacts;
   campaignLine?: string;
@@ -39,6 +39,9 @@ export function TrackingTimeline({ items, payment, campaignLine, histories, onRe
   onRetry: (assetRef: string) => void;
   /** Lo que va bajo el detalle en la columna izquierda (la insignia de integridad y los hechos). */
   aside: React.ReactNode;
+  /** Para pedir la copia censurada de la foto de entrega con la cabecera (ADR-021-D Enm. 2, E5b). */
+  trackingCode?: string;
+  previewClient?: typeof fetchEvidencePreview;
 }) {
   const roots = useMemo(() => buildAssetTree(items), [items]);
   const indexOf = (ref: string) => items.findIndex((i) => i.assetRef === ref);
@@ -76,6 +79,8 @@ export function TrackingTimeline({ items, payment, campaignLine, histories, onRe
         <p className={s.colTag}><span className={s.colDot} aria-hidden="true" />Detalle y verificación</p>
         <StepDetail
           step={selectedStep}
+          trackingCode={trackingCode}
+          previewClient={previewClient}
           payment={selection?.kind === 'payment' ? payment : null}
           assetTitle={selectedItem ? `${assetName(selectedItem, indexOf(selectedItem.assetRef) + 1)}${quantityOf(selectedItem) ? ` · ${quantityOf(selectedItem)}` : ''}` : undefined}
         />

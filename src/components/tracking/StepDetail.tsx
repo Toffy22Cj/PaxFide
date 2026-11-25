@@ -3,7 +3,7 @@
 // ("Huella criptográfica", "Comprobar en mi navegador", huella de la foto de entrega, U-8); referencia-api-v1.md §8,
 // notas del 2026-10-25 (G-3, E1.3, E1.4 y ADR-051 F6); paxfide-linea-tiempo.html (showDetail).
 import React, { useEffect, useState } from 'react';
-import type { Transition } from '../../lib/api/tracking';
+import { fetchEvidencePreview, type Transition } from '../../lib/api/tracking';
 import { anchorStatusLabel, custodianLabel, eventLabel } from '../../lib/labels';
 import { explorerName, explorerUrl, shortHash, verifyAnchorProof } from '../../lib/tracking/merkle';
 import { formatMinorUnits } from '../../lib/money';
@@ -21,11 +21,15 @@ export type Selection =
 export interface PaymentFacts { firstClearedAt?: string; lastClearedAt?: string; amount?: string; currency?: string }
 
 /** El paso seleccionado. Se anuncia con `aria-live="polite"` al cambiar (F-A5). */
-export function StepDetail({ step, payment, assetTitle }: { step: Transition | null; payment: PaymentFacts | null; assetTitle?: string }) {
+export function StepDetail({ step, payment, assetTitle, trackingCode, previewClient = fetchEvidencePreview }: {
+  step: Transition | null; payment: PaymentFacts | null; assetTitle?: string;
+  /** Para pedir la copia censurada con la cabecera (E5b); solo viaja ahí, nunca a la URL de la imagen. */
+  trackingCode?: string; previewClient?: typeof fetchEvidencePreview;
+}) {
   return (
     <div className={s.detail} aria-live="polite" data-testid="step-detail">
       {payment && <PaymentDetail payment={payment} />}
-      {step && <TransitionDetail step={step} assetTitle={assetTitle} />}
+      {step && <TransitionDetail step={step} assetTitle={assetTitle} trackingCode={trackingCode} previewClient={previewClient} />}
       {!payment && !step && <p className={s.hint}>Elige un paso del recorrido para ver su detalle.</p>}
     </div>
   );
@@ -48,7 +52,9 @@ function PaymentDetail({ payment }: { payment: PaymentFacts }) {
   );
 }
 
-function TransitionDetail({ step, assetTitle }: { step: Transition; assetTitle?: string }) {
+function TransitionDetail({ step, assetTitle, trackingCode, previewClient }: {
+  step: Transition; assetTitle?: string; trackingCode?: string; previewClient: typeof fetchEvidencePreview;
+}) {
   const known = asTrackingEvent(step.eventType);
   return (
     <>
@@ -62,20 +68,60 @@ function TransitionDetail({ step, assetTitle }: { step: Transition; assetTitle?:
         <dt>Zona</dt><dd>{zoneOrNone(step.locationZone, NO_PUBLIC_ZONE)}</dd>
         <dt>Fecha</dt><dd>{step.timestamp ? <LocalDate iso={step.timestamp} withTime /> : 'Sin fecha'}</dd>
         {step.eventHash && <><dt>Huella criptográfica</dt><dd><HashValue hash={step.eventHash} label="Copiar huella" /></dd></>}
-        {step.eventType === 'ASSET_DELIVERED' && step.evidenceRegistered !== undefined && (
+        {step.evidenceRegistered !== undefined && (
           <>
-            <dt>Foto de la entrega</dt>
+            <dt>{step.eventType === 'ASSET_DELIVERED' ? 'Foto de la entrega' : 'Foto del paso'}</dt>
             <dd data-testid="detail-evidence">
               {step.evidenceRegistered
-                ? <>Con foto de entrega{step.evidenceRef && <> · <HashValue hash={step.evidenceRef} label="Copiar huella de la foto" /></>}</>
+                ? <>{step.eventType === 'ASSET_DELIVERED' ? 'Con foto de entrega' : 'Con foto'}{step.evidenceRef && <> · <HashValue hash={step.evidenceRef} label="Copiar huella de la foto" /></>}</>
                 : 'Sin foto'}
             </dd>
           </>
         )}
       </dl>
+      {step.evidencePreviewUrl && trackingCode && (
+        <EvidencePreview trackingCode={trackingCode} url={step.evidencePreviewUrl} client={previewClient} />
+      )}
       <AnchorPill status={step.anchorStatus} />
       <AnchorVerification step={step} />
     </>
+  );
+}
+
+/**
+ * La copia censurada de la foto de entrega (ADR-021-D Enmienda 2, E5b y E6): se pide con `fetch` y la cabecera, se pinta con
+ * `URL.createObjectURL` y se revoca al desmontar y al cambiar de paso, incluso si la respuesta llega tarde. El `src` es un
+ * `blob:` y nunca lleva el código. Si no carga, no se dice nada más: el hecho (la huella) sigue arriba.
+ */
+function EvidencePreview({ trackingCode, url, client }: { trackingCode: string; url: string; client: typeof fetchEvidencePreview }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let alive = true;
+    let objectUrl: string | null = null;
+    setSrc(null);
+    setLoading(true);
+    void client(trackingCode, url).then((r) => {
+      if (!alive) return;
+      if (r.kind === 'ok') {
+        objectUrl = URL.createObjectURL(r.data);
+        setSrc(objectUrl);
+      }
+      setLoading(false);
+    });
+    return () => {
+      alive = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [trackingCode, url, client]);
+  if (loading) return <p className={s.hint} data-testid="evidence-preview-loading">Cargando la foto…</p>;
+  if (!src) return null;
+  return (
+    <figure className={s.evidence} data-testid="evidence-preview">
+      <img src={src} data-testid="evidence-preview-img" className={s.evidenceImg}
+        alt="Foto de la entrega, con las personas y los datos que identifican difuminados" />
+      <figcaption className={s.hint}>Una copia difuminada de la foto de la entrega; la original no se publica.</figcaption>
+    </figure>
   );
 }
 

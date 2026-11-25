@@ -417,6 +417,14 @@ function multipartField(req, raw, name) {
 const STEP_OF_EVENT = { ASSET_REGISTERED: 'registered', ASSET_DISPATCHED: 'dispatched', ASSET_RECEIVED: 'received', ASSET_DELIVERED: 'delivered' };
 const stepEvidences = new Map(); // `${STEP}:${ref}` -> { organizationId, step, assetRef, bytes, removed }
 const publications = new Map(); // assetRef -> [{ action, at, by, confirmNoIdentifiablePerson }]
+/** E5: la copia está publicada (última decisión PUBLISH), existe (se generó) y la original no está retirada. */
+function previewIsPublished(a) {
+  const log = publications.get(a.assetRef) || [];
+  const original = a.evidenceRef && evidences.get(a.evidenceRef);
+  return log.length > 0 && log[log.length - 1].action === 'PUBLISH' && !!original && !original.removed && !!original.redactedGenerated;
+}
+/** Un PNG de 1 × 1 para la copia censurada del doble (no es una foto: solo comprueba la ruta y las cabeceras). */
+const PREVIEW_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
 const EVIDENCE_REF_RE = /^sha256:[0-9a-f]{64}$/;
 const PURPOSE_STEP = { REGISTRATION_EVIDENCE: 'REGISTERED', DISPATCH_EVIDENCE: 'DISPATCHED', RECEIPT_EVIDENCE: 'RECEIVED' };
 function photoOfEvent(h) {
@@ -1795,13 +1803,29 @@ const server = http.createServer(async (req, res) => {
         } else {
           out.anchorStatus = 'PENDING';
         }
-        // ADR-051 F6: la huella de la foto, nunca la imagen
-        if (h.eventType === 'ASSET_DELIVERED') {
-          out.evidenceRegistered = !!a.evidenceRef;
-          if (a.evidenceRef && /^sha256:[0-9a-f]{64}$/.test(a.evidenceRef)) out.evidenceRef = a.evidenceRef;
+        // ADR-051 F6 y ADR-021-D Enmienda 2, E8: la huella de la foto de cada paso con foto posible, nunca la imagen
+        if (['ASSET_REGISTERED', 'ASSET_DISPATCHED', 'ASSET_RECEIVED', 'ASSET_DELIVERED'].includes(h.eventType)) {
+          const ref = h.eventType === 'ASSET_DELIVERED' ? a.evidenceRef : h.evidenceRef;
+          out.evidenceRegistered = !!ref;
+          if (ref && /^sha256:[0-9a-f]{64}$/.test(ref)) out.evidenceRef = ref;
+        }
+        // E5: la URL de la copia censurada solo si existe, está publicada y la original no está retirada
+        if (h.eventType === 'ASSET_DELIVERED' && previewIsPublished(a)) {
+          out.evidencePreviewUrl = `/api/v1/donations/tracking/assets/${encodeURIComponent(a.assetRef)}/evidence-preview`;
         }
         return out;
       }) });
+      return;
+    }
+    // ADR-021-D Enmienda 2, E5 a E7: la copia censurada. Mismo 401 que el historial si el código no cubre el activo; 404
+    // con el MISMO cuerpo sin copia publicada, con la original retirada o sin foto
+    const prev = p.match(/^\/donations\/tracking\/assets\/([^/]+)\/evidence-preview$/);
+    if (prev) {
+      const a = assets.get(decodeURIComponent(prev[1]));
+      if (!a || a.fundId !== intent.fundId) { send(res, 401, { type: 'about:blank', title: 'Unauthorized', status: 401, detail: 'Invalid or missing token' }); return; }
+      if (!previewIsPublished(a)) { problem(res, 404, 'NotFound'); return; }
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'private, no-store' });
+      res.end(PREVIEW_PNG);
       return;
     }
     problem(res, 404, 'NotFound');

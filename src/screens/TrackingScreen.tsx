@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  DonationTracking, fetchAssetHistory, fetchIntegrity, fetchNarrative, fetchTracking, Narrative, TrackingOutcome,
+  DonationTracking, fetchAssetHistory, fetchEvidencePreview, fetchIntegrity, fetchNarrative, fetchTracking, Narrative, TrackingOutcome,
 } from '../lib/api/tracking';
 import { consumeHandedOffTrackingCode } from '../lib/tracking/handoff';
 import { formatMinorUnits } from '../lib/money';
@@ -23,6 +23,7 @@ type Clients = {
   narrative?: typeof fetchNarrative;
   history?: typeof fetchAssetHistory;
   integrity?: typeof fetchIntegrity;
+  preview?: typeof fetchEvidencePreview;
 };
 
 const money = (v: string | undefined, currency?: string) => (v === undefined ? '—' : formatMinorUnits(v, currency));
@@ -144,6 +145,8 @@ function TrackingDetails({ data, trackingCode, clients, onClose }: {
         payment={{ firstClearedAt: f?.firstClearedAt, lastClearedAt: f?.lastClearedAt, amount: f?.originalAmount, currency: f?.currency }}
         campaignLine={sub || undefined}
         histories={histories}
+        trackingCode={trackingCode}
+        previewClient={clients.preview}
         onRetry={(ref) => void load(ref)}
         aside={(
           <>
