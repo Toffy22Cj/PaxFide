@@ -591,11 +591,11 @@ export class WorldRenderer {
       D.push([cx + cy - 1, () => {
         const n = 7;
         for (let j = 0; j < n; j++) {
-          const x = cx - 4.86 + j * 0.58, y = cy, lit = clamp01(a * 1.6 - j * 0.08), pulse = ((Math.sin(T * 3 - j * 0.9) + 1) / 2) * 0.35;
-          this.cube(x, y, 0, 0.34, lit > 0 ? P.chainLit : P.chainOff, 0.5 + lit * 0.5);
+          const x = cx - 5.15 + j * 0.56, y = cy, lit = clamp01(a * 1.6 - j * 0.08), pulse = ((Math.sin(T * 3 - j * 0.9) + 1) / 2) * 0.35;
+          this.cube(x, y, 0, 0.32, lit > 0 ? P.chainLit : P.chainOff, 0.5 + lit * 0.5);
           if (lit > 0) {
-            const nextX = j < n - 1 ? x + 0.41 : cx - 1;
-            const [p, q] = this.p(x + 0.17, y, 0.17), [r, s2] = this.p(nextX, y, 0.17);
+            const nextX = j < n - 1 ? x + 0.4 : cx - 1;
+            const [p, q] = this.p(x + 0.16, y, 0.16), [r, s2] = this.p(nextX, y, 0.16);
             this.ctx.strokeStyle = P.chainLink((this.dark ? 0.6 : 0.4) + pulse);
             this.ctx.lineWidth = 2.2; this.ctx.setLineDash([3, 3]);
             this.ctx.beginPath(); this.ctx.moveTo(p, q); this.ctx.lineTo(r, s2); this.ctx.stroke(); this.ctx.setLineDash([]);
@@ -604,13 +604,13 @@ export class WorldRenderer {
         this.box(cx - 1, cy - 1, 0, 2, 2, 0.45, P.chainOff);
       }]);
       D.push([cx + cy + 2, () => {
-        // Distribución horizontal en pantalla (dx, -dx) para que el árbol quede centrado y dentro del pedestal 2×2
-        const L = [-0.63, -0.21, 0.21, 0.63].map((d) => [cx + d, cy - d, 0.85] as const);
-        const M = [[cx - 0.42, cy + 0.42, 2.05], [cx + 0.42, cy - 0.42, 2.05]] as const, R = [cx, cy, 3.25] as const;
+        // Distribución horizontal en pantalla (dx, -dx) apoyada sobre el pedestal 2×2 (z = 0.48) para que ninguna caja sobresalga
+        const L = [-0.54, -0.18, 0.18, 0.54].map((d) => [cx + d, cy - d, 0.48] as const);
+        const M = [[cx - 0.36, cy + 0.36, 1.65], [cx + 0.36, cy - 0.36, 1.65]] as const, R = [cx, cy, 2.85] as const;
         const pl = smooth(0.05, 0.4, a), pm = smooth(0.35, 0.65, a), pr = smooth(0.6, 0.85, a), pb = smooth(0.8, 1, a);
         const line = (A: readonly number[], B: readonly number[], al: number) => {
           if (al <= 0) return;
-          const [p, q] = this.p(A[0], A[1], A[2] + 0.2), [r, s2] = this.p(B[0], B[1], B[2] + 0.2);
+          const [p, q] = this.p(A[0], A[1], A[2] + 0.18), [r, s2] = this.p(B[0], B[1], B[2] + 0.18);
           this.ctx.strokeStyle = P.merkleLine((this.dark ? 0.85 : 0.7) * al); this.ctx.lineWidth = Math.max(1.5, 2.4 * k());
           this.ctx.beginPath(); this.ctx.moveTo(p, q); this.ctx.lineTo(r, s2); this.ctx.stroke();
         };
@@ -622,21 +622,21 @@ export class WorldRenderer {
         }
         L.forEach((l, j) => line(l, M[j >> 1], pm));
         M.forEach((m) => line(m, R, pr));
-        L.forEach((l, j) => { const p = ease.back(clamp01(pl * 1.3 - j * 0.08)); if (p > 0) this.cube(l[0], l[1], l[2] + (1 - p) * 0.5, 0.34, P.chainLit, clamp01(p * 2)); });
-        M.forEach((m) => { const p = ease.back(pm); if (p > 0) this.cube(m[0], m[1], m[2] + (1 - p) * 0.5, 0.42, P.chainLit, clamp01(p * 2)); });
+        L.forEach((l, j) => { const p = ease.back(clamp01(pl * 1.3 - j * 0.08)); if (p > 0) this.cube(l[0], l[1], l[2] + (1 - p) * 0.45, 0.3, P.chainLit, clamp01(p * 2)); });
+        M.forEach((m) => { const p = ease.back(pm); if (p > 0) this.cube(m[0], m[1], m[2] + (1 - p) * 0.45, 0.38, P.chainLit, clamp01(p * 2)); });
         const p = ease.back(pr);
         if (p > 0) {
-          this.cube(R[0], R[1], R[2] + (1 - p) * 0.5, 0.58, P.anchorGold, clamp01(p * 2));
-          const [q1, q2] = this.p(R[0] + 0.29, R[1] + 0.29, R[2] + 0.29);
+          this.cube(R[0], R[1], R[2] + (1 - p) * 0.45, 0.54, P.anchorGold, clamp01(p * 2));
+          const [q1, q2] = this.p(R[0] + 0.27, R[1] + 0.27, R[2] + 0.27);
           this.lock(q1, q2, 14 * k() * Math.max(0.5, p), smooth(0.85, 1, a));
         }
       }]);
       D.push([cx + cy + 5.3, () => {
         const pb = smooth(0.8, 1, a);
-        this.drawMapLabel(cx, cy, 3.85, cx, cy, 4.95, 'Raíz anclada', 'default', pb);
+        this.drawMapLabel(cx, cy, 3.45, cx, cy, 4.45, 'Raíz anclada', 'default', pb);
       }]);
-      D.push([cx + 2.4 + cy + 2.0, () => {
-        this.drawMapLabel(cx, cy, 0.45, cx + 2.4, cy + 2.0, 2.6, 'Anclaje en blockchain', 'default', 1);
+      D.push([cx + 3.4 + cy - 1.3 + 4, () => {
+        this.drawMapLabel(cx + 1.0, cy, 0.35, cx + 3.4, cy - 1.3, 0.45, 'Anclaje en blockchain', 'default', 1);
       }]);
     }
 
@@ -732,7 +732,7 @@ export class WorldRenderer {
       { x: STOPS[2][0] - 0.9, y: STOPS[2][1] - 2.5, z: 1.0, r: 52 }, { x: STOPS[3][0] - 0.2, y: STOPS[3][1] - 2.4, z: 2.2, r: 68 },
       { x: STOPS[4][0] + 0.2, y: STOPS[4][1] - 3.05, z: 2.0, r: 68 },
     ];
-    const [beamX, beamY] = this.p(STOPS[3][0] - 0.2, STOPS[3][1] - 2.4, 3.25), beamW = 26 * k;
+    const [beamX, beamY] = this.p(STOPS[3][0] - 0.2, STOPS[3][1] - 2.4, 2.85), beamW = 26 * k;
     const fade = (cx: number, cy: number, cz: number, s: number) => {
       const [cp, cq] = this.p(cx, cy, cz), cRad = TW * k * s * 1.5;
       let f = 1;
