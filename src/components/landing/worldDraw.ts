@@ -591,10 +591,11 @@ export class WorldRenderer {
       D.push([cx + cy - 1, () => {
         const n = 7;
         for (let j = 0; j < n; j++) {
-          const x = sx - 4.6 + j * 0.62, y = sy - 1.25, lit = clamp01(a * 1.6 - j * 0.08), pulse = ((Math.sin(T * 3 - j * 0.9) + 1) / 2) * 0.35;
+          const x = cx - 4.86 + j * 0.58, y = cy, lit = clamp01(a * 1.6 - j * 0.08), pulse = ((Math.sin(T * 3 - j * 0.9) + 1) / 2) * 0.35;
           this.cube(x, y, 0, 0.34, lit > 0 ? P.chainLit : P.chainOff, 0.5 + lit * 0.5);
-          if (lit > 0 && j < n - 1) {
-            const [p, q] = this.p(x + 0.17, y, 0.17), [r, s2] = this.p(x + 0.45, y, 0.17);
+          if (lit > 0) {
+            const nextX = j < n - 1 ? x + 0.41 : cx - 1;
+            const [p, q] = this.p(x + 0.17, y, 0.17), [r, s2] = this.p(nextX, y, 0.17);
             this.ctx.strokeStyle = P.chainLink((this.dark ? 0.6 : 0.4) + pulse);
             this.ctx.lineWidth = 2.2; this.ctx.setLineDash([3, 3]);
             this.ctx.beginPath(); this.ctx.moveTo(p, q); this.ctx.lineTo(r, s2); this.ctx.stroke(); this.ctx.setLineDash([]);
@@ -603,8 +604,9 @@ export class WorldRenderer {
         this.box(cx - 1, cy - 1, 0, 2, 2, 0.45, P.chainOff);
       }]);
       D.push([cx + cy + 2, () => {
-        const L = [-1.05, -0.35, 0.35, 1.05].map((dx) => [cx + dx, cy, 1.55] as const);
-        const M = [[cx - 0.7, cy, 2.75], [cx + 0.7, cy, 2.75]] as const, R = [cx, cy, 3.95] as const;
+        // Distribución horizontal en pantalla (dx, -dx) para que el árbol quede centrado y dentro del pedestal 2×2
+        const L = [-0.63, -0.21, 0.21, 0.63].map((d) => [cx + d, cy - d, 0.85] as const);
+        const M = [[cx - 0.42, cy + 0.42, 2.05], [cx + 0.42, cy - 0.42, 2.05]] as const, R = [cx, cy, 3.25] as const;
         const pl = smooth(0.05, 0.4, a), pm = smooth(0.35, 0.65, a), pr = smooth(0.6, 0.85, a), pb = smooth(0.8, 1, a);
         const line = (A: readonly number[], B: readonly number[], al: number) => {
           if (al <= 0) return;
@@ -620,18 +622,18 @@ export class WorldRenderer {
         }
         L.forEach((l, j) => line(l, M[j >> 1], pm));
         M.forEach((m) => line(m, R, pr));
-        L.forEach((l, j) => { const p = ease.back(clamp01(pl * 1.3 - j * 0.08)); if (p > 0) this.cube(l[0], l[1], l[2] + (1 - p) * 0.6, 0.36, P.chainLit, clamp01(p * 2)); });
-        M.forEach((m) => { const p = ease.back(pm); if (p > 0) this.cube(m[0], m[1], m[2] + (1 - p) * 0.6, 0.44, P.chainLit, clamp01(p * 2)); });
+        L.forEach((l, j) => { const p = ease.back(clamp01(pl * 1.3 - j * 0.08)); if (p > 0) this.cube(l[0], l[1], l[2] + (1 - p) * 0.5, 0.34, P.chainLit, clamp01(p * 2)); });
+        M.forEach((m) => { const p = ease.back(pm); if (p > 0) this.cube(m[0], m[1], m[2] + (1 - p) * 0.5, 0.42, P.chainLit, clamp01(p * 2)); });
         const p = ease.back(pr);
         if (p > 0) {
-          this.cube(R[0], R[1], R[2] + (1 - p) * 0.6, 0.6, P.anchorGold, clamp01(p * 2));
-          const [q1, q2] = this.p(R[0] + 0.3, R[1] + 0.3, R[2] + 0.3);
+          this.cube(R[0], R[1], R[2] + (1 - p) * 0.5, 0.58, P.anchorGold, clamp01(p * 2));
+          const [q1, q2] = this.p(R[0] + 0.29, R[1] + 0.29, R[2] + 0.29);
           this.lock(q1, q2, 14 * k() * Math.max(0.5, p), smooth(0.85, 1, a));
         }
       }]);
       D.push([cx + cy + 5.3, () => {
         const pb = smooth(0.8, 1, a);
-        this.drawMapLabel(cx, cy, 3.95, cx, cy, 5.3, 'Raíz anclada', 'default', pb);
+        this.drawMapLabel(cx, cy, 3.85, cx, cy, 4.95, 'Raíz anclada', 'default', pb);
       }]);
       D.push([cx + 2.4 + cy + 2.0, () => {
         this.drawMapLabel(cx, cy, 0.45, cx + 2.4, cy + 2.0, 2.6, 'Anclaje en blockchain', 'default', 1);
@@ -730,7 +732,7 @@ export class WorldRenderer {
       { x: STOPS[2][0] - 0.9, y: STOPS[2][1] - 2.5, z: 1.0, r: 52 }, { x: STOPS[3][0] - 0.2, y: STOPS[3][1] - 2.4, z: 2.2, r: 68 },
       { x: STOPS[4][0] + 0.2, y: STOPS[4][1] - 3.05, z: 2.0, r: 68 },
     ];
-    const [beamX, beamY] = this.p(STOPS[3][0] - 0.2, STOPS[3][1] - 2.4, 3.95), beamW = 26 * k;
+    const [beamX, beamY] = this.p(STOPS[3][0] - 0.2, STOPS[3][1] - 2.4, 3.25), beamW = 26 * k;
     const fade = (cx: number, cy: number, cz: number, s: number) => {
       const [cp, cq] = this.p(cx, cy, cz), cRad = TW * k * s * 1.5;
       let f = 1;
