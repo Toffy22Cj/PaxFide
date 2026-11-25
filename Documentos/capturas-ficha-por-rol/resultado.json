@@ -1,0 +1,255 @@
+[
+  {
+    "role": "EMPLOYEE",
+    "state": "sin-foto",
+    "asset": "906dc700",
+    "forbidden": 0,
+    "pasosYFotos": 1,
+    "copiaCensurada": 0,
+    "controlPublicar": 0,
+    "accionesLogisticas": 3,
+    "peticiones": [
+      "200 GET /api/v1/physical-assets/906dc700-67df-52ca-9213-0867d99ca762",
+      "200 GET /api/v1/physical-assets/906dc700-67df-52ca-9213-0867d99ca762/evidence/steps"
+    ]
+  },
+  {
+    "role": "EMPLOYEE",
+    "state": "con-foto-entregado",
+    "asset": "31866455",
+    "forbidden": 0,
+    "pasosYFotos": 1,
+    "copiaCensurada": 1,
+    "controlPublicar": 0,
+    "accionesLogisticas": 0,
+    "peticiones": [
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/steps",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/dispatched",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/registered",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/received",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/redacted"
+    ]
+  },
+  {
+    "role": "EMPLOYEE",
+    "state": "con-foto-recibido",
+    "asset": "4caa7d1b",
+    "forbidden": 0,
+    "pasosYFotos": 1,
+    "copiaCensurada": 0,
+    "controlPublicar": 0,
+    "accionesLogisticas": 3,
+    "peticiones": [
+      "200 GET /api/v1/physical-assets/4caa7d1b-df31-57ff-a9b8-b7258e97c2a8",
+      "200 GET /api/v1/physical-assets/4caa7d1b-df31-57ff-a9b8-b7258e97c2a8/evidence/steps",
+      "200 GET /api/v1/physical-assets/4caa7d1b-df31-57ff-a9b8-b7258e97c2a8/evidence/registered",
+      "200 GET /api/v1/physical-assets/4caa7d1b-df31-57ff-a9b8-b7258e97c2a8/evidence/received",
+      "200 GET /api/v1/physical-assets/4caa7d1b-df31-57ff-a9b8-b7258e97c2a8/evidence/dispatched"
+    ]
+  },
+  {
+    "role": "EMPLOYEE",
+    "state": "retirada-entregado",
+    "asset": "334ec13c",
+    "forbidden": 0,
+    "pasosYFotos": 1,
+    "copiaCensurada": 0,
+    "controlPublicar": 0,
+    "accionesLogisticas": 0,
+    "peticiones": [
+      "200 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e",
+      "410 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e/evidence",
+      "200 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e/evidence/steps",
+      "200 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e/evidence/registered",
+      "200 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e/evidence/dispatched",
+      "200 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e/evidence/received"
+    ]
+  },
+  {
+    "role": "EMPLOYEE",
+    "state": "retirada-recibido",
+    "asset": "26e8bbee",
+    "forbidden": 0,
+    "pasosYFotos": 1,
+    "copiaCensurada": 0,
+    "controlPublicar": 0,
+    "accionesLogisticas": 3,
+    "peticiones": [
+      "200 GET /api/v1/physical-assets/26e8bbee-c60a-5597-b4c2-cb74bc3cfcf7",
+      "200 GET /api/v1/physical-assets/26e8bbee-c60a-5597-b4c2-cb74bc3cfcf7/evidence/steps",
+      "200 GET /api/v1/physical-assets/26e8bbee-c60a-5597-b4c2-cb74bc3cfcf7/evidence/registered",
+      "200 GET /api/v1/physical-assets/26e8bbee-c60a-5597-b4c2-cb74bc3cfcf7/evidence/dispatched"
+    ]
+  },
+  {
+    "role": "ADMINISTRATOR",
+    "state": "sin-foto",
+    "asset": "906dc700",
+    "forbidden": 0,
+    "pasosYFotos": 1,
+    "copiaCensurada": 0,
+    "controlPublicar": 0,
+    "accionesLogisticas": 3,
+    "peticiones": [
+      "200 GET /api/v1/physical-assets/906dc700-67df-52ca-9213-0867d99ca762",
+      "200 GET /api/v1/physical-assets/906dc700-67df-52ca-9213-0867d99ca762/evidence/steps"
+    ]
+  },
+  {
+    "role": "ADMINISTRATOR",
+    "state": "con-foto-entregado",
+    "asset": "31866455",
+    "forbidden": 0,
+    "pasosYFotos": 1,
+    "copiaCensurada": 1,
+    "controlPublicar": 1,
+    "accionesLogisticas": 0,
+    "peticiones": [
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/steps",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/dispatched",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/registered",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/received",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/redacted",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/redacted/publication"
+    ]
+  },
+  {
+    "role": "ADMINISTRATOR",
+    "state": "con-foto-recibido",
+    "asset": "4caa7d1b",
+    "forbidden": 0,
+    "pasosYFotos": 1,
+    "copiaCensurada": 0,
+    "controlPublicar": 0,
+    "accionesLogisticas": 3,
+    "peticiones": [
+      "200 GET /api/v1/physical-assets/4caa7d1b-df31-57ff-a9b8-b7258e97c2a8",
+      "200 GET /api/v1/physical-assets/4caa7d1b-df31-57ff-a9b8-b7258e97c2a8/evidence/steps",
+      "200 GET /api/v1/physical-assets/4caa7d1b-df31-57ff-a9b8-b7258e97c2a8/evidence/registered",
+      "200 GET /api/v1/physical-assets/4caa7d1b-df31-57ff-a9b8-b7258e97c2a8/evidence/received",
+      "200 GET /api/v1/physical-assets/4caa7d1b-df31-57ff-a9b8-b7258e97c2a8/evidence/dispatched"
+    ]
+  },
+  {
+    "role": "ADMINISTRATOR",
+    "state": "retirada-entregado",
+    "asset": "334ec13c",
+    "forbidden": 0,
+    "pasosYFotos": 1,
+    "copiaCensurada": 0,
+    "controlPublicar": 0,
+    "accionesLogisticas": 0,
+    "peticiones": [
+      "200 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e",
+      "410 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e/evidence",
+      "200 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e/evidence/steps",
+      "200 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e/evidence/dispatched",
+      "200 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e/evidence/registered",
+      "200 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e/evidence/received"
+    ]
+  },
+  {
+    "role": "ADMINISTRATOR",
+    "state": "retirada-recibido",
+    "asset": "26e8bbee",
+    "forbidden": 0,
+    "pasosYFotos": 1,
+    "copiaCensurada": 0,
+    "controlPublicar": 0,
+    "accionesLogisticas": 3,
+    "peticiones": [
+      "200 GET /api/v1/physical-assets/26e8bbee-c60a-5597-b4c2-cb74bc3cfcf7",
+      "200 GET /api/v1/physical-assets/26e8bbee-c60a-5597-b4c2-cb74bc3cfcf7/evidence/steps",
+      "200 GET /api/v1/physical-assets/26e8bbee-c60a-5597-b4c2-cb74bc3cfcf7/evidence/registered",
+      "200 GET /api/v1/physical-assets/26e8bbee-c60a-5597-b4c2-cb74bc3cfcf7/evidence/dispatched"
+    ]
+  },
+  {
+    "role": "REPRESENTATIVE",
+    "state": "sin-foto",
+    "asset": "906dc700",
+    "forbidden": 0,
+    "pasosYFotos": 1,
+    "copiaCensurada": 0,
+    "controlPublicar": 0,
+    "accionesLogisticas": 0,
+    "peticiones": [
+      "200 GET /api/v1/physical-assets/906dc700-67df-52ca-9213-0867d99ca762",
+      "200 GET /api/v1/physical-assets/906dc700-67df-52ca-9213-0867d99ca762/evidence/steps"
+    ]
+  },
+  {
+    "role": "REPRESENTATIVE",
+    "state": "con-foto-entregado",
+    "asset": "31866455",
+    "forbidden": 0,
+    "pasosYFotos": 1,
+    "copiaCensurada": 1,
+    "controlPublicar": 0,
+    "accionesLogisticas": 0,
+    "peticiones": [
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/steps",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/registered",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/dispatched",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/received",
+      "200 GET /api/v1/physical-assets/31866455-1569-5180-b05c-879d5ee13d93/evidence/redacted"
+    ]
+  },
+  {
+    "role": "REPRESENTATIVE",
+    "state": "con-foto-recibido",
+    "asset": "4caa7d1b",
+    "forbidden": 0,
+    "pasosYFotos": 1,
+    "copiaCensurada": 0,
+    "controlPublicar": 0,
+    "accionesLogisticas": 0,
+    "peticiones": [
+      "200 GET /api/v1/physical-assets/4caa7d1b-df31-57ff-a9b8-b7258e97c2a8",
+      "200 GET /api/v1/physical-assets/4caa7d1b-df31-57ff-a9b8-b7258e97c2a8/evidence/steps",
+      "200 GET /api/v1/physical-assets/4caa7d1b-df31-57ff-a9b8-b7258e97c2a8/evidence/registered",
+      "200 GET /api/v1/physical-assets/4caa7d1b-df31-57ff-a9b8-b7258e97c2a8/evidence/dispatched",
+      "200 GET /api/v1/physical-assets/4caa7d1b-df31-57ff-a9b8-b7258e97c2a8/evidence/received"
+    ]
+  },
+  {
+    "role": "REPRESENTATIVE",
+    "state": "retirada-entregado",
+    "asset": "334ec13c",
+    "forbidden": 0,
+    "pasosYFotos": 1,
+    "copiaCensurada": 0,
+    "controlPublicar": 0,
+    "accionesLogisticas": 0,
+    "peticiones": [
+      "200 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e",
+      "410 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e/evidence",
+      "200 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e/evidence/steps",
+      "200 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e/evidence/registered",
+      "200 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e/evidence/dispatched",
+      "200 GET /api/v1/physical-assets/334ec13c-a237-5d84-85d1-98dbb098136e/evidence/received"
+    ]
+  },
+  {
+    "role": "REPRESENTATIVE",
+    "state": "retirada-recibido",
+    "asset": "26e8bbee",
+    "forbidden": 0,
+    "pasosYFotos": 1,
+    "copiaCensurada": 0,
+    "controlPublicar": 0,
+    "accionesLogisticas": 0,
+    "peticiones": [
+      "200 GET /api/v1/physical-assets/26e8bbee-c60a-5597-b4c2-cb74bc3cfcf7",
+      "200 GET /api/v1/physical-assets/26e8bbee-c60a-5597-b4c2-cb74bc3cfcf7/evidence/steps",
+      "200 GET /api/v1/physical-assets/26e8bbee-c60a-5597-b4c2-cb74bc3cfcf7/evidence/dispatched",
+      "200 GET /api/v1/physical-assets/26e8bbee-c60a-5597-b4c2-cb74bc3cfcf7/evidence/registered"
+    ]
+  }
+]

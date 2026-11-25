@@ -15,9 +15,6 @@ const BASE = '/api/v1';
 const accounts = {
   'admin@demo.test': { password: 'demo-admin', accountId: 'acc-admin', organizationId: 'org-1', roles: ['ADMINISTRATOR'] },
   'empleado@demo.test': { password: 'demo-empleado', accountId: 'acc-employee', organizationId: 'org-1', roles: ['EMPLOYEE'] },
-  // Tarea 5: el backend real solo deja leer la ficha del lote (`GET /physical-assets/{ref}`) a quien tiene EMPLOYEE
-  // (PhysicalAssetOperationalQueryService.loadAuthorized): para ver la copia censurada en la ficha, el administrador necesita los dos papeles
-  'admin-empleado@demo.test': { password: 'demo-admin-empleado', accountId: 'acc-admin-employee', organizationId: 'org-1', roles: ['ADMINISTRATOR', 'EMPLOYEE'] },
   'empleado2@demo.test': { password: 'demo-empleado2', accountId: 'acc-employee-2', organizationId: 'org-1', roles: ['EMPLOYEE'] },
   'empleado3@demo.test': { password: 'demo-empleado3', accountId: 'acc-employee-3', organizationId: 'org-1', roles: ['EMPLOYEE'] },
   'plataforma@demo.test': { password: 'demo-plataforma', accountId: 'acc-platform', roles: [], platformAuthority: 'ADMINISTRATOR' },
@@ -193,8 +190,14 @@ newAsset({ assetRef: 'ASSET-123', organizationRef: 'org-1', assetType: 'Mercado'
   currentCustodianRef: 'CUST-1', currentLocation: 'LOC-1', campaignRef: 'CAMP-1', municipalityCode: '05001', zoneName: 'MEDELLÍN, ANTIOQUIA' });
 
 /** Matriz P7 (ADR-032): EMPLOYEE; REPRESENTATIVE como respaldo solo en registrar y dividir. */
-function canOperate(actor, backup) {
-  return actor.roles.includes('EMPLOYEE') || (backup && actor.roles.includes('REPRESENTATIVE'));
+function canOperate(actor, _backup) {
+  // El core real exige EMPLOYEE para registrar, dividir, despachar, recibir y entregar (RoleAuthorizationPolicy.java:21-22):
+  // el «respaldo» del REPRESENTATIVE que tenía este doble no existe en el backend.
+  return actor.roles.includes('EMPLOYEE');
+}
+/** ADR-032 Enmienda 1: la lectura del lote la hacen ADMINISTRATOR, REPRESENTATIVE y EMPLOYEE de la misma organización. */
+function canReadAsset(actor) {
+  return ['ADMINISTRATOR', 'REPRESENTATIVE', 'EMPLOYEE'].some((r) => actor.roles.includes(r));
 }
 const QTY = /^[0-9]{1,15}(\.[0-9]{1,4})?$/;
 /** Cantidades con escala 4, como el backend real (D-07): `"6"` → `"6.0000"`. */
@@ -2151,7 +2154,8 @@ const server = http.createServer(async (req, res) => {
     const allowed = asset && asset.organizationRef === actor.organizationId && canOperate(actor, backup);
 
     if (!action && !childRef && req.method === 'GET') {
-      if (!allowed) { problem(res, 403, 'Forbidden'); return; }
+      // Inexistente, otra organización, sin organización o sin ninguno de los tres roles: el mismo 403
+      if (!(asset && asset.organizationRef === actor.organizationId && canReadAsset(actor))) { problem(res, 403, 'Forbidden'); return; }
       const out = { assetRef: asset.assetRef, lifecycleStatus: asset.lifecycleStatus, quantity: scale4(asset.quantity), unitOfMeasure: asset.unitOfMeasure };
       if (asset.currentCustodianRef) out.currentCustodianRef = asset.currentCustodianRef;
       if (asset.currentLocation) out.currentLocation = asset.currentLocation;
