@@ -592,21 +592,19 @@ export class WorldRenderer {
     {
       const [sx, sy] = STOPS[3], a = act(3), cx = sx - 0.2, cy = sy - 2.4;
       D.push([cx + cy - 1, () => {
-        const n = 7, base = 0.12;
-        // Riel bajo la cadena, unido al pedestal: los bloques azules quedan sobre su base y no sueltos en el prado
-        this.box(cx - 5.55, cy - 0.3, 0, 4.55, 0.6, base, P.chainOff);
+        const n = 7, z = 0.45, step = 0.28, s = 0.22;
+        // El pedestal blanco va primero y la cadena de bloques se apoya encima, en su borde trasero
+        this.box(cx - 1, cy - 1, 0, 2, 2, z, P.chainOff);
         for (let j = 0; j < n; j++) {
-          const x = cx - 5.15 + j * 0.56, y = cy, lit = clamp01(a * 1.6 - j * 0.08), pulse = ((Math.sin(T * 3 - j * 0.9) + 1) / 2) * 0.35;
-          this.cube(x, y, base, 0.32, lit > 0 ? P.chainLit : P.chainOff, 0.5 + lit * 0.5);
-          if (lit > 0) {
-            const nextX = j < n - 1 ? x + 0.4 : cx - 1;
-            const [p, q] = this.p(x + 0.16, y, base + 0.16), [r, s2] = this.p(nextX, y, base + 0.16);
+          const x = cx - 0.84 + j * step, y = cy - 0.8, lit = clamp01(a * 1.6 - j * 0.08), pulse = ((Math.sin(T * 3 - j * 0.9) + 1) / 2) * 0.35;
+          this.cube(x, y, z, s, lit > 0 ? P.chainLit : P.chainOff, 0.5 + lit * 0.5);
+          if (lit > 0 && j < n - 1) {
+            const [p, q] = this.p(x + s / 2, y, z + s / 2), [r, s2] = this.p(x + step - s / 2, y, z + s / 2);
             this.ctx.strokeStyle = P.chainLink((this.dark ? 0.6 : 0.4) + pulse);
-            this.ctx.lineWidth = 2.2; this.ctx.setLineDash([3, 3]);
+            this.ctx.lineWidth = 2; this.ctx.setLineDash([2, 2]);
             this.ctx.beginPath(); this.ctx.moveTo(p, q); this.ctx.lineTo(r, s2); this.ctx.stroke(); this.ctx.setLineDash([]);
           }
         }
-        this.box(cx - 1, cy - 1, 0, 2, 2, 0.45, P.chainOff);
       }]);
       D.push([cx + cy + 2, () => {
         // Distribución horizontal en pantalla (dx, -dx) apoyada sobre el pedestal 2×2 (z = 0.48) para que ninguna caja sobresalga
