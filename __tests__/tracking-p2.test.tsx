@@ -66,7 +66,7 @@ describe('Árbol de sublotes (G-4)', () => {
 
 describe('Parseo de los campos nuevos', () => {
   const H = 'a'.repeat(64);
-  it('anchorProof solo entera y con ANCHORED; evidenceRef solo sha256 en DELIVERED; un anchorStatus desconocido no se muestra', () => {
+  it('anchorProof solo entera y con ANCHORED; evidenceRef solo sha256 en los pasos con foto; un anchorStatus desconocido no se muestra', () => {
     const proof = { merkleRoot: 'b'.repeat(64), leafIndex: 0, path: [], transactionHash: '0x1', network: 'sepolia', anchoredAt: '2026-10-08T10:00:00Z' };
     expect(parseTransition({ eventType: 'ASSET_REGISTERED', anchorStatus: 'ANCHORED', eventHash: H, anchorProof: proof }).anchorProof).toEqual(proof);
     expect(parseTransition({ eventType: 'ASSET_REGISTERED', anchorStatus: 'PENDING', eventHash: H, anchorProof: proof }).anchorProof).toBeUndefined();
@@ -76,7 +76,10 @@ describe('Parseo de los campos nuevos', () => {
     const ev = 'sha256:' + 'c'.repeat(64);
     expect(parseTransition({ eventType: 'ASSET_DELIVERED', evidenceRegistered: true, evidenceRef: ev })).toMatchObject({ evidenceRegistered: true, evidenceRef: ev });
     expect(parseTransition({ eventType: 'ASSET_DELIVERED', evidenceRegistered: true, evidenceRef: 'Juan Pérez, foto.jpg' }).evidenceRef).toBeUndefined();
-    expect(parseTransition({ eventType: 'ASSET_RECEIVED', evidenceRegistered: true, evidenceRef: ev })).toMatchObject({ evidenceRegistered: undefined, evidenceRef: undefined });
+    // ADR-021-D Enmienda 2, E8 (Q-21D2-1 (a)) reemplaza a la E1: recibir con foto lleva también su huella
+    expect(parseTransition({ eventType: 'ASSET_RECEIVED', evidenceRegistered: true, evidenceRef: ev })).toMatchObject({ evidenceRegistered: true, evidenceRef: ev });
+    // un paso que no puede llevar foto no lleva nada
+    expect(parseTransition({ eventType: 'ASSET_SPLIT', evidenceRegistered: true, evidenceRef: ev })).toMatchObject({ evidenceRegistered: undefined, evidenceRef: undefined });
   });
   it('firstClearedAt, lastClearedAt y parentAssetRef', () => {
     const d = parseTracking({ status: 'EN_PROCESO', financialSnapshot: { firstClearedAt: '2026-10-02T10:14:00Z', lastClearedAt: '2026-10-03T10:00:00Z' },
