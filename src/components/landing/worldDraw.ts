@@ -592,13 +592,15 @@ export class WorldRenderer {
     {
       const [sx, sy] = STOPS[3], a = act(3), cx = sx - 0.2, cy = sy - 2.4;
       D.push([cx + cy - 1, () => {
-        const n = 7;
+        const n = 7, base = 0.12;
+        // Riel bajo la cadena, unido al pedestal: los bloques azules quedan sobre su base y no sueltos en el prado
+        this.box(cx - 5.55, cy - 0.3, 0, 4.55, 0.6, base, P.chainOff);
         for (let j = 0; j < n; j++) {
           const x = cx - 5.15 + j * 0.56, y = cy, lit = clamp01(a * 1.6 - j * 0.08), pulse = ((Math.sin(T * 3 - j * 0.9) + 1) / 2) * 0.35;
-          this.cube(x, y, 0, 0.32, lit > 0 ? P.chainLit : P.chainOff, 0.5 + lit * 0.5);
+          this.cube(x, y, base, 0.32, lit > 0 ? P.chainLit : P.chainOff, 0.5 + lit * 0.5);
           if (lit > 0) {
             const nextX = j < n - 1 ? x + 0.4 : cx - 1;
-            const [p, q] = this.p(x + 0.16, y, 0.16), [r, s2] = this.p(nextX, y, 0.16);
+            const [p, q] = this.p(x + 0.16, y, base + 0.16), [r, s2] = this.p(nextX, y, base + 0.16);
             this.ctx.strokeStyle = P.chainLink((this.dark ? 0.6 : 0.4) + pulse);
             this.ctx.lineWidth = 2.2; this.ctx.setLineDash([3, 3]);
             this.ctx.beginPath(); this.ctx.moveTo(p, q); this.ctx.lineTo(r, s2); this.ctx.stroke(); this.ctx.setLineDash([]);
