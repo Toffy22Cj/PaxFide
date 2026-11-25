@@ -430,8 +430,11 @@ export class WorldRenderer {
     const h = fs * 1.95;
 
     const [ap, aq] = this.p(anchorX, anchorY, anchorZ);
+    // Una etiqueta que cae bajo un bloque de contenido (tarjeta, cabecera) se desvanece: no se lee a través de él (R-F1)
+    const clear = Math.min(rectFade(lp, lq, w / 2, this.avoid, 6), rectFade(ap, aq, 6, this.avoid, 6));
+    if (clear <= 0.01) return;
     ctx.save();
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha = alpha * clear;
 
     // Línea guía discontinua que une el objeto con la etiqueta
     const distGuide = Math.hypot(lp - ap, lq - aq);

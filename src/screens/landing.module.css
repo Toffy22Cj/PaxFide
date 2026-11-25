@@ -10,6 +10,7 @@
 
 .surface {
   background: var(--color-surface-translucent);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
   border-radius: var(--radius-surface);
   box-shadow: var(--shadow-float);
 }
@@ -17,6 +18,7 @@
 /* Cabecera de la landing (prototipo `header.nav`, D-P13: es la única de la página). Fija arriba, sobre el mundo. */
 .header {
   composes: surface;
+  background: var(--color-surface); /* sólida: el texto de la tarjeta que pasa por debajo no se transparenta */
   position: sticky; top: var(--space-3); z-index: 20;
   max-width: 1120px; margin: var(--space-3) auto 0; padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
   display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; gap: var(--space-2);
